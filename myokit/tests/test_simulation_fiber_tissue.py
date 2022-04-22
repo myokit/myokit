@@ -753,10 +753,15 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
         # Standard protocols
         cls.p1 = myokit.pacing.blocktrain(1000, 2, offset=.01)
 
-        # Protocol with error at t = 3.456
+        # Protocol with error at t = 2
         cls.p2 = myokit.Protocol()
-        cls.p2.schedule(period=0, duration=2, level=1, start=.01)
-        cls.p2.schedule(period=0, duration=2, level=10, start=3.456)
+        cls.p2.schedule(period=0, duration=5, level=5e3, start=2)
+
+        # Protocol with error at t = 1.234 (in tissue?)
+        cls.p3 = myokit.Protocol()
+        cls.p3.schedule(period=0, duration=5, level=-1, start=1.234)
+        v = cls.mt.get('ina.m')
+        v.set_rhs('if(membrane.V < -100, 1e4, ' + v.rhs().code() + ')')
 
         # Shared simulations
         cls._s1 = None
@@ -765,8 +770,8 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
     def s1(self):
         if self._s1 is None:
             self._s1 = myokit.FiberTissueSimulation(
-                self.mt,
                 self.mf,
+                self.mt,
                 self.p1,
                 ncells_fiber=(self.nfx, self.nfy),
                 ncells_tissue=(self.ntx, self.nty),
@@ -784,13 +789,12 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
         try:
             self.s1.set_protocol(self.p2)
 
-            '''
             # Automatic detection
             with WarningCollector():
                 self.assertRaisesRegex(
                     myokit.SimulationError,
-                    'Encountered numerical error in fiber simulation at t=3.',
-                    self.s1.run, 5, log_interval=0.1)
+                    'Encountered numerical error in fiber simulation at t=2.0',
+                    self.s1.run, 10, log_interval=1)
 
             # Automatic detection, but not enough information
             self.s1.reset()
@@ -799,14 +803,13 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
                     myokit.SimulationError, 'Unable to pinpoint',
                     self.s1.run, 5, logf=['membrane.V'], logt=myokit.LOG_NONE,
                     log_interval=0.1)
-            '''
 
             # Offline detection
             # res = part, time, icell, var, value, states, bound
             self.s1.reset()
             df, dt = self.s1.run(5, log_interval=0.1, report_nan=False)
             res = self.s1.find_nan(df, dt)
-            self.assertEqual(round(res[1], 1), 3.7)
+            self.assertEqual(round(res[1], 1), 2.0)
 
             # Missing state and bound var in fiber log
             d2 = df.clone()
@@ -840,13 +843,25 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
                 self.s1.find_nan, d2, dt)
 
             # No NaN
-            d2 = df.trim_right(3.5)
-            d3 = dt.trim_right(3.5)
+            d2 = df.trim_right(1.9)
+            d3 = dt.trim_right(1.9)
             self.assertRaisesRegex(
                 myokit.FindNanError, 'Error condition not found',
                 self.s1.find_nan, d2, d3)
 
+        finally:
+            self.s1.set_protocol(self.p1)
+            self.s1.reset()
 
+    def test_neg_stimulus(self):
+        # Tests if NaNs are detected in the tissue, after a negative stimulus
+
+        try:
+            self.s1.set_protocol(self.p3)
+            with WarningCollector():
+                self.assertRaisesRegex(
+                    myokit.SimulationError, 'in tissue simulation at t=1.7',
+                    self.s1.run, 5)
         finally:
             self.s1.set_protocol(self.p1)
             self.s1.reset()

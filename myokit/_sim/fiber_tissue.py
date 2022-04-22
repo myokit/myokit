@@ -554,7 +554,7 @@ class FiberTissueSimulation(myokit.CModule):
                     # Earlier NaN found
                     kfirst = key
                     ifirst = bisect(ar, 0, ifirst)
-                    if ifirst == 0:
+                    if ifirst == 0:  # pragma: no cover
                         break
             return ifirst, kfirst
 
@@ -568,9 +568,9 @@ class FiberTissueSimulation(myokit.CModule):
             ifirstt, kfirstt = find_error_position(_logt)
             if kfirstf is None and kfirstt is None:
                 raise myokit.FindNanError('Error condition not found in logs.')
-            elif kfirstf is None:
+            elif kfirstf is None:  # pragma: no cover
                 ifirst = ifirstt
-            elif kfirstt is None:
+            elif kfirstt is None:  # pragma: no cover
                 ifirst = ifirstf
             elif ifirstf == 0 or ifirstt == 0:
                 raise myokit.FindNanError(
@@ -660,7 +660,7 @@ class FiberTissueSimulation(myokit.CModule):
         bound = []
         max_states = 3
         for k in range(ifirst, ifirst - max_states - 1, -1):
-            if k < 0:
+            if k < 0:  # pragma: no cover
                 break
             s, b = state(k, icell)
             states.append(s)
