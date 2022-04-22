@@ -2,7 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.33.4] - 2022-04-22
 - Added
   - [#869](https://github.com/MichaelClerx/myokit/pull/869) Added methods `myokit.FiberTissueSimulation.fiber_shape` and `.tissue_shape` (but see [https://github.com/MichaelClerx/myokit/issues/764] for an important open issue).
   - [#869](https://github.com/MichaelClerx/myokit/pull/869) Added a method `myokit.FiberTissueSimulation.step_size()`.
@@ -13,7 +13,6 @@ This page lists the main changes made to Myokit in each release.
   - [#869](https://github.com/MichaelClerx/myokit/pull/869) The class `myokit.FiberTissueSimulation` now raises `IndexError` for various index-related errors, instead of the less appropriate `KeyError`.
 - Deprecated
   - [#869](https://github.com/MichaelClerx/myokit/pull/869) The class `myokit.FiberTissueSimulation` is no longer considered deprecated.
-- Removed
 - Fixed
   - [#867](https://github.com/MichaelClerx/myokit/pull/867) @DavAug Fixed a memory leak in `myokit.Simulation`.
   - [#869](https://github.com/MichaelClerx/myokit/pull/869) Added a missing ``y`` argument to `FiberTissueSimulation.fiber_state()` and `FiberTissueSimulation.tissue_state()`.

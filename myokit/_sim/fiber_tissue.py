@@ -117,11 +117,6 @@ class FiberTissueSimulation(myokit.CModule):
     time. A model's suitability can be tested using :meth:`
     has_interdependent_components
     <myokit.Model.has_interdependent_components>`.
-
-    Please note: this class should be considered slightly experimental. The
-    error handling (when NaNs occur) is not well-tested, and future versions of
-    Myokit may merge this class into :class:`SimulationOpenCL` or make other
-    big changes to the API.
     """
     _index = 0  # Unique id for the created simulation module
 
