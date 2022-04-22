@@ -1725,7 +1725,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Check component is list or component and new_name is string or list
         if isinstance(external_component, list):
-            if not all(isinstance(comp, myokit.Component) for comp in new_name):
+            if not all(isinstance(comp, myokit.Component) for comp in external_component):
                 raise TypeError(
                 'Method import_component() expects a myokit.Component or list of myokit.Components')
             if new_name is None:
@@ -1733,7 +1733,7 @@ class Model(ObjectWithMeta, VarProvider):
                 for comp in external_component:
                     new_name.append(comp.name())
             elif isinstance(new_name, basestring) and len(external_component)==1:
-                pass
+                new_name = [new_name]
             elif isinstance(new_name, list):
                 if (len(new_name)!= len(external_component)) or (not all(isinstance(name, basestring) for name in new_name)):
                     raise TypeError(
@@ -1795,14 +1795,18 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Create a list of all external variables that require mapping
         vars_to_map = set()
-        for comp in external_component:
+        for i, comp in enumerate(external_component):
+            vars_ref = set()
             for var in comp.variables():
-                vars_to_map.update(var.refs_to(state_refs=False))
-                vars_to_map.update(var.refs_to(state_refs=True))
-            vars_to_map.update(comp._alias_map.values())
+                vars_ref.update(var.refs_to(state_refs=False))
+                vars_ref.update(var.refs_to(state_refs=True))
+            vars_ref.update(comp._alias_map.values())
+            vars_ref -= set(comp.variables())
+            vars_ref = [x for x in vars_ref if not x.is_nested()]
+            vars_to_map.update(vars_ref)
+        map_to_clone = []
         for comp in external_component:
-            vars_to_map -= set(comp.variables())
-        vars_to_map = [x for x in vars_to_map if not x.is_nested()]
+            map_to_clone.append(vars_to_map.intersection(comp.variables()))
 
         # Rename user-provided mapping to user_var_map, and create a new
         # mapping of the form {external_model.variable: self.variable}
@@ -1870,7 +1874,13 @@ class Model(ObjectWithMeta, VarProvider):
                 # Valid mapping: Store, but only if this is a required variable
                 if ext_var in vars_to_map:
                     var_map[ext_var] = self_var
-
+        
+        # add variables to var_map that map to other imported components but will be reassigned to the clone later
+        for l in map_to_clone:
+            for ext_var in l:
+                if ext_var not in var_map:
+                    var_map[ext_var] = None 
+        
         # Add non user-specified variables that require mapping
         for ext_var in vars_to_map:
             if ext_var not in var_map:
@@ -1898,7 +1908,10 @@ class Model(ObjectWithMeta, VarProvider):
             # Get conversion factors for all mapped variables
             for ext_var, self_var in var_map.items():
                 ext_unit = ext_var.unit(myokit.UNIT_STRICT)
-                self_unit = self_var.unit(myokit.UNIT_STRICT)
+                if self_var is None:
+                    self_unit = ext_unit
+                else:
+                    self_unit = self_var.unit(myokit.UNIT_STRICT)
                 if not myokit.Unit.close(ext_unit, self_unit):
                     try:
                         factors[ext_var] = myokit.Unit.conversion_factor(
@@ -1951,11 +1964,14 @@ class Model(ObjectWithMeta, VarProvider):
         for i, comp in enumerate(external_component):
             new_component.append(comp._clone1(self, new_name[i]))
             
-            # Clone states
-            # TODO: Not sure why clone() code doesn't do this?
             for var in comp.variables(state=True):
+                # Clone states
+                # TODO: Not sure why clone() code doesn't do this?
                 new_component[i].get(var.qname(comp)).promote(
                     var.state_value())
+            # Now we can add variable to var_map if needed
+            for var in map_to_clone[i]:
+                var_map[var] = new_component[i].get(var.qname(comp))
 
         # Create mapping of old var references to new references
         # This is a mapping from Name(var) and Derivative(Name(var)) objects
@@ -1974,6 +1990,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Next, add all entries in the var_map. If unit conversion is enabled,
         # this may include the addition of unit conversion factors
+                
         for ext_var, self_var in var_map.items():
             # Substitute in either a reference to self_var, or an expression
             # that converts self_var to the units ext_var's equation expects.

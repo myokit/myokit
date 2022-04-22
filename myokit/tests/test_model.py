@@ -671,6 +671,8 @@ class ModelTest(unittest.TestCase):
             [[model]]
             p.b = 0.2
             q.e = 0.2
+            x.a = 0.2
+            y.e = 0.2
 
             [e]
             t = 0 [s] bind time
@@ -700,6 +702,33 @@ class ModelTest(unittest.TestCase):
             d = 0.2 [A] * a
                 in [A/s]
 
+            # Two components to import at the same time (independent of the rest of the model)
+            [x]
+            use y.e
+            dot(a) = c * e
+                in [m*A]
+            b = 3 * dot(e)
+                in [m/s]
+            c = 0.2 [A] * d
+                in [A/s]
+            d = 1 [1/s]
+                in [1/s]
+
+            [y]
+            use x.d
+            dot(e) = d * sub_e
+                in [m]
+                sub_e = 2 * e
+                    in [m]
+            
+            # another group component but this isn't independant
+            [z]
+            use x.d
+            use y.e
+            use e.h
+
+            f = d * e * h
+                in [m/s]
         ''')
         ms.validate()
         ms.check_units(myokit.UNIT_STRICT)
@@ -817,6 +846,27 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m1['q4'].alias('a'), m1.get('p2.a'))
         cs = '\n'.join((ms['p'].code().splitlines())[2:])
         c1 = '\n'.join((m1['p2'].code().splitlines())[2:])
+        self.assertEqual(cs, c1)
+        self.assertEqual(ms, ms_unaltered)
+
+        # Import multiple components
+        component_list = [ms['x'], ms['y']]
+        m1.import_component(component_list)
+        self.assertTrue(m1.has_component('x'))
+        self.assertTrue(m1.has_component('y'))
+        self.assertFalse(m1['x'] is ms['x'])
+        self.assertFalse(m1['y'] is ms['y'])
+        self.assertEqual(m1['x'].code(), ms['x'].code())
+        self.assertEqual(m1['y'].code(), ms['y'].code())
+        self.assertEqual(ms, ms_unaltered)
+
+        # Import 1 component in list
+        m1.import_component([ms['p']], new_name='p3')
+        self.assertTrue(m1.has_component('p3'))
+        self.assertFalse(m1['p3'] is ms['p'])
+        self.assertFalse(m1['p3'] is m1['p'])
+        cs = '\n'.join((ms['p'].code().splitlines())[1:])
+        c1 = '\n'.join((m1['p3'].code().splitlines())[1:])
         self.assertEqual(cs, c1)
         self.assertEqual(ms, ms_unaltered)
 
