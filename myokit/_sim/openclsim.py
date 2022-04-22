@@ -362,12 +362,17 @@ class SimulationOpenCL(myokit.CModule):
     def default_state(self, x=None, y=None):
         """
         Returns the current default simulation state as a list of
-        ``len(state) * ncells`` floating point values.
+        ``len(state) * n_total_cells`` floating point values, where
+        ``n_total_cells`` is the total number of cells.
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index a
         single cell's state is returned. For example ``state(4)`` can be
         used with a 1d simulation, while ``state(4, 2)`` is a valid index in
         the 2d case.
+
+        For 2d simulations, the list is indexed so that x changes first (the
+        first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+        ``y = 1`` and so on).
         """
         if x is None:
             return list(self._default_state)
@@ -1457,14 +1462,17 @@ class SimulationOpenCL(myokit.CModule):
         This can be used in three different ways:
 
         1. When called with an argument ``state`` of size ``n_states`` and
-           ``x=None`` the given state will be set as the new state of all
-           cells in the simulation.
-        2. Called with an argument ``state`` of size n_states and
+           ``x=None`` the given state will be set as the new default state of
+           all cells in the simulation.
+        2. Called with an argument ``state`` of size ``n_states`` and
            ``x, y`` equal to a valid cell index, this method will update only
-           the selected cell's state.
-        3. Finally, when called with a ``state`` of size ``n_states * n_cells``
-           the method will treat ``state`` as a concatenation of state vectors
-           for each cell.
+           the selected cell's default state.
+        3. Finally, when called with a ``state`` of size
+           ``n_states * n_total_cells``, the method will treat ``state`` as a
+           concatenation of default state vectors for each cell. For 2d
+           simulations, the list should be indexed so that x changes first (the
+           first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+           ``y = 1`` and so on).
 
         """
         self._default_state = self._set_state(state, x, y, self._default_state)
@@ -1665,12 +1673,15 @@ class SimulationOpenCL(myokit.CModule):
         1. When called with an argument ``state`` of size ``n_states`` and
            ``x=None`` the given state will be set as the new state of all
            cells in the simulation.
-        2. Called with an argument ``state`` of size n_states and
+        2. Called with an argument ``state`` of size ``n_states`` and
            ``x, y`` equal to a valid cell index, this method will update only
            the selected cell's state.
-        3. Finally, when called with a ``state`` of size ``n_states * n_cells``
-           the method will treat ``state`` as a concatenation of state vectors
-           for each cell.
+        3. Finally, when called with a ``state`` of size
+           ``n_states * n_total_cells``, the method will treat ``state`` as a
+           concatenation of state vectors for each cell. For 2d simulations,
+           the list should be indexed so that x changes first (the first ``nx``
+           entries have ``y = 0``, the second ``nx`` entries have ``y = 1`` and
+           so on).
 
         """
         self._state = self._set_state(state, x, y, self._state)
@@ -1694,7 +1705,7 @@ class SimulationOpenCL(myokit.CModule):
 
     def shape(self):
         """
-        Returns the shape of this Simulation's grid of cells as a tuple
+        Returns the shape of this simulation's grid of cells as a tuple
         ``(ny, nx)`` for 2d simulations, or a single value ``nx`` for 1d
         simulations.
         """
@@ -1704,13 +1715,18 @@ class SimulationOpenCL(myokit.CModule):
 
     def state(self, x=None, y=None):
         """
-        Returns the current simulation state as a list of ``len(state) *
-        ncells`` floating point values.
+        Returns the current simulation state as a list of
+        ``len(state) * n_total_cells`` floating point values, where
+        ``n_total_cells`` is the total number of cells.
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index a
         single cell's state is returned. For example ``state(4)`` can be
         used with a 1d simulation, while ``state(4, 2)`` is a valid index in
         the 2d case.
+
+        For 2d simulations, the list is indexed so that x changes first (the
+        first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+        ``y = 1`` and so on).
         """
         if x is None:
             return list(self._state)

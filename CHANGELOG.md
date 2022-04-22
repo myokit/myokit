@@ -4,13 +4,20 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#869](https://github.com/MichaelClerx/myokit/pull/869) Added methods `myokit.FiberTissueSimulation.fiber_shape` and `.tissue_shape` (but see [https://github.com/MichaelClerx/myokit/issues/764] for an important open issue).
+  - [#869](https://github.com/MichaelClerx/myokit/pull/869) Added a method `myokit.FiberTissueSimulation.step_size()`.
 - Changed
   - [#865](https://github.com/MichaelClerx/myokit/pull/865) Added more platform information to `myokit system`.
   - [#866](https://github.com/MichaelClerx/myokit/pull/866) Slightly tweaked the plotting in `myokit.lib.plots.cumulative_current`, and added two arguments `line_args` and `fill_args` that can be used to customize the plotting style.
+  - [#869](https://github.com/MichaelClerx/myokit/pull/869) The class `myokit.FiberTissueSimulation` now raises `ValueError` for various method-argument errors, instead of the more generic `Exception`.
+  - [#869](https://github.com/MichaelClerx/myokit/pull/869) The class `myokit.FiberTissueSimulation` now raises `IndexError` for various index-related errors, instead of the less appropriate `KeyError`.
 - Deprecated
+  - [#869](https://github.com/MichaelClerx/myokit/pull/869) The class `myokit.FiberTissueSimulation` is no longer considered deprecated.
 - Removed
 - Fixed
   - [#867](https://github.com/MichaelClerx/myokit/pull/867) @DavAug Fixed a memory leak in `myokit.Simulation`.
+  - [#869](https://github.com/MichaelClerx/myokit/pull/869) Added a missing ``y`` argument to `FiberTissueSimulation.fiber_state()` and `FiberTissueSimulation.tissue_state()`.
+  - [#869](https://github.com/MichaelClerx/myokit/pull/869) Fixed out-of-range checking in `FiberTissueSimulation` `state` and `set_state` methods.
 
 ## [1.33.3] - 2022-03-17
 - Changed
