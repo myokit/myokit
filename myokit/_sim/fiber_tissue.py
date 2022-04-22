@@ -382,7 +382,7 @@ class FiberTissueSimulation(myokit.CModule):
     def default_fiber_state(self, x=None, y=None):
         """
         Returns the current default simulation state for the fiber model as a
-         list of ``len(state) * n_total_cells`` floating point values, where
+        list of ``len(state) * n_total_cells`` floating point values, where
         ``n_total_cells`` is the total number of fiber cells.
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index, a
@@ -412,7 +412,7 @@ class FiberTissueSimulation(myokit.CModule):
     def default_tissue_state(self, x=None, y=None):
         """
         Returns the current default simulation state for the tissue model as a
-         list of ``len(state) * n_total_cells`` floating point values, where
+        list of ``len(state) * n_total_cells`` floating point values, where
         ``n_total_cells`` is the total number of tissue cells.
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index, a
@@ -954,7 +954,7 @@ class FiberTissueSimulation(myokit.CModule):
 
         # Check for NaN's, print error output
         if (report_nan and
-                (logf.has_nan() or logt.has_nan())):  # pramga: no cover
+                (logf.has_nan() or logt.has_nan())):  # pragma: no cover
             txt = ['Numerical error found in simulation logs.']
             try:
                 # NaN encountered, show how it happened
