@@ -33,7 +33,7 @@ import unittest
 
 import myokit
 
-from ansic_event_based_pacing import AnsicEventBasedPacing
+from myokit.tests.ansic_event_based_pacing import AnsicEventBasedPacing
 
 # Unit testing in Python 2 and 3
 try:

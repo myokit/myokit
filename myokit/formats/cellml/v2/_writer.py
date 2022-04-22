@@ -282,8 +282,10 @@ class CellMLWriter(object):
 
         # Add initial value
         if variable is variable.initial_value_variable():
-            element.attrib['initial_value'] = myokit.float.str(
-                variable.initial_value()).strip()
+            value = myokit.float.str(variable.initial_value()).strip()
+            if value[-4:] == 'e+00':
+                value = value[:-4]
+            element.attrib['initial_value'] = value
 
     def write(self, model):
         """

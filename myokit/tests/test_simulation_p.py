@@ -14,7 +14,7 @@ import unittest
 import myokit
 import numpy as np
 
-from shared import DIR_DATA, CancellingReporter, WarningCollector
+from myokit.tests import DIR_DATA, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -140,9 +140,8 @@ class PSimulationTest(unittest.TestCase):
         s.set_protocol(p)
 
     def test_block(self):
-        """
-        Test :meth:`PSimulation.block()`.
-        """
+        # Test :meth:`PSimulation.block()`.
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         with WarningCollector() as c:
             s = myokit.PSimulation(
@@ -165,10 +164,9 @@ class PSimulationTest(unittest.TestCase):
         self.assertRaisesRegex(ValueError, 'shape', s.block, d, dp[:, :-1])
 
     def test_set_constant(self):
-        """
-        Test :meth:`PSimulation.set_constant()` and
-        :meth:`PSimulation.set_parameters()`
-        """
+        # Test :meth:`PSimulation.set_constant()` and
+        # :meth:`PSimulation.set_parameters()`
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         with WarningCollector() as c:
             s = myokit.PSimulation(
@@ -196,9 +194,8 @@ class PSimulationTest(unittest.TestCase):
             ValueError, 'parameter', s.set_parameters, {'ica.gCa': 2})
 
     def test_progress_reporter(self):
-        """
-        Test running with a progress reporter.
-        """
+        # Test running with a progress reporter.
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         with WarningCollector() as c:
             s = myokit.PSimulation(

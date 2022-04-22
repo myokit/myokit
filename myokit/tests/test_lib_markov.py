@@ -15,7 +15,7 @@ import numpy as np
 import myokit
 import myokit.lib.markov as markov
 
-from shared import DIR_DATA, WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:

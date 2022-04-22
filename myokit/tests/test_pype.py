@@ -13,7 +13,7 @@ import unittest
 import myokit
 import myokit.pype
 
-from shared import TemporaryDirectory
+from myokit.tests import TemporaryDirectory
 
 # Unit testing in Python 2 and 3
 try:
@@ -25,9 +25,7 @@ except AttributeError:
 class PypeTest(unittest.TestCase):
 
     def test_process_errors(self):
-        """
-        Test error handling in the ``process`` method.
-        """
+        # Test error handling in the ``process`` method.
 
         # Process method takes a dict
         e = myokit.pype.TemplateEngine()
@@ -57,6 +55,7 @@ class PypeTest(unittest.TestCase):
 
             # Too much inside <?=?>
             self.e("""<?=if 1 > 2: print('hi')?>""", {}, 'contain a single')
+            self.e("""<?=print(1); print('hi')?>""", {}, 'contain a single')
 
             # Triple quote should be allowed
             self.e('''Hello"""string"""yes''', {})

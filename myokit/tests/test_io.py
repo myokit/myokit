@@ -15,7 +15,7 @@ import numpy as np
 
 import myokit
 
-from shared import DIR_DATA, TemporaryDirectory
+from myokit.tests import DIR_DATA, TemporaryDirectory
 
 # Strings in Python 2 and 3
 try:

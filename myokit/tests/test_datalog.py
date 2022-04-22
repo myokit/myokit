@@ -14,8 +14,14 @@ import numpy as np
 
 import myokit
 
-from shared import DIR_DATA, DIR_IO, TemporaryDirectory
-from shared import TestReporter, CancellingReporter, WarningCollector
+from myokit.tests import (
+    DIR_DATA,
+    DIR_IO,
+    TemporaryDirectory,
+    TestReporter,
+    CancellingReporter,
+    WarningCollector,
+)
 
 # Unit testing in Python 2 and 3
 try:

@@ -17,7 +17,7 @@ import numpy as np
 
 import myokit
 
-from shared import (
+from myokit.tests import (
     CancellingReporter,
     DIR_DATA,
     OpenCL_FOUND,
@@ -1307,6 +1307,23 @@ class SimulationOpenCLTest(unittest.TestCase):
                     self.assertEqual(self.s2.state(i, j), sx)
                 else:
                     self.assertEqual(self.s2.state(i, j), sm)
+
+        # Test indexing in state vector is x first, then y
+        self.s2.set_state(sx)
+        self.s2.set_state(sm, x=1, y=2)
+        s = self.s2.state()[::8]
+        self.assertEqual(s[0], 0)   # 0, 0
+        self.assertEqual(s[1], 0)   # 1, 0
+        self.assertEqual(s[2], 0)   # 2, 0
+        self.assertEqual(s[3], 0)   # 3, 0
+        self.assertEqual(s[4], 0)   # 0, 1
+        self.assertEqual(s[5], 0)   # 1, 1
+        self.assertEqual(s[6], 0)   # 2, 1
+        self.assertEqual(s[7], 0)   # 3, 1
+        self.assertEqual(s[8], 0)   # 0, 2
+        self.assertEqual(s[9], sm[0])   # 1, 2
+        self.assertEqual(s[10], 0)   # 2, 2
+        self.assertEqual(s[11], 0)   # 3, 2
 
         # Check error messages for set_state
         self.assertRaisesRegex(

@@ -14,7 +14,7 @@ import numpy as np
 
 import myokit
 
-from shared import DIR_DATA, CancellingReporter
+from myokit.tests import DIR_DATA, CancellingReporter
 
 # Unit testing in Python 2 and 3
 try:

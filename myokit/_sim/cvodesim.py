@@ -115,7 +115,7 @@ class Simulation(myokit.CModule):
 
         # Unique simulation id
         Simulation._index += 1
-        module_name = 'myokit_sim_' + str(Simulation._index)
+        module_name = 'myokit_leg_sim_' + str(Simulation._index)
         module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
@@ -125,12 +125,6 @@ class Simulation(myokit.CModule):
             'potential': self._apd_var,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
-        # Debug
-        if myokit.DEBUG:
-            print(self._code(fname, args,
-                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
 
         # Define libraries
         libs = [

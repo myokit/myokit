@@ -854,8 +854,10 @@ class DataLog(OrderedDict):
              two values after ``tmax`` in the data respectively).
           3. Evaluating the interpolant at the regularly spaced points.
 
-        As a result of the (first-order) spline interpolation, the function may
-        perform poorly on large data sets.
+        As a result of the cubic spline interpolation, the function may perform
+        poorly on large data sets.
+
+        This method requires ``SciPy`` to be installed.
         """
         self.validate()
         from scipy.interpolate import UnivariateSpline as Spline

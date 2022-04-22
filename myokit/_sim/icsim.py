@@ -23,6 +23,9 @@ class ICSimulation(myokit.CppModule):
     Runs a forward-Euler based simulation and calculates the partial
     derivatives of the state vector with respect to the initial conditions.
 
+    This class is deprecated. Sensitivities with respect to initial conditions
+    can now be calculated with the :class:`Simulation` class.
+
     The simulation is based on automatic differentiation implemented using a
     C++ data type that replaces a single scalar float with a float and a list
     of partial derivatives. Any operations on this pair update both the float
@@ -84,9 +87,9 @@ class ICSimulation(myokit.CppModule):
 
         # Deprecated on 2021-02-25
         warnings.warn(
-            'The class `ICSimulation` is deprecated.'
-            ' Sensitivities w.r.t. initial conditions can now be calculated'
-            ' with the single cell `Simulation` class.')
+            'The class `ICSimulation` is deprecated. Sensitivities with'
+            ' respect to initial conditions can now be calculated with the'
+            ' single cell myokit.Simulation class.')
 
         # Require a valid model
         if not model.is_valid():
@@ -125,13 +128,6 @@ class ICSimulation(myokit.CppModule):
             'model': self._model,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
-
-        # Debug
-        if myokit.DEBUG:
-            print(self._code(
-                fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
 
         # Define libraries
         libs = []

@@ -128,38 +128,93 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self.statusBar().addPermanentWidget(self._label_cursor)
         self.statusBar().showMessage('Ready')
 
+        # Lists of widgets that are always visible/accessible (e.g. toolbar or
+        # menu items) but are specific to the selected tab, so need
+        # enabling/disabling depending on which tab is shown
+        self._model_widgets = []
+        self._protocol_widgets = []
+        self._script_widgets = []
+
         # Menu bar
         self.create_menu()
 
         # Tool bar
         self.create_toolbar()
 
-        # Create editors and highlighters: The highlighters need to be stored:
-        # without a reference to them the python part will be deleted and pyqt
-        # (not pyside) gets confused.
-        # Create model editor
+        # Create editors, highlighters, and search bars.
+        # The highlighters need to be stored, because without a reference to
+        # them the python part will be deleted and pyqt (not pyside) gets
+        # confused.
         self._model_editor = source.Editor()
         self._model_highlighter = source.ModelHighlighter(
             self._model_editor.document())
-        self._model_editor.find_action.connect(self.statusBar().showMessage)
+        self._model_search = source.FindReplaceWidget(None, self._model_editor)
+        self._model_search.find_action.connect(self.statusBar().showMessage)
 
         # Create protocol editor
         self._protocol_editor = source.Editor()
         self._protocol_highlighter = source.ProtocolHighlighter(
             self._protocol_editor.document())
-        self._protocol_editor.find_action.connect(self.statusBar().showMessage)
+        self._protocol_search = source.FindReplaceWidget(
+            None, self._protocol_editor)
+        self._protocol_search.find_action.connect(self.statusBar().showMessage)
 
         # Create script editor
         self._script_editor = source.Editor()
         self._script_highlighter = source.ScriptHighlighter(
             self._script_editor.document())
-        self._script_editor.find_action.connect(self.statusBar().showMessage)
+        self._script_search = source.FindReplaceWidget(
+            None, self._script_editor)
+        self._script_search.find_action.connect(self.statusBar().showMessage)
+
+        # Create tool panels and populate tabs
+        self._model_tools = TabbedToolBar()
+        self._model_tools.tab_toggled.connect(self.change_tool_visibility)
+        self._model_tools.add(self._model_search, 'Find/Replace')
+        self._model_navigator = ModelNavigator()
+        self._model_navigator.item_changed.connect(self.navigator_item_changed)
+        self._model_tools.add(self._model_navigator, 'Components')
+
+        self._protocol_tools = TabbedToolBar()
+        self._protocol_tools.tab_toggled.connect(self.change_tool_visibility)
+        self._protocol_tools.add(self._protocol_search, 'Find/Replace')
+
+        self._script_tools = TabbedToolBar()
+        self._script_tools.tab_toggled.connect(self.change_tool_visibility)
+        self._script_tools.add(self._script_search, 'Find/Replace')
 
         # Create editor tabs
+        self._model_tab = QtWidgets.QSplitter(Qt.Horizontal)
+        self._model_tab.editor = self._model_editor
+        self._model_tab.search = self._model_search
+        self._model_tab.addWidget(self._model_editor)
+        self._model_tab.addWidget(self._model_tools)
+        self._model_tab.setSizes([400, 100])
+        self._model_tab.setCollapsible(0, False)
+        self._model_tab.setCollapsible(1, False)
+
+        self._protocol_tab = QtWidgets.QSplitter(Qt.Horizontal)
+        self._protocol_tab.editor = self._protocol_editor
+        self._protocol_tab.search = self._protocol_search
+        self._protocol_tab.addWidget(self._protocol_editor)
+        self._protocol_tab.addWidget(self._protocol_tools)
+        self._protocol_tab.setSizes([400, 100])
+        self._protocol_tab.setCollapsible(0, False)
+        self._protocol_tab.setCollapsible(1, False)
+
+        self._script_tab = QtWidgets.QSplitter(Qt.Horizontal)
+        self._script_tab.editor = self._script_editor
+        self._script_tab.search = self._script_search
+        self._script_tab.addWidget(self._script_editor)
+        self._script_tab.addWidget(self._script_tools)
+        self._script_tab.setSizes([400, 100])
+        self._script_tab.setCollapsible(0, False)
+        self._script_tab.setCollapsible(1, False)
+
         self._editor_tabs = QtWidgets.QTabWidget()
-        self._editor_tabs.addTab(self._model_editor, 'Model definition')
-        self._editor_tabs.addTab(self._protocol_editor, 'Protocol definition')
-        self._editor_tabs.addTab(self._script_editor, 'Embedded script')
+        self._editor_tabs.addTab(self._model_tab, 'Model definition')
+        self._editor_tabs.addTab(self._protocol_tab, 'Protocol definition')
+        self._editor_tabs.addTab(self._script_tab, 'Embedded script')
 
         # Track changes in mmt file
         self._have_changes = False
@@ -189,34 +244,12 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._console = Console()
         self._console.write('Loading Myokit IDE')
 
-        # Create central layout
+        # Create central layout: vertical splitter
         self._central_splitter = QtWidgets.QSplitter(Qt.Vertical)
         self._central_splitter.addWidget(self._editor_tabs)
         self._central_splitter.addWidget(self._console)
         self._central_splitter.setSizes([580, 120])
         self.setCentralWidget(self._central_splitter)
-
-        # Code navigator dock
-        self._navigator = QtWidgets.QDockWidget("Model components", self)
-        self._navigator.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable)
-        self._navigator.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable)
-        self._navigator.setAllowedAreas(
-            Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea)
-        self._navigator_items = QtWidgets.QListWidget()
-        self._navigator.setWidget(self._navigator_items)
-        self._navigator_list = []
-        self.addDockWidget(Qt.RightDockWidgetArea, self._navigator)
-        self._navigator_items.currentItemChanged.connect(
-            self.navigator_item_changed)
-        self._navigator.hide()
-
-        # Update item checked status when navigator is closed
-        # Unfortunately there is no event provided to do this
-        def nav_close(event=None):
-            self._tool_view_navigator.setChecked(False)
-            if event:
-                event.accept()
-        self._navigator.closeEvent = nav_close
 
         # Timer to bundle operations after the model text has changed
         self._model_changed_timer = QtCore.QTimer()
@@ -245,6 +278,13 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # (For example devalidate model and protocol upon any changes)
         self._model_editor.textChanged.connect(self.change_model)
         self._protocol_editor.textChanged.connect(self.change_protocol)
+
+        # Starting off on the model tab, so disable actions specific to
+        # protocol and script
+        for widget in self._protocol_widgets:
+            widget.setEnabled(False)
+        for widget in self._script_widgets:
+            widget.setEnabled(False)
 
         # Open select file, recent file or start new
         if filename is not None:
@@ -301,7 +341,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if token is None:
                 return
             line, char = token[2], token[3]
-            self._editor_tabs.setCurrentWidget(self._model_editor)
+            self._editor_tabs.setCurrentWidget(self._model_tab)
             self.statusBar().showMessage(
                 'Jumping to (' + str(line) + ',' + str(char) + ').')
             self._model_editor.jump_to(line - 1, char)
@@ -326,7 +366,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if token is None:
                 return
             line, char = token[2], token[3]
-            self._editor_tabs.setCurrentWidget(self._model_editor)
+            self._editor_tabs.setCurrentWidget(self._model_tab)
             self.statusBar().showMessage(
                 'Jumping to (' + str(line) + ',' + str(char) + ').')
             self._model_editor.jump_to(line - 1, char)
@@ -365,7 +405,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Comments or uncomments the currently selected lines.
         """
-        self._editor_tabs.currentWidget().toggle_comment()
+        self._editor_tabs.currentWidget().editor.toggle_comment()
 
     def action_component_cycles(self):
         """
@@ -410,13 +450,13 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Copy text in editor (when triggered from menu).
         """
-        self._editor_tabs.currentWidget().copy()
+        self._editor_tabs.currentWidget().editor.copy()
 
     def action_cut(self):
         """
         Cut text in editor (when triggered from menu).
         """
-        self._editor_tabs.currentWidget().cut()
+        self._editor_tabs.currentWidget().editor.cut()
 
     def action_explore(self):
         """
@@ -593,15 +633,18 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self.show_exception()
 
     def action_find(self):
-        """
-        Display a find/replace dialog for the current editor
-        """
+        """ Show or reactivate the find/replace bar. """
+
         current = self._editor_tabs.currentWidget()
-        es = (self._model_editor, self._protocol_editor, self._script_editor)
-        for editor in es:
-            if editor != current:
-                editor.hide_find_dialog()
-        current.activate_find_dialog()
+        if current == self._model_tab:
+            self._model_tools.toggle(self._model_search, True)
+            self._model_search.activate()
+        if current == self._protocol_tab:
+            self._protocol_tools.toggle(self._protocol_search, True)
+            self._protocol_search.activate()
+        if current == self._script_tab:
+            self._script_tools.toggle(self._script_search, True)
+            self._script_search.activate()
 
     def action_format_protocol(self):
         """
@@ -777,7 +820,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if self._last_model_error is None:
                 return
             # Switch to model tab if required
-            self._editor_tabs.setCurrentWidget(self._model_editor)
+            self._editor_tabs.setCurrentWidget(self._model_tab)
             # Show error
             line = self._last_model_error.line
             char = self._last_model_error.char
@@ -895,7 +938,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Paste text in editor (when triggered from menu).
         """
-        self._editor_tabs.currentWidget().paste()
+        self._editor_tabs.currentWidget().editor.paste()
 
     def action_preview_protocol(self):
         """
@@ -932,7 +975,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Redoes the previously undone text edit operation.
         """
-        self._editor_tabs.currentWidget().redo()
+        self._editor_tabs.currentWidget().editor.redo()
 
     def action_run(self):
         """
@@ -941,7 +984,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         pbar = None
         try:
             # Prepare interface
-            self.setEnabled(False)
+            #self.setEnabled(False)
             self._console.write('Running embedded script.')
             QtWidgets.QApplication.setOverrideCursor(
                 QtGui.QCursor(Qt.WaitCursor))
@@ -995,14 +1038,14 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 pbar.close()
                 pbar.deleteLater()
             # Work-around for cursor bug on linux
-            pos = QtGui.QCursor.pos()
-            QtGui.QCursor.setPos(0, 0)
-            QtGui.QCursor.setPos(pos)
+            #pos = QtGui.QCursor.pos()
+            #QtGui.QCursor.setPos(0, 0)
+            #QtGui.QCursor.setPos(pos)
             # Re-enable
-            self.setEnabled(True)
+            #self.setEnabled(True)
             # Set focus on editor
-            self._editor_tabs.currentWidget().setFocus()
-            # Fix cursor
+            self._editor_tabs.currentWidget().editor.setFocus()
+            # Restore cursor
             QtWidgets.QApplication.restoreOverrideCursor()
 
     def action_save(self):
@@ -1016,18 +1059,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         Save the current file under a different name.
         """
         self.save_file(save_as=True)
-
-    def action_show_or_hide_navigator(self):
-        """
-        Show or hide the model navigator.
-        """
-        if (self._tool_view_navigator.isChecked() and
-                self._editor_tabs.currentWidget() == self._model_editor):
-            # Update navigator and show
-            self.update_navigator()
-            self._navigator.show()
-        else:
-            self._navigator.hide()
 
     def action_state_derivatives(self):
         """
@@ -1092,11 +1123,15 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except Exception:
             self.show_exception()
 
+    def action_toggle_navigator(self):
+        """ Show or hide the model navigator. """
+        self._model_tools.toggle(self._model_navigator)
+
     def action_trim_whitespace(self):
         """
         Trims any trailing whitespace from the current editor.
         """
-        self._editor_tabs.currentWidget().trim_trailing_whitespace()
+        self._editor_tabs.currentWidget().editor.trim_trailing_whitespace()
         self._console.write('Trailing whitespace removed.')
         self.statusBar().showMessage('Trailing whitespace removed.')
 
@@ -1104,7 +1139,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Undoes the previous text edit operation.
         """
-        self._editor_tabs.currentWidget().undo()
+        self._editor_tabs.currentWidget().editor.undo()
 
     def action_validate(self):
         """
@@ -1121,7 +1156,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         Jump to the variable pointed at by the caret.
         """
         try:
-            if self._editor_tabs.currentWidget() != self._model_editor:
+            if self._editor_tabs.currentWidget() != self._model_tab:
                 self._console.write(
                     'Variable info can only be displayed for model variables.')
                 return
@@ -1146,7 +1181,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         displays all expressions required for its calculation.
         """
         try:
-            if self._editor_tabs.currentWidget() != self._model_editor:
+            if self._editor_tabs.currentWidget() != self._model_tab:
                 self._console.write(
                     'Variable info can only be displayed for model variables.')
                 return
@@ -1184,7 +1219,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         displays its calculation.
         """
         try:
-            if self._editor_tabs.currentWidget() != self._model_editor:
+            if self._editor_tabs.currentWidget() != self._model_tab:
                 self._console.write(
                     'Variable info can only be displayed for model variables.')
                 return
@@ -1208,7 +1243,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         editor.
         """
         try:
-            if self._editor_tabs.currentWidget() != self._model_editor:
+            if self._editor_tabs.currentWidget() != self._model_tab:
                 self._console.write(
                     'Only variables on the model editing tab can be graphed.')
             var = self.selected_variable()
@@ -1238,7 +1273,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         the line on which it is defined.
         """
         try:
-            if self._editor_tabs.currentWidget() != self._model_editor:
+            if self._editor_tabs.currentWidget() != self._model_tab:
                 self._console.write(
                     'Variable info can only be displayed for model variables.')
                 return
@@ -1260,7 +1295,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         displays all variables that depend on it.
         """
         try:
-            if self._editor_tabs.currentWidget() != self._model_editor:
+            if self._editor_tabs.currentWidget() != self._model_tab:
                 self._console.write(
                     'Variable info can only be displayed for model variables.')
                 return
@@ -1299,21 +1334,21 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         View the model tab.
         """
-        self._editor_tabs.setCurrentWidget(self._model_editor)
+        self._editor_tabs.setCurrentWidget(self._model_tab)
         self._model_editor.setFocus()
 
     def action_view_protocol(self):
         """
         View the protocol tab.
         """
-        self._editor_tabs.setCurrentWidget(self._protocol_editor)
+        self._editor_tabs.setCurrentWidget(self._protocol_tab)
         self._protocol_editor.setFocus()
 
     def action_view_script(self):
         """
         View the script tab.
         """
-        self._editor_tabs.setCurrentWidget(self._script_editor)
+        self._editor_tabs.setCurrentWidget(self._script_tab)
         self._script_editor.setFocus()
 
     def add_recent_file(self, filename):
@@ -1332,84 +1367,59 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self.update_recent_files_menu()
 
     def change_copy_model(self, enabled):
-        """
-        Qt slot: CopyAvailable state of model editor changed.
-        """
-        if self._editor_tabs.currentWidget() == self._model_editor:
+        """ Qt slot: CopyAvailable state of model editor changed. """
+        if self._editor_tabs.currentWidget() == self._model_tab:
             self._tool_copy.setEnabled(enabled)
             self._tool_cut.setEnabled(enabled)
 
     def change_copy_protocol(self, enabled):
-        """
-        Qt slot: CopyAvailable state of protocol editor changed.
-        """
-        if self._editor_tabs.currentWidget() == self._protocol_editor:
+        """ Qt slot: CopyAvailable state of protocol editor changed. """
+        if self._editor_tabs.currentWidget() == self._protocol_tab:
             self._tool_copy.setEnabled(enabled)
             self._tool_cut.setEnabled(enabled)
 
     def change_copy_script(self, enabled):
-        """
-        Qt slot: CopyAvailable state of script editor changed.
-        """
-        if self._editor_tabs.currentWidget() == self._script_editor:
+        """ Qt slot: CopyAvailable state of script editor changed. """
+        if self._editor_tabs.currentWidget() == self._script_tab:
             self._tool_copy.setEnabled(enabled)
             self._tool_cut.setEnabled(enabled)
 
     def change_editor_tab(self, index):
-        """
-        Qt slot: Called when the editor tab is changed.
-        """
+        """ Qt slot: Called when the editor tab is changed. """
         # Update copy/cut
-        w = self._editor_tabs.currentWidget()
-        e = w.textCursor().hasSelection()
-        self._tool_copy.setEnabled(e)
-        self._tool_cut.setEnabled(e)
+        t = self._editor_tabs.currentWidget()
+        e = t.editor
+        x = e.textCursor().hasSelection()
+        self._tool_copy.setEnabled(x)
+        self._tool_cut.setEnabled(x)
 
         # Update undo/redo
-        d = w.document()
+        d = e.document()
         self._tool_undo.setEnabled(d.isUndoAvailable())
         self._tool_redo.setEnabled(d.isRedoAvailable())
 
-        # Hide find/replace dialogs
-        es = (self._model_editor, self._protocol_editor, self._script_editor)
-        for editor in es:
-            editor.hide_find_dialog()
-
-        # Show/hide model navigator
-        if index == 0:
-            self._tool_view_navigator.setEnabled(True)
-            if self._tool_view_navigator.isChecked():
-                self._navigator.show()
-        else:
-            self._tool_view_navigator.setEnabled(False)
-            self._navigator.hide()
-
-        # Enabled/disable protocol tools
-        if index == 1:
-            self._tool_format_protocol.setEnabled(True)
-        else:
-            self._tool_format_protocol.setEnabled(False)
+        # Enabled/disable tab-specific tools
+        for widget in self._model_widgets:
+            widget.setEnabled(index == 0)
+        for widget in self._protocol_widgets:
+            widget.setEnabled(index == 1)
+        for widget in self._script_widgets:
+            widget.setEnabled(index == 2)
 
     def change_model(self):
-        """
-        Qt slot: Called whenever the model is changed.
-        """
+        """ Qt slot: Called whenever the model is changed. """
         self._valid_model = None
         # Bundle events in one-shot timer that calls change_model_timeout
         # Successive calls will restart the timer!
         self._model_changed_timer.start(100)    # in ms
 
     def change_model_timeout(self):
-        """
-        Called with a slight delay after a change to the model.
-        """
+        """ Called with a slight delay after a change to the model. """
         if self._tool_view_navigator.isChecked():
             self.update_navigator()
 
     def change_modified_model(self, have_changes):
-        """
-        Qt slot: Called when the model modified state is changed.
-        """
+        """ Qt slot: Called when the model modified state is changed. """
         # Update have_changes status
         self._model_changed = have_changes
         self._have_changes = (
@@ -1421,9 +1431,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self.update_window_title()
 
     def change_modified_protocol(self, have_changes):
-        """
-        Qt slot: Called when the protocol modified state is changed.
-        """
+        """ Qt slot: Called when the protocol modified state is changed. """
         # Update have_changes status
         self._protocol_changed = have_changes
         self._have_changes = (
@@ -1435,9 +1443,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self.update_window_title()
 
     def change_modified_script(self, have_changes):
-        """
-        Qt slot: Callend when the script modified state is changed.
-        """
+        """ Qt slot: Callend when the script modified state is changed. """
         # Update have_changes status
         self._script_changed = have_changes
         self._have_changes = (
@@ -1449,51 +1455,42 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self.update_window_title()
 
     def change_protocol(self):
-        """
-        Qt slot: Called whenever the protocol is changed.
-        """
+        """ Qt slot: Called whenever the protocol is changed. """
         self._valid_protocol = None
 
     def change_redo_model(self, enabled):
-        """
-        Qt slot: Redo state of model editor changed.
-        """
-        if self._editor_tabs.currentWidget() == self._model_editor:
+        """ Qt slot: Redo state of model editor changed. """
+        if self._editor_tabs.currentWidget() == self._model_tab:
             self._tool_redo.setEnabled(enabled)
 
     def change_redo_protocol(self, enabled):
-        """
-        Qt slot: Redo state of protocol editor changed.
-        """
-        if self._editor_tabs.currentWidget() == self._protocol_editor:
+        """ Qt slot: Redo state of protocol editor changed. """
+        if self._editor_tabs.currentWidget() == self._protocol_tab:
             self._tool_redo.setEnabled(enabled)
 
     def change_redo_script(self, enabled):
-        """
-        Qt slot: Redo state of script editor changed.
-        """
-        if self._editor_tabs.currentWidget() == self._script_editor:
+        """ Qt slot: Redo state of script editor changed. """
+        if self._editor_tabs.currentWidget() == self._script_tab:
             self._tool_redo.setEnabled(enabled)
 
+    def change_tool_visibility(self, widget, visible):
+        """ Qt slot: A tool panel (on the right-hand side) is toggled. """
+        if widget == self._model_navigator:
+            self._tool_view_navigator.setChecked(visible)
+
     def change_undo_model(self, enabled):
-        """
-        Qt slot: Undo state of model editor changed.
-        """
-        if self._editor_tabs.currentWidget() == self._model_editor:
+        """ Qt slot: Undo state of model editor changed. """
+        if self._editor_tabs.currentWidget() == self._model_tab:
             self._tool_undo.setEnabled(enabled)
 
     def change_undo_protocol(self, enabled):
-        """
-        Qt slot: Undo state of protocol editor changed.
-        """
-        if self._editor_tabs.currentWidget() == self._protocol_editor:
+        """ Qt slot: Undo state of protocol editor changed. """
+        if self._editor_tabs.currentWidget() == self._protocol_tab:
             self._tool_undo.setEnabled(enabled)
 
     def change_undo_script(self, enabled):
-        """
-        Qt slot: Undo state of script editor changed.
-        """
-        if self._editor_tabs.currentWidget() == self._script_editor:
+        """ Qt slot: Undo state of script editor changed. """
+        if self._editor_tabs.currentWidget() == self._script_tab:
             self._tool_undo.setEnabled(enabled)
 
     def closeEvent(self, event=None):
@@ -1646,10 +1643,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             'Format protocol', self)
         self._tool_format_protocol.setStatusTip(
             'Standardise the formatting of the protocol section.')
-        self._tool_format_protocol.setEnabled(False)
         self._tool_format_protocol.triggered.connect(
             self.action_format_protocol)
         self._menu_edit.addAction(self._tool_format_protocol)
+        self._protocol_widgets.append(self._tool_format_protocol)
         # Edit > ----
         self._menu_edit.addSeparator()
         # Edit > Comment or uncomment
@@ -1667,6 +1664,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             'Remove all units inside expressions.')
         self._tool_remove_units.triggered.connect(self.action_clear_units)
         self._menu_edit.addAction(self._tool_remove_units)
+        self._model_widgets.append(self._tool_remove_units)
         # Edit > Trim whitespace
         self._tool_trim_whitespace = QtWidgets.QAction(
             'Trim trailing &whitespace', self)
@@ -1710,8 +1708,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_view_navigator.setStatusTip(
             'Shows or hides the model navigator pane.')
         self._tool_view_navigator.triggered.connect(
-            self.action_show_or_hide_navigator)
+            self.action_toggle_navigator)
         self._menu_view.addAction(self._tool_view_navigator)
+        self._model_widgets.append(self._tool_view_navigator)
         # View > ----
         self._menu_view.addSeparator()
         # View > Preview protocol
@@ -1919,6 +1918,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             'Shows this variable\'s type and where it is defined.')
         self._tool_variable_info.triggered.connect(self.action_variable_info)
         self._menu_analysis.addAction(self._tool_variable_info)
+        self._model_widgets.append(self._tool_variable_info)
         # Analysis > Show variable evaluation
         self._tool_variable_evaluation = QtWidgets.QAction(
             'Show variable evaluation', self)
@@ -1928,6 +1928,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_variable_evaluation.triggered.connect(
             self.action_variable_evaluation)
         self._menu_analysis.addAction(self._tool_variable_evaluation)
+        self._model_widgets.append(self._tool_variable_evaluation)
         # Analysis > Show variable dependencies
         self._tool_variable_dependencies = QtWidgets.QAction(
             'Show variable dependencies', self)
@@ -1937,6 +1938,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_variable_dependencies.triggered.connect(
             self.action_variable_dependencies)
         self._menu_analysis.addAction(self._tool_variable_dependencies)
+        self._model_widgets.append(self._tool_variable_dependencies)
         # Analysis > Show variable users
         self._tool_variable_users = QtWidgets.QAction(
             'Show variable users', self)
@@ -1946,6 +1948,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_variable_users.triggered.connect(
             self.action_variable_users)
         self._menu_analysis.addAction(self._tool_variable_users)
+        self._model_widgets.append(self._tool_variable_users)
         # Analysis > Graph variable
         self._tool_variable_graph = QtWidgets.QAction(
             'Graph selected variable', self)
@@ -1954,6 +1957,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             'Display a graph of the selected variable.')
         self._tool_variable_graph.triggered.connect(self.action_variable_graph)
         self._menu_analysis.addAction(self._tool_variable_graph)
+        self._model_widgets.append(self._tool_variable_graph)
         # Analysis > Jump to variable definition
         self._tool_variable_jump = QtWidgets.QAction(
             'Jump to variable definition', self)
@@ -1963,6 +1967,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_variable_jump.triggered.connect(
             self.action_variable_definition)
         self._menu_analysis.addAction(self._tool_variable_jump)
+        self._model_widgets.append(self._tool_variable_jump)
 
         # Analysis > ----
         self._menu_analysis.addSeparator()
@@ -2146,15 +2151,14 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self.update_recent_files_menu()
 
         # Source editors
-        self._model_editor.load_config(config, 'model_editor')
-        self._protocol_editor.load_config(config, 'protocol_editor')
-        self._script_editor.load_config(config, 'script_editor')
+        self._model_search.load_config(config, 'model_editor')
+        self._protocol_search.load_config(config, 'protocol_editor')
+        self._script_search.load_config(config, 'script_editor')
 
         # Model navigator
         nav = getor('model_navigator', 'visible', 'false').strip().lower()
         if nav == 'true':
-            self._tool_view_navigator.setChecked(True)
-            self.action_show_or_hide_navigator()
+            self.action_toggle_navigator()
 
     def load_file(self, filename):
         """
@@ -2213,24 +2217,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._script_editor.document().setModified(False)
 
         # Update interface
-        self.update_navigator()     # Avoid delay
-        self.update_window_title()
-
-    def new_file(self):
-        """
-        Replaces the editor contents with a new file. Does not do any error
-        handling.
-        """
-        self._file = None
-        # Close explorer, if required
-        self.close_explorer()
-        # Update editors
-        self._model_editor.setPlainText('[[model]]\n')
-        self._protocol_editor.setPlainText(myokit.default_protocol().code())
-        self._script_editor.setPlainText(myokit.default_script())
-        # Update interface
-        self._tool_save.setEnabled(True)
-        self.update_navigator()     # Avoid delay
+        self.update_navigator()
         self.update_window_title()
 
     def model(self, force=False, console=False, errors_in_console=False):
@@ -2299,17 +2286,27 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self._console.write(str(e))
             return False
 
-    def navigator_item_changed(self, item, previous_item):
+    def navigator_item_changed(self, line):
+        """ Called whenever the navigator item is changed. """
+        if line >= 0 and self._editor_tabs.currentWidget() == self._model_tab:
+            self._model_editor.set_cursor(line)
+
+    def new_file(self):
         """
-        Called whenever the navigator item is changed.
+        Replaces the editor contents with a new file. Does not do any error
+        handling.
         """
-        if self._editor_tabs.currentWidget() != self._model_editor:
-            return None
-        if item is None:
-            return
-        # Jump to selected component
-        pos = item.data(Qt.UserRole)
-        self._model_editor.set_cursor(pos)
+        self._file = None
+        # Close explorer, if required
+        self.close_explorer()
+        # Update editors
+        self._model_editor.setPlainText('[[model]]\n')
+        self._protocol_editor.setPlainText(myokit.default_protocol().code())
+        self._script_editor.setPlainText(myokit.default_script())
+        # Update interface
+        self._tool_save.setEnabled(True)
+        self.update_navigator()
+        self.update_window_title()
 
     def prompt_save_changes(self, cancel=False):
         """
@@ -2412,9 +2409,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             config.set('files', 'recent_' + str(k), filename)
 
         # Source editors
-        self._model_editor.save_config(config, 'model_editor')
-        self._protocol_editor.save_config(config, 'protocol_editor')
-        self._script_editor.save_config(config, 'script_editor')
+        self._model_search.save_config(config, 'model_editor')
+        self._protocol_search.save_config(config, 'protocol_editor')
+        self._script_search.save_config(config, 'script_editor')
 
         # Model navigator visibility
         config.add_section('model_navigator')
@@ -2501,7 +2498,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         If no variable is found ``None`` is returned. If a model error occurs
         ``False`` is returned
         """
-        if self._editor_tabs.currentWidget() != self._model_editor:
+        if self._editor_tabs.currentWidget() != self._model_tab:
             return None
         # Get model
         m = self.model(errors_in_console=True)
@@ -2544,30 +2541,19 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             '<pre>' + text + '</pre>')
 
     def update_navigator(self):
-        """
-        Updates the model navigator.
-        """
-        # Find all components and store their positions in a list
+        """ Updates the model navigator contents. """
+        # Find all components and store their positions in a list (name, line)
         #Sloppy version: query = QtCore.QRegExp(r'^\[') could be faster?
         query = QtCore.QRegExp(r'^\[[a-zA-Z]{1}[a-zA-Z0-9_]*\]')
         pos = 0
         found = self._model_editor.document().find(query, pos)
-        new_list = []
+        positions = []
         while not found.isNull():
             pos = found.position()
             block = found.block()
-            new_list.append((block.text(), pos))
+            positions.append((block.text(), pos))
             found = self._model_editor.document().find(query, pos)
-        # Update the navigator if required
-        if (new_list == self._navigator_list):
-            return
-        self._navigator_list = new_list
-        self._navigator_items.clear()
-        self._navigator_items.setSortingEnabled(True)
-        for text, pos in self._navigator_list:
-            item = QtWidgets.QListWidgetItem(text[1:-1])
-            item.setData(Qt.UserRole, pos)
-            self._navigator_items.addItem(item)
+        self._model_navigator.set_positions(positions)
 
     def update_recent_files_menu(self):
         """
@@ -2592,6 +2578,135 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if self._have_changes:
                 title = '*' + title
         self.setWindowTitle(title)
+
+
+class TabbedToolBar(QtWidgets.QTabWidget):
+    """
+    Tab widget with tools that are initially hidden, but can be shown upon
+    request, and hidden using the "close" button.
+    """
+    # Signal: Tab show (added) or hidden (removed)
+    # Attributes: (widget, status)
+    tab_toggled = QtCore.Signal(QtWidgets.QWidget, bool)
+
+    def __init__(self, parent=None):
+        super(TabbedToolBar, self).__init__(parent)
+
+        self.setTabsClosable(True)
+        self.tabCloseRequested.connect(self._close_button_hit)
+
+        # Mapping from widgets to their labels
+        self._tabs = {}
+
+        # List of currently visible widgets
+        self._visible = []
+
+        # Start without visible tabs, and without being visible
+        self.setVisible(False)
+
+    def add(self, widget, name):
+        """ Add a tab to this toolbar. """
+        self._tabs[widget] = name
+
+    def _close_button_hit(self, index):
+        """ Called when the user clicks a "close tab" button. """
+        self.toggle(self.widget(index), False)
+
+    def keyPressEvent(self, event):
+        """ Qt event: A key-press reaches the widget. """
+        key = event.key()
+        if key == Qt.Key_Escape:
+            self.setFocus()
+            self.focusPreviousChild()
+        else:
+            super(TabbedToolBar, self).keyPressEvent(event)
+
+    def toggle(self, widget, new_status=None):
+        """
+        Toggles the visibility of the given widget (which must previously have
+        been added with :meth:`add`), and returns its updated visibility
+        status.
+
+        An explicit visibility status can be set with ``new_status``.
+        """
+        # Get index of widget in current visible tabs
+        try:
+            index = self._visible.index(widget)
+        except ValueError:
+            index = -1
+
+        # Determine new_status
+        if new_status is None:
+            new_status = index < 0
+        # Setting explicitly? Then skip next steps if already at desired state
+        elif new_status == (index >= 0):
+            if new_status:
+                # Already visible? Then give focus
+                self.setCurrentWidget(widget)
+                widget.setFocus()
+            return
+
+        # Show or hide
+        if new_status:
+            label = self._tabs[widget]
+            self.addTab(widget, label)
+            self._visible.append(widget)
+            self.setVisible(True)
+            self.setCurrentWidget(widget)
+            widget.setFocus()
+        else:
+            del(self._visible[index])
+            self.removeTab(index)
+            if self.count() < 1:
+                self.setVisible(False)
+
+        # Fire change event and return
+        self.tab_toggled.emit(widget, new_status)
+
+
+class ModelNavigator(QtWidgets.QWidget):
+    """
+    Model navigator window used to jump to different model components.
+    """
+    # Signal: Component selected
+    # Attributes: (description)
+    item_changed = QtCore.Signal(int)
+
+    def __init__(self, parent=None):
+        super(ModelNavigator, self).__init__(parent)
+
+        # List widget
+        self._list_widget = QtWidgets.QListWidget()
+        self._list_widget.currentItemChanged.connect(self.current_item_changed)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self._list_widget)
+        self.setLayout(layout)
+
+        # List contents
+        self._positions = []
+
+    def current_item_changed(self, item, previous_item):
+        """ Called if the navigator item is changed. """
+        if item is not None:
+            line = item.data(Qt.UserRole)
+            self.item_changed.emit(line)
+
+    def set_positions(self, positions):
+        """ Updates the component list """
+
+        # Check if update is required
+        if positions == self._positions:
+            return
+        self._positions = list(positions)
+
+        # Create new items
+        self._list_widget.clear()
+        self._list_widget.setSortingEnabled(True)
+        for text, pos in self._positions:
+            item = QtWidgets.QListWidgetItem(text[1:-1])
+            item.setData(Qt.UserRole, pos)
+            self._list_widget.addItem(item)
 
 
 class Console(QtWidgets.QPlainTextEdit):

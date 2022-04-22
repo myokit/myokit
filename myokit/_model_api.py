@@ -361,6 +361,15 @@ class VarProvider(object):
                 yield x.eq()
         return viter(self.variables(const, inter, state, bound, deep))
 
+    def _resolve(self, name):
+        """
+        Resolves a local variable name to a variable. Raises an
+        :class:`UnresolvedReferenceError` if the name doesn't correspond to any
+        variable accessible from this :class:`VarProvider's <VarProvider>`
+        scope.
+        """
+        raise NotImplementedError
+
     def variables(
             self, const=None, inter=None, state=None, bound=None, deep=False,
             sort=False):
@@ -597,7 +606,10 @@ class VarOwner(ModelPart, VarProvider):
         """
         # Return model part immediatly
         if isinstance(name, ModelPart):
-            return name
+            if name.model() is self._model:
+                return name
+            raise ValueError(
+                'Given argument ' + repr(name) + ' is from a different model.')
 
         # Find variable
         names = name.split('.')
@@ -699,11 +711,7 @@ class VarOwner(ModelPart, VarProvider):
         del(self._variables[variable.name()])
 
     def _resolve(self, name):
-        """
-        Resolves a local variable name to a variable. Raises an
-        :class:`UnresolvedReferenceError` if the name doesn't correspond to any
-        variable accessible from this :class:`VarOwner's <VarOwner>` scope.
-        """
+        """ See :meth:`VarProvider._resolve(). """
         def sa(name):
             # Suggest alternative
             m = self.model()
@@ -769,6 +777,11 @@ class Model(ObjectWithMeta, VarProvider):
 
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
+
+    For consistency with components, variables, and expressions, models cannot
+    be compared with ``==`` (which will only return ``True`` if both operands
+    are the same object). Checking if models are the same in other senses can
+    be done with :meth:`is_similar`. Models can be serialised with ``pickle``.
     """
     def __init__(self, name=None):
         super(Model, self).__init__()
@@ -1301,23 +1314,6 @@ class Model(ObjectWithMeta, VarProvider):
                     yield v
         return stream(self)
 
-    def __eq__(self, other):
-        """
-        Checks if this model equals the ``other`` model.
-
-        This checks equality of code(), but also unique names and unique name
-        prefixes.
-        """
-        if self is other:
-            return True
-        if not isinstance(other, Model):
-            return False
-        if self._reserved_unames != other._reserved_unames:
-            return False
-        if self._reserved_uname_prefixes != other._reserved_uname_prefixes:
-            return False
-        return self.code() == other.code()
-
     def evaluate_derivatives(
             self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
             ignore_errors=False):
@@ -1618,7 +1614,10 @@ class Model(ObjectWithMeta, VarProvider):
         """
         # Return model part immediatly
         if isinstance(name, ModelPart):
-            return name
+            if name.model() is self:
+                return name
+            raise ValueError(
+                'Given argument ' + repr(name) + ' is from a different model.')
 
         # Split name, get different parts
         names = name.split('.')
@@ -2038,6 +2037,24 @@ class Model(ObjectWithMeta, VarProvider):
                 yield Equation(
                     myokit.Name(var), myokit.Number(self._current_state[k]))
         return StateDefIterator(self)
+
+    def is_similar(self, other, check_unames=False):
+        """
+        Returns ``True`` if this model has the same code as the ``other``
+        model.
+
+        If ``check_unames`` is set to ``True``, the method also checks if the
+        defined unique names and unique name prefixes are the same.
+        """
+        if self is other:
+            return True
+        if not isinstance(other, Model):
+            return False
+        if self._reserved_unames != other._reserved_unames:
+            return False
+        if self._reserved_uname_prefixes != other._reserved_uname_prefixes:
+            return False
+        return self.code() == other.code()
 
     def is_valid(self):
         """
@@ -2798,7 +2815,7 @@ class Model(ObjectWithMeta, VarProvider):
         Adding new names does _not_ clear the previously reserved names.
         """
         for name in unames:
-            self._reserved_unames.add(name)
+            self._reserved_unames.add(str(name))
 
     def reserve_unique_name_prefix(self, prefix, prepend):
         """
@@ -2829,6 +2846,10 @@ class Model(ObjectWithMeta, VarProvider):
         Will reset the model's validation status to not validated.
         """
         self._valid = None
+
+    def _resolve(self, name):
+        """ See :meth:`VarProvider._resolve(). """
+        return self.get(name)
 
     def resolve_interdependent_components(self):
         """
@@ -4485,9 +4506,7 @@ class Variable(VarOwner):
             self._remove_variable_internal(kid)
 
     def rename(self, new_name):
-        """
-        Renames this variable.
-        """
+        """ Renames this variable. """
         assert(self._parent is not None)
         self._parent.move_variable(self, self._parent, new_name)
 
@@ -4821,17 +4840,18 @@ class Variable(VarOwner):
 
 class Equation(object):
     """
-    Defines an equation: a statement that a left-hand side is equal to a
-    right-hand side.
+    Defines an equation: a statement that a left-hand side (LHS) is equal to a
+    right-hand side (RHS) expression.
 
     The sides of an equation are stored in the properties ``lhs`` and ``rhs``.
+    Equations are immutable: once created, their LHS and RHS cannot be changed.
 
     Note: This is not a :class:`myokit.Expression`, for that, see
     :class:`myokit.Equal`.
     """
     def __init__(self, lhs, rhs):
-        self.lhs = lhs
-        self.rhs = rhs
+        self._lhs = lhs
+        self._rhs = rhs
 
     def __eq__(self, other):
         if not isinstance(other, Equation):
@@ -4846,27 +4866,39 @@ class Equation(object):
         See :meth:`myokit.Expression.clone()` for details of the arguments.
         """
         return Equation(
-            self.lhs.clone(subst, expand, retain),
-            self.rhs.clone(subst, expand, retain),
+            self._lhs.clone(subst, expand, retain),
+            self._rhs.clone(subst, expand, retain),
         )
 
     def code(self):
+        """ Returns an ``.mmt`` representation of this equation. """
         b = StringIO()
-        self.lhs._code(b, None)
+        self._lhs._code(b, None)
         b.write(' = ')
-        self.rhs._code(b, None)
+        self._rhs._code(b, None)
         return b.getvalue()
 
     def __hash__(self):
-        # Note: Hash should never change during object's lifetime!
-        return hash(self.code())
+        # Note: Hash should never change during object's lifetime. This is
+        # guaranteed if we use the hashes of its operands.
+        return hash(self._lhs) + hash(self._rhs)
 
     def __iter__(self):
         # Having this allows "lhs, rhs = eq"
-        return iter((self.lhs, self.rhs))
+        return iter((self._lhs, self._rhs))
+
+    @property
+    def lhs(self):
+        """ This equations left-hand side expression. """
+        return self._lhs
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    @property
+    def rhs(self):
+        """ This equations right-hand side expression. """
+        return self._rhs
 
     def __str__(self):
         return self.code()
@@ -4876,9 +4908,7 @@ class Equation(object):
 
 
 class EquationList(list, VarProvider):
-    """
-    Represents an ordered list of :class:`Equation` objects
-    """
+    """ An ordered list of :class:`Equation` objects """
     def _create_variable_stream(self, deep, sort):
         # Always sorted
         def stream(lst):

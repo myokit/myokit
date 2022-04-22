@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Shared testing module
+# Test module
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.

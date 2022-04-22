@@ -70,38 +70,36 @@ class CModule(object):
     Abstract base class for classes that dynamically create and compile a
     back-end C-module.
     """
-    def _code(self, tpl, tpl_vars, line_numbers=False):  # pragma: no cover
-        """
-        Returns the code that would be created by the equivalent call to
-        :meth:`_compile()`.
-        """
-        # This is a debugging/development method, so not hit in cover checking
-        if line_numbers:
-            lines = []
-            i = 1
-            for line in self._export(tpl, tpl_vars).split('\n'):
-                lines.append('{:4d}'.format(i) + ' ' + line)
-                i += 1
-            return '\n'.join(lines)
-        else:
-            return self._export(tpl, tpl_vars)
+    def __init__(self):
+        self._debug_file_count = 0
 
-    def _compile(self, name, tpl, tpl_vars, libs, libd=None, incd=None,
-                 carg=None, larg=None):
+    def _compile(self, name, template, variables, libs, libd=None, incd=None,
+                 carg=None, larg=None, continue_in_debug_mode=False):
         """
-        Compiles a source template into a module and returns it.
-
-        The module's name is specified by ``name``.
-
-        The template to compile is given by ``tpl``, while any variables
-        required to process the template should be given as the dict
-        ``tpl_vars``.
+        Compiles a source ``template`` with the given ``variables`` into a
+        module called ``name``, then imports it and returns a reference to the
+        imported module.
 
         Any C libraries needed for compilation should be given in the sequence
         type ``libs``. Library dirs and include dirs can be passed in using
         ``libd`` and ``incd``. Extra compiler arguments can be given in the
         list ``carg``, and linker args in ``larg``.
+
+        If ``myokit.DEBUG_SG`` or ``myokit.DEBUG_WG`` are set, the method will
+        print the generated code to screen and/or write it to disk. Following
+        this, it will terminate with exit code 1 unless
+        ``continue_in_debug_mode`` is changed to ``True``.
         """
+        # Show and/or write code in debug mode
+        if myokit.DEBUG_SG or myokit.DEBUG_WG:  # pragma: no cover
+            if myokit.DEBUG_SG:
+                self._debug_show(template, variables)
+            else:
+                self._debug_write(template, variables)
+            if not continue_in_debug_mode:
+                sys.exit(1)
+
+        # Write to temp dir and compile
         src_file = self._source_file()
         working_dir = os.getcwd()
         d_cache = tempfile.mkdtemp('myokit')
@@ -112,7 +110,7 @@ class CModule(object):
 
             # Export c file
             src_file = os.path.join(d_cache, src_file)
-            self._export(tpl, tpl_vars, src_file)
+            self._export_inner(template, variables, src_file)
 
             # Ensure headers can be read from myokit/_sim
             if incd is None:
@@ -128,22 +126,22 @@ class CModule(object):
             carg = None if carg is None else [str(x) for x in carg]
             larg = None if larg is None else [str(x) for x in larg]
 
-            # Uncomment to debug C89 issues
-            '''
-            if carg is None:
-                carg = []
-            carg.extend([
-                #'-Wall',
-                #'-Wextra',
-                #'-Werror=strict-prototypes',
-                #'-Werror=old-style-definition',
-                #'-Werror=missing-prototypes',
-                #'-Werror=missing-declarations',
-                '-Werror=declaration-after-statement',
-            ])
-            #'''
+            # Show warnings
+            if myokit.DEBUG_SC:
+                if carg is None:
+                    carg = []
+                carg.append('-Wall')
+                if platform.system() == 'Linux':
+                    carg.extend([
+                        '-Wextra',
+                        '-Wstrict-prototypes',
+                        '-Wold-style-definition',
+                        '-Wmissing-prototypes',
+                        '-Wmissing-declarations',
+                        '-Wdeclaration-after-statement',
+                    ])
 
-            # Add runtime_library_dirs (to prevent LD_LIBRARY_PATH) errors on
+            # Add runtime_library_dirs to prevent LD_LIBRARY_PATH errors on
             # unconventional linux sundials installations, but not on windows
             # as this can lead to a weird error in setuptools
             runtime = libd
@@ -188,8 +186,9 @@ class CModule(object):
             )
 
             # Compile in build directory, catch output
+            capture = not myokit.DEBUG_SC
             error, trace = None, None
-            with myokit.tools.capture(fd=True) as s:
+            with myokit.tools.capture(fd=True, enabled=capture) as s:
                 try:
                     os.chdir(d_build)
                     setup(
@@ -225,12 +224,49 @@ class CModule(object):
             except Exception:   # pragma: no cover
                 pass
 
-    def _export(self, source, varmap, target=None):
+    def _debug_show(self, template, variables):  # pragma: no cover
+        """ Processes ``template`` and prints the output to screen. """
+        print('\n'.join([
+            '{:4d}'.format(1 + i) + ' ' + line
+            for i, line in enumerate(
+                self._export_inner(template, variables).splitlines())
+        ]))
+
+    def _debug_write(self, template, variables):  # pragma: no cover
+        """ Processes ``template`` and writes the output to file. """
+        self._debug_file_count += 1
+        fname = 'debug-' + str(self._debug_file_count) + '.c'
+        print('DEBUG: Writing generated code to ' + fname)
+        with open(fname, 'w') as f:
+            f.write(self._export_inner(template, variables))
+
+    def _export(self, template, variables, target=None,
+                continue_in_debug_mode=False):
         """
-        Exports the given ``source`` to the file ``target`` using the variable
-        mapping ``varmap``. If no target is given, the result is returned as a
-        string.
+        Exports a source ``template`` with the given ``variables`` and returns
+        the result as a string or writes it to the file given by ``target``.
+
+        If ``myokit.DEBUG_SG`` or ``myokit.DEBUG_WG`` are set, the method will
+        print the generated code to screen and/or write it to disk. Following
+        this, it will terminate with exit code 1 unless
+        ``continue_in_debug_mode`` is changed to ``True``.
         """
+        # Show and/or write code in debug mode
+        if myokit.DEBUG_SG or myokit.DEBUG_WG:  # pragma: no cover
+            if myokit.DEBUG_SG:
+                self._debug_show(template, variables)
+            else:
+                self._debug_write(template, variables)
+            if not continue_in_debug_mode:
+                sys.exit(1)
+
+        return self._export_inner(
+            template, variables, target, continue_in_debug_mode)
+
+    def _export_inner(self, template, variables, target=None,
+                      continue_in_debug_mode=False):
+        """ Internal version of :meth:`_export`. """
+
         # Test if given module path is writable
         if target is not None:
             if os.path.exists(target):  # pragma: no cover
@@ -250,7 +286,7 @@ class CModule(object):
 
         try:
             result = None
-            result = p.process(source, varmap)
+            result = p.process(template, variables)
         except myokit.pype.PypeError:  # pragma: no cover
             # Not included in cover, because this can only happen if the
             # template code is wrong, i.e. during development.

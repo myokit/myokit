@@ -25,6 +25,9 @@ class PSimulation(myokit.CppModule):
     derivatives of the model variables with respect to a given set of
     parameters.
 
+    This class is deprecated. Sensitivities with respect to parameters can now
+    be calculated with the :class:`Simulation` class.
+
     The simulation is based on automatic differentiation implemented using a
     C++ data type that replaces a single scalar float with a float and a list
     of partial derivatives. Any operations on this pair update both the float
@@ -84,9 +87,9 @@ class PSimulation(myokit.CppModule):
 
         # Deprecated on 2021-02-25
         warnings.warn(
-            'The class `PSimulation` is deprecated.'
-            ' Sensitivities w.r.t. parameters can now be calculated with the'
-            ' single cell `Simulation` class.')
+            'The class `PSimulation` is deprecated. Sensitivities with'
+            ' respect to parameters can now be calculated with the single cell'
+            ' myokit.Simulation class.')
 
         # Check presence of variables and parameters arguments (are required
         # arguments but protocol is not...)
@@ -174,14 +177,6 @@ class PSimulation(myokit.CppModule):
             'parameters': self._parameters,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
-
-        # Debug
-        if myokit.DEBUG:
-            print(
-                self._code(fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
-            import sys
-            sys.exit(1)
 
         # Define libraries
         libs = []

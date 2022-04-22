@@ -47,12 +47,17 @@ class Benchmarker(object):
     """
     def __init__(self):
         self._start = timeit.default_timer()
+        self._last_print = self._start
 
-    def format(self, time):
+    def format(self, time=None):
         """
         Formats a (non-integer) number of seconds, returns a string like
         "5 weeks, 3 days, 1 hour, 4 minutes, 9 seconds", or "0.0019 seconds".
+
+        If no ``time`` is passed in, the value from :meth:`time()` is used.
         """
+        if time is None:
+            time = self.time()
         if time < 60:
             return '1 second' if time == 1 else str(time) + ' seconds'
         output = []
@@ -71,15 +76,23 @@ class Benchmarker(object):
         output.append('1 second' if time == 1 else str(time) + ' seconds')
         return ', '.join(output)
 
+    def print(self, message):
+        """
+        Prints a message to stdout, preceded by the benchmarker time in us.
+        """
+        now = timeit.default_timer()
+        tot = int(1e6 * (now - self._start))
+        new = int(1e6 * (now - self._last_print))
+        self._last_print = now
+        print('[{:10d} us ({:5d} us)] '.format(tot, new) + str(message))
+
     def reset(self):
-        """
-        Resets this timer's start time.
-        """
+        """ Resets this timer's start time. """
         self._start = timeit.default_timer()
 
     def time(self):
         """
-        Returns the time since benchmarking started.
+        Returns the time since benchmarking started (as a float, in seconds).
         """
         return timeit.default_timer() - self._start
 
@@ -126,6 +139,9 @@ class capture(object):
     catch that output start the capture with the optional argument
     ``fd=True``, which enables a file descriptor duplication method of
     redirection.
+
+    To easily switch capturing on/off, a switch ``enabled=False`` can be passed
+    in to create a context manager that doesn't do anything.
     """
     # Note: It seems we need to capture both streams to make the file
     # descriptor method work, and we want both anyway throughout Myokit, so
@@ -134,7 +150,7 @@ class capture(object):
     # Lock to stop other threads from capturing while this thread is capturing.
     _rlock = threading.RLock()
 
-    def __init__(self, fd=False):
+    def __init__(self, fd=False, enabled=True):
 
         # Are we already capturing? This is needed in case someone enters the
         # same context twice.
@@ -163,8 +179,14 @@ class capture(object):
         self._file_out = None    # Temporary file to write output to
         self._file_err = None    # Temporary file to write errors to
 
+        # Capturing enabled
+        self._enabled = bool(enabled)
+
     def __enter__(self):
         """Called when the context is entered."""
+        if not self._enabled:
+            return self
+
         # Avoid entering the same context object twice
         self._active_count += 1
         if self._active_count == 1:
@@ -180,6 +202,9 @@ class capture(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Called when exiting the context."""
+        if not self._enabled:
+            return
+
         self._active_count -= 1
         if self._active_count == 0:
             self._stop()

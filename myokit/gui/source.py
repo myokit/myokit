@@ -26,9 +26,65 @@ BRACKETS = {
 BRACKETS_CLOSE = (')', ']')
 FONT = myokit.gui.qtMonospaceFont()
 FONT.setPointSize(11)
-COLOR_CURRENT_LINE = QtGui.QColor(230, 230, 240)
-COLOR_BG_LINE_NUMBER = QtGui.QColor(230, 230, 230)
-COLOR_BG_BRACKET = QtGui.QColor(210, 210, 210)
+
+# Component and model headers
+STYLE_HEADER = QtGui.QTextCharFormat()
+
+# Comments
+STYLE_COMMENT = QtGui.QTextCharFormat()
+
+# Model annotations (including meta, labels, and units)
+STYLE_ANNOT_KEY = QtGui.QTextCharFormat()
+STYLE_ANNOT_VAL = QtGui.QTextCharFormat()
+
+# Language keywords
+STYLE_KEYWORD_1 = QtGui.QTextCharFormat()
+STYLE_KEYWORD_2 = QtGui.QTextCharFormat()
+
+# Literals: Numbers in model/protocol, Also booleans and strings in script
+STYLE_LITERAL = QtGui.QTextCharFormat()
+STYLE_INLINE_UNIT = QtGui.QTextCharFormat()
+
+# Matching brackets are highlighted
+COLOR_BRACKET = QtGui.QColor(240, 100, 0)
+
+# Selected line is highlighted
+COLOR_SELECTED_LINE = QtGui.QColor(238, 238, 238)
+
+
+def _check_for_dark_mode(palette):
+    """
+    Checks the default editor background color, and adjusts the colour scheme
+    if it looks like dark-mode is enabled.
+    """
+    c = palette.base().color()
+    c = (c.blueF() + c.greenF() + c.redF()) / 3
+    dark = c < 0.5
+
+    # Don't mess with these directly: Use the SVG in myokit-docs
+    if not dark:
+        STYLE_HEADER.setForeground(QtGui.QColor(0, 31, 231))
+        STYLE_COMMENT.setForeground(QtGui.QColor(103, 161, 107))
+        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(0, 31, 231))
+        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(57, 115, 214))
+        STYLE_KEYWORD_1.setForeground(QtGui.QColor(0, 128, 0))
+        STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
+        STYLE_KEYWORD_2.setForeground(QtGui.QColor(0, 128, 128))
+        STYLE_LITERAL.setForeground(QtGui.QColor(255, 20, 215))
+        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(128, 0, 128))
+    else:
+        STYLE_HEADER.setForeground(QtGui.QColor(98, 178, 255))
+        STYLE_COMMENT.setForeground(QtGui.QColor(153, 153, 153))
+        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(179, 179, 179))
+        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(171, 177, 205))
+        STYLE_KEYWORD_1.setForeground(QtGui.QColor(10, 195, 87))
+        STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
+        STYLE_KEYWORD_2.setForeground(QtGui.QColor(10, 195, 87))
+        STYLE_LITERAL.setForeground(QtGui.QColor(255, 223, 12))
+        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(168, 152, 33))
+
+        global COLOR_SELECTED_LINE
+        COLOR_SELECTED_LINE = QtGui.QColor(70, 70, 70)
 
 
 # Classes & methods
@@ -40,52 +96,46 @@ class Editor(QtWidgets.QPlainTextEdit):
     action occurred with a description that can be used in an application's
     status bar.
     """
-    # Signal: Find action happened, update with text
-    # Attributes: (description)
-    find_action = QtCore.Signal(str)
-
     def __init__(self, parent=None):
         super(Editor, self).__init__(parent)
+
+        # Current style
+        self._palette = QtGui.QGuiApplication.palette()
+        _check_for_dark_mode(self._palette)
+
         # Apply default settings
         self._default_settings()
+
         # Add line number area
         self._line_number_area = LineNumberArea(self)
         self._line_number_area.update_width(0)
+
         # Add current line highlighting and bracket matching
         self.cursorPositionChanged.connect(self.cursor_changed)
         self.cursor_changed()
-        # Find/replace dialog
-        self._find = FindDialog(self)
-        self._find.find_action.connect(self._find_action)
+
         # Line position
         self._line_offset = self.fontMetrics().width(' ' * 79)
+
         # Number of blocks in page up/down
         self._blocks_per_page = 1
+
         # Last position in line, used for smart up/down buttons
         self._last_column = None
         self.textChanged.connect(self._text_has_changed)
 
-    def activate_find_dialog(self):
-        """
-        Activates the find/replace dialog for this editor: Shows the dialog if
-        hidden, sets the focus to the query field and copies any current
-        selection into the query field.
-        """
-        self._find.activate()
-
     def cursor_changed(self):
-        """
-        Slot: Called when the cursor position is changed
-        """
+        """ Slot: Called when the cursor position is changed """
         # Highlight current line
         extra_selections = []
         selection = QtWidgets.QTextEdit.ExtraSelection()
-        selection.format.setBackground(COLOR_CURRENT_LINE)
+        selection.format.setBackground(COLOR_SELECTED_LINE)
         selection.format.setProperty(
             QtGui.QTextFormat.FullWidthSelection, True)
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
         extra_selections.append(selection)
+
         # Bracket matching
         cursor = self.textCursor()
         if not cursor.hasSelection():
@@ -103,6 +153,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 text = cursor.selectedText()
                 if text in BRACKETS:
                     bracket = cursor
+
             if bracket:
                 # Find matching partner
                 doc = self.document()
@@ -142,12 +193,15 @@ class Editor(QtWidgets.QPlainTextEdit):
                     # Apply formatting
                     selection = QtWidgets.QTextEdit.ExtraSelection()
                     selection.cursor = bracket
-                    selection.format.setBackground(COLOR_BG_BRACKET)
+                    selection.format.setBackground(self._palette.mid())
+                    selection.format.setForeground(COLOR_BRACKET)
                     extra_selections.append(selection)
                     selection = QtWidgets.QTextEdit.ExtraSelection()
                     selection.cursor = match
-                    selection.format.setBackground(COLOR_BG_BRACKET)
+                    selection.format.setBackground(self._palette.mid())
+                    selection.format.setForeground(COLOR_BRACKET)
                     extra_selections.append(selection)
+
         if extra_selections:
             self.setExtraSelections(extra_selections)
 
@@ -164,9 +218,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         return (line, char)
 
     def _default_settings(self):
-        """
-        Applies this editor's default settings.
-        """
+        """ Applies this editor's default settings. """
         # Set font
         self.setFont(FONT)
         # Set frame
@@ -176,28 +228,12 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Set tab width (if ever seen) to 4 spaces
         self.setTabStopWidth(self.fontMetrics().width(' ' * 4))
 
-    def _find_action(self, text):
-        """
-        Passes on the find action signal.
-        """
-        self.find_action.emit(text)
-
     def get_text(self):
-        """
-        Returns the text in this editor.
-        """
+        """ Returns the text in this editor. """
         return self.toPlainText()
 
-    def hide_find_dialog(self):
-        """
-        Hides the find/replace dialog for this editor.
-        """
-        self._find.hide()
-
     def jump_to(self, line, char):
-        """
-        Jumps to the given line and row (with indices starting at 0).
-        """
+        """ Jumps to the given line and row (with indices starting at 0). """
         block = self.document().findBlockByNumber(line)
         cursor = self.textCursor()
         cursor.setPosition(block.position() + char)
@@ -205,9 +241,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         self.centerCursor()
 
     def keyPressEvent(self, event):
-        """
-        Qt event: A key was pressed.
-        """
+        """ Qt event: A key was pressed. """
         # Get key and modifiers
         key = event.key()
         mod = event.modifiers()
@@ -508,51 +542,55 @@ class Editor(QtWidgets.QPlainTextEdit):
                 super(Editor, self).keyPressEvent(event)
 
     def _line_number_area_width(self):
-        """
-        Returns the required width for the number area
-        """
-        return 4 + self.fontMetrics().width(str(max(1, self.blockCount())))
+        """ Returns the required width for the number area. """
+        return 8 + self.fontMetrics().width(str(max(1, self.blockCount())))
 
     def _line_number_area_paint(self, area, event):
-        """
-        Repaints the line number area.
-        """
-        # Repaint area
+        """ Repaints the line number area. """
+        # Area to repaint
         rect = event.rect()
         etop = rect.top()
         ebot = rect.bottom()
-        # Repaint metrics
+
+        # Font metrics
         metrics = self.fontMetrics()
         height = metrics.height()
         width = area.width()
-        # Create painter, get font metrics
+
+        # Create painter, set font color
         painter = QtGui.QPainter(area)
-        painter.fillRect(rect, COLOR_BG_LINE_NUMBER)
-        # Get top and bottom of first block
+        painter.fillRect(rect, self._palette.button())
+        painter.setPen(self._palette.buttonText().color())
+
+        # Get top and bottom of first visible block
         block = self.firstVisibleBlock()
         geom = self.blockBoundingGeometry(block)
-        btop = geom.translated(self.contentOffset()).top()
-        bbot = btop + geom.height()
-        # Iterate over blocks
+        btop = int(geom.translated(self.contentOffset()).top())
+        bbot = int(btop + geom.height())
+
+        # Iterate over visible blocks
         count = block.blockNumber()
         while block.isValid() and btop <= ebot:
             count += 1
             if block.isVisible() and bbot >= etop:
                 painter.drawText(
-                    0, btop, width, height, Qt.AlignRight, str(count))
+                    0, btop, width - 4, height, Qt.AlignRight, str(count))
             block = block.next()
             btop = bbot
-            bbot += self.blockBoundingRect(block).height()
+            bbot += int(self.blockBoundingRect(block).height())
 
     def paintEvent(self, e):
-        """
-        Paints this editor.
-        """
+        """ Paints this editor. """
+
         # Paint the editor
         super(Editor, self).paintEvent(e)
+
         # Paint a line between the editor and the line number area
-        x = self.contentOffset().x() + self.document().documentMargin() \
+        x = int(
+            self.contentOffset().x()
+            + self.document().documentMargin()
             + self._line_offset
+        )
         p = QtGui.QPainter(self.viewport())
         p.setPen(QtGui.QPen(QtGui.QColor('#ddd')))
         rect = e.rect()
@@ -571,9 +609,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         cursor.endEditBlock()
 
     def resizeEvent(self, event):
-        """
-        Qt event: Editor is resized.
-        """
+        """ Qt event: Editor is resized. """
         super(Editor, self).resizeEvent(event)
         # Update line number area
         rect = self.contentsRect()
@@ -583,30 +619,6 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Set number of "blocks" per page
         font = self.fontMetrics()
         self._blocks_per_page = int(rect.height() / font.height())
-
-    def save_config(self, config, section):
-        """
-        Saves this editor's configuration using the given :class:`ConfigParser`
-        ``config``. Stores all settings in the section ``section``.
-        """
-        config.add_section(section)
-        # Find options: case sensitive / whole word
-        config.set(section, 'case_sensitive', self._find.case_sensitive())
-        config.set(section, 'whole_word', self._find.whole_word())
-
-    def load_config(self, config, section):
-        """
-        Loads this editor's configuration using the given :class:`ConfigParser`
-        ``config``. Loads all settings from the section ``section``.
-        """
-        if config.has_section(section):
-            # Find options: case sensitive / whole word
-            if config.has_option(section, 'case_sensitive'):
-                self._find.set_case_sensitive(config.getboolean(
-                    section, 'case_sensitive'))
-            if config.has_option(section, 'whole_word'):
-                self._find.set_whole_word(
-                    config.getboolean(section, 'whole_word'))
 
     def set_cursor(self, pos):
         """
@@ -619,9 +631,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         self.centerCursor()
 
     def set_text(self, text):
-        """
-        Replaces the text in this editor.
-        """
+        """ Replaces the text in this editor. """
         if text:
             self.setPlainText(str(text))
         else:
@@ -634,12 +644,6 @@ class Editor(QtWidgets.QPlainTextEdit):
             doc.clearUndoRedoStacks()
             doc.setModified(False)
 
-    def show_find_dialog(self):
-        """
-        Displays a find/replace dialog for this editor.
-        """
-        self._find.show()
-
     def _text_has_changed(self):
         """
         Called whenever the text has changed, resets the smart up/down
@@ -648,9 +652,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         self._last_column = None
 
     def toggle_comment(self):
-        """
-        Comments or uncomments the selected lines
-        """
+        """ Comments or uncomments the selected lines """
         # Comment or uncomment selected lines
         cursor = self.textCursor()
         start, end = cursor.selectionStart(), cursor.selectionEnd()
@@ -693,9 +695,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         cursor.endEditBlock()
 
     def trim_trailing_whitespace(self):
-        """
-        Trims all trailing whitespace from this document.
-        """
+        """ Trims all trailing whitespace from this document. """
         block = self.document().begin()
         cursor = self.textCursor()
         cursor.beginEditBlock()     # Undo grouping
@@ -728,15 +728,11 @@ class LineNumberArea(QtWidgets.QWidget):
         self._editor.updateRequest.connect(self.update_contents)
 
     def paintEvent(self, event):
-        """
-        Qt event: Paint this area.
-        """
+        """ Qt event: Paint this area. """
         self._editor._line_number_area_paint(self, event)
 
     def sizeHint(self):
-        """
-        Qt event: Suggest a size for this area.
-        """
+        """ Qt event: Suggest a size for this area. """
         return QtCore.QSize(self._editor._line_number_area_width(), 0)
 
     def update_contents(self, rect, scroll):
@@ -761,24 +757,19 @@ class LineNumberArea(QtWidgets.QWidget):
             2 + self._editor._line_number_area_width(), 0, 0, 0)
 
 
-class FindDialog(QtWidgets.QDialog):
+class FindReplaceWidget(QtWidgets.QWidget):
     """
-    Find/replace dialog for :class:`Editor`.
+    Find/replace widget for :class:`Editor`.
     """
     # Signal: Find action happened, update with text
     # Attributes: (description)
     find_action = QtCore.Signal(str)
 
-    def __init__(self, editor):
-        # New style doesn't work:
-        QtWidgets.QDialog.__init__(self, editor, Qt.Window)
-        self.setWindowTitle('Find and replace')
+    def __init__(self, parent, editor):
+        super(FindReplaceWidget, self).__init__(parent)
         self._editor = editor
-        # Fix background color of line edits
-        self.setStyleSheet('QLineEdit{background: white;}')
+
         # Create widgets
-        self._close_button = QtWidgets.QPushButton('Close')
-        self._close_button.clicked.connect(self.action_close)
         self._replace_all_button = QtWidgets.QPushButton('Replace all')
         self._replace_all_button.clicked.connect(self.action_replace_all)
         self._replace_button = QtWidgets.QPushButton('Replace')
@@ -791,6 +782,7 @@ class FindDialog(QtWidgets.QDialog):
         self._replace_field = QtWidgets.QLineEdit()
         self._case_check = QtWidgets.QCheckBox('Case sensitive')
         self._whole_check = QtWidgets.QCheckBox('Match whole word only')
+
         # Create layout
         text_layout = QtWidgets.QGridLayout()
         text_layout.addWidget(self._search_label, 0, 0)
@@ -801,28 +793,23 @@ class FindDialog(QtWidgets.QDialog):
         check_layout.addWidget(self._case_check)
         check_layout.addWidget(self._whole_check)
         button_layout = QtWidgets.QGridLayout()
-        button_layout.addWidget(self._close_button, 0, 0)
         button_layout.addWidget(self._replace_all_button, 0, 1)
         button_layout.addWidget(self._replace_button, 0, 2)
         button_layout.addWidget(self._find_button, 0, 3)
+
         layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
         layout.addLayout(text_layout)
         layout.addLayout(check_layout)
         layout.addLayout(button_layout)
+        layout.addStretch(1)
         self.setLayout(layout)
+
+        # Accept keyboard focus on search and replace fields
         self._search_field.setEnabled(True)
         self._replace_field.setEnabled(True)
 
-    def action_close(self):
-        """
-        Qt slot: Close this window.
-        """
-        self.close()
-
     def action_find(self):
-        """
-        Qt slot: Find (next) item.
-        """
+        """ Qt slot: Find (next) item. """
         query = self._search_field.text()
         if query == '':
             self.find_action.emit('No query set')
@@ -839,6 +826,7 @@ class FindDialog(QtWidgets.QDialog):
         if found is False:
             # Not found? Try from top of document
             previous_cursor = self._editor.textCursor()
+            previous_scroll = self._editor.verticalScrollBar().value()
             cursor = self._editor.textCursor()
             cursor.setPosition(0)
             self._editor.setTextCursor(cursor)
@@ -848,6 +836,7 @@ class FindDialog(QtWidgets.QDialog):
                 found = self._editor.find(query)
             if found is False:
                 self._editor.setTextCursor(previous_cursor)
+                self._editor.verticalScrollBar().setValue(previous_scroll)
                 self.find_action.emit('Query not found.')
                 return
         cursor = self._editor.textCursor()
@@ -857,9 +846,7 @@ class FindDialog(QtWidgets.QDialog):
             'Match found on line ' + str(line) + ' char ' + str(char) + '.')
 
     def action_replace(self):
-        """
-        Qt slot: Replace found item with replacement.
-        """
+        """ Qt slot: Replace found item with replacement. """
         query = self._search_field.text()
         replacement = self._replace_field.text()
         if query == '':
@@ -874,9 +861,7 @@ class FindDialog(QtWidgets.QDialog):
         self.action_find()
 
     def action_replace_all(self):
-        """
-        Qt slot: Replace all found items with replacement
-        """
+        """ Qt slot: Replace all found items with replacement """
         query = self._search_field.text()
         replacement = self._replace_field.text()
         if query == '':
@@ -922,113 +907,164 @@ class FindDialog(QtWidgets.QDialog):
         self.find_action.emit('Replaced ' + str(n) + ' occurrences.')
 
     def activate(self):
-        """
-        Activates this dialog.
-        """
-        # Check for selection
+        """ Updates the contents of the search field and gives it focus. """
         cursor = self._editor.textCursor()
         if cursor.hasSelection():
             self._search_field.setText(cursor.selectedText())
-        # Show dialog
-        self.show()
-        self.raise_()
-        self.activateWindow()
-        # Set focus
         self._search_field.selectAll()
         self._search_field.setFocus()
 
-    def case_sensitive(self):
-        """
-        Returns ``True`` if this dialog is set for case-sensitive searching.
-        """
-        return self._case_check.isChecked()
-
     def keyPressEvent(self, event):
-        """
-        Qt event: A key-press reaches the dialog.
-        """
+        """ Qt event: A key-press reaches the widget. """
         key = event.key()
         if key == Qt.Key_Enter or key == Qt.Key_Return:
             self.action_find()
         else:
-            super(FindDialog, self).keyPressEvent(event)
+            super(FindReplaceWidget, self).keyPressEvent(event)
 
-    def set_case_sensitive(self, case_sensitive):
+    def load_config(self, config, section):
         """
-        Sets/unsets the case-sensitive option.
+        Loads this search's configuration using the given :class:`ConfigParser`
+        ``config``. Loads all settings from the section ``section``.
         """
-        return self._case_check.setChecked(bool(case_sensitive))
+        if config.has_section(section):
+            # Find options: case sensitive / whole word
+            if config.has_option(section, 'case_sensitive'):
+                self._case_check.setChecked(
+                    config.getboolean(section, 'case_sensitive'))
+            if config.has_option(section, 'whole_word'):
+                self._whole_check.setChecked(
+                    config.getboolean(section, 'whole_word'))
 
-    def set_whole_word(self, whole_word):
+    def save_config(self, config, section):
         """
-        Sets/unsets the whole-word option.
+        Saves this search's configuration using the given :class:`ConfigParser`
+        ``config``. Stores all settings in the section ``section``.
         """
-        return self._whole_check.setChecked(bool(whole_word))
-
-    def whole_word(self):
-        """
-        Returns ``True`` if this dialog is set for whole-word searching.
-        """
-        return self._whole_check.isChecked()
+        config.add_section(section)
+        # Find options: case sensitive / whole word
+        config.set(section, 'case_sensitive', self._case_check.isChecked())
+        config.set(section, 'whole_word', self._whole_check.isChecked())
 
 
 class ModelHighlighter(QtGui.QSyntaxHighlighter):
     """
     Syntax highlighter for ``mmt`` model definitions.
     """
-    KEYWORDS = ['dot', 'bind', 'label', 'use', 'as', 'in', 'and', 'or', 'not']
+    KEYWORD_1 = ['use', 'as']
+    KEYWORD_2 = ['and', 'or', 'not']
+    ANNOT_KEYS = ['in', 'bind', 'label']
 
     def __init__(self, document):
         super(ModelHighlighter, self).__init__(document)
-        # Highlighting rules
-        self._rules = []
-        # Numbers
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
-        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
-        self._rules.append((pattern, style))
-        # Keywords
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(0, 96, 0))
-        style.setFontWeight(QtGui.QFont.Bold)
-        for keyword in self.KEYWORDS:
-            pattern = QtCore.QRegExp(r'\b' + keyword + r'\b')
-            self._rules.append((pattern, style))
-        # Meta-data coloring (overrules previous formatting)
-        self._meta_style = QtGui.QTextCharFormat()
-        self._meta_style.setForeground(QtGui.QColor(128, 128, 192))
-        pattern = QtCore.QRegExp(r':.*')
-        self._rules.append((pattern, self._meta_style))
-        # Strings (overrule previous formatting, except when commented)
+
+        # Expressions used to find strings & comments
         self._string_start = QtCore.QRegExp(r'"""')
         self._string_stop = QtCore.QRegExp(r'"""')
         self._comment_start = QtCore.QRegExp(r'#[^\n]*')
-        # Comments (overrule all other formatting)
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(20, 20, 255))
-        pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, style))
+
+        # Headers
+        name = r'[a-zA-Z]+[a-zA-Z0-9_]*'
+        self._rule_head = QtCore.QRegExp(r'^(\s*)\[{1,2}' + name + '\]{1,2}')
+
+        # Simple rules
+        self._rules = []
+
+        # Numbers
+        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
+        self._rules.append((pattern, STYLE_LITERAL))
+        unit = r'\[[a-zA-Z0-9/^]+\]'
+        self._rules.append((QtCore.QRegExp(unit), STYLE_INLINE_UNIT))
+
+        # Keywords
+        for keyword in self.KEYWORD_1:
+            pattern = QtCore.QRegExp(r'\b' + keyword + r'\b')
+            self._rules.append((pattern, STYLE_KEYWORD_1))
+        for keyword in self.KEYWORD_2:
+            pattern = QtCore.QRegExp(r'\b' + keyword + r'\b')
+            self._rules.append((pattern, STYLE_KEYWORD_2))
+
+        # Meta-data coloring
+        self._rules_labels = [
+            QtCore.QRegExp(r'(\s*)(bind)\s+(' + name + ')'),
+            QtCore.QRegExp(r'(\s*)(label)\s+(' + name + ')'),
+        ]
+        self._rule_meta_key = QtCore.QRegExp(name + r':')
+        self._rule_meta_val = QtCore.QRegExp(r':(\s*)(.+)')
+        self._rule_var_unit = QtCore.QRegExp(r'^(\s*)(in)(\s*)(' + unit + ')')
+
+        # Comments
+        # Note: For some reason this can _not_ use self._comment_start
+        self._comments = QtCore.QRegExp(r'#[^\n]*')
 
     def highlightBlock(self, text):
-        """
-        Qt: Called whenever a block should be highlighted.
-        """
-        # Rule based formatting
+        """ Qt: Called whenever a block should be highlighted. """
+        # Simple rules
         for (pattern, style) in self._rules:
-            e = QtCore.QRegExp(pattern)
-            i = e.indexIn(text)
+            i = pattern.indexIn(text)
             while i >= 0:
                 # Note: Can't use matchedLength() here because it does quirky
                 # things with the subgroup for the numbers regex.
-                #n = e.matchedLength()
                 n = len(pattern.cap(0))
                 self.setFormat(i, n, style)
                 i = pattern.indexIn(text, i + n)
-        self.setCurrentBlockState(0)
-        # Multi-line formats
+
+        # Model and component headers
+        i = self._rule_head.indexIn(text)
+        while i >= 0:
+            m = len(self._rule_head.cap(1))
+            n = len(self._rule_head.cap(0))
+            self.setFormat(i + m, n - m, STYLE_HEADER)
+            i = self._rule_head.indexIn(text, i + n)
+
+        # Annotations
+        # Labels
+        for pattern in self._rules_labels:
+            i = pattern.indexIn(text)
+            while i >= 0:
+                n0 = len(pattern.cap(0))
+                n1 = len(pattern.cap(1))
+                n2 = len(pattern.cap(2))
+                n3 = len(pattern.cap(3))
+                self.setFormat(i + n1, n2, STYLE_ANNOT_KEY)
+                self.setFormat(i + n0 - n3, n3, STYLE_ANNOT_VAL)
+                i = pattern.indexIn(text, i + n0)
+
+        # Units
+        i = self._rule_var_unit.indexIn(text)
+        if i == 0:
+            n1 = len(self._rule_var_unit.cap(1))
+            n2 = len(self._rule_var_unit.cap(2))
+            n3 = len(self._rule_var_unit.cap(3))
+            n4 = len(self._rule_var_unit.cap(4))
+            self.setFormat(n1, n2, STYLE_ANNOT_KEY)
+            self.setFormat(n1 + n2 + n3, n4, STYLE_ANNOT_VAL)
+
+        # Meta properties
+        i = self._rule_meta_key.indexIn(text)
+        if i >= 0:
+            n0 = len(self._rule_meta_key.cap(0))
+            self.setFormat(i, n0, STYLE_ANNOT_KEY)
+        i = self._rule_meta_val.indexIn(text)
+        if i >= 0:
+            n1 = len(self._rule_meta_val.cap(1))
+            n2 = len(self._rule_meta_val.cap(2))
+            self.setFormat(i, 1, STYLE_ANNOT_KEY)
+            self.setFormat(1 + i + n1, n2, STYLE_ANNOT_VAL)
+
+        # Comments (overrule all other formatting except multi-line strings)
+        i = self._comments.indexIn(text)
+        while i >= 0:
+            n = len(self._comments.cap(0))
+            self.setFormat(i, n, STYLE_COMMENT)
+            i = self._comments.indexIn(text, i + n)
+
+        # Multi-line strings
         # Block states:
         #  0 Normal
-        #  1 Multi-line string
+        #  1 Multi-line string (meta)
+        self.setCurrentBlockState(0)
+
         # Check state of previous block
         if self.previousBlockState() != 1:
             # Normal block
@@ -1040,19 +1076,20 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
                 start = next = -1
         else:
             start = next = 0
+
         # Find any occurrences of string start / stop
         while next >= 0:
             stop = self._string_stop.indexIn(text, next)
             if stop < 0:
                 # Continuing multi-line string
                 self.setCurrentBlockState(1)
-                self.setFormat(start, len(text) - start, self._meta_style)
+                self.setFormat(start, len(text) - start, STYLE_ANNOT_VAL)
                 next = -1
             else:
                 # Ending single-line or multi-line string
                 # Format until stop token
                 next = stop = stop + self._string_stop.matchedLength()
-                self.setFormat(start, stop - start, self._meta_style)
+                self.setFormat(start, stop - start, STYLE_ANNOT_VAL)
                 # Find next string in block, if any
                 next = start = self._string_start.indexIn(text, next)
                 if next >= 0:
@@ -1065,37 +1102,42 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
     """
     def __init__(self, document):
         super(ProtocolHighlighter, self).__init__(document)
+
+        # Headers and units
+        self._rule_head = QtCore.QRegExp(r'^(\s*)\[\[[a-zA-Z0-9_]+\]\]')
+
         # Highlighting rules
         self._rules = []
+
         # Numbers
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
         pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
-        self._rules.append((pattern, style))
+        self._rules.append((pattern, STYLE_LITERAL))
+
         # Keyword "next"
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
         pattern = QtCore.QRegExp(r'\bnext\b')
-        self._rules.append((pattern, style))
+        self._rules.append((pattern, STYLE_KEYWORD_1))
+
         # Comments
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(20, 20, 255))
         pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, style))
+        self._rules.append((pattern, STYLE_COMMENT))
 
     def highlightBlock(self, text):
-        """
-        Qt: Called whenever a block should be highlighted.
-        """
+        """ Qt: Called whenever a block should be highlighted. """
         # Rule based formatting
         for (pattern, style) in self._rules:
-            e = QtCore.QRegExp(pattern)
-            i = e.indexIn(text)
+            i = pattern.indexIn(text)
             while i >= 0:
                 n = len(pattern.cap(0))
                 self.setFormat(i, n, style)
                 i = pattern.indexIn(text, i + n)
-        self.setCurrentBlockState(0)
+
+        # Protocol header
+        i = self._rule_head.indexIn(text)
+        while i >= 0:
+            m = len(self._rule_head.cap(1))
+            n = len(self._rule_head.cap(0))
+            self.setFormat(i + m, n - m, STYLE_HEADER)
+            i = self._rule_head.indexIn(text, i + n)
 
 
 class ScriptHighlighter(QtGui.QSyntaxHighlighter):
@@ -1105,80 +1147,75 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
     def __init__(self, document):
         super(ScriptHighlighter, self).__init__(document)
 
+        # Headers and units
+        self._rule_head = QtCore.QRegExp(r'^(\s*)\[\[[a-zA-Z0-9_]+\]\]')
+
         # Highlighting rules
         self._rules = []
 
-        # Numbers
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
-        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
-        self._rules.append((pattern, style))
-
-        # True/False/None
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
-        pattern = QtCore.QRegExp(r'\bTrue\b')
-        self._rules.append((pattern, style))
-        pattern = QtCore.QRegExp(r'\bFalse\b')
-        self._rules.append((pattern, style))
-        pattern = QtCore.QRegExp(r'\bNone\b')
-        self._rules.append((pattern, style))
-
-        # Built-in essential functions
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(0, 128, 128))
-        for func in _PYFUNC:
-            pattern = QtCore.QRegExp(r'\b' + str(func) + r'\b')
-            self._rules.append((pattern, style))
-
         # Keywords
         import keyword
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(0, 96, 0))
-        style.setFontWeight(QtGui.QFont.Bold)
         for kw in keyword.kwlist:
             pattern = QtCore.QRegExp(r'\b' + kw + r'\b')
-            self._rules.append((pattern, style))
+            self._rules.append((pattern, STYLE_KEYWORD_1))
+
+        # Built-in essential functions
+        for func in _PYFUNC:
+            pattern = QtCore.QRegExp(r'\b' + str(func) + r'\b')
+            self._rules.append((pattern, STYLE_KEYWORD_2))
+
+        # Literals: numbers, True, False, None
+        # Override some keywords
+        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
+        self._rules.append((pattern, STYLE_LITERAL))
+        pattern = QtCore.QRegExp(r'\bTrue\b')
+        self._rules.append((pattern, STYLE_LITERAL))
+        pattern = QtCore.QRegExp(r'\bFalse\b')
+        self._rules.append((pattern, STYLE_LITERAL))
+        pattern = QtCore.QRegExp(r'\bNone\b')
+        self._rules.append((pattern, STYLE_LITERAL))
 
         # Strings
-        self._string_style = QtGui.QTextCharFormat()
-        self._string_style.setForeground(QtGui.QColor(255, 0, 255))
         pattern = QtCore.QRegExp(r'"([^"\\]|\\")*"')
-        self._rules.append((pattern, self._string_style))
+        self._rules.append((pattern, STYLE_LITERAL))
         pattern = QtCore.QRegExp(r"'([^'\\]|\\')*'")
-        self._rules.append((pattern, self._string_style))
+        self._rules.append((pattern, STYLE_LITERAL))
 
         # Multi-line strings
         self._string1 = QtCore.QRegExp(r"'''")
         self._string2 = QtCore.QRegExp(r'"""')
 
         # Comments
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(20, 20, 255))
         pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, style))
+        self._rules.append((pattern, STYLE_COMMENT))
 
     def highlightBlock(self, text):
-        """
-        Qt: Called whenever a block should be highlighted.
-        """
+        """ Qt: Called whenever a block should be highlighted. """
         # Rule based formatting
         for (pattern, style) in self._rules:
-            e = QtCore.QRegExp(pattern)
-            i = e.indexIn(text)
+            i = pattern.indexIn(text)
             while i >= 0:
                 # Note: Can't use matchedLength() here because it does quirky
                 # things with the subgroup for the numbers regex.
                 n = len(pattern.cap(0))
                 self.setFormat(i, n, style)
                 i = pattern.indexIn(text, i + n)
-        self.setCurrentBlockState(0)
 
-        # Multi-line formats
+        # Script header
+        i = self._rule_head.indexIn(text)
+        while i >= 0:
+            m = len(self._rule_head.cap(1))
+            n = len(self._rule_head.cap(0))
+            self.setFormat(i + m, n - m, STYLE_HEADER)
+            i = self._rule_head.indexIn(text, i + n)
+
         # Block states:
         #  0 Normal
         #  1 Multi-line string 1
         #  2 Multi-line string 2
+        self.setCurrentBlockState(0)
+
+        # Multi-line formats
         def find_start(text, next):
             s1 = self._string1.indexIn(text, next)
             s2 = self._string2.indexIn(text, next)
@@ -1205,12 +1242,14 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
                     start = next = -1
 
             return current, start, next
+
         # Check state of previous block
         previous = self.previousBlockState()
         if previous == 1 or previous == 2:
             current, start, next = previous, 0, 0
         else:
             current, start, next = find_start(text, 0)
+
         # Find any occurrences of string start / stop
         while next >= 0:
             if current == 1:
@@ -1220,13 +1259,13 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
             if stop < 0:
                 # Continuing multi-line string
                 self.setCurrentBlockState(current)
-                self.setFormat(start, len(text) - start, self._string_style)
+                self.setFormat(start, len(text) - start, STYLE_LITERAL)
                 next = -1
             else:
                 # Ending single-line or multi-line string
                 # Format until stop token
                 stop += 3
-                self.setFormat(start, stop - start, self._string_style)
+                self.setFormat(start, stop - start, STYLE_LITERAL)
                 # Find next string in block, if any
                 next = stop + 3
                 current, start, next = find_start(text, next)

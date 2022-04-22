@@ -16,7 +16,7 @@ import unittest
 
 import myokit
 
-from shared import TemporaryDirectory, WarningCollector
+from myokit.tests import TemporaryDirectory, WarningCollector
 
 
 # Unit testing in Python 2 and 3
@@ -286,14 +286,15 @@ class ModelTest(unittest.TestCase):
         m1 = myokit.load_model('example')
         m2 = m1.clone()
         self.assertFalse(m1 is m2)
-        self.assertEqual(m1, m2)
+        self.assertNotEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2, True))
 
         # Test unames and uname prefixes
         m1.reserve_unique_names('barnard', 'lincoln', 'glasgow')
         m1.reserve_unique_name_prefix('monkey', 'giraffe')
         m1.reserve_unique_name_prefix('ostrich', 'turkey')
         m2 = m1.clone()
-        self.assertEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2, True))
 
         # Test tokens are not cloned
         self.assertTrue(m1.has_parse_info())
@@ -353,7 +354,7 @@ class ModelTest(unittest.TestCase):
             '13 d = comp1.a\n'
         )
 
-    def test_equals(self):
+    def test_is_similar(self):
         # Check that equality takes both code() and unames into account
 
         # Test without custom reserved names
@@ -361,30 +362,36 @@ class ModelTest(unittest.TestCase):
         m2 = m1.clone()
         self.assertIsInstance(m2, myokit.Model)
         self.assertFalse(m1 is m2)
-        self.assertEqual(m1, m2)
-        self.assertEqual(m1, m1)
+        self.assertNotEqual(m1, m2)
+        self.assertNotEqual(m2, m1)
+        self.assertTrue(m1.is_similar(m2, False))
+        self.assertTrue(m1.is_similar(m2, True))
+        self.assertTrue(m2.is_similar(m1, False))
+        self.assertTrue(m2.is_similar(m1, True))
+        self.assertTrue(m1.is_similar(m1, True))
+        self.assertTrue(m2.is_similar(m2, False))
 
         # Test with none-model
-        self.assertNotEqual(m1, None)
-        self.assertNotEqual(m1, m1.code())
+        self.assertFalse(m1.is_similar(None))
+        self.assertFalse(m1.is_similar(m1.code()))
 
         # Add reserved names
         m1.reserve_unique_names('bertie')
-        self.assertNotEqual(m1, m2)
+        self.assertFalse(m1.is_similar(m2))
         m1.reserve_unique_names('clair')
-        self.assertNotEqual(m1, m2)
+        self.assertFalse(m1.is_similar(m2))
         m2.reserve_unique_names('clair', 'bertie')
-        self.assertEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2))
 
         # Add reserved name prefixes
         m1.reserve_unique_name_prefix('aa', 'bb')
         m1.reserve_unique_name_prefix('cc', 'dd')
-        self.assertNotEqual(m1, m2)
+        self.assertFalse(m1.is_similar(m2))
         m2.reserve_unique_name_prefix('aa', 'bb')
         m2.reserve_unique_name_prefix('cc', 'ee')
-        self.assertNotEqual(m1, m2)
+        self.assertFalse(m1.is_similar(m2))
         m2.reserve_unique_name_prefix('cc', 'dd')
-        self.assertEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2))
 
     def test_evaluate_derivatives(self):
         # Test Model.evaluate_derivatives().
@@ -601,6 +608,10 @@ class ModelTest(unittest.TestCase):
         w = m.get(v)
         self.assertIs(w, v)
 
+        # Get by variable from another model
+        m2 = m.clone()
+        self.assertRaisesRegex(ValueError, 'different model', m2.get, v)
+
         # Get nested
         a = m.get('ina.m.alpha')
         self.assertEqual(a.qname(), 'ina.m.alpha')
@@ -742,13 +753,13 @@ class ModelTest(unittest.TestCase):
         self.assertTrue(m1.has_component('p'))
         self.assertFalse(m1['p'] is ms['p'])
         self.assertEqual(m1['p'].code(), ms['p'].code())
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import a second time, without renaming
         m1.import_component, ms['p']  # Check errors happen before changes
         m1_unaltered = m1.clone()
         self.assertRaises(myokit.DuplicateName, m1.import_component, ms['p'])
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
 
         # Import a second time, and rename
         m1.import_component(ms['p'], new_name='p2')
@@ -758,7 +769,7 @@ class ModelTest(unittest.TestCase):
         cs = '\n'.join((ms['p'].code().splitlines())[1:])
         c1 = '\n'.join((m1['p2'].code().splitlines())[1:])
         self.assertEqual(cs, c1)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import independent component with labels and bindings
         m1.import_component(ms['e'])
@@ -767,7 +778,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m1['e'].code(), ms['e'].code())
         self.assertEqual(m1.label('this_is_g'), m1.get('e.g'))
         self.assertEqual(m1.binding('time'), m1.get('e.t'))
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Now that it has a time variable, m1 should be valid
         m1.validate()
@@ -780,13 +791,13 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.InvalidLabelError, 'label "this_is_g"',
             m1.import_component, ms['e'], new_name='dinosaur')
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         ms.get('e.t').set_binding('time')
         ms.label('this_is_g').set_label(None)
         self.assertRaisesRegex(
             myokit.InvalidBindingError, 'binding "time"',
             m1.import_component, ms['e'], new_name='hello')
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         ms = ms_unaltered.clone()
 
         # Import r, using a custom variable mapping
@@ -800,7 +811,7 @@ class ModelTest(unittest.TestCase):
         cs = '\n'.join((ms['p'].code().splitlines())[4:])
         c1 = '\n'.join((m1['p2'].code().splitlines())[4:])
         self.assertEqual(cs, c1)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import r, using a label for p.b
         ms.get('p.b').set_label('this_is_b')
@@ -817,7 +828,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(cs, c1)
         ms.get('p.b').set_label(None)
         m1.get('p2.b').set_label(None)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import r, using a binding for e.h
         ms.get('e.h').set_binding('this_is_h')
@@ -834,7 +845,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(cs, c1)
         ms.get('e.h').set_binding(None)
         m1.get('e.h').set_binding(None)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import r, using (partial) name mapping
         var_map = {'p.a': 'p2.a'}
@@ -847,7 +858,7 @@ class ModelTest(unittest.TestCase):
         cs = '\n'.join((ms['p'].code().splitlines())[2:])
         c1 = '\n'.join((m1['p2'].code().splitlines())[2:])
         self.assertEqual(cs, c1)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import multiple components
         component_list = [ms['x'], ms['y']]
@@ -875,67 +886,67 @@ class ModelTest(unittest.TestCase):
         self.assertRaises(
             myokit.VariableMappingError,
             m1.import_component, ms['q'], new_name='q9')
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # With an invalid mapping
         self.assertRaisesRegex(
             TypeError, 'dict or None',
             m1.import_component, ms['q'], new_name='q9', var_map=[3])
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         self.assertRaisesRegex(
             TypeError, 'objects or fully qualified',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'p.a': 123, 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         self.assertRaisesRegex(
             TypeError, 'objects or fully qualified',
             m1.import_component, ms['q'], new_name='q9',
             var_map={345: 'p.a', 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'Multiple variables map',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'p.a': 'p.a', 'p.b': 'p.a', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # With variables from another model or that don't exist
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'was not found in this model',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'p.a': 'one.two', 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'was not found in the source model',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'ppp.aaa': 'p.a', 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         v = myokit.Model('a').add_component('p').add_variable('b')
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'is not part of this model',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'p.a': v, 'p.b': 'p.b'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'is not part of the source model',
             m1.import_component, ms['q'], new_name='q9',
             var_map={v: 'p.a', 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Incomplete mapping
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'cannot be mapped',
             m1.import_component, ms['q'], new_name='q9', var_map={})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import something that's not a component
         self.assertRaisesRegex(
@@ -1011,7 +1022,7 @@ class ModelTest(unittest.TestCase):
 
         # Import q, should be same except for dot() expression
         m1.import_component(ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('q', m1)
         self.assertEqual(len(m1['q']), 2)
         self.assertEqual(m1.get('q.e').code(), ms.get('q.e').code())
@@ -1024,7 +1035,7 @@ class ModelTest(unittest.TestCase):
 
         # Import r, should be same except for the state's RHS
         m1.import_component(ms['r'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('r', m1)
         self.assertEqual(len(m1['r']), 1)
         self.assertIn('f', m1['r'])
@@ -1056,7 +1067,7 @@ class ModelTest(unittest.TestCase):
 
         # Import q, converting p.a and dot(p.c)
         m1.import_component(ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('q', m1)
         self.assertEqual(len(m1['q']), 2)
         self.assertEqual(m1.get('q.d').unit(), ms.get('q.d').unit())
@@ -1095,7 +1106,7 @@ class ModelTest(unittest.TestCase):
 
         # Import q, converting p.a and dot(p.c)
         m1.import_component(ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('q', m1)
         self.assertEqual(len(m1['q']), 2)
         self.assertEqual(m1.get('q.d').unit(), ms.get('q.d').unit())
@@ -1127,7 +1138,7 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'time variables',
             m1.import_component, ms['p'], convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Attempt import with incompatible time units 1:
         # Component that uses a dot expression
@@ -1150,7 +1161,7 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'time variables',
             m1.import_component, ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Attempt import with incompatible mapped (space) units
         m1 = myokit.parse_model('''
@@ -1173,7 +1184,7 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'Unable to convert',
             m1.import_component, ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
     def test_item_at_text_position(self):
         # Test :meth:`Model.item_at_text_position()`.
@@ -1419,8 +1430,9 @@ class ModelTest(unittest.TestCase):
         m_bytes = pickle.dumps(m1)
         m2 = pickle.loads(m_bytes)
         self.assertFalse(m1 is m2)
+        self.assertFalse(m1 == m2)
         self.assertIsInstance(m2, myokit.Model)
-        self.assertEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2))
 
         # Test unique names and prefixes (see also test_clone)
         m1.reserve_unique_names('barnard', 'lincoln', 'glasgow')
@@ -1428,7 +1440,7 @@ class ModelTest(unittest.TestCase):
         m1.reserve_unique_name_prefix('ostrich', 'turkey')
         m_bytes = pickle.dumps(m1)
         m2 = pickle.loads(m_bytes)
-        self.assertEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2, True))
 
     def test_remove_component(self):
         # Test the removal of a component.

@@ -15,7 +15,7 @@ import myokit
 import myokit.formats
 import myokit.formats.easyml
 
-from shared import TemporaryDirectory, WarningCollector, DIR_DATA
+from myokit.tests import TemporaryDirectory, WarningCollector, DIR_DATA
 
 # Unit testing in Python 2 and 3
 try:
