@@ -14,7 +14,12 @@ import numpy as np
 
 import myokit
 
-from myokit.tests import OpenCL_FOUND, DIR_DATA, CancellingReporter
+from myokit.tests import (
+    CancellingReporter,
+    DIR_DATA,
+    OpenCL_FOUND,
+    WarningCollector,
+)
 
 # Unit testing in Python 2 and 3
 try:
@@ -81,7 +86,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
                 self.p,
                 ncells_fiber=(self.nfx, self.nfy),
                 ncells_tissue=(self.ntx, self.nty),
-                nx_paced=10,
+                nx_paced=4,
                 g_fiber=(235, 100),
                 g_tissue=(9, 5),
                 g_fiber_tissue=9,
@@ -724,6 +729,127 @@ class FiberTissueSimulationTest(unittest.TestCase):
                                    self.s1.set_step_size, 0)
         finally:
             self.s1.set_step_size(0.0012)
+
+
+@unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
+class FiberTissueSimulationFindNanTest(unittest.TestCase):
+    """ Tests the FiberTissue simulation's find_nan method. """
+
+    @classmethod
+    def setUpClass(cls):
+        # Load models and protocols for use in testing
+
+        # Fiber model, tissue model, protocol
+        cls.mf = myokit.load_model(
+            os.path.join(DIR_DATA, 'dn-1985-normalised.mmt'))
+        cls.mt = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+
+        # Fiber/Tissue sizes (small sim)
+        cls.nfx = 8
+        cls.nfy = 4
+        cls.ntx = 8
+        cls.nty = 6
+
+        # Standard protocols
+        cls.p1 = myokit.pacing.blocktrain(1000, 2, offset=.01)
+
+        # Protocol with error at t = 3.456
+        cls.p2 = myokit.Protocol()
+        cls.p2.schedule(period=0, duration=2, level=1, start=.01)
+        cls.p2.schedule(period=0, duration=2, level=10, start=3.456)
+
+        # Shared simulations
+        cls._s1 = None
+
+    @property
+    def s1(self):
+        if self._s1 is None:
+            self._s1 = myokit.FiberTissueSimulation(
+                self.mt,
+                self.mf,
+                self.p1,
+                ncells_fiber=(self.nfx, self.nfy),
+                ncells_tissue=(self.ntx, self.nty),
+                nx_paced=10,
+                g_fiber=(235, 100),
+                g_tissue=(9, 5),
+                g_fiber_tissue=9,
+                dt=0.0012,
+            )
+        return self._s1
+
+    def test_big_stimulus(self):
+        # Tests if NaNs are detected after a massive stimulus
+
+        try:
+            self.s1.set_protocol(self.p2)
+
+            '''
+            # Automatic detection
+            with WarningCollector():
+                self.assertRaisesRegex(
+                    myokit.SimulationError,
+                    'Encountered numerical error in fiber simulation at t=3.',
+                    self.s1.run, 5, log_interval=0.1)
+
+            # Automatic detection, but not enough information
+            self.s1.reset()
+            with WarningCollector():
+                self.assertRaisesRegex(
+                    myokit.SimulationError, 'Unable to pinpoint',
+                    self.s1.run, 5, logf=['membrane.V'], logt=myokit.LOG_NONE,
+                    log_interval=0.1)
+            '''
+
+            # Offline detection
+            # res = part, time, icell, var, value, states, bound
+            self.s1.reset()
+            df, dt = self.s1.run(5, log_interval=0.1, report_nan=False)
+            res = self.s1.find_nan(df, dt)
+            self.assertEqual(round(res[1], 1), 3.7)
+
+            # Missing state and bound var in fiber log
+            d2 = df.clone()
+            del(d2['membrane.V', 0, 0])
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'fiber(.+)membrane.V',
+                self.s1.find_nan, d2, dt)
+            d2 = df.clone()
+            del(d2['engine.time'])
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'fiber(.+)engine.time',
+                self.s1.find_nan, d2, dt)
+
+            # Missing state and bound var in tissue log
+            d2 = dt.clone()
+            del(d2['membrane.V', 0, 0])
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'tissue(.+)membrane.V',
+                self.s1.find_nan, df, d2)
+            d2 = dt.clone()
+            del(d2['engine.time'])
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'tissue(.+)engine.time',
+                self.s1.find_nan, df, d2)
+
+            # NaN at first data point
+            d2 = df.clone()
+            d2['membrane.V', 0, 0][0] = float('nan')
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'first data point',
+                self.s1.find_nan, d2, dt)
+
+            # No NaN
+            d2 = df.trim_right(3.5)
+            d3 = dt.trim_right(3.5)
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'Error condition not found',
+                self.s1.find_nan, d2, d3)
+
+
+        finally:
+            self.s1.set_protocol(self.p1)
+            self.s1.reset()
 
 
 if __name__ == '__main__':
