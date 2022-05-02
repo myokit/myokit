@@ -656,7 +656,10 @@ class SimulationOpenCL(myokit.CModule):
         var = self._model.get('.'.join(kfirst.split('.')[ndims:]))
 
         # Get value causing error
-        value = states[1 if ifirst > 0 else 0][var.indice()]
+        if var.is_state():
+            value = states[1 if ifirst > 0 else 0][var.indice()]
+        else:  # pragma: no cover
+            value = bounds[1 if ifirst > 0 else 0][var.qname()]
         var = var.qname()
 
         # Get time error occurred
