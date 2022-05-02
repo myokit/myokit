@@ -970,9 +970,10 @@ class FiberTissueSimulation(myokit.CModule):
                 model = self._modelt if part == 'tissue' else self._modelf
                 txt.append(
                     'Encountered numerical error in ' + part
-                    + ' simulation at t=' + str(time) + ' in cell ('
+                    + ' simulation at t='
+                    + myokit.float.str(time, self._precision) + ' in cell ('
                     + ','.join([str(x) for x in icell]) + ') when ' + var
-                    + '=' + str(value) + '.')
+                    + '=' + myokit.float.str(value, self._precision) + '.')
 
                 # Get names of vars used in bindings
                 vtime = model.time().qname()
@@ -1014,7 +1015,7 @@ class FiberTissueSimulation(myokit.CModule):
                     except myokit.NumericalError as ee:  # pragma: no cover
                         derivs = model.evaluate_derivatives(
                             state, bound, self._precision, ignore_errors=True)
-                        eval_error = str(ee)
+                        eval_error = str(ee).strip()
 
                     # Show state and derviatives
                     txt.append('State before:')
@@ -1032,7 +1033,7 @@ class FiberTissueSimulation(myokit.CModule):
                         bounds[1][vdiff], precision=self._precision))
 
                     # Show any error in evaluating derivatives
-                    if eval_error is not None:
+                    if eval_error is not None:  # pragma: no cover
                         txt.append('Error when evaluating derivatives:')
                         txt.append(eval_error)
 
