@@ -8,6 +8,8 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#873](https://github.com/MichaelClerx/myokit/pull/873) Small bugfixes and improvements in numerical error reporting in `FiberTissueSimulation`.
+  - [#873](https://github.com/MichaelClerx/myokit/pull/873) Fixed argument list in docstring of `FiberTissueSimulation`.
 
 ## [1.33.4] - 2022-04-22
 - Added
