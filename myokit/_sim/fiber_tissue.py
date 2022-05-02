@@ -38,9 +38,6 @@ class FiberTissueSimulation(myokit.CModule):
     ``nx_paced``
         The width (in cells) of the stimulus applied to the fiber. The fiber
         will be stimulated along its full height.
-    ``join``
-        A tuple ``(x,y)`` specifying the top-left coordinate on the tissue that
-        the fiber connects to.
     ``g_fiber``
         The cell to cell conductance in the fiber (a tuple).
     ``g_tissue``
@@ -575,6 +572,7 @@ class FiberTissueSimulation(myokit.CModule):
                 ifirst = min(ifirstf, ifirstt)
             # Position to start deep search at
             istart = ifirst - 1
+
             # Get last logged states before error
             statef = []
             statet = []
@@ -586,8 +584,10 @@ class FiberTissueSimulation(myokit.CModule):
                 pre = '.'.join([str(x) for x in dims]) + '.'
                 for s in self._modelt.states():
                     statet.append(_logt[pre + s.qname()][istart])
+
             # Get last time before error
             time = _logf[time_varf][istart]
+
             # Save current state & time
             old_statef = self._statef
             old_statet = self._statet
@@ -595,21 +595,28 @@ class FiberTissueSimulation(myokit.CModule):
             self._statef = statef
             self._statet = statet
             self._time = time
+
             # Run until next time point, log every step
             duration = _logf[time_varf][ifirst] - time
             log = myokit.LOG_BOUND + myokit.LOG_STATE
             _logf, _logt = self.run(
                 duration, logf=log, logt=log, log_interval=_dt,
                 report_nan=False)
+
             # Reset simulation to original state
             self._statef = old_statef
             self._statet = old_statet
             self._time = old_time
+
             # Return new logs
             return _logf, _logt
 
         # Get time step
-        dt = logf[time_varf][1] - logf[time_varf][0]
+        try:
+            dt = logf[time_varf][1] - logf[time_varf][0]
+        except IndexError:  # pragma: no cover
+            # Assume huge dt
+            dt = 5
 
         # Search with successively fine log interval
         while dt > 0:
@@ -625,6 +632,9 @@ class FiberTissueSimulation(myokit.CModule):
             part = 'fiber'
             ifirst = ifirstf
             kfirst = kfirstf
+            if ifirst is None:  # pragma: no cover
+                ifirst = 0
+                kfirst = next(iter(log.items()))[0]
             model = self._modelf
             log = logf
         else:
@@ -665,7 +675,10 @@ class FiberTissueSimulation(myokit.CModule):
         var = model.get('.'.join(kfirst.split('.')[2:]))
 
         # Get value causing error
-        value = states[1][var.indice()]
+        if var.is_state():
+            value = states[1 if ifirst > 0 else 0][var.indice()]
+        else:
+            value = bound[1 if ifirst > 0 else 0][var.qname()]
         var = var.qname()
 
         # Get time error occurred
@@ -952,7 +965,7 @@ class FiberTissueSimulation(myokit.CModule):
             txt = ['Numerical error found in simulation logs.']
             try:
                 # NaN encountered, show how it happened
-                part, time, icell, var, value, states, bound = self.find_nan(
+                part, time, icell, var, value, states, bounds = self.find_nan(
                     logf, logt)
                 model = self._modelt if part == 'tissue' else self._modelf
                 txt.append(
@@ -960,22 +973,69 @@ class FiberTissueSimulation(myokit.CModule):
                     + ' simulation at t=' + str(time) + ' in cell ('
                     + ','.join([str(x) for x in icell]) + ') when ' + var
                     + '=' + str(value) + '.')
+
+                # Get names of vars used in bindings
+                vtime = model.time().qname()
+                vdiff = model.binding('diffusion_current').qname()
+                vpace = model.binding('pace')
+                vpace = None if vpace is None else vpace.qname()
+
+                # Show final state and bound variables
+                txt.append('State during:')
+                txt.append(model.format_state(
+                    states[0], precision=self._precision))
+
+                txt.append('Simulation variables during:')
+                txt.append('  Time:' + myokit.float.str(
+                    bounds[0][vtime], precision=self._precision))
+                if vpace is not None:
+                    txt.append('  Pacing variable:' + myokit.float.str(
+                        bounds[0][vpace], precision=self._precision))
+                txt.append('  Diffusion current:' + myokit.float.str(
+                    bounds[0][vdiff], precision=self._precision))
+
+                # Show previous state and derivatives
                 n_states = len(states)
                 txt.append('Obtained ' + str(n_states) + ' previous state(s).')
                 if n_states > 1:
-                    txt.append('State before:')
-                    txt.append(model.format_state(states[1]))
-                txt.append('State during:')
-                txt.append(model.format_state(states[0]))
-                if n_states > 1:
-                    txt.append('Evaluating derivatives at state before...')
+                    # Get state and bounds at previous state
+                    state = states[1]
+                    bound = {
+                        'time': bounds[1][vtime],
+                        'pace': 0 if vpace is None else bounds[1][vpace],
+                        'diffusion_current': bounds[1][vdiff],
+                    }
+
+                    # Evaluate state derivatives
+                    eval_error = None
                     try:
                         derivs = model.evaluate_derivatives(
-                            states[1], precision=self._precision)
-                        txt.append(model.format_state_derivatives(
-                            states[1], derivs))
+                            state, bound, self._precision, ignore_errors=False)
                     except myokit.NumericalError as ee:  # pragma: no cover
-                        txt.append(str(ee))
+                        derivs = model.evaluate_derivatives(
+                            state, bound, self._precision, ignore_errors=True)
+                        eval_error = str(ee)
+
+                    # Show state and derviatives
+                    txt.append('State before:')
+                    txt.append(model.format_state_derivatives(
+                        states[1], derivs, self._precision))
+
+                    # Show bound variables
+                    txt.append('Simulation variables during:')
+                    txt.append('  Time:' + myokit.float.str(
+                        bounds[1][vtime], precision=self._precision))
+                    if vpace is not None:
+                        txt.append('  Pacing variable:' + myokit.float.str(
+                            bounds[0][vpace], precision=self._precision))
+                    txt.append('  Diffusion current:' + myokit.float.str(
+                        bounds[1][vdiff], precision=self._precision))
+
+                    # Show any error in evaluating derivatives
+                    if eval_error is not None:
+                        txt.append('Error when evaluating derivatives:')
+                        txt.append(eval_error)
+
             except myokit.FindNanError as e:
                 txt.append(
                     'Unable to pinpoint source of NaN, an error occurred:')

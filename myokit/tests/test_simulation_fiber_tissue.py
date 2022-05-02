@@ -866,6 +866,20 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
             self.s1.set_protocol(self.p1)
             self.s1.reset()
 
+    def test_big_step(self):
+        # Tests if NaNs are detected in the diffusion current
+
+        dt = self.s1.step_size()
+        try:
+            self.s1.set_step_size(0.01)
+            with WarningCollector():
+                self.assertRaisesRegex(
+                    myokit.SimulationError, 'when membrane.i_diff',
+                    self.s1.run, 5)
+        finally:
+            self.s1.set_step_size(dt)
+            self.s1.reset()
+
 
 if __name__ == '__main__':
 
