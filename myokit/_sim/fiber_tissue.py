@@ -970,10 +970,11 @@ class FiberTissueSimulation(myokit.CModule):
                 model = self._modelt if part == 'tissue' else self._modelf
                 txt.append(
                     'Encountered numerical error in ' + part
-                    + ' simulation at t='
-                    + myokit.float.str(time, self._precision) + ' in cell ('
-                    + ','.join([str(x) for x in icell]) + ') when ' + var
-                    + '=' + myokit.float.str(value, self._precision) + '.')
+                    + ' simulation at t ='
+                    + myokit.float.str(time, precision=self._precision)
+                    + ' in cell (' + ','.join([str(x) for x in icell])
+                    + ') when ' + var + '= '
+                    + myokit.float.str(value, precision=self._precision) + '.')
 
                 # Get names of vars used in bindings
                 vtime = model.time().qname()

@@ -793,7 +793,7 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
             with WarningCollector():
                 self.assertRaisesRegex(
                     myokit.SimulationError,
-                    'Encountered numerical error in fiber simulation at t=2.0',
+                    'numerical error in fiber simulation at t = 2.0',
                     self.s1.run, 10, log_interval=1)
 
             # Automatic detection, but not enough information
@@ -860,7 +860,7 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
             self.s1.set_protocol(self.p3)
             with WarningCollector():
                 self.assertRaisesRegex(
-                    myokit.SimulationError, 'in tissue simulation at t=1.7',
+                    myokit.SimulationError, 'in tissue simulation at t = 1.7',
                     self.s1.run, 5)
         finally:
             self.s1.set_protocol(self.p1)
