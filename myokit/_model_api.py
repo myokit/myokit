@@ -85,6 +85,7 @@ class ObjectWithMeta(object):
     Meta-data properties are all stored in a dict and should be string:string
     mappings.
     """
+
     def __init__(self):
         super(ObjectWithMeta, self).__init__()
         self.meta = MetaDataContainer()
@@ -126,6 +127,7 @@ class ModelPart(ObjectWithMeta):
     """
     Base class for model parts.
     """
+
     def __init__(self, parent, name):
         """
         Creates a new ModelPart
@@ -254,6 +256,7 @@ class VarProvider(object):
     This class provides an iterator over variables and equations for any object
     that can provide access to an iterator over its variables.
     """
+
     def _create_variable_stream(self, deep, sort):
         """
         Returns a stream over this object's variables.
@@ -458,6 +461,7 @@ class VarOwner(ModelPart, VarProvider):
     ``m`` is given by ``len(m)`` and the presence of "x" in ``m`` can be tested
     using ``if "x" in m:``.
     """
+
     def __init__(self, parent, name):
         super(VarOwner, self).__init__(parent, name)
         self._variables = {}
@@ -783,6 +787,7 @@ class Model(ObjectWithMeta, VarProvider):
     are the same object). Checking if models are the same in other senses can
     be done with :meth:`is_similar`. Models can be serialised with ``pickle``.
     """
+
     def __init__(self, name=None):
         super(Model, self).__init__()
 
@@ -1728,41 +1733,43 @@ class Model(ObjectWithMeta, VarProvider):
         if isinstance(external_component, myokit.Component):
             external_component = [external_component]
         else:
+            ext_comp_error_str = (
+                'Method import_component() expects a myokit.Component '
+                'or list of myokit.Components'
+            )
             try:
                 ok = all(
                     isinstance(c, myokit.Component) for c in external_component
                 )
+                if not ok:
+                    raise TypeError(ext_comp_error_str)
             except TypeError:
-                raise TypeError(
-                    'Method import_component() expects a myokit.Component '
-                    'or list of myokit.Components'
-                )
+                raise TypeError(ext_comp_error_str)
 
         if new_name is None:
             new_name = []
             for comp in external_component:
                 new_name.append(comp.name())
-        elif (
-            isinstance(new_name, basestring) and
-            len(external_component) == 1
-        ):
+
+        new_name_error_str = (
+            'new_name must be a list of strings the same length '
+            'as external_component, or a string if only one '
+            'component is provided'
+        )
+        if isinstance(new_name, basestring):
+            if len(external_component) != 1:
+                raise TypeError(new_name_error_str)
             new_name = [new_name]
-        elif isinstance(new_name, list):
-            if (
-                len(new_name) != len(external_component) or
-                not all(isinstance(name, basestring) for name in new_name)
-            ):
-                raise TypeError(
-                    'new_name must be a list of strings the same length '
-                    'as external_component, or a string if only one '
-                    'component is provided'
-                )
         else:
-            raise TypeError(
-                'new_name must be a list of strings the same length as '
-                'external_component, or a string if only one '
-                'component is provided'
-            )
+            try:
+                ok = (
+                    len(new_name) == len(external_component) and
+                    all(isinstance(name, basestring) for name in new_name)
+                )
+                if not ok:
+                    raise TypeError(new_name_error_str)
+            except TypeError:
+                raise TypeError(new_name_error_str)
 
         # Get external model
         ext_model = external_component[0].model()
@@ -3607,6 +3614,7 @@ class Component(VarOwner):
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
     """
+
     def __init__(self, model, name):
         super(Component, self).__init__(model, name)
         self._alias_map = {}    # Maps variable names to other variables names
@@ -3821,6 +3829,7 @@ class Variable(VarOwner):
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
     """
+
     def __init__(self, parent, name):
         super(Variable, self).__init__(parent, name)
 
@@ -4856,6 +4865,7 @@ class Equation(object):
     Note: This is not a :class:`myokit.Expression`, for that, see
     :class:`myokit.Equal`.
     """
+
     def __init__(self, lhs, rhs):
         self._lhs = lhs
         self._rhs = rhs
@@ -4916,6 +4926,7 @@ class Equation(object):
 
 class EquationList(list, VarProvider):
     """ An ordered list of :class:`Equation` objects """
+
     def _create_variable_stream(self, deep, sort):
         # Always sorted
         def stream(lst):
@@ -4945,6 +4956,7 @@ class UserFunction(object):
         The :class:`Expression` evaluating this function.
 
     """
+
     def __init__(self, name, arguments, template):
         self._name = str(name)
         self._arguments = list(arguments)
