@@ -1011,6 +1011,8 @@ class ModelTest(unittest.TestCase):
             [[model]]
             p.c = 0.1
             r.f = 0.2
+            x.a = 0.2
+            y.e = 0.2
 
             [e]
             t = 0 [s] bind time
@@ -1035,6 +1037,26 @@ class ModelTest(unittest.TestCase):
             use p.a, p.b
             dot(f) = a / b
                 in [m]
+
+            # Two components to import at the same time
+            # (independent of the rest of the model)
+            [x]
+            use y.e
+            dot(a) = c * e
+                in [m*A]
+            b = 3 * dot(e)
+                in [m/s]
+            c = 0.2 [A] * d
+                in [A/s]
+            d = 1 [1/s]
+                in [1/s]
+
+            [y]
+            use x.d
+            dot(e) = d * sub_e
+                in [m]
+                sub_e = 2 * e
+                    in [m]
 
             # No time units used
             [s]
@@ -1092,6 +1114,24 @@ class ModelTest(unittest.TestCase):
             m1.get('r.f').rhs().code(),
             myokit.Multiply(ms.get('r.f').rhs(), s2ms).code())
 
+        # Import multiple components
+        m1.import_component([ms['x'], ms['y']], convert_units=True)
+        self.assertTrue(m1.has_component('x'))
+        self.assertTrue(m1.has_component('y'))
+        self.assertFalse(m1['x'] is ms['x'])
+        self.assertFalse(m1['y'] is ms['y'])
+        self.assertEqual(m1.get('x.a').unit(), ms.get('x.a').unit())
+        self.assertEqual(
+            m1.get('x.a').state_value(), ms.get('x.a').state_value())
+        self.assertEqual(
+            m1.get('x.a').rhs().code(),
+            myokit.Multiply(ms.get('x.a').rhs(), s2ms).code())
+        self.assertEqual(
+            m1.get('y.e').state_value(), ms.get('y.e').state_value())
+        self.assertEqual(
+            m1.get('y.e').rhs().code(),
+            myokit.Multiply(ms.get('y.e').rhs(), s2ms).code())
+
         # Target model with different space units
         m1 = myokit.parse_model('''
             [[model]]
@@ -1131,6 +1171,7 @@ class ModelTest(unittest.TestCase):
                 myokit.Multiply(myokit.Name(m1.get('p.c')), mm2m)),
                 myokit.Number(0.1, 'm')).code())
 
+
         # Target model with different time and space units
         m1 = myokit.parse_model('''
             [[model]]
@@ -1149,7 +1190,7 @@ class ModelTest(unittest.TestCase):
         m1.validate()
         m1.check_units(myokit.UNIT_STRICT)
 
-        # Import q, converting p.a and dot(p.c)
+        # Import q and p, converting p.a and dot(p.c)
         m1.import_component(ms['q'], var_map=vm, convert_units=True)
         self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('q', m1)
