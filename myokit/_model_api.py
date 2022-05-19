@@ -1698,8 +1698,8 @@ class Model(ObjectWithMeta, VarProvider):
         Arguments:
 
         ``external_component``
-            A :class:`myokit.Component`
-            or a list of :class:`myokit.Component`s from another model.
+            A :class:`myokit.Component` or a list of
+            :class:`components <myokit.Component>` from another model.
         ``new_name``
             An optional new name for the imported component
             or list of names if multiple components are provided.
