@@ -85,6 +85,7 @@ class ObjectWithMeta(object):
     Meta-data properties are all stored in a dict and should be string:string
     mappings.
     """
+
     def __init__(self):
         super(ObjectWithMeta, self).__init__()
         self.meta = MetaDataContainer()
@@ -126,6 +127,7 @@ class ModelPart(ObjectWithMeta):
     """
     Base class for model parts.
     """
+
     def __init__(self, parent, name):
         """
         Creates a new ModelPart
@@ -254,6 +256,7 @@ class VarProvider(object):
     This class provides an iterator over variables and equations for any object
     that can provide access to an iterator over its variables.
     """
+
     def _create_variable_stream(self, deep, sort):
         """
         Returns a stream over this object's variables.
@@ -458,6 +461,7 @@ class VarOwner(ModelPart, VarProvider):
     ``m`` is given by ``len(m)`` and the presence of "x" in ``m`` can be tested
     using ``if "x" in m:``.
     """
+
     def __init__(self, parent, name):
         super(VarOwner, self).__init__(parent, name)
         self._variables = {}
@@ -783,6 +787,7 @@ class Model(ObjectWithMeta, VarProvider):
     are the same object). Checking if models are the same in other senses can
     be done with :meth:`is_similar`. Models can be serialised with ``pickle``.
     """
+
     def __init__(self, name=None):
         super(Model, self).__init__()
 
@@ -1680,8 +1685,8 @@ class Model(ObjectWithMeta, VarProvider):
     def import_component(self, external_component, new_name=None, var_map=None,
                          allow_name_mapping=False, convert_units=False):
         """
-        Imports a component from another model (the "source model") into this
-        one (the "target model").
+        Imports one or multiple components from another model
+        (the "source model") into this one (the "target model").
 
         If variables in the ``external_component`` refer to variables from
         other components they will be mapped on to variables from this model
@@ -1698,9 +1703,11 @@ class Model(ObjectWithMeta, VarProvider):
         Arguments:
 
         ``external_component``
-            A :class:`myokit.Component` from another model.
+            A :class:`myokit.Component` or a list of
+            :class:`components <myokit.Component>` from another model.
         ``new_name``
-            An optional new name for the imported component.
+            An optional new name for the imported component
+            or list of names if multiple components are provided.
         ``var_map``
             An optional dict mapping variables in the source model to
             variables from this model (with variables specified as objects or
@@ -1722,42 +1729,96 @@ class Model(ObjectWithMeta, VarProvider):
         be raised.
         """
 
-        # Check component is not from this model, is a component, etc.
-        if not isinstance(external_component, myokit.Component):
-            raise TypeError(
-                'Method import_component() expects a myokit.Component.')
-        if external_component.has_ancestor(self):
-            raise ValueError(
-                'The component <' + external_component.name() +
-                '> is already part of this model.')
+        # Check component is list or component and new_name is string or list
+        if isinstance(external_component, myokit.Component):
+            external_component = [external_component]
+        else:
+            ext_comp_error_str = (
+                'Method import_component() expects a myokit.Component '
+                'or list of myokit.Components'
+            )
+            try:
+                ok = all(
+                    isinstance(c, myokit.Component) for c in external_component
+                )
+                if not ok:
+                    raise TypeError(ext_comp_error_str)
+            except TypeError:
+                raise TypeError(ext_comp_error_str)
 
-        # Check if new name is provided, or else check that name doesn't clash
         if new_name is None:
-            new_name = external_component.name()
-        if self.has_component(new_name):
-            raise myokit.DuplicateName(
-                'This model already has a component with the name <' + new_name
-                + '>.')
+            new_name = []
+            for comp in external_component:
+                new_name.append(comp.name())
+
+        new_name_error_str = (
+            'new_name must be a list of strings the same length '
+            'as external_component, or a string if only one '
+            'component is provided'
+        )
+        if isinstance(new_name, basestring):
+            if len(external_component) != 1:
+                raise TypeError(new_name_error_str)
+            new_name = [new_name]
+        else:
+            try:
+                ok = (
+                    len(new_name) == len(external_component) and
+                    all(isinstance(name, basestring) for name in new_name)
+                )
+                if not ok:
+                    raise TypeError(new_name_error_str)
+            except TypeError:
+                raise TypeError(new_name_error_str)
+
+        # Get external model
+        ext_model = external_component[0].model()
+
+        # checking the model for external components
+        # are the same and not this model
+        for comp in external_component:
+            if not comp.has_ancestor(ext_model):
+                raise ValueError((
+                    'The imported components must be from the same '
+                    'model, <{}> and <{}> are not.'
+                ).format(comp.name(), external_component[0].name()))
+        if ext_model == self:
+            raise ValueError(
+                'The component(s) to import are already part of this model.')
+
+        # Check if new names clash with those in this model
+        for name in new_name:
+            if self.has_component(name):
+                raise myokit.DuplicateName(
+                    'This model already has a component with the name <' + name
+                    + '>.')
 
         # Check for bindings or labels that are already in use
-        for var in external_component.variables():
-            if self.label(var.label()) is not None:
-                raise myokit.InvalidLabelError(
-                    'This model already has a variable with the label "'
-                    + str(var.label()) + '".')
-            if self.binding(var.binding()) is not None:
-                raise myokit.InvalidBindingError(
-                    'This model already has a variable with the binding "'
-                    + str(var.binding()) + '".')
+        for comp in external_component:
+            for var in comp.variables():
+                if self.label(var.label()) is not None:
+                    raise myokit.InvalidLabelError(
+                        'This model already has a variable with the label "'
+                        + str(var.label()) + '".')
+                if self.binding(var.binding()) is not None:
+                    raise myokit.InvalidBindingError(
+                        'This model already has a variable with the binding "'
+                        + str(var.binding()) + '".')
 
         # Create a list of all external variables that require mapping
         vars_to_map = set()
-        for var in external_component.variables():
-            vars_to_map.update(var.refs_to(state_refs=False))
-            vars_to_map.update(var.refs_to(state_refs=True))
-        vars_to_map.update(external_component._alias_map.values())
-        vars_to_map -= set(external_component.variables())
-        vars_to_map = [x for x in vars_to_map if not x.is_nested()]
+        for i, comp in enumerate(external_component):
+            vars_ref = set()
+            for var in comp.variables():
+                vars_ref.update(var.refs_to(state_refs=False))
+                vars_ref.update(var.refs_to(state_refs=True))
+            vars_ref.update(comp._alias_map.values())
+            vars_ref -= set(comp.variables())
+            vars_ref = [x for x in vars_ref if not x.is_nested()]
+            vars_to_map.update(vars_ref)
+        map_to_clone = []
+        for comp in external_component:
+            map_to_clone.append(vars_to_map.intersection(comp.variables()))
 
         # Rename user-provided mapping to user_var_map, and create a new
         # mapping of the form {external_model.variable: self.variable}
@@ -1766,9 +1827,6 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Store local vars that are mapped onto
         used_local_vars = set()
-
-        # Get external model
-        ext_model = external_component.model()
 
         # Check user-specified mapping
         if user_var_map is not None:
@@ -1799,7 +1857,7 @@ class Model(ObjectWithMeta, VarProvider):
                 # Check source variables in var map are variables and exist
                 # in external model
                 if isinstance(ext_var, myokit.Variable):
-                    if not ext_var.has_ancestor(external_component.model()):
+                    if not ext_var.has_ancestor(ext_model):
                         raise myokit.VariableMappingError(
                             'The variable <' + ext_var.qname() + '> in the'
                             ' given var_map\'s keys but is not part of the'
@@ -1829,6 +1887,13 @@ class Model(ObjectWithMeta, VarProvider):
                 if ext_var in vars_to_map:
                     var_map[ext_var] = self_var
 
+        # add variables to var_map that map to other imported components
+        # but will be reassigned to the clone later
+        for l in map_to_clone:
+            for ext_var in l:
+                if ext_var not in var_map:
+                    var_map[ext_var] = None
+
         # Add non user-specified variables that require mapping
         for ext_var in vars_to_map:
             if ext_var not in var_map:
@@ -1856,7 +1921,10 @@ class Model(ObjectWithMeta, VarProvider):
             # Get conversion factors for all mapped variables
             for ext_var, self_var in var_map.items():
                 ext_unit = ext_var.unit(myokit.UNIT_STRICT)
-                self_unit = self_var.unit(myokit.UNIT_STRICT)
+                if self_var is None:
+                    self_unit = ext_unit
+                else:
+                    self_unit = self_var.unit(myokit.UNIT_STRICT)
                 if not myokit.Unit.close(ext_unit, self_unit):
                     try:
                         factors[ext_var] = myokit.Unit.conversion_factor(
@@ -1866,24 +1934,30 @@ class Model(ObjectWithMeta, VarProvider):
                             'Unable to map <' + ext_var.qname() + '> onto <'
                             + self_var.qname() + '>: ' + str(e))
 
-            # Check if time-unit conversion is needed: any states to import?
-            need_time_factor = external_component.has_variables(state=True)
+            # Check if time-unit conversion is needed
+            need_time_factor = False
+            for comp in external_component:
+                # any states to import?
+                if comp.has_variables(state=True):
+                    need_time_factor = True
+                    break
 
-            # Any references made to external state variables
-            if not need_time_factor:
-                for ext_var in external_component.variables(deep=True):
+                # Any references made to external state variables
+                for ext_var in comp.variables(deep=True):
                     for var in ext_var.refs_to(state_refs=False):
                         if var.is_state():
                             need_time_factor = True
                             break
                     if need_time_factor:
                         break
+                if need_time_factor:
+                    break
 
             # Get conversion factor for time variable, raise error if can't
             if need_time_factor:
                 ext_unit = myokit.units.dimensionless
                 self_unit = myokit.units.dimensionless
-                ext_var = external_component.parent().time()
+                ext_var = ext_model.time()
                 if ext_var is not None:
                     ext_unit = ext_var.unit(myokit.UNIT_STRICT)
                 self_var = self.time()
@@ -1899,13 +1973,18 @@ class Model(ObjectWithMeta, VarProvider):
                             ' mismatch: ' + str(e))
 
         # Clone component pt 1: create, meta data, empty variables
-        new_component = external_component._clone1(self, new_name)
+        new_component = []
+        for i, comp in enumerate(external_component):
+            new_component.append(comp._clone1(self, new_name[i]))
 
-        # Clone states
-        # TODO: Not sure why clone() code doesn't do this?
-        for var in external_component.variables(state=True):
-            new_component.get(var.qname(external_component)).promote(
-                var.state_value())
+            for var in comp.variables(state=True):
+                # Clone states
+                # TODO: Not sure why clone() code doesn't do this?
+                new_component[i].get(var.qname(comp)).promote(
+                    var.state_value())
+            # Now we can add variable to var_map if needed
+            for var in map_to_clone[i]:
+                var_map[var] = new_component[i].get(var.qname(comp))
 
         # Create mapping of old var references to new references
         # This is a mapping from Name(var) and Derivative(Name(var)) objects
@@ -1914,15 +1993,17 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Start with all variables (including nested variables) inside the
         # imported component.
-        for ext_var in external_component.variables(deep=True):
-            self_var = new_component.get(ext_var.qname(external_component))
-            lhs_map[myokit.Name(ext_var)] = myokit.Name(self_var)
-            if ext_var.is_state():
-                lhs_map[myokit.Derivative(myokit.Name(ext_var))] = \
-                    myokit.Derivative(myokit.Name(self_var))
+        for i, comp in enumerate(external_component):
+            for ext_var in comp.variables(deep=True):
+                self_var = new_component[i].get(ext_var.qname(comp))
+                lhs_map[myokit.Name(ext_var)] = myokit.Name(self_var)
+                if ext_var.is_state():
+                    lhs_map[myokit.Derivative(myokit.Name(ext_var))] = \
+                        myokit.Derivative(myokit.Name(self_var))
 
         # Next, add all entries in the var_map. If unit conversion is enabled,
         # this may include the addition of unit conversion factors
+
         for ext_var, self_var in var_map.items():
             # Substitute in either a reference to self_var, or an expression
             # that converts self_var to the units ext_var's equation expects.
@@ -1948,15 +2029,17 @@ class Model(ObjectWithMeta, VarProvider):
                 lhs_map[myokit.Derivative(myokit.Name(ext_var))] = ex
 
         # Clone component/variable contents (equations, references)
-        external_component._clone2(new_component, lhs_map, var_map)
+        for i, comp in enumerate(external_component):
+            comp._clone2(new_component[i], lhs_map, var_map)
 
         # Time unit conversion? Then update all derivatives.
         if time_factor is not None:
-            for var in new_component.variables(state=True):
-                rhs = var.rhs()
-                if rhs is not None:
-                    var.set_rhs(
-                        myokit.Multiply(rhs, myokit.Number(time_factor)))
+            for comp in new_component:
+                for var in comp.variables(state=True):
+                    rhs = var.rhs()
+                    if rhs is not None:
+                        var.set_rhs(
+                            myokit.Multiply(rhs, myokit.Number(time_factor)))
 
     def inits(self):
         """
@@ -3531,6 +3614,7 @@ class Component(VarOwner):
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
     """
+
     def __init__(self, model, name):
         super(Component, self).__init__(model, name)
         self._alias_map = {}    # Maps variable names to other variables names
@@ -3745,6 +3829,7 @@ class Variable(VarOwner):
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
     """
+
     def __init__(self, parent, name):
         super(Variable, self).__init__(parent, name)
 
@@ -4780,6 +4865,7 @@ class Equation(object):
     Note: This is not a :class:`myokit.Expression`, for that, see
     :class:`myokit.Equal`.
     """
+
     def __init__(self, lhs, rhs):
         self._lhs = lhs
         self._rhs = rhs
@@ -4840,6 +4926,7 @@ class Equation(object):
 
 class EquationList(list, VarProvider):
     """ An ordered list of :class:`Equation` objects """
+
     def _create_variable_stream(self, deep, sort):
         # Always sorted
         def stream(lst):
@@ -4869,6 +4956,7 @@ class UserFunction(object):
         The :class:`Expression` evaluating this function.
 
     """
+
     def __init__(self, name, arguments, template):
         self._name = str(name)
         self._arguments = list(arguments)

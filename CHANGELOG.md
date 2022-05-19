@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#876](https://github.com/MichaelClerx/myokit/pull/876) `Model.import_component` can now take a list of possibly interdependent components.
 - Deprecated
 - Removed
 - Fixed

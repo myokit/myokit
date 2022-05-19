@@ -513,13 +513,13 @@ class ModelTest(unittest.TestCase):
         # Test without arguments
         self.assertEqual(
             m.format_state_derivatives(),
-'membrane.V = -84.5286                   dot = -5.68008003798848027e-02\n' # noqa
-'ina.m      = 0.0017                     dot = -4.94961486033834719e-03\n' # noqa
-'ina.h      = 0.9832                     dot =  9.02025299127830887e-06\n' # noqa
-'ina.j      = 0.995484                   dot = -3.70409866928434243e-04\n' # noqa
-'ica.d      = 3e-06                      dot =  3.68067721821794798e-04\n' # noqa
-'ica.f      = 1.0                        dot = -3.55010150519739432e-07\n' # noqa
-'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n' # noqa
+'membrane.V = -84.5286                   dot = -5.68008003798848027e-02\n'  # noqa
+'ina.m      = 0.0017                     dot = -4.94961486033834719e-03\n'  # noqa
+'ina.h      = 0.9832                     dot =  9.02025299127830887e-06\n'  # noqa
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04\n'  # noqa
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04\n'  # noqa
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07\n'  # noqa
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n'  # noqa
 'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'    # noqa
         )
 
@@ -528,14 +528,14 @@ class ModelTest(unittest.TestCase):
         state1[2] = 536.46745856785678567845745637
         self.assertEqual(
             m.format_state_derivatives(state1),
-'membrane.V = 1                          dot =  1.90853168050245158e+07\n' # noqa
-'ina.m      = 2                          dot = -1.56738349674489310e+01\n' # noqa
-'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03\n' # noqa
-'ina.j      = 4                          dot = -1.15731427949362953e+00\n' # noqa
-'ica.d      = 5                          dot = -1.85001944916516836e-01\n' # noqa
-'ica.f      = 6                          dot = -2.15435819790876573e-02\n' # noqa
-'ik.x       = 7                          dot = -1.25154369264425316e-02\n' # noqa
-'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01' # noqa                                       ^ ^^    ^ ---------   ^
+'membrane.V = 1                          dot =  1.90853168050245158e+07\n'  # noqa
+'ina.m      = 2                          dot = -1.56738349674489310e+01\n'  # noqa
+'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03\n'  # noqa
+'ina.j      = 4                          dot = -1.15731427949362953e+00\n'  # noqa
+'ica.d      = 5                          dot = -1.85001944916516836e-01\n'  # noqa
+'ica.f      = 6                          dot = -2.15435819790876573e-02\n'  # noqa
+'ik.x       = 7                          dot = -1.25154369264425316e-02\n'  # noqa
+'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01'  # noqa                                       ^ ^^    ^ ---------   ^
         )
 
         # Test with invalid state argument
@@ -682,6 +682,8 @@ class ModelTest(unittest.TestCase):
             [[model]]
             p.b = 0.2
             q.e = 0.2
+            x.a = 0.2
+            y.e = 0.2
 
             [e]
             t = 0 [s] bind time
@@ -711,6 +713,34 @@ class ModelTest(unittest.TestCase):
             d = 0.2 [A] * a
                 in [A/s]
 
+            # Two components to import at the same time
+            # (independent of the rest of the model)
+            [x]
+            use y.e
+            dot(a) = c * e
+                in [m*A]
+            b = 3 * dot(e)
+                in [m/s]
+            c = 0.2 [A] * d
+                in [A/s]
+            d = 1 [1/s]
+                in [1/s]
+
+            [y]
+            use x.d
+            dot(e) = d * sub_e
+                in [m]
+                sub_e = 2 * e
+                    in [m]
+
+            # another group component but this isn't independant
+            [z]
+            use x.d
+            use y.e
+            use e.h
+
+            f = d * e * h
+                in [m/s]
         ''')
         ms.validate()
         ms.check_units(myokit.UNIT_STRICT)
@@ -831,6 +861,27 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(cs, c1)
         self.assertTrue(ms.is_similar(ms_unaltered, True))
 
+        # Import multiple components
+        component_list = [ms['x'], ms['y']]
+        m1.import_component(component_list)
+        self.assertTrue(m1.has_component('x'))
+        self.assertTrue(m1.has_component('y'))
+        self.assertFalse(m1['x'] is ms['x'])
+        self.assertFalse(m1['y'] is ms['y'])
+        self.assertEqual(m1['x'].code(), ms['x'].code())
+        self.assertEqual(m1['y'].code(), ms['y'].code())
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
+
+        # Import 1 component in list
+        m1.import_component([ms['p']], new_name='p3')
+        self.assertTrue(m1.has_component('p3'))
+        self.assertFalse(m1['p3'] is ms['p'])
+        self.assertFalse(m1['p3'] is m1['p'])
+        cs = '\n'.join((ms['p'].code().splitlines())[1:])
+        c1 = '\n'.join((m1['p3'].code().splitlines())[1:])
+        self.assertEqual(cs, c1)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
+
         # Try and fail to import r without a mapping
         m1_unaltered = m1.clone()
         self.assertRaises(
@@ -903,10 +954,54 @@ class ModelTest(unittest.TestCase):
             TypeError, 'myokit.Component',
             m1.import_component, 'q')
 
+        self.assertRaisesRegex(
+            TypeError, 'myokit.Component',
+            m1.import_component, [ms['q'], 'q'])
+
         # Import your own components
         self.assertRaisesRegex(
             ValueError, 'part of this model',
             m1.import_component, m1['p'], new_name='abc')
+
+        # new_name is not string or list of correct length
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, m1['p'], new_name=1)
+
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, [m1['p'], m1['q']], new_name='abs')
+
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, [m1['p'], m1['q']], new_name=['abs', 1])
+
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, [m1['p'], m1['q']], new_name=['abs'])
+
+        # Multiple imported components must be all from the same model
+        m2 = myokit.parse_model('''
+            [[model]]
+            p.b = 0.2
+
+            # Independent (except for time)
+            [p]
+            t = 0 [s] bind time
+                in [s]
+            a = 1 [m]
+                in [m]
+            # Comments should be stripped out during parsing, so this is OK.
+            dot(b) = 2 * a
+                in [m*s]
+
+        ''')
+        m2.validate()
+        m2.check_units(myokit.UNIT_STRICT)
+
+        self.assertRaisesRegex(
+            ValueError, 'must be from the same model',
+            m1.import_component, [m1['p'], m2['p']])
 
     def test_import_component_units(self):
         # Test :meth: 'import_component()' with unit conversion.
@@ -916,6 +1011,8 @@ class ModelTest(unittest.TestCase):
             [[model]]
             p.c = 0.1
             r.f = 0.2
+            x.a = 0.2
+            y.e = 0.2
 
             [e]
             t = 0 [s] bind time
@@ -940,6 +1037,26 @@ class ModelTest(unittest.TestCase):
             use p.a, p.b
             dot(f) = a / b
                 in [m]
+
+            # Two components to import at the same time
+            # (independent of the rest of the model)
+            [x]
+            use y.e
+            dot(a) = c * e
+                in [m*A]
+            b = 3 * dot(e)
+                in [m/s]
+            c = 0.2 [A] * d
+                in [A/s]
+            d = 1 [1/s]
+                in [1/s]
+
+            [y]
+            use x.d
+            dot(e) = d * sub_e
+                in [m]
+                sub_e = 2 * e
+                    in [m]
 
             # No time units used
             [s]
@@ -996,6 +1113,24 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(
             m1.get('r.f').rhs().code(),
             myokit.Multiply(ms.get('r.f').rhs(), s2ms).code())
+
+        # Import multiple components
+        m1.import_component([ms['x'], ms['y']], convert_units=True)
+        self.assertTrue(m1.has_component('x'))
+        self.assertTrue(m1.has_component('y'))
+        self.assertFalse(m1['x'] is ms['x'])
+        self.assertFalse(m1['y'] is ms['y'])
+        self.assertEqual(m1.get('x.a').unit(), ms.get('x.a').unit())
+        self.assertEqual(
+            m1.get('x.a').state_value(), ms.get('x.a').state_value())
+        self.assertEqual(
+            m1.get('x.a').rhs().code(),
+            myokit.Multiply(ms.get('x.a').rhs(), s2ms).code())
+        self.assertEqual(
+            m1.get('y.e').state_value(), ms.get('y.e').state_value())
+        self.assertEqual(
+            m1.get('y.e').rhs().code(),
+            myokit.Multiply(ms.get('y.e').rhs(), s2ms).code())
 
         # Target model with different space units
         m1 = myokit.parse_model('''
@@ -1054,7 +1189,7 @@ class ModelTest(unittest.TestCase):
         m1.validate()
         m1.check_units(myokit.UNIT_STRICT)
 
-        # Import q, converting p.a and dot(p.c)
+        # Import q and p, converting p.a and dot(p.c)
         m1.import_component(ms['q'], var_map=vm, convert_units=True)
         self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('q', m1)
