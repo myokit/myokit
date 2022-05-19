@@ -970,6 +970,10 @@ class ModelTest(unittest.TestCase):
 
         self.assertRaisesRegex(
             TypeError, 'new_name must be',
+            m1.import_component, [m1['p'], m1['q']], new_name='abs')
+
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
             m1.import_component, [m1['p'], m1['q']], new_name=['abs', 1])
 
         self.assertRaisesRegex(
