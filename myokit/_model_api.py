@@ -85,7 +85,6 @@ class ObjectWithMeta(object):
     Meta-data properties are all stored in a dict and should be string:string
     mappings.
     """
-
     def __init__(self):
         super(ObjectWithMeta, self).__init__()
         self.meta = MetaDataContainer()
@@ -127,7 +126,6 @@ class ModelPart(ObjectWithMeta):
     """
     Base class for model parts.
     """
-
     def __init__(self, parent, name):
         """
         Creates a new ModelPart
@@ -256,7 +254,6 @@ class VarProvider(object):
     This class provides an iterator over variables and equations for any object
     that can provide access to an iterator over its variables.
     """
-
     def _create_variable_stream(self, deep, sort):
         """
         Returns a stream over this object's variables.
@@ -461,7 +458,6 @@ class VarOwner(ModelPart, VarProvider):
     ``m`` is given by ``len(m)`` and the presence of "x" in ``m`` can be tested
     using ``if "x" in m:``.
     """
-
     def __init__(self, parent, name):
         super(VarOwner, self).__init__(parent, name)
         self._variables = {}
@@ -787,7 +783,6 @@ class Model(ObjectWithMeta, VarProvider):
     are the same object). Checking if models are the same in other senses can
     be done with :meth:`is_similar`. Models can be serialised with ``pickle``.
     """
-
     def __init__(self, name=None):
         super(Model, self).__init__()
 
@@ -3616,7 +3611,6 @@ class Component(VarOwner):
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
     """
-
     def __init__(self, model, name):
         super(Component, self).__init__(model, name)
         self._alias_map = {}    # Maps variable names to other variables names
@@ -3831,7 +3825,6 @@ class Variable(VarOwner):
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
     """
-
     def __init__(self, parent, name):
         super(Variable, self).__init__(parent, name)
 
@@ -4867,7 +4860,6 @@ class Equation(object):
     Note: This is not a :class:`myokit.Expression`, for that, see
     :class:`myokit.Equal`.
     """
-
     def __init__(self, lhs, rhs):
         self._lhs = lhs
         self._rhs = rhs
@@ -4928,7 +4920,6 @@ class Equation(object):
 
 class EquationList(list, VarProvider):
     """ An ordered list of :class:`Equation` objects """
-
     def _create_variable_stream(self, deep, sort):
         # Always sorted
         def stream(lst):
@@ -4958,7 +4949,6 @@ class UserFunction(object):
         The :class:`Expression` evaluating this function.
 
     """
-
     def __init__(self, name, arguments, template):
         self._name = str(name)
         self._arguments = list(arguments)
