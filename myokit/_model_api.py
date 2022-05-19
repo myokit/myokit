@@ -1725,22 +1725,18 @@ class Model(ObjectWithMeta, VarProvider):
         """
 
         # Check component is list or component and new_name is string or list
-        if isinstance(external_component, list):
-            if not all(
-                    isinstance(comp, myokit.Component)
-                    for comp in external_component
-            ):
+        if isinstance(external_component, myokit.Component):
+            external_component = [external_component]
+        else:
+            try:
+                ok = all(
+                    isinstance(c, myokit.Component) for c in external_component
+                )
+            except TypeError:
                 raise TypeError(
                     'Method import_component() expects a myokit.Component '
                     'or list of myokit.Components'
                 )
-        elif isinstance(external_component, myokit.Component):
-            external_component = [external_component]
-        else:
-            raise TypeError(
-                'Method import_component() expects a myokit.Component '
-                'or list of myokit.Components'
-            )
 
         if new_name is None:
             new_name = []
