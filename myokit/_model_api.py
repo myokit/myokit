@@ -85,6 +85,7 @@ class ObjectWithMeta(object):
     Meta-data properties are all stored in a dict and should be string:string
     mappings.
     """
+
     def __init__(self):
         super(ObjectWithMeta, self).__init__()
         self.meta = MetaDataContainer()
@@ -126,6 +127,7 @@ class ModelPart(ObjectWithMeta):
     """
     Base class for model parts.
     """
+
     def __init__(self, parent, name):
         """
         Creates a new ModelPart
@@ -254,6 +256,7 @@ class VarProvider(object):
     This class provides an iterator over variables and equations for any object
     that can provide access to an iterator over its variables.
     """
+
     def _create_variable_stream(self, deep, sort):
         """
         Returns a stream over this object's variables.
@@ -458,6 +461,7 @@ class VarOwner(ModelPart, VarProvider):
     ``m`` is given by ``len(m)`` and the presence of "x" in ``m`` can be tested
     using ``if "x" in m:``.
     """
+
     def __init__(self, parent, name):
         super(VarOwner, self).__init__(parent, name)
         self._variables = {}
@@ -783,6 +787,7 @@ class Model(ObjectWithMeta, VarProvider):
     are the same object). Checking if models are the same in other senses can
     be done with :meth:`is_similar`. Models can be serialised with ``pickle``.
     """
+
     def __init__(self, name=None):
         super(Model, self).__init__()
 
@@ -1680,8 +1685,8 @@ class Model(ObjectWithMeta, VarProvider):
     def import_component(self, external_component, new_name=None, var_map=None,
                          allow_name_mapping=False, convert_units=False):
         """
-        Imports one or multiple components from another model (the "source model") into this
-        one (the "target model").
+        Imports one or multiple components from another model
+        (the "source model") into this one (the "target model").
 
         If variables in the ``external_component`` refer to variables from
         other components they will be mapped on to variables from this model
@@ -1698,9 +1703,11 @@ class Model(ObjectWithMeta, VarProvider):
         Arguments:
 
         ``external_component``
-            A :class:`myokit.Component` or a list of :class:`myokit.Component`s from another model.
+            A :class:`myokit.Component`
+            or a list of :class:`myokit.Component`s from another model.
         ``new_name``
-            An optional new name for the imported component or list of names if multiple components are provided.
+            An optional new name for the imported component
+            or list of names if multiple components are provided.
         ``var_map``
             An optional dict mapping variables in the source model to
             variables from this model (with variables specified as objects or
@@ -1724,55 +1731,63 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Check component is list or component and new_name is string or list
         if isinstance(external_component, list):
-            if not all(isinstance(comp, myokit.Component) for comp in external_component):
+            if not all(
+                    isinstance(comp, myokit.Component)
+                    for comp in external_component
+            ):
                 raise TypeError(
-                'Method import_component() expects a myokit.Component or list of myokit.Components')
-            if new_name is None:
-                new_name = []
-                for comp in external_component:
-                    new_name.append(comp.name())
-            elif isinstance(new_name, basestring) and len(external_component)==1:
-                new_name = [new_name]
-            elif isinstance(new_name, list):
-                if (len(new_name)!= len(external_component)) or (not all(isinstance(name, basestring) for name in new_name)):
-                    raise TypeError(
-                        'new_name must be a list of strings the same length as external_component, or a string if only one component is provided')
-            else:
-                raise TypeError(
-                    'new_name must be a list of strings the same length as external_component, or a string if only one component is provided')
-
+                    'Method import_component() expects a myokit.Component '
+                    'or list of myokit.Components'
+                )
         elif isinstance(external_component, myokit.Component):
-            if new_name is None:
-                new_name = [external_component.name()]
-            elif isinstance(new_name, basestring):
-                new_name = [new_name]
-            elif isinstance(new_name, list):
-                if (len(new_name)!= 1) or (not all(isinstance(name, basestring) for name in new_name)):
-                    raise TypeError(
-                        'new_name must be a list of strings the same length as external_component or a string if only one component is provided')
-            else:
-                raise TypeError(
-                    'new_name must be a list of strings the same length as external_component or a string if only one component is provided')
-                    
             external_component = [external_component]
-        
         else:
             raise TypeError(
-                'Method import_component() expects a myokit.Component or list of myokit.Components')
-        
+                'Method import_component() expects a myokit.Component '
+                'or list of myokit.Components'
+            )
+
+        if new_name is None:
+            new_name = []
+            for comp in external_component:
+                new_name.append(comp.name())
+        elif (
+            isinstance(new_name, basestring) and
+            len(external_component) == 1
+        ):
+            new_name = [new_name]
+        elif isinstance(new_name, list):
+            if (
+                len(new_name) != len(external_component) or
+                not all(isinstance(name, basestring) for name in new_name)
+            ):
+                raise TypeError(
+                    'new_name must be a list of strings the same length '
+                    'as external_component, or a string if only one '
+                    'component is provided'
+                )
+        else:
+            raise TypeError(
+                'new_name must be a list of strings the same length as '
+                'external_component, or a string if only one '
+                'component is provided'
+            )
+
         # Get external model
         ext_model = external_component[0].model()
 
-        # checking the model for external components are the same and not this model
+        # checking the model for external components
+        # are the same and not this model
         for comp in external_component:
             if not comp.has_ancestor(ext_model):
-                raise ValueError(
-                    'The imported components must be from the same model, <' + comp.name() +
-                    '> and <' + external_component[0].name() + '> are not.')
-        if ext_model==self:
+                raise ValueError((
+                    'The imported components must be from the same '
+                    'model, <{}> and <{}> are not.'
+                ).format(comp.name(), external_component[0].name()))
+        if ext_model == self:
             raise ValueError(
                 'The component(s) to import are already part of this model.')
-        
+
         # Check if new names clash with those in this model
         for name in new_name:
             if self.has_component(name):
@@ -1873,13 +1888,14 @@ class Model(ObjectWithMeta, VarProvider):
                 # Valid mapping: Store, but only if this is a required variable
                 if ext_var in vars_to_map:
                     var_map[ext_var] = self_var
-        
-        # add variables to var_map that map to other imported components but will be reassigned to the clone later
+
+        # add variables to var_map that map to other imported components
+        # but will be reassigned to the clone later
         for l in map_to_clone:
             for ext_var in l:
                 if ext_var not in var_map:
-                    var_map[ext_var] = None 
-        
+                    var_map[ext_var] = None
+
         # Add non user-specified variables that require mapping
         for ext_var in vars_to_map:
             if ext_var not in var_map:
@@ -1962,7 +1978,7 @@ class Model(ObjectWithMeta, VarProvider):
         new_component = []
         for i, comp in enumerate(external_component):
             new_component.append(comp._clone1(self, new_name[i]))
-            
+
             for var in comp.variables(state=True):
                 # Clone states
                 # TODO: Not sure why clone() code doesn't do this?
@@ -1989,7 +2005,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Next, add all entries in the var_map. If unit conversion is enabled,
         # this may include the addition of unit conversion factors
-                
+
         for ext_var, self_var in var_map.items():
             # Substitute in either a reference to self_var, or an expression
             # that converts self_var to the units ext_var's equation expects.
@@ -3600,6 +3616,7 @@ class Component(VarOwner):
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
     """
+
     def __init__(self, model, name):
         super(Component, self).__init__(model, name)
         self._alias_map = {}    # Maps variable names to other variables names
@@ -3814,6 +3831,7 @@ class Variable(VarOwner):
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
     """
+
     def __init__(self, parent, name):
         super(Variable, self).__init__(parent, name)
 
@@ -4849,6 +4867,7 @@ class Equation(object):
     Note: This is not a :class:`myokit.Expression`, for that, see
     :class:`myokit.Equal`.
     """
+
     def __init__(self, lhs, rhs):
         self._lhs = lhs
         self._rhs = rhs
@@ -4909,6 +4928,7 @@ class Equation(object):
 
 class EquationList(list, VarProvider):
     """ An ordered list of :class:`Equation` objects """
+
     def _create_variable_stream(self, deep, sort):
         # Always sorted
         def stream(lst):
@@ -4938,6 +4958,7 @@ class UserFunction(object):
         The :class:`Expression` evaluating this function.
 
     """
+
     def __init__(self, name, arguments, template):
         self._name = str(name)
         self._arguments = list(arguments)

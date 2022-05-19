@@ -513,13 +513,13 @@ class ModelTest(unittest.TestCase):
         # Test without arguments
         self.assertEqual(
             m.format_state_derivatives(),
-'membrane.V = -84.5286                   dot = -5.68008003798848027e-02\n' # noqa
-'ina.m      = 0.0017                     dot = -4.94961486033834719e-03\n' # noqa
-'ina.h      = 0.9832                     dot =  9.02025299127830887e-06\n' # noqa
-'ina.j      = 0.995484                   dot = -3.70409866928434243e-04\n' # noqa
-'ica.d      = 3e-06                      dot =  3.68067721821794798e-04\n' # noqa
-'ica.f      = 1.0                        dot = -3.55010150519739432e-07\n' # noqa
-'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n' # noqa
+'membrane.V = -84.5286                   dot = -5.68008003798848027e-02\n'  # noqa
+'ina.m      = 0.0017                     dot = -4.94961486033834719e-03\n'  # noqa
+'ina.h      = 0.9832                     dot =  9.02025299127830887e-06\n'  # noqa
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04\n'  # noqa
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04\n'  # noqa
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07\n'  # noqa
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n'  # noqa
 'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'    # noqa
         )
 
@@ -528,14 +528,14 @@ class ModelTest(unittest.TestCase):
         state1[2] = 536.46745856785678567845745637
         self.assertEqual(
             m.format_state_derivatives(state1),
-'membrane.V = 1                          dot =  1.90853168050245158e+07\n' # noqa
-'ina.m      = 2                          dot = -1.56738349674489310e+01\n' # noqa
-'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03\n' # noqa
-'ina.j      = 4                          dot = -1.15731427949362953e+00\n' # noqa
-'ica.d      = 5                          dot = -1.85001944916516836e-01\n' # noqa
-'ica.f      = 6                          dot = -2.15435819790876573e-02\n' # noqa
-'ik.x       = 7                          dot = -1.25154369264425316e-02\n' # noqa
-'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01' # noqa                                       ^ ^^    ^ ---------   ^
+'membrane.V = 1                          dot =  1.90853168050245158e+07\n'  # noqa
+'ina.m      = 2                          dot = -1.56738349674489310e+01\n'  # noqa
+'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03\n'  # noqa
+'ina.j      = 4                          dot = -1.15731427949362953e+00\n'  # noqa
+'ica.d      = 5                          dot = -1.85001944916516836e-01\n'  # noqa
+'ica.f      = 6                          dot = -2.15435819790876573e-02\n'  # noqa
+'ik.x       = 7                          dot = -1.25154369264425316e-02\n'  # noqa
+'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01'  # noqa                                       ^ ^^    ^ ---------   ^
         )
 
         # Test with invalid state argument
@@ -713,7 +713,8 @@ class ModelTest(unittest.TestCase):
             d = 0.2 [A] * a
                 in [A/s]
 
-            # Two components to import at the same time (independent of the rest of the model)
+            # Two components to import at the same time
+            # (independent of the rest of the model)
             [x]
             use y.e
             dot(a) = c * e
@@ -731,7 +732,7 @@ class ModelTest(unittest.TestCase):
                 in [m]
                 sub_e = 2 * e
                     in [m]
-            
+
             # another group component but this isn't independant
             [z]
             use x.d
@@ -869,7 +870,7 @@ class ModelTest(unittest.TestCase):
         self.assertFalse(m1['y'] is ms['y'])
         self.assertEqual(m1['x'].code(), ms['x'].code())
         self.assertEqual(m1['y'].code(), ms['y'].code())
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import 1 component in list
         m1.import_component([ms['p']], new_name='p3')
@@ -879,7 +880,7 @@ class ModelTest(unittest.TestCase):
         cs = '\n'.join((ms['p'].code().splitlines())[1:])
         c1 = '\n'.join((m1['p3'].code().splitlines())[1:])
         self.assertEqual(cs, c1)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Try and fail to import r without a mapping
         m1_unaltered = m1.clone()
@@ -953,10 +954,50 @@ class ModelTest(unittest.TestCase):
             TypeError, 'myokit.Component',
             m1.import_component, 'q')
 
+        self.assertRaisesRegex(
+            TypeError, 'myokit.Component',
+            m1.import_component, [ms['q'], 'q'])
+
         # Import your own components
         self.assertRaisesRegex(
             ValueError, 'part of this model',
             m1.import_component, m1['p'], new_name='abc')
+
+        # new_name is not string or list of correct length
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, m1['p'], new_name=1)
+
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, [m1['p'], m1['q']], new_name=['abs', 1])
+
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, [m1['p'], m1['q']], new_name=['abs'])
+
+        # Multiple imported components must be all from the same model
+        m2 = myokit.parse_model('''
+            [[model]]
+            p.b = 0.2
+
+            # Independent (except for time)
+            [p]
+            t = 0 [s] bind time
+                in [s]
+            a = 1 [m]
+                in [m]
+            # Comments should be stripped out during parsing, so this is OK.
+            dot(b) = 2 * a
+                in [m*s]
+
+        ''')
+        m2.validate()
+        m2.check_units(myokit.UNIT_STRICT)
+
+        self.assertRaisesRegex(
+            ValueError, 'must be from the same model',
+            m1.import_component, [m1['p'], m2['p']])
 
     def test_import_component_units(self):
         # Test :meth: 'import_component()' with unit conversion.
