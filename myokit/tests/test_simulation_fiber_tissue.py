@@ -793,7 +793,7 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
             with WarningCollector():
                 self.assertRaisesRegex(
                     myokit.SimulationError,
-                    'Encountered numerical error in fiber simulation at t=2.0',
+                    'numerical error in fiber simulation at t = 2.0',
                     self.s1.run, 10, log_interval=1)
 
             # Automatic detection, but not enough information
@@ -860,10 +860,24 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
             self.s1.set_protocol(self.p3)
             with WarningCollector():
                 self.assertRaisesRegex(
-                    myokit.SimulationError, 'in tissue simulation at t=1.7',
+                    myokit.SimulationError, 'in tissue simulation at t = 1.7',
                     self.s1.run, 5)
         finally:
             self.s1.set_protocol(self.p1)
+            self.s1.reset()
+
+    def test_big_step(self):
+        # Tests if NaNs are detected in the diffusion current
+
+        dt = self.s1.step_size()
+        try:
+            self.s1.set_step_size(0.01)
+            with WarningCollector():
+                self.assertRaisesRegex(
+                    myokit.SimulationError, 'when membrane.i_diff',
+                    self.s1.run, 5)
+        finally:
+            self.s1.set_step_size(dt)
             self.s1.reset()
 
 
