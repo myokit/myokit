@@ -1171,7 +1171,6 @@ class ModelTest(unittest.TestCase):
                 myokit.Multiply(myokit.Name(m1.get('p.c')), mm2m)),
                 myokit.Number(0.1, 'm')).code())
 
-
         # Target model with different time and space units
         m1 = myokit.parse_model('''
             [[model]]
