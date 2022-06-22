@@ -23,6 +23,8 @@ except NameError:   # pragma: no cover
 
 import myokit
 
+from myokit.tests import TemporaryDirectory
+
 
 class BenchmarkerTest(unittest.TestCase):
     """Tests the ``Benchmarker``."""
@@ -292,7 +294,29 @@ class ToolsTest(unittest.TestCase):
         a.sort(key=myokit.tools.natural_sort_key)
         self.assertEqual(a, b)
 
-    # TODO: rmtree
+    def test_rmtree(self):
+        # Test rmtree
+
+        with TemporaryDirectory() as d:
+
+            # Create dir with subdir
+            path = d.path('a')
+            os.mkdir(path)
+            os.mkdir(os.path.join(path, 'b'))
+
+            # This can't be deleted with rmdir
+            self.assertRaises(OSError, os.rmdir, path)
+            self.assertTrue(os.path.exists(path))
+
+            # But rmtree works
+            myokit.tools.rmtree(path)
+            self.assertFalse(os.path.exists(path))
+
+            # It doesn't work twice in a row:
+            self.assertRaises(OSError, myokit.tools.rmtree, path)
+
+            # But we can ignore the exception
+            myokit.tools.rmtree(path, silent=True)
 
 
 if __name__ == '__main__':

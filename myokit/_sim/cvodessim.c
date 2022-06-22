@@ -689,6 +689,11 @@ sim_init(PyObject *self, PyObject *args)
     benchmarker_print("CP Initialisation started (entered sim_init()).");
     #endif
 
+    /* Print info about simulation to undertake */
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Preparing to simulate from %g to %g.\n", tmin, tmax);
+    #endif
+
     /*
      * Create model
      */
@@ -795,6 +800,14 @@ sim_init(PyObject *self, PyObject *args)
         NV_Ith_S(y, i) = model->states[i];
     }
 
+    /* Print initial state */
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Initial state vector (CVODES):\n");
+    for (i=0; i<model->n_states; i++) {
+        printf("CM   %g\n", NV_Ith_S(y, i));
+    }
+    #endif
+
     /* Set initial sensitivity state values */
     if (model->has_sensitivities) {
         if (!PyList_Check(s_state_py)) {
@@ -816,6 +829,19 @@ sim_init(PyObject *self, PyObject *args)
         }
     }
 
+    /* Print initial sensitivities */
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    if (model->has_sensitivities) {
+        printf("CM Initial state sensitivities (CVODES):\n");
+        for (i=0; i<model->ns_independents; i++) {
+            printf("CM   %d.\n", i);
+            for (j=0; j<model->n_states; j++) {
+                printf("CM     %g\n", NV_Ith_S(sy[i], j));
+            }
+        }
+    }
+    #endif
+
     #ifdef MYOKIT_DEBUG_PROFILING
     benchmarker_print("CP Set initial state.");
     #endif
@@ -834,11 +860,23 @@ sim_init(PyObject *self, PyObject *args)
         model->literals[i] = PyFloat_AsDouble(val);
     }
 
+    /* Print initial sensitivities */
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Literals:\n");
+    for (i=0; i<model->n_literals; i++) {
+        printf("CM   %g\n", model->literals[i]);
+    }
+    #endif
+
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Set values of literal variables.");
+    #endif
+
     /* Evaluate calculated constants */
     Model_EvaluateLiteralDerivedVariables(model);
 
     #ifdef MYOKIT_DEBUG_PROFILING
-    benchmarker_print("CP Set model constants and calculated derived constants.");
+    benchmarker_print("CP Set values of calculated constants.");
     #endif
 
     /* Set model parameters */
@@ -1241,7 +1279,7 @@ sim_step(PyObject *self, PyObject *args)
 
             /* Take a single ODE step */
             #ifdef MYOKIT_DEBUG_MESSAGES
-            printf("\nCM Taking CVODE step from time %f to %f\n", t, tnext);
+            printf("\nCM Taking CVODE step from time %g to %g.\n", t, tnext);
             #endif
             flag_cvode = CVode(cvode_mem, tnext, y, &t, CV_ONE_STEP);
 
@@ -1272,7 +1310,7 @@ sim_step(PyObject *self, PyObject *args)
         /* Check if progress is being made */
         if (t == tlast) {
             if (++zero_step_count >= max_zero_step_count) {
-                return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken at t=%f", t);
+                return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken at t=%g", t);
             }
         } else {
             /* Only count consecutive zero steps */
@@ -1293,7 +1331,7 @@ sim_step(PyObject *self, PyObject *args)
                 /* Next event time exceeded? */
                 if (t > tnext) {
                     #ifdef MYOKIT_DEBUG_MESSAGES
-                    printf("CM Event time exceeded, rewinding to %f\n", tnext);
+                    printf("CM Event time exceeded, rewinding to %g.\n", tnext);
                     #endif
 
                     /* Go back to time=tnext */
@@ -1348,7 +1386,7 @@ sim_step(PyObject *self, PyObject *args)
                 /* Log points */
                 while (t > tlog) {
                     #ifdef MYOKIT_DEBUG_MESSAGES
-                    printf("CM Interpolation-logging for t=%f\n", t);
+                    printf("CM Interpolation-logging for t=%g.\n", t);
                     #endif
 
                     /* Benchmarking? Then set realtime */
@@ -1456,7 +1494,7 @@ sim_step(PyObject *self, PyObject *args)
                        values for the current time. Similarly, if calculating
                        sensitivities this is needed. */
                     #ifdef MYOKIT_DEBUG_MESSAGES
-                    printf("CM Calling RHS to log derivs/inter/sens at time %f\n", t);
+                    printf("CM Calling RHS to log derivs/inter/sens at time %g.\n", t);
                     #endif
                     rhs(t, y, NULL, udata);
                 } else if (model->logging_bound) {

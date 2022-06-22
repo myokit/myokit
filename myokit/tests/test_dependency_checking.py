@@ -1332,6 +1332,11 @@ class ComponentDepTest(DepTest):
 class SolvableOrderTest(DepTest):
     """
     Tests if the solvable order of the equations is determined correctly.
+
+    TODO: This test was written with the assumption that the order returned
+    could vary in ways that did not affect solvability. This has now been
+    changed so that the solvable order returned is consistent for models that
+    are equivalent.
     """
     def test_solvable_order(self):
         # Test model.solvable_order()
@@ -1619,6 +1624,91 @@ class SolvableOrderTest(DepTest):
         eqs, vrs = self.m.expressions_for()
         self.assertEqual(len(eqs), 0)
         self.assertEqual(len(vrs), 0)
+
+    def test_equivalent_models_1(self):
+        # Tests that the order returned for equivalent models is the same
+        # (This is new 2022-06-22). Tests above do not assume this is the case.
+
+        m1 = myokit.parse_model('''
+        [[model]]
+        comp_2.h = 1.234
+
+        [engine]
+        time = 0 bind time
+
+        [comp_1]
+        a = 30
+        b = 10
+        c = a + b + d
+        d = 20
+
+        [comp_2]
+        e = 35 - f
+        f = 40
+        g = 50 - j
+        dot(h) = e / f + j
+        i = 5 * h
+        j = 60 - e
+        ''')
+        m2 = myokit.parse_model('''
+        [[model]]
+        comp_2.h = 1.234
+
+        [engine]
+        time = 0 bind time
+
+        [comp_2]
+        j = 60 - e
+        i = 5 * h
+        dot(h) = e / f + j
+        g = 50 - j
+        f = 40
+        e = 35 - f
+
+        [comp_1]
+        d = 20
+        c = a + b + d
+        b = 10
+        a = 30
+        ''')
+
+        # Models are equivalent, despite different ordering internally
+        self.assertEqual(m1.code(), m2.code())
+
+        # Get solvable orders as flat lists of variable names
+        o1, o2 = [], []
+        for eqlist in m1.solvable_order().values():
+            for eq in eqlist:
+                o1.append(str(eq.lhs))
+        for eqlist in m2.solvable_order().values():
+            for eq in eqlist:
+                o2.append(str(eq.lhs))
+        self.assertEqual(len(o1), len(o2))  # If not, we have bigger problems..
+
+        # Compare entries
+        for v1, v2 in zip(o1, o2):
+            self.assertEqual(v1, v2)
+
+    def test_equivalent_models_2(self):
+        # Tests that the order returned for equivalent models is the same
+        # (This is new 2022-06-22). Tests above do not assume this is the case.
+
+        m1 = self.m
+        m2 = myokit.parse_model(m1.code())
+
+        # Get solvable orders as flat lists of variable names
+        o1, o2 = [], []
+        for eqlist in m1.solvable_order().values():
+            for eq in eqlist:
+                o1.append(str(eq.lhs))
+        for eqlist in m2.solvable_order().values():
+            for eq in eqlist:
+                o2.append(str(eq.lhs))
+        self.assertEqual(len(o1), len(o2))  # If not, we have bigger problems..
+
+        # Compare entries
+        for v1, v2 in zip(o1, o2):
+            self.assertEqual(v1, v2)
 
 
 if __name__ == '__main__':
