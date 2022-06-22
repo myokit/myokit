@@ -74,21 +74,48 @@ class CModule(object):
         self._debug_file_count = 0
 
     def _compile(self, name, template, variables, libs, libd=None, incd=None,
-                 carg=None, larg=None, continue_in_debug_mode=False):
+                 carg=None, larg=None, store_build=False,
+                 continue_in_debug_mode=False):
         """
         Compiles a source ``template`` with the given ``variables`` into a
         module called ``name``, then imports it and returns a reference to the
         imported module.
 
-        Any C libraries needed for compilation should be given in the sequence
-        type ``libs``. Library dirs and include dirs can be passed in using
-        ``libd`` and ``incd``. Extra compiler arguments can be given in the
-        list ``carg``, and linker args in ``larg``.
+        Arguments:
 
-        If ``myokit.DEBUG_SG`` or ``myokit.DEBUG_WG`` are set, the method will
-        print the generated code to screen and/or write it to disk. Following
-        this, it will terminate with exit code 1 unless
-        ``continue_in_debug_mode`` is changed to ``True``.
+        ``name``
+            The name of the generated module (used when importing)
+        ``template``
+            A template to evaluate
+        ``variables``
+            Variables to pass in to the template
+        ``libs``
+            A list of C libraries to link to, e.g. ``libs=['sundials_cvodes']
+        ``libd``
+            A list of directories to search for shared library objects, or
+            ``None``.
+        ``incd``
+            A list of directories to search for header files, or ``None``.
+        ``carg``
+            A list of extra compiler arguments (e.g. ``carg=['-Wall']), or
+            ``None``.
+        ``larg``
+            A list of extra linker arguments (e.g.
+            ``larg=['-framework', 'OpenCL']``), or ``None``.
+        ``store_build``
+            If set to ``False`` (the default), the method will delete the
+            temporary directory that the module was built in.
+        ``continue_in_debug_mode``
+            If ``myokit.DEBUG_SG`` or ``myokit.DEBUG_WG`` are set, the
+            generated code will be printed to screen and/or written to disk,
+            and ``sys.exit(1)`` will be called. Set ``continue_in_debug_mode``
+            to ``True`` to skip the exitting and keep going instead.
+
+        Returns a tuple ``(module, build_path)``, where ``module`` is the
+        compiled and imported module, and ``build_path`` is either ``None``
+        (the default) or the path to a temporary directory that the build files
+        are stored in.
+
         """
         # Show and/or write code in debug mode
         if myokit.DEBUG_SG or myokit.DEBUG_WG:  # pragma: no cover
@@ -103,10 +130,15 @@ class CModule(object):
         src_file = self._source_file()
         working_dir = os.getcwd()
         d_cache = tempfile.mkdtemp('myokit')
+        d_build = None
         try:
-            # Create output directories
-            d_build = os.path.join(d_cache, 'build')
-            os.makedirs(d_build)
+            # Create build directory
+            if store_build:
+                # Create separate build directory
+                d_build = tempfile.mkdtemp('myokit_build')
+            else:
+                d_build = os.path.join(d_cache, 'build')
+                os.makedirs(d_build)
 
             # Export c file
             src_file = os.path.join(d_cache, src_file)
@@ -211,18 +243,24 @@ class CModule(object):
                 t.extend(['    ' + x for x in captured.splitlines()])
                 raise myokit.CompilationError('\n'.join(t))
 
-            # Include module (and refresh in case 2nd model is loaded)
-            return load_module(name, d_build)
+            # Import module
+            module = load_module(name, d_build)
+            if store_build:
+                return module, d_build
+            return module
+
+        except Exception:
+            # Delete build dir, if created separately
+            if store_build and d_build is not None:
+                myokit.tools.rmtree(d_build, silent=True)
+            raise
 
         finally:
             # Revert changes to working directory
             os.chdir(working_dir)
 
-            # Delete cached module
-            try:
-                myokit.tools.rmtree(d_cache)
-            except Exception:   # pragma: no cover
-                pass
+            # Delete cache dir (and build dir, if not stored separetely)
+            myokit.tools.rmtree(d_cache, silent=True)
 
     def _debug_show(self, template, variables):  # pragma: no cover
         """ Processes ``template`` and prints the output to screen. """

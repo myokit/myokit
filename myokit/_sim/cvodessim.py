@@ -10,6 +10,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import platform
+import tempfile
 
 from collections import OrderedDict
 
@@ -90,6 +91,32 @@ class Simulation(myokit.CModule):
 
     No variable labels are required for this simulation type.
 
+    **Storing and loading simulation objects**
+
+    There are two ways to store Simulation objects to the file system: 1.
+    using serialisation (the ``pickle`` module), and 2. using the ``path``
+    constructor argument.
+
+    Each time a simulation is created, a C module is compiled, imported, and
+    deleted in the background. This means that part of a ``Simulation`` object
+    is a reference to an imported C extension, and cannot be serialised. When
+    using ``pickle`` to serialise the simulation, this compiled part is not
+    stored. Instead, when the pickled simulation is read from disk the
+    compilation is repeated. Unpickling simulations also restores their state:
+    variables such as model state, simulation time, and tolerance are preserved
+    when pickling.
+
+    As an alternative to serialisation, Simulations can be created with a
+    ``path`` variable that specifies a location where the generated module can
+    be stored. For example, calling ``Simulation(model, path='my-sim.zip')``
+    will create a file called ``my-sim.zip`` in which the C extension is
+    stored. To load, use ``Simulation.from_path('my-sim.zip')``. Unlike
+    pickling, simulations stored and loaded this way do not maintain state:
+    variables such as model state, simulation time, and tolerance are not
+    preserved with this method. Finally, note that (again unlike pickled
+    simulations), the generated zip files are highly platform dependent: a zip
+    file generated on one machine may not work on another.
+
     **Arguments**
 
     ``model``
@@ -108,6 +135,9 @@ class Simulation(myokit.CModule):
         Each entry in ``independents`` must be a :class:`myokit.Variable`, a
         :class:`myokit.Name`, a :class:`myokit.InitialValue`, or a string with
         either a fully qualified variable name or an ``init()`` expression.
+    ``path``
+        An optional path used to load or store compiled simulation objects. See
+        "Storing and loading simulation objects", above.
 
     **References**
 
@@ -118,7 +148,7 @@ class Simulation(myokit.CModule):
     """
     _index = 0  # Simulation id
 
-    def __init__(self, model, protocol=None, sensitivities=None):
+    def __init__(self, model, protocol=None, sensitivities=None, path=None):
         super(Simulation, self).__init__()
 
         # Require a valid model
@@ -148,8 +178,11 @@ class Simulation(myokit.CModule):
         for var, eq in cmodel.parameters.items():
             self._parameters[var] = eq.rhs.eval()
 
-        # Compile simulation
-        self._create_simulation(cmodel.code)
+        # Compile or load simulation
+        if type(path) == tuple:
+            path, self._sim = path
+        else:
+            self._create_simulation(cmodel.code, path)
         del(cmodel)
 
         # Get state and default state from model
@@ -182,8 +215,13 @@ class Simulation(myokit.CModule):
         self._tolerance = None
         self.set_tolerance()
 
-    def _create_simulation(self, cmodel_code):
-        """ Creates and compiles the C simulation module. """
+    def _create_simulation(self, cmodel_code, path):
+        """
+        Creates and compiles the C simulation module.
+
+        If ``path`` is set, also stores the built extension in a zip file at
+        ``path``, along with a serialisation of the Python Simulation object.
+        """
         # Unique simulation id
         Simulation._index += 1
         module_name = 'myokit_sim_' + str(Simulation._index)
@@ -211,7 +249,102 @@ class Simulation(myokit.CModule):
         incd.append(myokit.DIR_CFUNC)
 
         # Create extension
-        self._sim = self._compile(module_name, fname, args, libs, libd, incd)
+        store = path is not None
+        res = self._compile(
+            module_name, fname, args, libs, libd, incd, store_build=store)
+
+        # Store module and return
+        if store:
+            self._sim, d_build = res
+            self._store_build(path, d_build, module_name)
+        else:
+            self._sim = res
+
+    def _store_build(self, path, d_build, name):
+        """
+        Stores this simulation to ``path``, including all information from the
+        build directory ``d_build`` and the generated backend module's
+        ``name``.
+        """
+        try:
+            import zipfile
+            try:
+                import zlib     # noqa
+            except ImportError:
+                raise Exception('Storing simulations requires the zlib module'
+                                ' to be available.')
+
+            # Sensitivity constructor argument. Don't pass in expressions, as
+            # they will need to pickle the variables as well, which in turn
+            # will need a component, model, etc.
+            sens_arg = None
+            if self._sensitivities:
+                sens_arg = [[x.code() for x in y] for y in self._sensitivities]
+
+            # Store serialised name and constructor args
+            fname = os.path.join(d_build, '_simulation.pickle')
+            import pickle
+            with open(fname, 'wb') as f:
+                pickle.dump(str(name), f)
+                pickle.dump(self._model, f)
+                pickle.dump(self._protocol, f)
+                pickle.dump(sens_arg, f)
+
+            # Zip it all in
+            with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as f:
+                for root, dirs, files in os.walk(d_build):
+                    for fname in files:
+                        org = os.path.join(root, fname)
+                        new = os.path.relpath(org, d_build)
+                        f.write(org, new)
+        finally:
+            myokit.tools.rmtree(d_build, silent=True)
+
+    @staticmethod
+    def from_path(path):
+        """
+        Loads a simulation from the zip file in ``path``.
+
+        The file at ``path`` must have been created by :class:`Simulation` and
+        on the same platform (e.g. the same operating system, processor
+        architecture, Myokit version etc.).
+
+        Note that the simulation state (e.g. time, model state, solver
+        tolerance etc. is not restored).
+
+        Returns a :class:`Simulation` object.
+        """
+        import zipfile
+        try:
+            import zlib     # noqa
+        except ImportError:
+            raise Exception('Loading simulations requires the zlib module to'
+                            ' be available.')
+
+        # Unpack the zipped information
+        d_build = tempfile.mkdtemp('myokit_build')
+        try:
+            with zipfile.ZipFile(path, 'r', zipfile.ZIP_DEFLATED) as f:
+                f.extractall(d_build)
+
+            # Load serialised name and constructor args
+            fname = os.path.join(d_build, '_simulation.pickle')
+            import pickle
+            with open(fname, 'rb') as f:
+                name = pickle.load(f)
+                model = pickle.load(f)
+                protocol = pickle.load(f)
+                sensitivities = pickle.load(f)
+
+            # Load module
+            from myokit._sim import load_module
+            module = load_module(name, d_build)
+
+            # Create and return simulation
+            return Simulation(model, protocol, sensitivities, (path, module))
+
+        finally:
+            myokit.tools.rmtree(d_build, silent=True)
 
     def default_state(self):
         """
