@@ -24,6 +24,8 @@ except NameError:   # pragma: no cover
 
 import myokit
 
+from myokit.tests import TemporaryDirectory
+
 
 class BenchmarkerTest(unittest.TestCase):
     """Tests the ``Benchmarker``."""
@@ -296,10 +298,10 @@ class ToolsTest(unittest.TestCase):
     def test_rmtree(self):
         # Test rmtree
 
-        with tempfile.TemporaryDirectory() as d:
+        with TemporaryDirectory() as d:
 
             # Create dir with subdir
-            path = os.path.join(d, 'a')
+            path = d.path('a')
             os.mkdir(path)
             os.mkdir(os.path.join(path, 'b'))
 
