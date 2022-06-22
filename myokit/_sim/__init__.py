@@ -250,7 +250,7 @@ class CModule(object):
                 return module, d_build
             return module
 
-        except Exception:
+        except Exception:   # pragma: no cover
             # Delete build dir, if created separately
             if store_build and d_build is not None:
                 myokit.tools.rmtree(d_build, silent=True)
