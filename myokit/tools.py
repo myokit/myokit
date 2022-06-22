@@ -492,7 +492,7 @@ def rmtree(path, silent=False):
     Version of ``shutil.rmtree`` that handles Windows "access denied" errors
     (when the user is lacking write permissions, but is allowed to set them).
 
-    If ``silent=True`` any raised exceptions will be caught and ignored.
+    If ``silent=True`` any other exceptions will be caught and ignored.
     """
     # From https://stackoverflow.com/questions/2656322
     def onerror(function, path, excinfo):   # pragma: no cover

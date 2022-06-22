@@ -11,6 +11,7 @@ from __future__ import print_function, unicode_literals
 import os
 import re
 import sys
+import tempfile
 import threading
 import time
 import unittest
@@ -292,7 +293,29 @@ class ToolsTest(unittest.TestCase):
         a.sort(key=myokit.tools.natural_sort_key)
         self.assertEqual(a, b)
 
-    # TODO: rmtree
+    def test_rmtree(self):
+        # Test rmtree
+
+        with tempfile.TemporaryDirectory() as d:
+
+            # Create dir with subdir
+            path = os.path.join(d, 'a')
+            os.mkdir(path)
+            os.mkdir(os.path.join(path, 'b'))
+
+            # This can't be deleted with rmdir
+            self.assertRaises(OSError, os.rmdir, path)
+            self.assertTrue(os.path.exists(path))
+
+            # But rmtree works
+            myokit.tools.rmtree(path)
+            self.assertFalse(os.path.exists(path))
+
+            # It doesn't work twice in a row:
+            self.assertRaises(OSError, myokit.tools.rmtree, path)
+
+            # But we can ignore the exception
+            myokit.tools.rmtree(path, silent=True)
 
 
 if __name__ == '__main__':
