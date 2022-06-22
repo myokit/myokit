@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#872](https://github.com/MichaelClerx/myokit/pull/872) `Model.solvable_order` now returns consistently ordered equations, regardless of the order components and variables were created/parsed in.
   - [#872](https://github.com/MichaelClerx/myokit/pull/872) `myokit.tools.rmtree` now takes an optional argument `silent` that can be set to `True` to ignore any exceptions.
   - [#876](https://github.com/MichaelClerx/myokit/pull/876) `Model.import_component` can now take a list of possibly interdependent components.
 - Deprecated

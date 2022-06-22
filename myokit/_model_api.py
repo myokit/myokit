@@ -3061,9 +3061,9 @@ class Model(ObjectWithMeta, VarProvider):
         solvable_comps = []
         cdeps = self.map_component_dependencies()
         while True:
-            # Find all components that can be solved
+            # Find all components that can be solved (and order alphabetically)
             newly_solvable = []
-            for comp, deps in cdeps.items():
+            for comp, deps in sorted(cdeps.items(), key=lambda c: c[0].name()):
                 if len(deps) == 0:
                     solvable_comps.append(comp)
                     newly_solvable.append(comp)
@@ -3114,7 +3114,7 @@ class Model(ObjectWithMeta, VarProvider):
         # The next lines create a to-do list of equations that will need to be
         # added to `out`.
 
-        # Populate component todo lists
+        # Populate component todo lists (and order alphabetically)
         for eq in sorted(self.equations(deep=True), key=lambda x: str(x)):
             comp = eq.lhs.var().parent(Component)
             todo[comp][eq.lhs] = eq
