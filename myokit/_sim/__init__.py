@@ -90,7 +90,8 @@ class CModule(object):
         ``variables``
             Variables to pass in to the template
         ``libs``
-            A list of C libraries to link to, e.g. ``libs=['sundials_cvodes']
+            A list of C libraries to link to, e.g.
+            ``libs=['sundials_cvodes']``.
         ``libd``
             A list of directories to search for shared library objects, or
             ``None``.
