@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.33.6] - 2022-07-04
 - Added
   - [#872](https://github.com/MichaelClerx/myokit/pull/872) The `myokit.Simulation` class can now be initialised using a precompiled backend (see the documentation for the ``path`` argument).
