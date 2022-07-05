@@ -459,16 +459,14 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(len(x), len(y))
 
         # Test comparison against stored data
-        ref = [
-            -3.97224086575331868e-04,       # Numerically indistinguishable
-            -1.56608433137725457e-09,
-            7.48738392280519777e-02,        # Tiny error
-            -1.78891889478854579e-03,
-            3.06255006833574140e-04,        # Sign error
-            -5.11993904291850035e-06,
-            3.76748229376431740e-04,        # Large error
-            -3.21682814207918156e-05,       # Exponent
-        ]
+        # And get all the different error outputs
+        ref = m1.evaluate_derivatives()
+        ref[0] += 5e-20  # Numerically indistinguishable
+        ref[2] += 1e-16  # Tiny error
+        ref[4] *= -1     # Sign error
+        ref[6] += 2e-4   # Big error
+        ref[7] *= 100    # Exponent
+
         x = myokit.step(m1, reference=ref).splitlines()
         y = [
             'Evaluating state vector derivatives...',
@@ -476,16 +474,16 @@ class AuxTest(unittest.TestCase):
             'Name         Initial value             Derivative at t=0       ',
             '-' * 79,
             'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
-            '                                       -3.97224086575331868e-04'
+            '                                       -3.97224086575331760e-04'
             ' <= 1 eps',
             '',
             'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
             '                                       -1.56608433137725457e-09',
             '',
             'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
-            '                                        7.48738392280519777e-02'
-            ' ~ 4.2 eps',
-            '                                                        ^^^^^^^',
+            '                                        7.48738392280520054e-02'
+            ' ~ 5.8 eps',
+            '                                                      ^^^^^^^^^',
             'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
             '                                       -1.78891889478854579e-03',
             '',
@@ -497,7 +495,7 @@ class AuxTest(unittest.TestCase):
             '                                       -5.11993904291850035e-06',
             '',
             'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
-            '                                        3.76748229376431740e-04'
+            '                                        3.88374114688215880e-04'
             ' X',
             '                                        ^^^^^^^^^^^^^^^^^^^^^^^',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
