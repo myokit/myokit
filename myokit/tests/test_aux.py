@@ -323,13 +323,13 @@ class AuxTest(unittest.TestCase):
                 return myokit.float.close(x, y)
 
             # Third case: "   ^^^ "
-            # These don't matter, if we've already seen that the floats are close
+            # These don't matter: we've already seen that the floats are close
             g1, g2 = r3.match(x), r3.match(y)
             if g1 is not None and g2 is not None:
                 return True
 
             # Fourth case: Found (x) small differences
-            # These don't matter, if we've already seen that the floats are close
+            # These don't matter: we've already seen that the floats are close
             g1, g2 = r4.match(x), r4.match(y)
             if g1 is not None and g2 is not None:
                 return True
