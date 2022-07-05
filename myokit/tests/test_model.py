@@ -514,7 +514,7 @@ class ModelTest(unittest.TestCase):
         # For whatever reason, CI gives slightly different final digits some
         # times.
         r1 = re.compile(
-            '^[a-zA-Z]\w*\.[a-zA-Z]\w*\s+=\s+([^\s]+)\s+dot\s+=\s+([^\s]+)$')
+            r'^[a-zA-Z]\w*\.[a-zA-Z]\w*\s+=\s+([^\s]+)\s+dot\s+=\s+([^\s]+)$')
 
         def almost_equal(x, y):
             if x == y:
