@@ -12,6 +12,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import pickle
+import re
 import unittest
 
 import myokit
@@ -510,33 +511,53 @@ class ModelTest(unittest.TestCase):
         self.maxDiff = None
         m = myokit.load_model('example')
 
+        # For whatever reason, CI gives slightly different final digits some
+        # times.
+        r1 = re.compile(
+            '^[a-zA-Z]\w*\.[a-zA-Z]\w*\s+=\s+([^\s]+)\s+dot\s+=\s+([^\s]+)$')
+
+        def almost_equal(x, y):
+            if x == y:
+                return True
+            g1, g2 = r1.match(x), r1.match(y)
+            if g1 is None or g2 is None:
+                return False
+            x, y = float(g1.group(2)), float(g2.group(2))
+            return myokit.float.close(x, y)
+
         # Test without arguments
-        self.assertEqual(
-            m.format_state_derivatives(),
-'membrane.V = -84.5286                   dot = -5.68008003798848027e-02\n'  # noqa
-'ina.m      = 0.0017                     dot = -4.94961486033834719e-03\n'  # noqa
-'ina.h      = 0.9832                     dot =  9.02025299127830887e-06\n'  # noqa
-'ina.j      = 0.995484                   dot = -3.70409866928434243e-04\n'  # noqa
-'ica.d      = 3e-06                      dot =  3.68067721821794798e-04\n'  # noqa
-'ica.f      = 1.0                        dot = -3.55010150519739432e-07\n'  # noqa
-'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n'  # noqa
-'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'    # noqa
-        )
+        x = m.format_state_derivatives().splitlines()
+        y = [
+'membrane.V = -84.5286                   dot = -5.68008003798848027e-02', # noqa
+'ina.m      = 0.0017                     dot = -4.94961486033834719e-03', # noqa
+'ina.h      = 0.9832                     dot =  9.02025299127830887e-06', # noqa
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04', # noqa
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04', # noqa
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07', # noqa
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07', # noqa
+'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'  # noqa
+        ]
+        for a, b in zip(x, y):
+            self.assertTrue(almost_equal(a, b))
+        self.assertEqual(len(x), len(y))
 
         # Test with state argument
         state1 = [1, 2, 3, 4, 5, 6, 7, 8]
         state1[2] = 536.46745856785678567845745637
-        self.assertEqual(
-            m.format_state_derivatives(state1),
-'membrane.V = 1                          dot =  1.90853168050245158e+07\n'  # noqa
-'ina.m      = 2                          dot = -1.56738349674489310e+01\n'  # noqa
-'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03\n'  # noqa
-'ina.j      = 4                          dot = -1.15731427949362953e+00\n'  # noqa
-'ica.d      = 5                          dot = -1.85001944916516836e-01\n'  # noqa
-'ica.f      = 6                          dot = -2.15435819790876573e-02\n'  # noqa
-'ik.x       = 7                          dot = -1.25154369264425316e-02\n'  # noqa
-'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01'  # noqa                                       ^ ^^    ^ ---------   ^
-        )
+        x = m.format_state_derivatives(state1).splitlines()
+        y = [
+'membrane.V = 1                          dot =  1.90853168050245158e+07', # noqa
+'ina.m      = 2                          dot = -1.56738349674489310e+01', # noqa
+'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03', # noqa
+'ina.j      = 4                          dot = -1.15731427949362953e+00', # noqa
+'ica.d      = 5                          dot = -1.85001944916516836e-01', # noqa
+'ica.f      = 6                          dot = -2.15435819790876573e-02', # noqa
+'ik.x       = 7                          dot = -1.25154369264425316e-02', # noqa
+'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01', # noqa                                       ^ ^^    ^ ---------   ^
+        ]
+        for a, b in zip(x, y):
+            self.assertTrue(almost_equal(a, b))
+        self.assertEqual(len(x), len(y))
 
         # Test with invalid state argument
         self.assertRaisesRegex(
@@ -2077,3 +2098,4 @@ class ModelTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

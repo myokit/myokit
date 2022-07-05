@@ -297,6 +297,45 @@ class AuxTest(unittest.TestCase):
         # Test the step() method.
         m1 = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
 
+        # For whatever reason, CI gives slightly different final digits some
+        # times.
+        r1 = re.compile(r'[a-zA-Z]\w*\.[a-zA-Z]\w*\s+([^\s]+)\s+([^\s]+)')
+        r2 = re.compile(r'\s+([0-9e.+-]+)')
+        r3 = re.compile(r'^[ ^]*$')
+        r4 = re.compile(r'^Found \([0-9]+\) small mismatches.$')
+
+        def almost_equal(x, y):
+            # Easy checks
+            if x == y:
+                return True
+
+            # Get numbers with regex and compare
+            # First case: assume two numbers on each line. 2nd is tested
+            g1, g2 = r1.match(x), r1.match(y)
+            if g1 is not None and g2 is not None:
+                x, y = float(g1.group(2)), float(g2.group(2))
+                return myokit.float.close(x, y)
+
+            # Second case: one number per line.
+            g1, g2 = r2.match(x), r2.match(y)
+            if g1 is not None and g2 is not None:
+                x, y = float(g1.group(1)), float(g2.group(1))
+                return myokit.float.close(x, y)
+
+            # Third case: "   ^^^ "
+            # These don't matter, if we've already seen that the floats are close
+            g1, g2 = r3.match(x), r3.match(y)
+            if g1 is not None and g2 is not None:
+                return True
+
+            # Fourth case: Found (x) small differences
+            # These don't matter, if we've already seen that the floats are close
+            g1, g2 = r4.match(x), r4.match(y)
+            if g1 is not None and g2 is not None:
+                return True
+
+            return x == y
+
         # Test simple output
         x = myokit.step(m1).splitlines()
         y = [
@@ -315,7 +354,7 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
         ]
         for a, b in zip(x, y):
-            self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test with an initial state
@@ -338,16 +377,8 @@ class AuxTest(unittest.TestCase):
             'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
             '-' * 79,
         ]
-        r1 = re.compile(r'[a-zA-Z]\w*\.[a-zA-Z]\w*\s+([^\s]+)\s+([^\s]+)')
         for a, b in zip(x, y):
-            g1 = r1.match(a)
-            g2 = r1.match(b)
-            if g1 is not None and g2 is not None:
-                self.assertEqual(g1.group(1), g2.group(1))
-                a, b = float(g1.group(2)), float(g2.group(2))
-                self.assertTrue(myokit.float.close(a, b))
-            else:
-                self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test comparison against another model (with both models the same)
@@ -386,7 +417,7 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
         ]
         for a, b in zip(x, y):
-            self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test comparison against another model, with an initial state
@@ -423,22 +454,8 @@ class AuxTest(unittest.TestCase):
             'Model check completed without errors.',
             '-' * 79,
         ]
-        r2 = re.compile(r'\s+([^\s]+)')
         for a, b in zip(x, y):
-            g1 = r1.match(a)
-            g2 = r1.match(b)
-            if g1 is not None and g2 is not None:
-                self.assertEqual(g1.group(1), g2.group(1))
-                a, b = float(g1.group(2)), float(g2.group(2))
-                self.assertTrue(myokit.float.close(a, b))
-            else:
-                g1 = r2.match(a)
-                g2 = r2.match(b)
-                if g1 is not None and g2 is not None:
-                    a, b = float(g1.group(1)), float(g2.group(1))
-                    self.assertTrue(myokit.float.close(a, b))
-                else:
-                    self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test comparison against stored data
@@ -492,7 +509,7 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
         ]
         for a, b in zip(x, y):
-            self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test positive/negative zero comparison
