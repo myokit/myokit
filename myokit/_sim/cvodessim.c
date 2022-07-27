@@ -82,9 +82,7 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
 {
     if (opt == 0 && flagvalue == NULL) {
         /* Check if sundials function returned null pointer */
-        char str[200];
-        sprintf(str, "%s() failed - returned NULL pointer", funcname);
-        PyErr_SetString(PyExc_Exception, str);
+        PyErr_Format(PyExc_Exception, "%s() failed - returned NULL pointer", funcname);
         return 1;
     } else if (opt == 1) {
         /* Check if flag < 0 */
@@ -160,9 +158,7 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
                     PyErr_SetString(PyExc_Exception, str);
                 }}
             } else {
-                char str[200];
-                sprintf(str, "%s() failed with flag = %d", funcname, flag);
-                PyErr_SetString(PyExc_Exception, str);
+                PyErr_Format(PyExc_Exception, "%s() failed with flag = %d", funcname, flag);
             }
             return 1;
         }
@@ -181,10 +177,8 @@ void
 ErrorHandler(int error_code, const char *module, const char *function,
              char *msg, void *eh_data)
 {
-    char errstr[1024];
     if (error_code > 0) {
-        sprintf(errstr, "CVODES: %s", msg);
-        PyErr_WarnEx(PyExc_RuntimeWarning, errstr, 1);
+        PyErr_WarnFormat(PyExc_RuntimeWarning, 1, "CVODES: %s", msg);
     }
 }
 
@@ -1561,6 +1555,7 @@ sim_step(PyObject *self, PyObject *args)
             #ifdef MYOKIT_DEBUG_PROFILING
             benchmarker_print("CP Completed 100 steps, passing control back to Python.");
             #endif
+            // Return new reference
             return PyFloat_FromDouble(t);
         }
     }
@@ -1599,7 +1594,7 @@ sim_step(PyObject *self, PyObject *args)
     #endif
 
     sim_clean();    /* Ignore return value */
-    return PyFloat_FromDouble(t);
+    return PyFloat_FromDouble(t);  // Return new reference
 }
 
 /*
