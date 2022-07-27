@@ -92,9 +92,9 @@ sens2 = (m.states(), sens2)
 # Test all simulation methods
 lt = np.linspace(0, 20, 1000)
 c = 0
-#c += test(myokit.Simulation, m, p, repeats=300, duration=20)
+c += test(myokit.Simulation, m, p, repeats=10000, duration=20)
 #c += test(myokit.Simulation, m, p, repeats=300, duration=20, log=True)
-c += test(myokit.Simulation, m, p, repeats=300, duration=20, log=True, log_times=lt)  # noqa
+#c += test(myokit.Simulation, m, p, repeats=10000, duration=20, log=True, log_times=lt)  # noqa
 #c += test(myokit.Simulation, m, p, sens, name='Sensitivities 1')
 #c += test(myokit.Simulation, m, p, sens2, duration=1, name='Sensitivities 2')
 #c += test(myokit.LegacySimulation, m, p, name='Legacy simulation')

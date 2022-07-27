@@ -82,9 +82,7 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
 {
     if (opt == 0 && flagvalue == NULL) {
         /* Check if sundials function returned null pointer */
-        char str[200];
-        sprintf(str, "%s() failed - returned NULL pointer", funcname);
-        PyErr_SetString(PyExc_Exception, str);
+        PyErr_Format(PyExc_Exception, "%s() failed - returned NULL pointer", funcname);
         return 1;
     } else if (opt == 1) {
         /* Check if flag < 0 */
@@ -152,17 +150,11 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
                 case -27:
                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -27 CV_TOO_CLOSE: The output and initial times are too close to each other.");
                     break;
-                default: {
-                     /* Note: Brackets are required here, default: should be followed by
-                        a _statement_ and char str[200]; is technically not a statement... */
-                    char str[200];
-                    sprintf(str, "Function CVode() failed with unknown flag = %d", flag);
-                    PyErr_SetString(PyExc_Exception, str);
-                }}
+                default:
+                    PyErr_Format(PyExc_Exception, "Function CVode() failed with unknown flag = %d", flag);
+                }
             } else {
-                char str[200];
-                sprintf(str, "%s() failed with flag = %d", funcname, flag);
-                PyErr_SetString(PyExc_Exception, str);
+                PyErr_Format(PyExc_Exception, "%s() failed with flag = %d", funcname, flag);
             }
             return 1;
         }
@@ -185,6 +177,7 @@ ErrorHandler(int error_code, const char *module, const char *function,
     if (error_code > 0) {
         sprintf(errstr, "CVODES: %s", msg);
         PyErr_WarnEx(PyExc_RuntimeWarning, errstr, 1);
+        /* Python 3.2+: PyErr_WarnFormat(PyExc_RuntimeWarning, 1, "CVODES: %s", msg); */
     }
 }
 
@@ -1561,6 +1554,7 @@ sim_step(PyObject *self, PyObject *args)
             #ifdef MYOKIT_DEBUG_PROFILING
             benchmarker_print("CP Completed 100 steps, passing control back to Python.");
             #endif
+            // Return new reference
             return PyFloat_FromDouble(t);
         }
     }
@@ -1599,7 +1593,7 @@ sim_step(PyObject *self, PyObject *args)
     #endif
 
     sim_clean();    /* Ignore return value */
-    return PyFloat_FromDouble(t);
+    return PyFloat_FromDouble(t);  // Return new reference
 }
 
 /*
@@ -1620,7 +1614,6 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     PyObject *literals;
     PyObject *parameters;
     PyObject *val;
-    char errstr[200];
 
     /* Start */
     success = 0;
@@ -1679,8 +1672,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     for (i=0; i<model->n_literals; i++) {
         val = PyList_GetItem(literals, i);    /* Don't decref */
         if (!PyFloat_Check(val)) {
-            sprintf(errstr, "Item %d in literal vector is not a float.", i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in literal vector is not a float.", i);
             goto error;
         }
         model->literals[i] = PyFloat_AsDouble(val);
@@ -1693,8 +1685,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     for (i=0; i<model->n_parameters; i++) {
         val = PyList_GetItem(parameters, i);    /* Don't decref */
         if (!PyFloat_Check(val)) {
-            sprintf(errstr, "Item %d in parameter vector is not a float.", i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in parameter vector is not a float.", i);
             goto error;
         }
         model->parameters[i] = PyFloat_AsDouble(val);
@@ -1707,8 +1698,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     for (i=0; i < model->n_states; i++) {
         val = PyList_GetItem(state, i); /* Don't decref */
         if (!PyFloat_Check(val)) {
-            sprintf(errstr, "Item %d in state vector is not a float.", i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in state vector is not a float.", i);
             goto error;
         }
         model->states[i] = PyFloat_AsDouble(val);

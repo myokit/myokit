@@ -89,7 +89,7 @@ typedef int ESys_Flag;
 void
 ESys_SetPyErr(ESys_Flag flag)
 {
-    PyObject *module, *dict, *exception;
+    PyObject *mod, *dict, *exception;
     switch(flag) {
     case ESys_OK:
         break;
@@ -111,11 +111,11 @@ ESys_SetPyErr(ESys_Flag flag)
         break;
     // ESys_ScheduleEvent
     case ESys_SIMULTANEOUS_EVENT:
-        module = PyImport_ImportModule("myokit");   // New ref
-        dict = PyModule_GetDict(module);            // Borrowed ref
+        mod = PyImport_ImportModule("myokit");   // New ref https://docs.python.org/3/c-api/import.html#c.PyImport_ImportModule
+        dict = PyModule_GetDict(mod);            // Borrowed ref https://docs.python.org/3/c-api/module.html#c.PyModule_GetDict
         exception = PyDict_GetItemString(dict, "SimultaneousProtocolEventError");   // Borrowed ref
         PyErr_SetString(exception, "E-Pacing error: Event scheduled or re-occuring at the same time as another event.");
-        Py_DECREF(module);
+        Py_DECREF(mod);
         break;
     // ESys_Populate
     case ESys_POPULATE_INVALID_PROTOCOL:
@@ -142,13 +142,9 @@ ESys_SetPyErr(ESys_Flag flag)
         break;
     // Unknown
     default:
-    {
-        int i = (int)flag;
-        char buffer[1024];
-        sprintf(buffer, "E-Pacing error: Unlisted error %d", i);
-        PyErr_SetString(PyExc_Exception, buffer);
+        PyErr_Format(PyExc_Exception, "E-Pacing error: Unlisted error %d", (int)flag);
         break;
-    }};
+    };
 }
 
 /*
@@ -359,9 +355,12 @@ ESys_Populate(ESys sys, PyObject* protocol)
         // Get PyList from protocol (will need to decref!)
         // Cast to (char*) happens because CallMethod accepts a mutable char*
         // This should have been const char* and has been fixed in python 3
-        PyObject* list = PyObject_CallMethod(protocol, (char*)"events", NULL);
+        PyObject* list = PyObject_CallMethod(protocol, (char*)"events", NULL); // Returns a new reference
         if(list == NULL) return ESys_POPULATE_INVALID_PROTOCOL;
-        if(!PyList_Check(list)) return ESys_POPULATE_INVALID_PROTOCOL;
+        if(!PyList_Check(list)) {
+            Py_DECREF(list);
+            return ESys_POPULATE_INVALID_PROTOCOL;
+        }
         n = PyList_Size(list);
 
         // Translate python pacing events
@@ -385,11 +384,11 @@ ESys_Populate(ESys sys, PyObject* protocol)
                     free(events); Py_DECREF(list);
                     return ESys_POPULATE_INVALID_ATTR;
                 }
+
                 // duration
                 attr = PyObject_GetAttrString(item, "_duration");
                 if (attr == NULL) {
-                    free(events);
-                    Py_DECREF(list);
+                    free(events); Py_DECREF(list);
                     return ESys_POPULATE_MISSING_ATTR;
                 }
                 e->duration = PyFloat_AsDouble(attr);
@@ -398,6 +397,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
                     free(events); Py_DECREF(list);
                     return ESys_POPULATE_INVALID_ATTR;
                 }
+
                 // start
                 attr = PyObject_GetAttrString(item, "_start");
                 if (attr == NULL) {
@@ -410,6 +410,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
                     free(events); Py_DECREF(list);
                     return ESys_POPULATE_INVALID_ATTR;
                 }
+
                 // Period
                 attr = PyObject_GetAttrString(item, "_period");
                 if (attr == NULL) {
@@ -422,6 +423,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
                     free(events); Py_DECREF(list);
                     return ESys_POPULATE_INVALID_ATTR;
                 }
+
                 // multiplier
                 attr = PyObject_GetAttrString(item, "_multiplier");
                 if (attr == NULL) {
@@ -434,21 +436,22 @@ ESys_Populate(ESys sys, PyObject* protocol)
                     free(events); Py_DECREF(list);
                     return ESys_POPULATE_INVALID_ATTR;
                 }
+
                 // Original values
                 e->ostart = e->start;
                 e->operiod = e->period;
                 e->omultiplier = e->multiplier;
                 e->next = 0;
                 if (e->period == 0 && e->multiplier != 0) {
-                    free(events);
+                    free(events); Py_DECREF(list);
                     return ESys_POPULATE_NON_ZERO_MULTIPLIER;
                 }
                 if (e->period < 0) {
-                    free(events);
+                    free(events); Py_DECREF(list);
                     return ESys_POPULATE_NEGATIVE_PERIOD;
                 }
                 if (e->multiplier < 0) {
-                    free(events);
+                    free(events); Py_DECREF(list);
                     return ESys_POPULATE_NEGATIVE_MULTIPLIER;
                 }
                 e++;
@@ -457,7 +460,6 @@ ESys_Populate(ESys sys, PyObject* protocol)
 
         /* Finished with list */
         Py_DECREF(list);
-        list = NULL;
     }
 
     // Add the events to the system
@@ -668,13 +670,9 @@ FSys_SetPyErr(FSys_Flag flag)
         break;
     // Unknown
     default:
-    {
-        int i = (int)flag;
-        char buffer[1024];
-        sprintf(buffer, "F-Pacing error: Unlisted error %d", i);
-        PyErr_SetString(PyExc_Exception, buffer);
+        PyErr_Format(PyExc_Exception, "F-Pacing error: Unlisted error %d", (int)flag);
         break;
-    }};
+    };
 }
 
 /*

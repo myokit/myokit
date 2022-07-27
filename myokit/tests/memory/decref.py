@@ -19,6 +19,17 @@
 #
 # This script requires pympler to be installed (e.g. with pip).
 #
+# Note (2022-07-27): This only works for objects that Pympler can track. This
+# is (1) all objects tracked by gc, and (2) all objects referenced by those
+# objects. This means that things not tracked by gc or referenced by some
+# object can leak without this script detecting it.
+# For a list of non gc tracked:
+#   https://docs.python.org/3/library/gc.html#gc.is_tracked
+# For example, if I add this to the simulation it gets picked up:
+#   PyList_New(123);
+# but this does not:
+#   PyFloat_FromDouble(1.2);
+#
 import myokit
 import pympler.tracker
 
@@ -78,10 +89,21 @@ def simulation(name='plain'):
     elif name == 'log_times':
         # Point-list logging
         s = myokit.Simulation(m, p, sens)
+        lt = list(range(0, 1000, 10))
 
         def c():
             s.reset()
-            s.run(1000, log_times=[0, 100, 500])
+            s.run(1000, log_times=lt)
+
+    elif name == 'log_times_np':
+        # Point-list logging
+        s = myokit.Simulation(m, p, sens)
+        import numpy as np
+        lt = np.arange(0, 1000, 10)
+
+        def c():
+            s.reset()
+            s.run(1000, log_times=lt)
 
     else:
         raise ValueError(f'Unknown test: simulation {name}')
@@ -91,9 +113,10 @@ def simulation(name='plain'):
 
 
 # Test a simulation method
-simulation()
+#simulation()
 #simulation('sens')
 #simulation('realtime')
 #simulation('apd')
 #simulation('log_times')
+simulation('log_times_np')
 

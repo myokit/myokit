@@ -262,13 +262,9 @@ Model_SetPyErr(Model_Flag flag)
 
     /* Unknown */
     default:
-    {
-        int i = (int)flag;
-        char buffer[1024];
-        sprintf(buffer, "CModel error: Unlisted error %d", i);
-        PyErr_SetString(PyExc_Exception, buffer);
+        PyErr_Format(PyExc_Exception, "CModel error: Unlisted error %d", (int)flag);
         break;
-    }};
+    };
 }
 
 /*
@@ -884,17 +880,16 @@ for eqs in s_output_equations:
 int
 Model__AddVariableToLog(
     Model model,
-    PyObject* log_dict, int i, const char* name, const realtype* var)
+    PyObject* log_dict, int i, const char* name, const realtype* variable)
 {
-    int added = 0;
-    PyObject* key = PyUnicode_FromString(name);     /* TODO: Remove double lookup */
-    if (PyDict_Contains(log_dict, key)) {
-        model->_log_lists[i] = PyDict_GetItem(log_dict, key);
-        model->_log_vars[i] = (realtype*)var;
-        added = 1;
-    }
+    PyObject* key = PyUnicode_FromString(name);     /* New reference */
+    PyObject* val = PyDict_GetItem(log_dict, key);  /* Borrowed reference, or NULL */
     Py_DECREF(key);
-    return added;
+    if (val == NULL) { return 0; }
+
+    model->_log_lists[i] = val;
+    model->_log_vars[i] = (realtype*)variable;
+    return 1;
 }
 
 /*
@@ -1075,7 +1070,7 @@ for i, e1 in enumerate(s_dependents):
         pd = myokit.PartialDerivative(e1, e2)
         print(tab + 'val = PyFloat_FromDouble(' + v(pd) + ');')
         print(tab + 'if (val == NULL) goto nomem;')
-        print(tab + 'PyTuple_SetItem(l2, ' + str(j) + ', val);')
+        print(tab + 'PyTuple_SetItem(l2, ' + str(j) + ', val);')    # Steals reference
     print(tab + 'PyTuple_SetItem(l1, ' + str(i) + ', l2);')
     print(tab + 'l2 = NULL; val = NULL;')
 ?>
@@ -1089,10 +1084,9 @@ for i, e1 in enumerate(s_dependents):
     return Model_OK;
 
 nomem:
-    /* l2 is either NULL or has a single reference to it in l1, so decreffing
-       l1 should be enough. */
     /* Assuming val is NULL or has had its reference stolen. */
     Py_XDECREF(l1);
+    Py_XDECREF(l2);
     return Model_OUT_OF_MEMORY;
 }
 
