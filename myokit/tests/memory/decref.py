@@ -89,8 +89,8 @@ def simulation(name='plain'):
     elif name == 'log_times':
         # Point-list logging
         s = myokit.Simulation(m, p, sens)
-
         lt = list(range(0, 1000, 10))
+
         def c():
             s.reset()
             s.run(1000, log_times=lt)
@@ -99,8 +99,8 @@ def simulation(name='plain'):
         # Point-list logging
         s = myokit.Simulation(m, p, sens)
         import numpy as np
-
         lt = np.arange(0, 1000, 10)
+
         def c():
             s.reset()
             s.run(1000, log_times=lt)
