@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.33.7] - 2022-07-27
 - Fixed
   - [#883](https://github.com/MichaelClerx/myokit/pull/883) Fixed memory leak in `myokit.Simulation` when using the `log_times` argument.
