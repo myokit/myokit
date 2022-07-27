@@ -150,13 +150,9 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
                 case -27:
                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -27 CV_TOO_CLOSE: The output and initial times are too close to each other.");
                     break;
-                default: {
-                     /* Note: Brackets are required here, default: should be followed by
-                        a _statement_ and char str[200]; is technically not a statement... */
-                    char str[200];
-                    sprintf(str, "Function CVode() failed with unknown flag = %d", flag);
-                    PyErr_SetString(PyExc_Exception, str);
-                }}
+                default:
+                    PyErr_Format(PyExc_Exception, "Function CVode() failed with unknown flag = %d", flag);
+                }
             } else {
                 PyErr_Format(PyExc_Exception, "%s() failed with flag = %d", funcname, flag);
             }
@@ -1615,7 +1611,6 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     PyObject *literals;
     PyObject *parameters;
     PyObject *val;
-    char errstr[200];
 
     /* Start */
     success = 0;
@@ -1674,8 +1669,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     for (i=0; i<model->n_literals; i++) {
         val = PyList_GetItem(literals, i);    /* Don't decref */
         if (!PyFloat_Check(val)) {
-            sprintf(errstr, "Item %d in literal vector is not a float.", i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in literal vector is not a float.", i);
             goto error;
         }
         model->literals[i] = PyFloat_AsDouble(val);
@@ -1688,8 +1682,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     for (i=0; i<model->n_parameters; i++) {
         val = PyList_GetItem(parameters, i);    /* Don't decref */
         if (!PyFloat_Check(val)) {
-            sprintf(errstr, "Item %d in parameter vector is not a float.", i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in parameter vector is not a float.", i);
             goto error;
         }
         model->parameters[i] = PyFloat_AsDouble(val);
@@ -1702,8 +1695,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     for (i=0; i < model->n_states; i++) {
         val = PyList_GetItem(state, i); /* Don't decref */
         if (!PyFloat_Check(val)) {
-            sprintf(errstr, "Item %d in state vector is not a float.", i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in state vector is not a float.", i);
             goto error;
         }
         model->states[i] = PyFloat_AsDouble(val);

@@ -142,10 +142,9 @@ ESys_SetPyErr(ESys_Flag flag)
         break;
     // Unknown
     default:
-    {
         PyErr_Format(PyExc_Exception, "E-Pacing error: Unlisted error %d", (int)flag);
         break;
-    }};
+    };
 }
 
 /*
@@ -671,10 +670,9 @@ FSys_SetPyErr(FSys_Flag flag)
         break;
     // Unknown
     default:
-    {
         PyErr_Format(PyExc_Exception, "F-Pacing error: Unlisted error %d", (int)flag);
         break;
-    }};
+    };
 }
 
 /*

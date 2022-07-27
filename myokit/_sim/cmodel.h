@@ -262,10 +262,9 @@ Model_SetPyErr(Model_Flag flag)
 
     /* Unknown */
     default:
-    {
         PyErr_Format(PyExc_Exception, "CModel error: Unlisted error %d", (int)flag);
         break;
-    }};
+    };
 }
 
 /*
