@@ -9,12 +9,16 @@
 # *More specifically, in "resident set size":
 # https://en.wikipedia.org/wiki/Resident_set_size
 #
+import gc
 import resource
+
+import numpy as np
 
 import myokit
 
 
-def test(c, *args, warmup=10, repeats=1000, duration=20, name=None):
+def test(c, *args, warmup=10, repeats=1000, duration=20, name=None, log=False,
+         log_times=None):
     """
     Tests a method created by calling ``c(*args)``.
     """
@@ -23,21 +27,24 @@ def test(c, *args, warmup=10, repeats=1000, duration=20, name=None):
 
     print(f'Testing {name} ... ', end='')
 
+    log = None if log else myokit.LOG_NONE
+
     s = c(*args)
     for i in range(warmup):
-        s.run(duration, log=myokit.LOG_NONE)
+        s.run(duration, log=log)
         s.reset()
 
     increases = 0
     us = [0] * repeats
     for i in range(repeats):
         u1 = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        s.run(duration, log=myokit.LOG_NONE)
+        s.run(duration, log=log, log_times=log_times)
         u2 = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         if u2 > u1:
             increases += 1
         us[i] = u2
         s.reset()
+    del(s)
 
     d = us[-1] - us[0]
     if increases > 1 and repeats > 1:
@@ -48,6 +55,13 @@ def test(c, *args, warmup=10, repeats=1000, duration=20, name=None):
         print('[ok]')
 
     if d:
+        print('Running gc')
+        n = gc.collect()
+        u2 = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        us.append(u2)
+        print('Collected objects:', n)
+        print('Uncollectable:', gc.garbage)
+
         import matplotlib.pyplot as plt
         plt.figure()
         plt.xlabel('Run')
@@ -76,12 +90,14 @@ sens2 = [v for v in m.variables(const=True) if v.is_literal()]
 sens2 = (m.states(), sens2)
 
 # Test all simulation methods
+lt = np.linspace(0, 20, 1000)
 c = 0
-c += test(myokit.Simulation, m, p)
-c += test(myokit.Simulation, m, p, sens, name='Sensitivities 1')
-c += test(myokit.Simulation, m, p, sens2, duration=1, name='Sensitivities 2')
-c += test(myokit.LegacySimulation, m, p, name='Legacy simulation')
-c += test(myokit.Simulation1d, m, p, duration=1)
+#c += test(myokit.Simulation, m, p, repeats=300, duration=20)
+c += test(myokit.Simulation, m, p, repeats=300, duration=20, log=True, log_times=lt)  # noqa
+#c += test(myokit.Simulation, m, p, sens, name='Sensitivities 1')
+#c += test(myokit.Simulation, m, p, sens2, duration=1, name='Sensitivities 2')
+#c += test(myokit.LegacySimulation, m, p, name='Legacy simulation')
+#c += test(myokit.Simulation1d, m, p, duration=1)
 #c += test(myokit.SimulationOpenCL, m, p, 5, duration=1, repeats=10)
 #c += test(ft, m, m, p, (5, 2), (5, 5), duration=1, repeats=2)
 # Skipping deprecated PSimulation and ICSimulation
