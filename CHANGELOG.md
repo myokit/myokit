@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#883](https://github.com/MichaelClerx/myokit/pull/883) Fixed memory leak in `myokit.Simulation` when using the `log_times` argument.
 
 ## [1.33.6] - 2022-07-04
 - Added

@@ -1151,18 +1151,21 @@ sim_init(PyObject *self, PyObject *args)
         ilog = 0;
         tlog = t - 1;
         while(ilog < PySequence_Size(log_times) && tlog < t) {
-            val = PySequence_GetItem(log_times, ilog); /* Borrowed */
+            val = PySequence_GetItem(log_times, ilog); /* New reference */
             if (PyFloat_Check(val)) {
                 tlog = PyFloat_AsDouble(val);
+                Py_DECREF(val);
             } else if (PyNumber_Check(val)) {
-                val = PyNumber_Float(val);
-                if (val == NULL) {
+                ret = PyNumber_Float(val); /* New reference */
+                Py_DECREF(val);            /* Done with val */
+                if (ret == NULL) {
                     return sim_cleanx(PyExc_ValueError, "Unable to cast entry in 'log_times' to float.");
                 } else {
-                    tlog = PyFloat_AsDouble(val);
-                    Py_DECREF(val);
+                    tlog = PyFloat_AsDouble(ret);
+                    Py_DECREF(ret);
                 }
             } else {
+                Py_DECREF(val);
                 return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
             }
             val = NULL;
@@ -1249,8 +1252,9 @@ sim_step(PyObject *self, PyObject *args)
     /* Proposed next logging point */
     double proposed_tlog;
 
-    /* Multi-purpose Python object */
+    /* Multi-purpose Python objects */
     PyObject *val;
+    PyObject* ret;
 
     /*
      * Set start time for logging of realtime.
@@ -1436,18 +1440,21 @@ sim_step(PyObject *self, PyObject *args)
                         /* Point-list logging */
                         /* Read next log point off the sequence */
                         if (ilog < PySequence_Size(log_times)) {
-                            val = PySequence_GetItem(log_times, ilog); /* Borrowed */
+                            val = PySequence_GetItem(log_times, ilog); /* New reference */
                             if (PyFloat_Check(val)) {
                                 proposed_tlog = PyFloat_AsDouble(val);
+                                Py_DECREF(val);
                             } else if (PyNumber_Check(val)) {
-                                val = PyNumber_Float(val);  /* New reference */
-                                if (val == NULL) {
+                                ret = PyNumber_Float(val);  /* New reference */
+                                Py_DECREF(val);
+                                if (ret == NULL) {
                                     return sim_cleanx(PyExc_ValueError, "Unable to cast entry in 'log_times' to float.");
                                 } else {
-                                    proposed_tlog = PyFloat_AsDouble(val);
-                                    Py_DECREF(val);
+                                    proposed_tlog = PyFloat_AsDouble(ret);
+                                    Py_DECREF(ret);
                                 }
                             } else {
+                                Py_DECREF(val);
                                 return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
                             }
                             if (proposed_tlog < tlog) {
