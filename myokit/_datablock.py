@@ -470,7 +470,7 @@ class DataBlock1d(object):
         import zipfile
         try:
             import zlib
-            del(zlib)
+            del zlib
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
@@ -558,7 +558,7 @@ class DataBlock1d(object):
                 name = next(head)
             for name in head:
                 names_1d.append(name[1:-1])
-            del(head)
+            del head
 
             # Parse body
             start, end = 0, 0
@@ -638,11 +638,11 @@ class DataBlock1d(object):
 
     def remove0d(self, name):
         """Removes the 0d time-series identified by ``name``."""
-        del(self._0d[name])
+        del self._0d[name]
 
     def remove1d(self, name):
         """Removes the 1d time-series identified by ``name``."""
-        del(self._1d[name])
+        del self._1d[name]
 
     def save(self, filename):
         """
@@ -674,7 +674,7 @@ class DataBlock1d(object):
         import zipfile
         try:
             import zlib
-            del(zlib)
+            del zlib
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
@@ -1268,7 +1268,7 @@ class DataBlock2d(object):
         import zipfile
         try:
             import zlib
-            del(zlib)
+            del zlib
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
@@ -1368,7 +1368,7 @@ class DataBlock2d(object):
                 name = next(head)
             for name in head:
                 names_2d.append(name[1:-1])
-            del(head)
+            del head
 
             # Parse body
             start, end = 0, 0
@@ -1451,11 +1451,11 @@ class DataBlock2d(object):
 
     def remove0d(self, name):
         """Removes the 0d time-series identified by ``name``."""
-        del(self._0d[name])
+        del self._0d[name]
 
     def remove2d(self, name):
         """Removes the 2d time-series identified by ``name``."""
-        del(self._2d[name])
+        del self._2d[name]
 
     def save(self, filename):
         """
@@ -1490,7 +1490,7 @@ class DataBlock2d(object):
         try:
             # Check zlib is available
             import zlib
-            del(zlib)
+            del zlib
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')

@@ -262,7 +262,7 @@ class CModel(object):
         # Now call expressions_for, which will return expressions to evaluate
         # the rhs for each variable (i.e. the dot(x) rhs for states).
         output_equations, _ = model.expressions_for(*output_variables)
-        del(output_variables, _)
+        del output_variables, _
 
         # Gather output expressions for each parameter or initial value we want
         # sensitivities w.r.t.

@@ -466,7 +466,7 @@ def parse_model_from_stream(stream, syntax_only=False):
             # No need to check for IllegalReferenceErrors here, since these
             # won't have been resolved in the first place.
             var.set_rhs(convert_proto_expression(var._proto_rhs, var, info))
-        del(var._proto_rhs)
+        del var._proto_rhs
 
     # Check the semantics of the model
     try:
@@ -667,7 +667,7 @@ def parse_variable(stream, info, parent):
     # Register tokens
     for token in toreg:
         reg_token(info, token, var)
-    del(toreg)
+    del toreg
 
     # Set initial value for states
     if is_state:
@@ -682,7 +682,7 @@ def parse_variable(stream, info, parent):
             t = state_value._token
             raise ParseError(
                 'Illegal state value', t[2], t[3], str(e), cause=e)
-        del(info.initial_values[var.qname()])
+        del info.initial_values[var.qname()]
 
     # Parse definition, quick unit, bind, label and description syntax
     # These token must occur in a fixed order!
@@ -1379,7 +1379,7 @@ class Tokenizer(object):
         input.
         """
         txt = ''.join(self._catchers[handle])
-        del(self._catchers[handle])
+        del self._catchers[handle]
         return txt
 
     def _tizer(self, stream, check_indenting):

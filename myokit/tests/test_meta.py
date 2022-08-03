@@ -47,7 +47,7 @@ class MetaTest(unittest.TestCase):
         self.assertEqual(m.meta['bert'], 'verrekijker')
 
         # Test deletion
-        del(m.meta['bert'])
+        del m.meta['bert']
         self.assertRaises(KeyError, lambda: m.meta['bert'])
 
     def test_parser(self):

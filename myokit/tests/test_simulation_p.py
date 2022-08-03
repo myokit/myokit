@@ -157,7 +157,7 @@ class PSimulationTest(unittest.TestCase):
 
         # Log without time
         e = myokit.DataLog(d)
-        del(e[e.time_key()])
+        del e[e.time_key()]
         self.assertRaisesRegex(ValueError, 'must contain', s.block, e, dp)
 
         # Wrong size derivatives array

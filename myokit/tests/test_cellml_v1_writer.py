@@ -279,7 +279,7 @@ class TestCellMLWriter(unittest.TestCase):
         xml = cellml.write_string(m)
         self.assertNotIn(b'rdf:RDF', xml)
 
-        del(v.meta['oxmeta'])
+        del v.meta['oxmeta']
         v.set_cmeta_id('vvv')
         xml = cellml.write_string(m)
         self.assertNotIn(b'rdf:RDF', xml)

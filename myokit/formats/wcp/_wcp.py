@@ -179,7 +179,7 @@ class WcpFile(object):
             marker = f.read(16)
 
             # Delete unused
-            del(rstatus, rtype, group_number, rtime, rint, marker)
+            del rstatus, rtype, group_number, rtime, rint, marker
 
             # Increase offset beyond analysis block
             offset += rab_size

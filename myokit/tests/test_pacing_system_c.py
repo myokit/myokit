@@ -131,7 +131,7 @@ class FixedFormPacingAnsicTest(unittest.TestCase):
             t3 = t[:-1] + 0.5 * (t[1:] - t[:-1])
             t4 = t[:-1] + 0.75 * (t[1:] - t[:-1])
             t2 = np.concatenate((t2, t3, t4))
-            del(t3, t4)
+            del t3, t4
             # Get the pacing value at the points, measure how long it takes
             pacing = AnsicFixedFormPacing(list(t), list(v))
             b = myokit.tools.Benchmarker()

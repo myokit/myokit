@@ -193,7 +193,7 @@ def _load():
                     + str(1 + i) + ', character ' + str(x) + ', semicolons (;)'
                     + ' must not be preceded by whitespace: ```'
                     + line.strip() + '```.')
-        del(lines, inline_comment)
+        del lines, inline_comment
 
     # Create the config parser (no value allows comments)
     config = ConfigParser(allow_no_value=True)

@@ -56,7 +56,7 @@ class JacobianTracerTest(unittest.TestCase):
 
         # Log missing a state
         d2 = d.clone()
-        del(d2['membrane.V'])
+        del d2['membrane.V']
         self.assertRaisesRegex(ValueError, 'all state', g.jacobians, d2)
 
         # Log entries differ in length
@@ -65,7 +65,7 @@ class JacobianTracerTest(unittest.TestCase):
 
         # Log missing time
         d2['membrane.V'] = d['engine.time']
-        del(d2['engine.time'])
+        del d2['engine.time']
         self.assertRaisesRegex(ValueError, 'bound', g.jacobians, d2)
 
 

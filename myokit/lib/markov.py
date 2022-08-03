@@ -124,7 +124,7 @@ class LinearModel(object):
         # Get a clone of the model, with all markov models written in full ODE
         # form.
         self._model = convert_markov_models_to_full_ode_form(model)
-        del(model)
+        del model
 
         #
         # Check input
@@ -146,7 +146,7 @@ class LinearModel(object):
                 raise LinearModelError(
                     'State <' + state.qname() + '> was added twice.')
             self._states.append(state)
-        del(states)
+        del states
 
         # Check and collect parameter variables
         unique = set()
@@ -169,8 +169,8 @@ class LinearModel(object):
                     'Parameter listed twice: <' + str(parameter) + '>.')
             unique.add(parameter)
             self._parameters.append(parameter)
-        del(unique)
-        del(parameters)
+        del unique
+        del parameters
 
         # Check current variable
         if current is not None:
@@ -180,7 +180,7 @@ class LinearModel(object):
             if current.is_state():
                 raise LinearModelError('Current variable can not be a state.')
         self._current = current
-        del(current)
+        del current
 
         # Check membrane potential variable
         if vm is None:
@@ -203,7 +203,7 @@ class LinearModel(object):
         if self._membrane_potential == self._current:
             raise LinearModelError(
                 'The membrane potential should not be the current variable.')
-        del(vm)
+        del vm
 
         #
         # Demote unnecessary states, remove bindings and validate model.
@@ -218,7 +218,7 @@ class LinearModel(object):
             if state not in self._states:
                 state.demote()
                 state.set_rhs(s[k])
-        del(s)
+        del s
 
         # Unbind everything except time
         for label, var in self._model.bindings():
@@ -359,7 +359,7 @@ class LinearModel(object):
             for j in range(len(A)):
                 if (i, j) in T:
                     R.append((i, j, A[j][i]))   # A is mirrored
-        del(T)
+        del T
 
         #
         # Create function to create parametrisable matrices
@@ -1815,7 +1815,7 @@ def find_markov_models(model):
                     break
             if i_one is None:
                 continue
-            del(terms[i_one])
+            del terms[i_one]
 
             # Remaining terms must be linear combination of the states in
             # group...
@@ -1835,7 +1835,7 @@ def find_markov_models(model):
 
             # Passed all tests!
             extra.add(candidate)
-        del(candidates)
+        del candidates
 
         # At this point `extra` should be empty or a single variable, if not,
         # it's not a (normal) Markov model

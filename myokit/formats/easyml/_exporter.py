@@ -320,7 +320,7 @@ class EasyMLExporter(myokit.formats.Exporter):
                 name_to_var[name] = var
 
         # Remove reverse mappings
-        del(name_to_var, needs_renaming)
+        del name_to_var, needs_renaming
 
         # Create names for HH variables
         for var, state in alphas.items():

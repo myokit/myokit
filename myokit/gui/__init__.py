@@ -150,7 +150,7 @@ elif pyqt4:
     import PyQt4.Qt
     QtGui.QKeySequence = PyQt4.Qt.QKeySequence
     QtGui.QTextCursor = PyQt4.Qt.QTextCursor
-    del(PyQt4.Qt)
+    del PyQt4.Qt
 
     # Fix PyQt4 naming issues
     QtCore.Signal = QtCore.pyqtSignal
@@ -167,7 +167,7 @@ elif pyqt4:
         return QtWidgets.QFileDialog.getOpenFileNameAndFilter(
             parent, caption, directory, filter, initialFilter, options)
     QtWidgets.QFileDialog.getOpenFileName = staticmethod(gofn)
-    del(gofn)
+    del gofn
 
     # Fix getOpenFileNames
     def gofns(parent=None, caption='', directory='', filter='',
@@ -177,7 +177,7 @@ elif pyqt4:
         return QtWidgets.QFileDialog.getOpenFileNamesAndFilter(
             parent, caption, directory, filter, initialFilter, options)
     QtWidgets.QFileDialog.getOpenFileNames = staticmethod(gofns)
-    del(gofns)
+    del gofns
 
     # Fix getSaveFileName
     def gsfn(parent=None, caption='', directory='', filter='',
@@ -187,7 +187,7 @@ elif pyqt4:
         return QtWidgets.QFileDialog.getSaveFileNameAndFilter(
             parent, caption, directory, filter, initialFilter, options)
     QtWidgets.QFileDialog.getSaveFileName = staticmethod(gsfn)
-    del(gsfn)
+    del gsfn
 
     # Configure Matplotlib for use with PyQt4
     import matplotlib
@@ -251,7 +251,7 @@ elif pyside:
         return gofn_org(
             parent, caption, directory, filter, initialFilter, options)
     QtWidgets.QFileDialog.getOpenFileName = staticmethod(gofn)
-    del(gofn)
+    del gofn
 
     # Fix getOpenFileNames
     gofns_org = QtWidgets.QFileDialog.getOpenFileNames
@@ -263,7 +263,7 @@ elif pyside:
         return gofns_org(
             parent, caption, directory, filter, initialFilter, options)
     QtWidgets.QFileDialog.getOpenFileNames = staticmethod(gofns)
-    del(gofns)
+    del gofns
 
     # Fix getSaveFileName
     gsfn_org = QtWidgets.QFileDialog.getSaveFileName
@@ -275,7 +275,7 @@ elif pyside:
         return gsfn_org(
             parent, caption, directory, filter, initialFilter, options)
     QtWidgets.QFileDialog.getSaveFileName = staticmethod(gsfn)
-    del(gsfn)
+    del gsfn
 
     # Configure Matplotlib for use with PySide
     import matplotlib
@@ -300,7 +300,7 @@ else:
     raise Exception('Selection of qt version failed.')
 
 # Delete temporary variables
-del(pyqt4, pyqt5, pyside)
+del pyqt4, pyqt5, pyside
 
 # Icons with fallback for apple and windows
 ICON_PATH = os.path.join(myokit.DIR_DATA, 'gui')

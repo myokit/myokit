@@ -229,7 +229,7 @@ class HHDetectionTest(unittest.TestCase):
         self.assertEqual(tau, m.get('ikr.a.tau'))
         self.assertFalse(hh.has_inf_tau_form(r, v))
         self.assertIsNone(hh.get_inf_and_tau(r, v))
-        del(r)
+        del r
 
         # a is not a state
         self.assertTrue(hh.has_inf_tau_form(a, v))
@@ -708,7 +708,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         s2 = hh.AnalyticalSimulation(m2)
         # But simulation still works
         self.assertIsInstance(s2.run(10), myokit.DataLog)
-        del(model2, m2, s2)
+        del model2, m2, s2
 
         # Create protocol
 
@@ -752,8 +752,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
             ValueError, 'Log interval', s.run, 1, log_interval=-1)
         d['hello'] = [1, 2, 3]
         self.assertRaisesRegex(ValueError, 'extra keys', s.run, 1, log=d)
-        del(d['hello'])
-        del(d[next(iter(d.keys()))])
+        del d['hello']
+        del d[next(iter(d.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d)
 
         # Reset should reset the state

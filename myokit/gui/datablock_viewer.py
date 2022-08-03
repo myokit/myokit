@@ -771,7 +771,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         reporter = Reporter(pd)
         try:
             data = myokit.DataBlock2d.load(fname, progress=reporter)
-            del(reporter)
+            del reporter
         except myokit.DataBlockReadError:
             pd.reset()
             self.statusBar().showMessage('Load failed.')

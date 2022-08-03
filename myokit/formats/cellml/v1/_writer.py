@@ -409,7 +409,7 @@ class CellMLWriter(object):
 
         finally:
             # Delete any temporary properties
-            del(self._oxmeta_variables, self._time)
+            del self._oxmeta_variables, self._time
 
     def write_file(self, path, model):
         """

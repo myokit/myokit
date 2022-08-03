@@ -16,7 +16,7 @@ from ._ewriter import SymPyExpressionWriter
 # Expression writers
 try:
     import sympy
-    del(sympy)
+    del sympy
 except ImportError:
     _ewriters = {}
 else:

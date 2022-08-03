@@ -512,7 +512,7 @@ class DiGraph(object):
         """
         node = self.uid_or_node(node)
         node.clear_edges()
-        del(self.nodes[node.uid])
+        del self.nodes[node.uid]
 
     def uid_or_node(self, test):
         """
@@ -738,7 +738,7 @@ def create_variable_dependency_graph(model):
     # Remove unused nodes
     for node in set(g.nodes).difference(used):
         g.remove_node(node)
-    del(used)
+    del used
     # Layout graphs
     g.layout_layered()
     # Return

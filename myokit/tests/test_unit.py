@@ -326,7 +326,7 @@ class MyokitUnitTest(unittest.TestCase):
         finally:
             # Bypassing the public API, this is bad test design!
             if u in myokit.Unit._preferred_representations:
-                del(myokit.Unit._preferred_representations[u])
+                del myokit.Unit._preferred_representations[u]
 
     def test_str(self):
         # Test :meth:`Unit.str()`

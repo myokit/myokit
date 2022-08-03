@@ -1127,7 +1127,7 @@ class Model(AnnotatableElement):
         Should be called whenever a cmeta:id for a CellML element in this model
         (or for this model itself) is unset.
         """
-        del(self._cmeta_ids[cmeta_id])
+        del self._cmeta_ids[cmeta_id]
 
     def validate(self):
         """

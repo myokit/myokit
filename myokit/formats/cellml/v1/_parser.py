@@ -292,7 +292,7 @@ class CellMLParser(object):
         except myokit.formats.mathml.MathMLError as e:
             raise CellMLParsingError(str(e))
         finally:
-            del(self._ns, self._cmeta_ids, self._free_vars)
+            del self._ns, self._cmeta_ids, self._free_vars
 
     def parse_file(self, path):
         """
@@ -1194,7 +1194,7 @@ class CellMLParser(object):
             if fresh:
                 for name in fresh:
                     resolved.add(name)
-                    del(unresolved[name])
+                    del unresolved[name]
                 for name, deps in unresolved.items():
                     deps.difference_update(fresh)
             else:

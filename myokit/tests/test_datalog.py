@@ -80,7 +80,7 @@ class DataLogTest(unittest.TestCase):
         # Both logs must have the same keys
         d2['v3'] = v1
         self.assertRaises(ValueError, d1.extend, d2)
-        del(d2['v3'])
+        del d2['v3']
 
         # Times can overlap
         d2['time'] = [3, 4, 5]
@@ -192,7 +192,7 @@ class DataLogTest(unittest.TestCase):
         self.assertFalse('5.a' in d)
         self.assertFalse(('a', 5) in d)
         self.assertTrue(('a', (5, 6)) in d)
-        del(d['a', (5, 6)])
+        del d['a', (5, 6)]
         self.assertFalse(('a', (5, 6)) in d)
 
     def test_integrate(self):

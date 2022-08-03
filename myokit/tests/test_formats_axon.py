@@ -244,13 +244,13 @@ class AtfTest(unittest.TestCase):
                 ValueError, 'double quotes', axon.save_atf, log, path)
 
             # Field names can't have newlines
-            del(log['si"nt'])
+            del log['si"nt']
             log['si\nnt'] = log['sint']
             self.assertRaisesRegex(
                 ValueError, 'newlines', axon.save_atf, log, path)
 
             # Fields in `fields` must exist
-            del(log['si\nnt'])
+            del log['si\nnt']
             self.assertRaisesRegex(
                 ValueError, 'not found', axon.save_atf, log, path,
                 fields=['time', 'sint', 'hi'])

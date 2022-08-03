@@ -141,7 +141,7 @@ class PSimulation(myokit.CppModule):
                 else:
                     raise ValueError('Parameters must be literal constants.')
             self._parameters.append(p)
-        del(parameters)
+        del parameters
 
         # Create list of parameter values
         self._values = []

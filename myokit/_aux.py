@@ -523,7 +523,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     r.run()
 
     # Free some space
-    del(r)
+    del r
     import gc
     gc.collect()
 

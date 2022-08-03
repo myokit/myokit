@@ -133,7 +133,7 @@ class Simulation1d(myokit.CModule):
             # Convert alpha-beta formulations to inf-tau forms, cloning model
             self._model = hh.convert_hh_states_to_inf_tau_form(model, vm)
             self._vm = self._model.get(vm.qname())
-            del(model, vm)
+            del model, vm
 
             # Get (inf, tau) tuple for every Rush-Larsen state
             for state in self._model.states():
@@ -145,7 +145,7 @@ class Simulation1d(myokit.CModule):
             # Clone model, store
             self._model = model.clone()
             self._vm = self._model.get(vm.qname())
-            del(model, vm)
+            del model, vm
 
         # Set number of cells paced
         self.set_paced_cells()

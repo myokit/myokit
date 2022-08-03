@@ -44,7 +44,7 @@ def test(c, *args, warmup=10, repeats=1000, duration=20, name=None, log=False,
             increases += 1
         us[i] = u2
         s.reset()
-    del(s)
+    del s
 
     d = us[-1] - us[0]
     if increases > 1 and repeats > 1:

@@ -515,8 +515,8 @@ class FiberTissueSimulation(myokit.CModule):
                     'Method requires a simulation log from the tissue model'
                     ' containing all states and bound variables. Missing at'
                     ' least variable <' + key + '>.')
-        del(lf)
-        del(lt)
+        del lf
+        del lt
 
         # Error criterium: NaN/inf detection
         def bisect(ar, lo, hi):

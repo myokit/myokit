@@ -728,7 +728,7 @@ class AbfFile(object):
                     if v and ord(v[0]) == 0:
                         return None
                 values[i] = v
-            del(val)
+            del val
 
             # Unpack single
             if len(values) == 1:

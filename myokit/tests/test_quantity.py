@@ -126,7 +126,7 @@ class QuantityTest(unittest.TestCase):
         finally:
             # Bypassing the public API, this is bad test design!
             if u in myokit.Unit._preferred_representations:
-                del(myokit.Unit._preferred_representations[u])
+                del myokit.Unit._preferred_representations[u]
 
     def test_number_conversion(self):
         # Test Quantity conversion from and to number.

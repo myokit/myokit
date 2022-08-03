@@ -87,7 +87,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(len(d), 0)
         self.assertRaises(KeyError, m.get, 'z.d.e')
         self.assertRaises(KeyError, m.get, 'z.d.f')
-        del(d)
+        del d
 
         # Clamp simple state
         g = m.get('z.g')
@@ -101,7 +101,7 @@ class VariableTest(unittest.TestCase):
         self.assertFalse(g.is_state())
         self.assertEqual(g.rhs(), myokit.Number(10, myokit.units.m))
         self.assertEqual(m.count_states(), 2)
-        del(g)
+        del g
 
         # Clamp simple state with missing units
         p = m.get('z.p')
@@ -113,7 +113,7 @@ class VariableTest(unittest.TestCase):
         self.assertFalse(p.is_state())
         self.assertEqual(p.rhs(), myokit.Number(1.5, myokit.units.mV))
         self.assertEqual(m.count_states(), 1)
-        del(p)
+        del p
 
         # Clamp state with child and sibling dependencies
         h = m.get('z.h')
@@ -130,7 +130,7 @@ class VariableTest(unittest.TestCase):
         self.assertRaises(KeyError, m.get, 'z.h.i')
         self.assertRaises(KeyError, m.get, 'z.h.i.m')
         self.assertEqual(m.count_states(), 0)
-        del(h)
+        del h
 
         # Clamp nested variable
         m = m_org.clone()
@@ -150,7 +150,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(h.eval(), x)
         self.assertEqual(len(list(i.variables(deep=True))), 0)
         self.assertEqual(len(list(h.variables(deep=True))), 1)
-        del(h, i)
+        del h, i
 
     def test_convert_unit(self):
         # Test changing variable units
@@ -617,7 +617,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(len(list(h.variables())), 0)
         self.assertEqual(len(list(e.variables(deep=True))), 3)
         m.validate()
-        del(h)
+        del h
 
         # Remove children on var with unused children
         e.set_rhs('1.234 [m]')

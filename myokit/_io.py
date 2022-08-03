@@ -119,7 +119,7 @@ def load_state_bin(filename):
     import zipfile
     try:
         import zlib
-        del(zlib)
+        del zlib
     except ImportError:
         raise Exception(
             'This method requires the `zlib` module to be installed.')
@@ -286,7 +286,7 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
     import zipfile
     try:
         import zlib
-        del(zlib)
+        del zlib
     except ImportError:
         raise Exception(
             'This method requires the `zlib` module to be installed.')

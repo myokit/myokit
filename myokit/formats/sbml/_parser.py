@@ -163,7 +163,7 @@ class SBMLParser(object):
 
         finally:
             # Remove all references to temporary state
-            del(self._ns)
+            del self._ns
 
     def _parse_compartment(self, element, model):
         """Parses a ``compartment`` element."""
