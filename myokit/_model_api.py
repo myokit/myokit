@@ -4383,7 +4383,7 @@ class Variable(VarOwner):
 
             # All references to this variable are now considered references to
             # its state value
-            assert(len(self._srefs_by) == 0)
+            assert len(self._srefs_by) == 0
             for r in self._refs_by:
                 r._refs_to.remove(self)
                 r._srefs_to.add(self)
@@ -4523,7 +4523,7 @@ class Variable(VarOwner):
 
     def rename(self, new_name):
         """ Renames this variable. """
-        assert(self._parent is not None)
+        assert self._parent is not None
         self._parent.move_variable(self, self._parent, new_name)
 
     def __repr__(self):

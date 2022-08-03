@@ -522,7 +522,7 @@ class DiGraph(object):
             return self.node(test)
         if test.graph != self:
             raise ValueError('Node from another graph: "' + str(test) + '"')
-        assert(test.uid in self.nodes and self.nodes[test.uid] == test)
+        assert (test.uid in self.nodes and self.nodes[test.uid] == test)
         return test
 
 

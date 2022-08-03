@@ -520,7 +520,7 @@ def parse_component(stream, info=None):
     Parses a component
     """
     # Info should have model
-    assert(not(info is None or info.model is None))
+    assert not(info is None or info.model is None)
 
     # Parse component declaration
     expect(next(stream), BRACKET_OPEN)
@@ -1085,7 +1085,7 @@ def strip_expression_units(model_text, skip_literals=True):
         for e in rhs.walk(allowed_types=myokit.Number):
             u = e.unit()
             if u is not None:
-                assert(u._token is not None)
+                assert u._token is not None
                 token, text, line, char = u._token
                 toks.append(u._token)
                 # Lines start at 1, chars start at 0...
