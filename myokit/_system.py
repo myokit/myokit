@@ -71,7 +71,7 @@ def system(live_printing=False):
         from PyQt5.QtCore import QT_VERSION_STR
         out.append('PyQt5: ' + QT_VERSION_STR)
         out.append('  Sip: ' + _module_version('sip'))
-        del(QT_VERSION_STR)
+        del QT_VERSION_STR
     except ImportError:
         out.append('PyQt5: Not found')
 
@@ -79,7 +79,7 @@ def system(live_printing=False):
         from PyQt4.QtCore import QT_VERSION_STR
         out.append('PyQt4: ' + QT_VERSION_STR)
         out.append('  Sip: ' + _module_version('sip'))
-        del(QT_VERSION_STR)
+        del QT_VERSION_STR
     except ImportError:
         out.append('PyQt4: Not found')
     except RuntimeError:    # pragma: no cover

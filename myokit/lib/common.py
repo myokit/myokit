@@ -859,13 +859,13 @@ class StrengthDuration(object):
     def __init__(self, model, ivar, vvar=None):
         # Clone model
         self._model = model.clone()
-        del(model)
+        del model
 
         # Get stimulus current variable
         if isinstance(ivar, myokit.Variable):
             ivar = ivar.qname()
         self._ivar = self._model.get(ivar)
-        del(ivar)
+        del ivar
 
         # Get membrane potential variable
         if vvar is None:
@@ -879,7 +879,7 @@ class StrengthDuration(object):
             if isinstance(vvar, myokit.Variable):
                 vvar = vvar.qname()
             self._vvar = self._model.get(vvar)
-        del(vvar)
+        del vvar
 
         # Get time variable
         self._tvar = self._model.time()

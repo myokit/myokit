@@ -40,7 +40,7 @@ if OpenCL_FOUND:
     if OpenCL_DOUBLE_PRECISION:
         OpenCL_DOUBLE_PRECISION_CONNECTIONS = info.has_extension(
             'cl_khr_int64_base_atomics')
-    del(info)
+    del info
 
 
 class TemporaryDirectory(object):

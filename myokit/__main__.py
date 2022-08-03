@@ -79,7 +79,7 @@ def main():
 
         # Split into function and arguments
         func = args['func']
-        del(args['func'])
+        del args['func']
 
         # Call the selected function with the parsed arguments
         func(**args)
@@ -561,7 +561,7 @@ def install_windows():
         with open(output, 'w') as f:
             p.set_output_stream(f)
             p.process(source, varmap)
-        del(p)
+        del p
 
         # Install
         menuinst.install(output)
@@ -1928,7 +1928,7 @@ def test_mmt_files(path):
                 except Exception:
                     error = 1
                     print(traceback.format_exc())
-                del(m, p, x)
+                del m, p, x
             except Exception:
                 print('Unable to load.')
                 print(traceback.format_exc())
@@ -2118,7 +2118,7 @@ def video(src, key, dst, fps, grow, colormap):
         print('DataBlock reading failed\n: ' + str(e))
         sys.exit(1)
     finally:
-        del(reporter)
+        del reporter
 
     # Don't load empty files
     if data.len2d() < 1:

@@ -151,7 +151,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         if tab is not None:
             tab.deleteLater()
         gc.collect()
-        del(tab)
+        del tab
 
     def action_license(self):
         """
@@ -430,7 +430,7 @@ class AbfTab(QtWidgets.QTabWidget):
             tab, name = self.create_protocol_tab(i)
             self.addTab(tab, name)
         self.addTab(self.create_info_tab(), 'Info')
-        del(self._abf)
+        del self._abf
 
     def create_graph_tab(self, channel):
         """
@@ -509,7 +509,7 @@ class AbfTab(QtWidgets.QTabWidget):
             figure.clear()
         for axes in self._axes:
             axes.cla()
-        del(self._figures, self._axes)
+        del self._figures, self._axes
         gc.collect()
         super(AbfTab, self).deleteLater()
 
@@ -533,7 +533,7 @@ class AtfTab(QtWidgets.QTabWidget):
             for key in keys[1:]:
                 self.addTab(self.create_graph_tab(time, key), key)
         self.addTab(self.create_info_tab(), 'Info')
-        del(self._atf)
+        del self._atf
 
     def create_graph_tab(self, time, key):
         """
@@ -580,7 +580,7 @@ class AtfTab(QtWidgets.QTabWidget):
             figure.clear()
         for axes in self._axes:
             axes.cla()
-        del(self._figures, self._axes)
+        del self._figures, self._axes
         gc.collect()
         super(AtfTab, self).deleteLater()
 
@@ -657,7 +657,7 @@ class CsvTab(QtWidgets.QTabWidget):
             figure.clear()
         for axes in self._axes:
             axes.cla()
-        del(self._figures, self._axes)
+        del self._figures, self._axes
         gc.collect()
         super(CsvTab, self).deleteLater()
 
@@ -745,7 +745,7 @@ class MatTab(QtWidgets.QTabWidget):
             figure.clear()
         for axes in self._axes:
             axes.cla()
-        del(self._figures, self._axes)
+        del self._figures, self._axes
         gc.collect()
         super(MatTab, self).deleteLater()
 
@@ -827,7 +827,7 @@ class TxtTab(QtWidgets.QTabWidget):
             figure.clear()
         for axes in self._axes:
             axes.cla()
-        del(self._figures, self._axes)
+        del self._figures, self._axes
         gc.collect()
         super(TxtTab, self).deleteLater()
 
@@ -845,7 +845,7 @@ class WcpTab(QtWidgets.QTabWidget):
         self._axes = []
         for i in range(self._wcp.records()):
             self.addTab(self.create_graph_tab(i), 'Record ' + str(i))
-        del(self._wcp)
+        del self._wcp
 
     def create_graph_tab(self, record):
         """
@@ -882,7 +882,7 @@ class WcpTab(QtWidgets.QTabWidget):
             figure.clear()
         for axes in self._axes:
             axes.cla()
-        del(self._figures, self._axes)
+        del self._figures, self._axes
         gc.collect()
         super(WcpTab, self).deleteLater()
 

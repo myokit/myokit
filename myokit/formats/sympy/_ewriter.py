@@ -30,7 +30,7 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
 
         # Import sympy again, will trigger error if can't be done.
         import sympy
-        del(sympy)
+        del sympy
 
     def set_lhs_function(self, f):
         """

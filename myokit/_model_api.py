@@ -675,7 +675,7 @@ class VarOwner(ModelPart, VarProvider):
         # Move
         try:
             # Change listing in VarOwner objects
-            del(self._variables[old_name])
+            del self._variables[old_name]
             new_parent._variables[new_name] = variable
             # Change variable's _parent and _name attribute
             variable._parent = new_parent
@@ -703,7 +703,7 @@ class VarOwner(ModelPart, VarProvider):
         variable._delete(recursive=recursive)
         try:
             # Remove from this VarOwner
-            del(self._variables[variable.name()])
+            del self._variables[variable.name()]
         finally:
             self.model()._reset_validation()
 
@@ -712,7 +712,7 @@ class VarOwner(ModelPart, VarProvider):
         Removes the given variable from this :class:`VarOwner` but doesn't do
         any of the bookkeeping steps.
         """
-        del(self._variables[variable.name()])
+        del self._variables[variable.name()]
 
     def _resolve(self, name):
         """ See :meth:`VarProvider._resolve(). """
@@ -1359,7 +1359,7 @@ class Model(ObjectWithMeta, VarProvider):
             for label, number in temp.items():
                 if label in self._bindings:
                     inputs[label] = float(number)
-            del(temp)
+            del temp
             # Store original rhs values, set temporary new ones
             org_inputs = {}
             for label, number in inputs.items():
@@ -1439,7 +1439,7 @@ class Model(ObjectWithMeta, VarProvider):
             else:
                 temp.append(self.get(variable))
         variables = temp
-        del(temp)
+        del temp
 
         # Get shallow dependencies of all required equations
         # Use ordered dict to get consistent output
@@ -1482,7 +1482,7 @@ class Model(ObjectWithMeta, VarProvider):
             if len(done) == 0:
                 raise Exception('Failed to solve system of equations.')
             for lhs in done:
-                del(shallow[lhs])
+                del shallow[lhs]
                 for dps in shallow.values():
                     if lhs in dps:
                         dps.remove(lhs)
@@ -2663,7 +2663,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         if variable is None:
             # Remove binding
-            del(self._bindings[label])
+            del self._bindings[label]
         else:
             # Check for existing binding
             if label in self._bindings:
@@ -2687,7 +2687,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         if variable is None:
             # Remove label
-            del(self._labels[label])
+            del self._labels[label]
         else:
             # Check for existing label
             if label in self._labels:
@@ -2748,7 +2748,7 @@ class Model(ObjectWithMeta, VarProvider):
             # Tell component it's being deleted
             component._delete()
             # Delete component from list
-            del(self._components[component.qname()])
+            del self._components[component.qname()]
         finally:
             self._valid = None
 
@@ -2907,7 +2907,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         if name is None:
             try:
-                del(self.meta['name'])
+                del self.meta['name']
             except KeyError:
                 pass
         else:
@@ -3083,7 +3083,7 @@ class Model(ObjectWithMeta, VarProvider):
 
             # Remove the solvable components from the component dependency list
             for comp in newly_solvable:
-                del(cdeps[comp])
+                del cdeps[comp]
 
         # At this point, we've created a list `solvable_comps`, that contains
         # all independent components, in a solvable order.
@@ -3100,13 +3100,13 @@ class Model(ObjectWithMeta, VarProvider):
         for comp in solvable_comps:
             out[comp.name()] = EquationList()
             todo[comp] = OrderedDict()
-        del(solvable_comps)
+        del solvable_comps
 
         # Add interdependent components in any (consistent) order
         for comp in cdeps.keys():
             out[comp.name()] = EquationList()
             todo[comp] = OrderedDict()
-        del(cdeps)
+        del cdeps
 
         # At this point, we have created an ordered dict `out` that contains
         # all components in solvable order, and maps them to (currently empty)
@@ -3171,7 +3171,7 @@ class Model(ObjectWithMeta, VarProvider):
                 # Non-nested variable
                 # Add any descendants, and remove them from nested
                 for kid in add_nested_equations(eq_list, var):
-                    del(nested[kid])
+                    del nested[kid]
                 # Add the variable itself
                 eq_list.append(eq)
 
@@ -3211,7 +3211,7 @@ class Model(ObjectWithMeta, VarProvider):
         for comp, eqs in todo.items():
             for lhs, eq in eqs.items():
                 unsolved[lhs] = eq
-        del(todo)
+        del todo
 
         # Add remaining equations
         remaining = out['*remaining*'] = EquationList()
@@ -3764,7 +3764,7 @@ class Component(VarOwner):
         """
         Removes an alias from this :class:`Component`.
         """
-        del(self._alias_map[name])
+        del self._alias_map[name]
 
     def remove_aliases_for(self, var):
         """
@@ -3775,7 +3775,7 @@ class Component(VarOwner):
             if avar == var:
                 todo.append(name)
         for name in todo:
-            del(self._alias_map[name])
+            del self._alias_map[name]
 
     def __repr__(self):
         """
@@ -4221,10 +4221,10 @@ class Variable(VarOwner):
         model = self.model()
         try:
             # Remove initial value
-            del(model._current_state[self._indice])
+            del model._current_state[self._indice]
 
             # Remove this variable from the state
-            del(model._state[self._indice])
+            del model._state[self._indice]
 
             # Set lhs to name expression
             self._lhs = myokit.Name(self)
@@ -4383,7 +4383,7 @@ class Variable(VarOwner):
 
             # All references to this variable are now considered references to
             # its state value
-            assert(len(self._srefs_by) == 0)
+            assert len(self._srefs_by) == 0
             for r in self._refs_by:
                 r._refs_to.remove(self)
                 r._srefs_to.add(self)
@@ -4523,7 +4523,7 @@ class Variable(VarOwner):
 
     def rename(self, new_name):
         """ Renames this variable. """
-        assert(self._parent is not None)
+        assert self._parent is not None
         self._parent.move_variable(self, self._parent, new_name)
 
     def __repr__(self):

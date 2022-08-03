@@ -155,13 +155,13 @@ class Simulation(myokit.CModule):
         if not model.is_valid():
             model.validate()
         self._model = model.clone()
-        del(model)
+        del model
 
         # Set protocol
         self._protocol = None
         self._fixed_form_protocol = None
         self.set_protocol(protocol)
-        del(protocol)
+        del protocol
 
         # Generate C Model code, get sensitivity and constants info
         cmodel = myokit.CModel(self._model, sensitivities)
@@ -183,7 +183,7 @@ class Simulation(myokit.CModule):
             path, self._sim = path
         else:
             self._create_simulation(cmodel.code, path)
-        del(cmodel)
+        del cmodel
 
         # Get state and default state from model
         self._state = self._model.state()

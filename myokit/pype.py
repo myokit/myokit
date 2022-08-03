@@ -119,7 +119,7 @@ class TemplateEngine(object):
                                 break
                             next = next.tb_next
                     finally:
-                        del(next)
+                        del next
 
                 if line:
                     # Error during template execution
@@ -144,7 +144,7 @@ class TemplateEngine(object):
             # by deleting reference.
             # See: http://docs.python.org/library/sys.html#sys.exc_info
             if error:
-                del(error)
+                del error
 
         # Custom stream? Then don't interfere. If not, return stream contents.
         return None if self.stream else stdout.getvalue()

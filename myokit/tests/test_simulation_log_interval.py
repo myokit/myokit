@@ -249,7 +249,7 @@ class SimulationTest(PeriodicTest):
             i = e.find_after(x)
             if not t[i] - t[i - 1] > 0.2:
                 raise Exception('Issue with test: use longer intervals!')
-        del(e, t, x, i)
+        del e, t, x, i
 
         # Now test if correct interpolated values are returned by periodic
         # logging.
@@ -556,7 +556,7 @@ class LegacySimulationTest(PeriodicTest):
             i = e.find_after(x)
             if not t[i] - t[i - 1] > 0.2:
                 raise Exception('Issue with test: use longer intervals!')
-        del(e, t, x, i)
+        del e, t, x, i
 
         # Now test if correct interpolated values are returned by periodic
         # logging.

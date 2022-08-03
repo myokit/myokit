@@ -346,7 +346,7 @@ class Simulation(myokit.CModule):
                 if np.any(x[1:] < x[:-1]):
                     raise ValueError(
                         'Values in log_times must be non-decreasing.')
-                del(x, np)
+                del x, np
         if log_times is not None and log_interval > 0:
             raise ValueError(
                 'The arguments log_times and log_interval cannot be used'

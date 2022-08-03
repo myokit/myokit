@@ -56,7 +56,7 @@ class ICSimulationTest(unittest.TestCase):
 
         # Log with missing time value
         d2 = d.clone()
-        del(d2['engine.time'])
+        del d2['engine.time']
         self.assertRaisesRegex(ValueError, 'time', s.block, d2, e)
 
         # Wrong size derivatives array

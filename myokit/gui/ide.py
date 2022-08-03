@@ -2655,7 +2655,7 @@ class TabbedToolBar(QtWidgets.QTabWidget):
             self.setCurrentWidget(widget)
             widget.setFocus()
         else:
-            del(self._visible[index])
+            del self._visible[index]
             self.removeTab(index)
             if self.count() < 1:
                 self.setVisible(False)

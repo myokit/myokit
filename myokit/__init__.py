@@ -36,7 +36,7 @@ from __future__ import print_function, unicode_literals
 #
 import logging  # noqa  (not at top of file)
 logging.basicConfig()
-del(logging)
+del logging
 
 
 #
@@ -58,14 +58,14 @@ if sys.hexversion < 0x03000000:  # pragma: no cover
         'Myokit support for Python 2.7 is nearing the end of its lifetime.'
         ' Please upgrade as soon as possible! Detected Python version: '
         + sys.version)
-    del(logging, log)
+    del logging, log
 elif sys.hexversion < 0x03060000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
         'Myokit is not tested on Python 3 versions older than 3.6. Detected'
         ' Python version: ' + sys.version)
-    del(logging, log)
+    del logging, log
 
 
 # Exec() that works with Python 2 versions before 2.7.9
@@ -73,7 +73,7 @@ if sys.hexversion < 0x020709F0:     # pragma: no python 3 cover
     from ._exec_old import _exec    # noqa
 else:
     from ._exec_new import _exec    # noqa
-del(sys)
+del sys
 
 
 #
@@ -92,7 +92,7 @@ log = logging.getLogger(__name__)
 log.info('Loading Myokit version ' + __version__)
 if not __release__:     # pragma: no cover
     log.warning('Using development version of Myokit (' + __version__ + ').')
-del(log, logging)
+del log, logging
 
 
 #
@@ -204,7 +204,7 @@ try:
 finally:
     # Always manually delete frame
     # https://docs.python.org/2/library/inspect.html#the-interpreter-stack
-    del(frame)
+    del frame
 
 # Binary data files
 DIR_DATA = os.path.join(DIR_MYOKIT, '_bin')
@@ -222,7 +222,7 @@ if os.path.exists(DIR_USER_OLD):    # pragma: no cover
     if not os.path.exists(DIR_USER):
         import shutil  # noqa
         shutil.move(DIR_USER_OLD, DIR_USER)
-        del(shutil)
+        del shutil
 
 # Ensure the user config directory exists and is writable
 if os.path.exists(DIR_USER):    # pragma: no cover
@@ -236,7 +236,7 @@ else:                           # pragma: no cover
 EXAMPLE = os.path.join(DIR_DATA, 'example.mmt')
 
 # Don't expose standard libraries as part of Myokit
-del(os, inspect)
+del os, inspect
 
 
 #
@@ -375,8 +375,8 @@ for ex in inspect.getmembers(_err):
     if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
         if name not in _globals:    # pragma: no cover
             raise Exception('Failed to import exception: ' + name)
-del(ex, name, clas, _globals, inspect)  # Prevent public visibility
-del(_err)
+del ex, name, clas, _globals, inspect  # Prevent public visibility
+del _err
 
 # Tools
 from . import float  # noqa
@@ -577,5 +577,5 @@ _Simulation_progress = None
 # Load settings
 #
 from . import _config   # noqa
-del(_config)
+del _config
 

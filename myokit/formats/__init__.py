@@ -616,7 +616,7 @@ def register_external_importer(name, importer_class):
     """
     if importer_class is None:
         if _IMPORTERS is not None and name in _IMPORTERS:
-            del(_IMPORTERS[name])
+            del _IMPORTERS[name]
     else:
         if _IMPORTERS is None:  # pragma: no cover
             _scan_for_internal_formats()
@@ -638,7 +638,7 @@ def register_external_exporter(name, exporter_class):
     """
     if exporter_class is None:
         if _EXPORTERS is not None and name in _EXPORTERS:
-            del(_EXPORTERS[name])
+            del _EXPORTERS[name]
     else:
         if _EXPORTERS is None:  # pragma: no cover
             _scan_for_internal_formats()
@@ -660,7 +660,7 @@ def register_external_ewriter(name, ewriter_class):
     """
     if ewriter_class is None:
         if _EWRITERS is not None and name in _EWRITERS:
-            del(_EWRITERS[name])
+            del _EWRITERS[name]
     else:
         if _EWRITERS is None:  # pragma: no cover
             _scan_for_internal_formats()

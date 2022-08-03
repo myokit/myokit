@@ -114,7 +114,7 @@ class HHModel(object):
         # Ensure all HH-states in the model are written in inf-tau form
         # This returns a clone of the original model
         self._model = convert_hh_states_to_inf_tau_form(model, vm)
-        del(model)
+        del model
 
         # Check and collect state variables
         self._states = []
@@ -132,7 +132,7 @@ class HHModel(object):
                 raise HHModelError(
                     'State <' + state.qname() + '> was added twice.')
             self._states.append(state)
-        del(states)
+        del states
 
         # Check and collect parameter variables
         unique = set()
@@ -155,8 +155,8 @@ class HHModel(object):
                     'Parameter listed twice: <' + str(parameter) + '>.')
             unique.add(parameter)
             self._parameters.append(parameter)
-        del(unique)
-        del(parameters)
+        del unique
+        del parameters
 
         # Check current variable
         if current is not None:
@@ -166,7 +166,7 @@ class HHModel(object):
             if current.is_state():
                 raise HHModelError('Current variable can not be a state.')
         self._current = current
-        del(current)
+        del current
 
         # Check membrane potential variable
         self._membrane_potential = self._model.get(vm)
@@ -181,7 +181,7 @@ class HHModel(object):
         if self._membrane_potential == self._current:
             raise HHModelError(
                 'The membrane potential should not be the current variable.')
-        del(vm)
+        del vm
 
         #
         # Demote unnecessary states and remove bindings

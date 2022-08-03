@@ -1478,8 +1478,8 @@ class SolvableOrderTest(DepTest):
         before(self.d('test.t1'), 'inter')
         before('inter', 't2')
         self.head('Finished testing solvable_order')
-        del(self.ccomp)
-        del(self.order)
+        del self.ccomp
+        del self.order
 
         # Test with cycles
         self.m.get('ina.j').demote()
@@ -1547,7 +1547,7 @@ class SolvableOrderTest(DepTest):
         before('dot(ina.m)', 'ina.m.tau', 'ina.m.inf')
         before('ina.m.inf', 'ina.m.alpha', 'ina.m.tau')
         before('ina.m.tau', 'ina.m.alpha', 'ina.m.beta')
-        del(self.eqs, self.vrs)
+        del self.eqs, self.vrs
 
         # Larger test (and try with LhsExpression instead of string)
         self.eqs, self.vrs = self.m.expressions_for(
@@ -1583,7 +1583,7 @@ class SolvableOrderTest(DepTest):
         before('ica.ICa', 'ica.ICa.nest1', 'ica.E')
         before('ica.ICa.nest1', 'ica.ICa.nest2', 'ica.gCa')
         before('ica.E', 'cell.Ca_o')
-        del(self.eqs, self.vrs)
+        del self.eqs, self.vrs
 
         # Multiple variables
         self.eqs, self.vrs = self.m.expressions_for('ina.m', 'ina.h')
@@ -1600,7 +1600,7 @@ class SolvableOrderTest(DepTest):
         before('ina.h.tau', 'ina.h.alpha', 'ina.h.beta')
         before('ina.h.alpha', 'ina.a')
         before('ina.h.beta', 'ina.a')
-        del(self.eqs, self.vrs)
+        del self.eqs, self.vrs
 
         # Variables that depend on dot() expressions
         self.eqs, self.vrs = self.m.expressions_for('test.t1', 'test.t2')
@@ -1608,7 +1608,7 @@ class SolvableOrderTest(DepTest):
         before('dot(test.t2)', 'test.inter')
         before('test.inter', 'dot(test.t1)')
         before('dot(test.t1)', 'dot(membrane.V)')
-        del(self.eqs, self.vrs)
+        del self.eqs, self.vrs
 
         # Unsolvable system
         m = myokit.Model()

@@ -466,7 +466,7 @@ def parse_model_from_stream(stream, syntax_only=False):
             # No need to check for IllegalReferenceErrors here, since these
             # won't have been resolved in the first place.
             var.set_rhs(convert_proto_expression(var._proto_rhs, var, info))
-        del(var._proto_rhs)
+        del var._proto_rhs
 
     # Check the semantics of the model
     try:
@@ -520,7 +520,7 @@ def parse_component(stream, info=None):
     Parses a component
     """
     # Info should have model
-    assert(not(info is None or info.model is None))
+    assert info is not None and info.model is not None
 
     # Parse component declaration
     expect(next(stream), BRACKET_OPEN)
@@ -667,7 +667,7 @@ def parse_variable(stream, info, parent):
     # Register tokens
     for token in toreg:
         reg_token(info, token, var)
-    del(toreg)
+    del toreg
 
     # Set initial value for states
     if is_state:
@@ -682,7 +682,7 @@ def parse_variable(stream, info, parent):
             t = state_value._token
             raise ParseError(
                 'Illegal state value', t[2], t[3], str(e), cause=e)
-        del(info.initial_values[var.qname()])
+        del info.initial_values[var.qname()]
 
     # Parse definition, quick unit, bind, label and description syntax
     # These token must occur in a fixed order!
@@ -962,7 +962,7 @@ def parse_protocol_from_stream(stream):
     t_last = None
     t_next = 0
     n = stream.peek()
-    while(n[0] not in (EOF, SEGMENT_HEADER)):
+    while n[0] not in (EOF, SEGMENT_HEADER):
 
         # Parse level
         v = parse_number(stream)
@@ -1085,7 +1085,7 @@ def strip_expression_units(model_text, skip_literals=True):
         for e in rhs.walk(allowed_types=myokit.Number):
             u = e.unit()
             if u is not None:
-                assert(u._token is not None)
+                assert u._token is not None
                 token, text, line, char = u._token
                 toks.append(u._token)
                 # Lines start at 1, chars start at 0...
@@ -1379,7 +1379,7 @@ class Tokenizer(object):
         input.
         """
         txt = ''.join(self._catchers[handle])
-        del(self._catchers[handle])
+        del self._catchers[handle]
         return txt
 
     def _tizer(self, stream, check_indenting):

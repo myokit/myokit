@@ -52,7 +52,7 @@ class UserFunctionTest(unittest.TestCase):
         self.assertEqual(f.convert(args), myokit.parse_expression('3 + 4'))
 
         # Call with wrong arguments
-        del(args[myokit.Name('a')])
+        del args[myokit.Name('a')]
         self.assertRaisesRegex(
             ValueError, 'Wrong number', f.convert, args)
         args[myokit.Name('c')] = myokit.Number(100)

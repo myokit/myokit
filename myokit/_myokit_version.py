@@ -25,4 +25,4 @@ if not __release__:  # pragma: no cover
 
 # Don't expose x on Python2
 if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
-    del(x)
+    del x

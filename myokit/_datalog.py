@@ -513,7 +513,7 @@ class DataLog(OrderedDict):
         try:
             # Ensure zlib is available
             import zlib
-            del(zlib)
+            del zlib
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
@@ -923,7 +923,7 @@ class DataLog(OrderedDict):
         try:
             # Make sure zlib is available
             import zlib
-            del(zlib)
+            del zlib
         except ImportError:
             raise Exception(
                 'This method requires the `zlib` module to be installed.')

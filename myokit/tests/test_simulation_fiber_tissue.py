@@ -109,7 +109,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
                 tmax, logf=logvars, logt=logt, log_interval=dlog)
         finally:
             self.s0.reset()
-        del(logt)
+        del logt
         d1 = d1.npview()
 
         # Run CVODE simulation
@@ -813,24 +813,24 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
 
             # Missing state and bound var in fiber log
             d2 = df.clone()
-            del(d2['membrane.V', 0, 0])
+            del d2['membrane.V', 0, 0]
             self.assertRaisesRegex(
                 myokit.FindNanError, 'fiber(.+)membrane.V',
                 self.s1.find_nan, d2, dt)
             d2 = df.clone()
-            del(d2['engine.time'])
+            del d2['engine.time']
             self.assertRaisesRegex(
                 myokit.FindNanError, 'fiber(.+)engine.time',
                 self.s1.find_nan, d2, dt)
 
             # Missing state and bound var in tissue log
             d2 = dt.clone()
-            del(d2['membrane.V', 0, 0])
+            del d2['membrane.V', 0, 0]
             self.assertRaisesRegex(
                 myokit.FindNanError, 'tissue(.+)membrane.V',
                 self.s1.find_nan, df, d2)
             d2 = dt.clone()
-            del(d2['engine.time'])
+            del d2['engine.time']
             self.assertRaisesRegex(
                 myokit.FindNanError, 'tissue(.+)engine.time',
                 self.s1.find_nan, df, d2)

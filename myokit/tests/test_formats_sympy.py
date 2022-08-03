@@ -305,7 +305,7 @@ class SymPyReadWriteTest(unittest.TestCase):
         # The ereader can handle it, but it becomes and Equals expression.
 
         # Test sympy division
-        del(m, avar, x, cx, e, ce)
+        del m, avar, x, cx, e, ce
         a = self._model.get('c.a')
         b = self._model.get('c').add_variable('bbb')
         b.set_rhs('1 / a')
@@ -362,7 +362,7 @@ class SymPyReadWriteTest(unittest.TestCase):
         except ImportError:
             print('Sympy not found, skipping test.')
             return
-        del(sp)
+        del sp
 
         w = myokit.formats.ewriter('sympy')
         self.assertIsInstance(w, mypy.SymPyExpressionWriter)

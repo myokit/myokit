@@ -215,7 +215,7 @@ class ModelComparison(object):
         """
         Compares the contents of two components with the same name.
         """
-        assert(c1.qname() == c2.qname())
+        assert c1.qname() == c2.qname()
         # Meta information
         self._meta(c1, c2)
         # Test variables
@@ -256,7 +256,7 @@ class ModelComparison(object):
         """
         Compares two objects' meta properties.
         """
-        assert(type(x1) == type(x2))
+        assert type(x1) == type(x2)
         if isinstance(x1, myokit.Model):
             name = ' in model'
         else:
@@ -351,7 +351,7 @@ class ModelComparison(object):
         Compares two variables with the same name.
         """
         name = v1.qname()
-        assert(v2.qname() == name)
+        assert v2.qname() == name
         # Left-hand side expression
         c1, c2 = v1.lhs().code(), v2.lhs().code()
         if c1 != c2:
@@ -523,7 +523,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     r.run()
 
     # Free some space
-    del(r)
+    del r
     import gc
     gc.collect()
 

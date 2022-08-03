@@ -2855,7 +2855,7 @@ class Not(PrefixCondition):
 
     def _eval(self, subst, precision):
         try:
-            return not(self._op._eval(subst, precision))
+            return not self._op._eval(subst, precision)
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 

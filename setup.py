@@ -13,9 +13,9 @@ from setuptools import setup, find_packages
 import os
 import sys
 sys.path.append(os.path.abspath('myokit'))
-from _myokit_version import __version__ as version  # noqa
+from _myokit_version import __version__ as version      # noqa
 sys.path.pop()
-del(os, sys)
+del os, sys
 
 
 # Load text for description and license

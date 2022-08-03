@@ -225,7 +225,7 @@ class SimulationOpenCL(myokit.CModule):
             # Convert alpha-beta formulations to inf-tau forms, cloning model
             self._model = hh.convert_hh_states_to_inf_tau_form(model, vm)
             self._vm = self._model.get(vm.qname())
-            del(model, vm)
+            del model, vm
 
             # Get (inf, tau) tuple for every Rush-Larsen state
             for state in self._model.states():
@@ -240,7 +240,7 @@ class SimulationOpenCL(myokit.CModule):
                 self._vm = None
             else:
                 self._vm = self._model.get(vm.qname())
-            del(model, vm)
+            del model, vm
 
         # Set default conductance values
         self._gx = self._gy = None
@@ -466,7 +466,7 @@ class SimulationOpenCL(myokit.CModule):
                 raise myokit.FindNanError(
                     'Method requires a simulation log containing all states'
                     ' and bound variables. Missing variable <' + key + '>.')
-        del(t)
+        del t
 
         # Error criterium
         if watch_var is None:
@@ -918,7 +918,7 @@ class SimulationOpenCL(myokit.CModule):
         if isinstance(var, myokit.Variable):
             var = var.qname()
         var = self._model.get(var)
-        del(self._fields[var])
+        del self._fields[var]
 
     def reset(self):
         """
@@ -1432,7 +1432,7 @@ class SimulationOpenCL(myokit.CModule):
 
             # Store connection
             conns.append((i, j, c))
-        del(doubles)
+        del doubles
         self._connections = conns
         self._gx_field = self._gy_field = None
 

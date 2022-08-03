@@ -386,7 +386,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
             Exception, 'did not specify a current', s2.current, s2.state())
         # But simulation still works
         self.assertIsInstance(s2.run(10), myokit.DataLog)
-        del(model2, m2, s2)
+        del model2, m2, s2
 
         # Create protocol
 
@@ -430,8 +430,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
             ValueError, 'Log interval', s.run, 1, log_interval=-1)
         d['hello'] = [1, 2, 3]
         self.assertRaisesRegex(ValueError, 'extra keys', s.run, 1, log=d)
-        del(d['hello'])
-        del(d[next(iter(d.keys()))])
+        del d['hello']
+        del d[next(iter(d.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d)
 
         # Reset should reset the state
@@ -638,7 +638,7 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertEqual(len(d['engine.time']), len(d['ina.i']))
         self.assertEqual(len(d['engine.time']), len(d['ina.O']))
         d2 = d.clone()
-        del(d2[next(iter(d2.keys()))])
+        del d2[next(iter(d2.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d2)
         d2 = d.clone()
         d2['hello'] = [1, 2, 3]
@@ -662,7 +662,7 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertEqual(len(d['engine.time']), len(d['ina.O']))
         self.assertNotIn('ina.i', d)
         d2 = d.clone()
-        del(d2[next(iter(d2.keys()))])
+        del d2[next(iter(d2.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d2)
         d2 = d.clone()
         d2['hello'] = [1, 2, 3]
@@ -847,7 +847,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         self.assertEqual([v.qname() for v in m2], [
             'ina_ref.C1', 'ina_ref.C2', 'ina_ref.C3', 'ina_ref.IF',
             'ina_ref.IS', 'ina_ref.O'])
-        del(models, m1, m2)
+        del models, m1, m2
 
         # Try with `1 - sum(xi)` state
         c = model.get('ina_ref')
@@ -860,7 +860,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         self.assertEqual([v.qname() for v in m2], [
             'ina_ref.C1', 'ina_ref.C2', 'ina_ref.C3', 'ina_ref.IF',
             'ina_ref.IS', 'ina_ref.O'])
-        del(models, m1, m2)
+        del models, m1, m2
 
         # Try with `1 - sum(xi)` state, with a funny RHS
         c = model.get('ina_ref')
@@ -1079,7 +1079,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         self.assertEqual(terms[3], myokit.PrefixMinus(myokit.Name(v4)))
         self.assertEqual(terms[4], myokit.PrefixMinus(myokit.Name(v5)))
         self.assertEqual(terms[5], myokit.PrefixMinus(myokit.Name(v6)))
-        del(terms)
+        del terms
 
         # Case with brackets
         v3.set_rhs('-(+(IF) + C1 -(-IS - C2)) + 1 - O')

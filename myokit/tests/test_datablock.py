@@ -1068,8 +1068,8 @@ class DataBlock2dTest(unittest.TestCase):
         d['y', 0, 2] = [6, 6, 6]
         d['y', 1, 2] = [7, 7, 2]
         myokit.DataBlock2d.from_log(d)
-        del(d['0.2.y'])
-        del(d['1.2.y'])
+        del d['0.2.y']
+        del d['1.2.y']
         self.assertRaises(ValueError, myokit.DataBlock2d.from_log, d)
 
     def test_images(self):

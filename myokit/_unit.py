@@ -291,7 +291,7 @@ class Unit(object):
                 if not isinstance(factor, myokit.Quantity):
                     factor = myokit.Quantity(factor)
                 factors.append(factor)
-        del(helpers)
+        del helpers
 
         # Simplest case: units are (almost) equal
         if Unit.close(unit1, unit2):
