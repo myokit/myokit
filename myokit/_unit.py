@@ -225,10 +225,21 @@ class Unit(object):
         so that ``c = 0.001 [km/m]``, and the unit ``[km/m]`` can be written as
         ``[km/m] = [ kilo ] = [1 (1000)]``.
 
-        Conversions between incompatible units can be performed if one or
-        multiple helper :class:`Quantity` objects are passed in.
+        Note that this method uses the :meth:`close()` and
+        :meth:`close_exponent` comparisons to see if units are equal.
 
-        For example::
+        Conversions between *incompatible* units can be performed if one or
+        multiple helper :class:`Quantity` objects are passed in. For example,
+        to convert from ``g`` to ``mol`` a helper with units ``g/mol`` could
+        be passed in. Conversion will be attempted with the helper and the
+        inverse of the helper, and with any (dimensionless) scaling. For
+        example, a ``g`` to ``mol`` conversion can also be facilitated by a
+        helper in ``mol/g`` or ``mol/kg``. If multiple helpers are given each
+        will be tried individually: helpers are not combined. Any used "helper"
+        (or scaled and/or inverted helper) will be included in the returned
+        conversion factor ``c``
+
+        A common example in cell electrophysiology is::
 
             >>> import myokit
             >>> myokit.Unit.conversion_factor(
@@ -238,9 +249,6 @@ class Unit(object):
         Where::
 
             1 [uA/cm^2] = 1 [cm^2/uF] * 1 [uA/uF]
-
-        Note that this method uses the :meth:`close()` and
-        :meth:`close_exponent` comparisons to see if units are equal.
 
         Arguments:
 
