@@ -32,7 +32,7 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
         """Handles ex() for infix condition operators (==, !=, > etc.)."""
         c1 = isinstance(e[0], myokit.Condition)
         c2 = isinstance(e[1], myokit.Condition)
-        if (c1 and c2) or not(c1 or c2):
+        if (c1 and c2) or not (c1 or c2):
             a = self.ex(e[0])
             b = self.ex(e[1])
         else:

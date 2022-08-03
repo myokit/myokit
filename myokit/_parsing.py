@@ -520,7 +520,7 @@ def parse_component(stream, info=None):
     Parses a component
     """
     # Info should have model
-    assert not(info is None or info.model is None)
+    assert info is not None and info.model is not None
 
     # Parse component declaration
     expect(next(stream), BRACKET_OPEN)
@@ -962,7 +962,7 @@ def parse_protocol_from_stream(stream):
     t_last = None
     t_next = 0
     n = stream.peek()
-    while(n[0] not in (EOF, SEGMENT_HEADER)):
+    while n[0] not in (EOF, SEGMENT_HEADER):
 
         # Parse level
         v = parse_number(stream)

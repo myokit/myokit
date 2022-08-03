@@ -153,7 +153,7 @@ class Protocol(object):
             '# Level  Start    Length   Period   Multiplier',
         ]
         e = self._head
-        while(e is not None):
+        while e is not None:
             out.append(e.code())
             e = e._next
         return '\n'.join(out)
