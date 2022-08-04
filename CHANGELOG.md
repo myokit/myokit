@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#888](https://github.com/MichaelClerx/myokit/pull/888) [#892](https://github.com/MichaelClerx/myokit/pull/892) Improved documentation for `Unit.conversion_factor`.
 
 ## [1.33.7] - 2022-07-27
 - Fixed

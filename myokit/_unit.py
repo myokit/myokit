@@ -235,9 +235,9 @@ class Unit(object):
         inverse of the helper, and with any (dimensionless) scaling. For
         example, a ``g`` to ``mol`` conversion can also be facilitated by a
         helper in ``mol/g`` or ``mol/kg``. If multiple helpers are given each
-        will be tried individually: helpers are not combined. Any used "helper"
-        (or scaled and/or inverted helper) will be included in the returned
-        conversion factor ``c``
+        will be tried individually: helpers are not combined. If used, a helper
+        (possibly scaled and/or inverted) will be included in the returned
+        conversion factor ``c``.
 
         A common example in cell electrophysiology is::
 
