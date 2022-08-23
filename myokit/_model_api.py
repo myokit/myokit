@@ -4060,6 +4060,8 @@ class Variable(VarOwner):
         unit returned by :meth:`Variable.unit()`. It will not check whether the
         current RHS expression evaluates to the correct units.
 
+        Returns ``True`` if a unit conversion was performed, ``False`` if not.
+
         Raises a :class:`myokit.IncompatibleUnitError` if the units cannot be
         converted.'
         """
@@ -4072,7 +4074,7 @@ class Variable(VarOwner):
 
         # Check if units are equal
         if new_unit == old_unit:
-            return
+            return False
 
         # Determine scaling factor (from old to new)
         fw = myokit.Unit.conversion_factor(old_unit, new_unit, helpers)
@@ -4111,6 +4113,8 @@ class Variable(VarOwner):
                 new_ref = myokit.Multiply(old_ref, fw)
                 for ref in list(var.refs_by(False)):
                     ref.set_rhs(ref.rhs().clone(subst={old_ref: new_ref}))
+
+        return True
 
     def _delete(self, recursive=False, ignore_siblings=False):
         """
