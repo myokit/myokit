@@ -9,6 +9,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#895](https://github.com/MichaelClerx/myokit/pull/895) Fixed the value returned by `Name.diff()` for the situation where the Name's variable depended on a bound variable.
   - [#888](https://github.com/MichaelClerx/myokit/pull/888) [#892](https://github.com/MichaelClerx/myokit/pull/892) Improved documentation for `Unit.conversion_factor` with help from @martinjrobins.
 
 ## [1.33.7] - 2022-07-27

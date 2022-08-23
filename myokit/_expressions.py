@@ -209,6 +209,44 @@ class Expression(object):
 
         return dependent
 
+    def depends_on_state(self, deep=False):
+        """
+        Returns ``True`` if this :class:`Expression` depends on one or more
+        state variables.
+
+        With ``deep=False`` (default), only dependencies appearing directly in
+        the expression are checked. With ``deep=True`` the method also checks
+        the right-hand side equation defined in the model for any
+        :class:`Name` or :class:`Derivative` it encounters.
+        """
+        # Shallow check
+        if not deep:
+            for lhs in self._references:
+                if lhs.is_state_value():
+                    return True
+            return False
+
+        # Determine if this variable has a (deep) dependency on a state
+        todo = set(self._references)
+        done = set()
+        if isinstance(self, myokit.Name):
+            done.add(self)
+        while todo:
+            ref = todo.pop()
+            done.add(ref)
+            if ref.is_state_value():
+                return True
+            elif ref._has_partials or ref._has_initials:
+                # Partial derivatives and initial values have no rhs
+                continue
+            elif not ref._proper:
+                # Values that are not variables count as independent
+                continue
+            var = ref.var()
+            if not var.is_bound():
+                todo.update(var.rhs()._references - done)
+        return False
+
     def diff(self, lhs, independent_states=True):
         """
         Returns an expression representing the partial derivative of this
@@ -229,15 +267,14 @@ class Expression(object):
         - The partial derivative of a :class:`Name` referencing a state
           variable is zero if ``independent_states=True``, but will otherwise
           be represented as a :class:`PartialDerivative`.
-        - The partial derivative of a :class:`Derivative`, and the partial
-          derivative of a :class:`Name` referencing a non-state variable, will
-          both be determined based on the corresponding right-hand side
-          expression. If this references the ``lhs`` a ``PartialDerivative``
-          will be returned. If it does not reference the ``lhs`` and
-          ``independent_states=True``, then zero will be returned. If it does
-          not reference the ``lhs``, but ``independent_states=False`` and one
-          or more states are referenced, a :class:`PartialDerivative` will be
-          returned.
+        - The partial derivative of a :class:`Derivative` or of a :class:`Name`
+          referencing a non-state variable, will both be determined based on
+          the corresponding right-hand side expression. If this references the
+          ``lhs``, then a ``PartialDerivative`` will be returned. If it does
+          not reference the ``lhs`` and ``independent_states=True``, then zero
+          will be returned. If it does not reference the ``lhs``, but
+          ``independent_states=False`` and one or more states are referenced,
+          then a :class:`PartialDerivative` will be returned.
         - The partial derivative of a :class:`Name` referencing a bound
           variable is zero.
 
@@ -1031,10 +1068,14 @@ class Name(LhsExpression):
             return PartialDerivative(self, lhs)
 
         # If idstates=False, a state variable reference returns an object, and
-        # any intermediary variable is dependent on the lhs (via a state)
+        # any state-dependent variable is dependent on the lhs.
         if not idstates:
-            if self._value.is_state() or self._value.is_intermediary():
+            if self._value.is_state():
                 return PartialDerivative(self, lhs)
+            elif self._value.is_intermediary():
+                # Possible state dependency: check!
+                if self.depends_on_state(deep=True):
+                    return PartialDerivative(self, lhs)
 
         # Otherwise, check for dependency (includes checks on this variable!)
         if self.depends_on(lhs, deep=True):
