@@ -5,10 +5,11 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#893](https://github.com/MichaelClerx/myokit/pull/893) `Variable.convert_unit` now returns `True` if a conversion was carried out or `False` if not.
 - Deprecated
 - Removed
 - Fixed
-  - [#888](https://github.com/MichaelClerx/myokit/pull/888) [#892](https://github.com/MichaelClerx/myokit/pull/892) Improved documentation for `Unit.conversion_factor`.
+  - [#888](https://github.com/MichaelClerx/myokit/pull/888) [#892](https://github.com/MichaelClerx/myokit/pull/892) Improved documentation for `Unit.conversion_factor` with help from @martinjrobins.
 
 ## [1.33.7] - 2022-07-27
 - Fixed
@@ -245,16 +246,22 @@ This page lists the main changes made to Myokit in each release.
   - [#531](https://github.com/MichaelClerx/myokit/pull/531) Fixed bug where GUI CellML export didn't export stimulus current.
 
 ## [1.30.5] - 2020-04-20
-- Added support for CellML 2.0.
-- Rewrote SBML import to use etree instead of DOM.
-- Removed `parse_mathml_dom` function.
-- Removed mxml `dom_child` and `dom_next` methods.
-- Now setting OpenCL framework as linker flag on MacOS.
+- Added
+  - [#525](https://github.com/myokit/myokit/pull/525) Added support for CellML 2.0.
+- Changed
+  - [#516](https://github.com/myokit/myokit/pull/516) Rewrote SBML import to use etree instead of DOM.
+- Removed
+  - [#522](https://github.com/myokit/myokit/pull/522) Removed `myokit.formats.mathml.parse_mathml_dom` function.
+  - [#522](https://github.com/myokit/myokit/pull/522) Removed mxml `myokit.mxml.dom_child` and `myokit.mxml.dom_next` methods.
+- Fixed
+  - [#515](https://github.com/myokit/myokit/pull/515) Now setting OpenCL framework as linker flag on MacOS.
 
 ## [1.30.4] - 2020-03-27
-- Fixed a bug with running simulations in Spyder on Windows.
-- Added `clone()` and `__repr__()` methods to myokit.Equation.
-- Some fixes and tweaks to CellML 1.0/1.1 API.
+- Added
+  - [#503](https://github.com/myokit/myokit/pull/503) Added `clone()` and `__repr__()` methods to myokit.Equation.
+  - [#507](https://github.com/myokit/myokit/pull/507) Fixed a bug with running simulations in Spyder on Windows.
+- Fixed
+  - [#496](https://github.com/myokit/myokit/pull/496) Some fixes and tweaks to CellML 1.0/1.1 API.
 
 ## [1.30.3] - 2020-03-02
 - Small fixes to CellML validation.
