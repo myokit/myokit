@@ -32,6 +32,8 @@ pd_model = myokit.parse_model("""
     name: pd_model
     ina.m = 0.1
     membrane.V = -80
+    bound.dot_pace_direct = 0
+    bound.dot_pace_indirect = 0
 
     [engine]
     time = 0 [ms]
@@ -76,6 +78,10 @@ pd_model = myokit.parse_model("""
     time_direct = engine.time
         in [ms]
     time_indirect = time_direct
+        in [ms]
+    dot(dot_pace_direct) = pace_direct
+        in [ms]
+    dot(dot_pace_indirect) = pace_indirect
         in [ms]
 
 """)
@@ -1088,6 +1094,24 @@ class DerivativeTest(unittest.TestCase):
         z = x.diff(y)
         self.assertIsInstance(z, myokit.PartialDerivative)
         self.assertEqual(z.code(), 'diff(dot(str:x), str:y)')
+
+        # Derivative of something depending only on a bound variable is one or
+        # zero
+        dpd = m.get('bound.dot_pace_direct').lhs()
+        self.assertEqual(
+            dpd.diff(C, independent_states=True),
+            myokit.Number(0, 1 / myokit.units.pF))
+        self.assertEqual(
+            dpd.diff(C, independent_states=False),
+            myokit.Number(0, 1 / myokit.units.pF))
+
+        dpi = m.get('bound.dot_pace_indirect').lhs()
+        self.assertEqual(
+            dpi.diff(C, independent_states=True),
+            myokit.Number(0, 1 / myokit.units.pF))
+        self.assertEqual(
+            dpi.diff(C, independent_states=False),
+            myokit.Number(0, 1 / myokit.units.pF))
 
     def test_equal(self):
         # Test equality checking on derivatives

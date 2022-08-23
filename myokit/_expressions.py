@@ -1207,13 +1207,18 @@ class Derivative(LhsExpression):
         rhs = self._op._value.rhs()
 
         # Not treating states as independent: then return object if any of the
-        # RHS's references are to intermediary or state variables
+        # RHS's references are to intermediary or state variables.
+        # (Note that the fact that this is a dot(state) doesn't mean it depends
+        # on that state: We should instead inspect the RHS.)
         if not idstates:
             for ref in rhs._references:
                 var = ref.var()
-                if (ref == lhs or (not ref._proper) or
-                        var.is_intermediary() or var.is_state()):
+                if ref == lhs or (not ref._proper) or var.is_state():
                     return PartialDerivative(self, lhs)
+                if var.is_intermediary():
+                    # Possible state dependency: check!
+                    if ref.depends_on_state(deep=True):
+                        return PartialDerivative(self, lhs)
 
         # Check for dependencies in RHS
         if rhs.depends_on(lhs, deep=True):
