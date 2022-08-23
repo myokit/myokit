@@ -110,6 +110,104 @@ class ExpressionTest(unittest.TestCase):
         self.assertTrue(e.contains_type(myokit.Number))
         self.assertFalse(e.contains_type(myokit.Minus))
 
+    def test_depends_on(self):
+        # Tests Expression.depends_on()
+
+        # Shallow checking
+        m = pd_model.clone()
+        c = m.get('membrane.C').lhs()
+        v = m.get('membrane.V').lhs()
+        self.assertTrue(c.depends_on(c))
+        self.assertFalse(c.depends_on(v))
+        self.assertTrue(v.depends_on(v))
+        self.assertFalse(v.depends_on(c))
+
+        # Deep checking
+        self.assertFalse(c.depends_on(v, deep=True))
+        self.assertTrue(v.depends_on(c, deep=True))
+
+        # Deep checking can handle improper names
+        p = myokit.Plus(c, myokit.Name('x'))
+        self.assertTrue(p.depends_on(c, True))
+        self.assertTrue(p.depends_on(myokit.Name('x')), True)
+
+        # Deep checking can handle partial derivs and inits
+        q = myokit.PartialDerivative(myokit.Name(v.var()), c)
+        self.assertFalse(q.depends_on(c, True))
+        self.assertFalse(q.depends_on(c, False))
+        self.assertFalse(q.depends_on(myokit.Name(v.var()), True))
+        self.assertFalse(q.depends_on(myokit.Name(v.var()), False))
+        q = myokit.InitialValue(myokit.Name(v.var()))
+        self.assertFalse(q.depends_on(c, True))
+        self.assertFalse(q.depends_on(c, False))
+        self.assertFalse(q.depends_on(myokit.Name(v.var()), True))
+        self.assertFalse(q.depends_on(myokit.Name(v.var()), False))
+
+        # Deep checking can handle partial derivs and inits & improper names
+        q = myokit.Plus(p, myokit.PartialDerivative(v, myokit.Name('x')))
+        self.assertTrue(q.depends_on(c, True))
+        self.assertTrue(q.depends_on(myokit.Name('x'), True))
+        q = myokit.Plus(p, myokit.InitialValue(myokit.Name('x')))
+        self.assertTrue(q.depends_on(c, True))
+        self.assertTrue(q.depends_on(myokit.Name('x'), True))
+
+        # Test with complex web of dependencies
+        m.get('ina.E').set_rhs('a + b + c + k1 + k2 + inf')
+        m.get('ina.E2').set_rhs('b + k1 + k2 + inf + tau + E3 + E')
+        e = m.get('ina.E')
+        a = m.get('ina.a').lhs()
+        self.assertFalse(e.lhs().depends_on(a, False))
+        self.assertTrue(e.lhs().depends_on(a, True))
+        self.assertTrue(e.rhs().depends_on(a, False))
+        self.assertTrue(e.rhs().depends_on(a, True))
+
+        e = m.get('ina.E2')
+        self.assertFalse(e.lhs().depends_on(a, False))
+        self.assertTrue(e.lhs().depends_on(a, True))
+        self.assertFalse(e.rhs().depends_on(a, False))
+        self.assertTrue(e.rhs().depends_on(a, True))
+
+    def test_depends_on_state(self):
+        # Tests Expression.depends_on_state()
+
+        # Shallow checking
+        m = pd_model.clone()
+        c = m.get('membrane.C').lhs()
+        k = m.get('ina.k1').lhs()
+        t = m.get('ina.tau').lhs()
+        self.assertFalse(c.depends_on_state())
+        self.assertFalse(k.depends_on_state())
+        self.assertFalse(t.depends_on_state())
+        self.assertTrue(k.depends_on_state(deep=True))
+        self.assertTrue(t.depends_on_state(deep=True))
+
+        v = m.get('membrane.V')
+        self.assertTrue(myokit.Name(v).depends_on_state())
+        self.assertTrue(myokit.Name(v).depends_on_state(deep=True))
+        self.assertFalse(v.lhs().depends_on_state())
+        self.assertTrue(v.rhs())
+        self.assertTrue(v.lhs().depends_on_state(deep=True))
+
+        # Can handle improper names
+        p = myokit.Plus(c, myokit.Name('x'))
+        self.assertFalse(p.depends_on_state(deep=False))
+        self.assertFalse(p.depends_on_state(deep=True))
+
+        # Can handle partial derivs and inits (always false)
+        v = v.lhs()
+        q = myokit.PartialDerivative(v, c)
+        self.assertFalse(q.depends_on_state(False))
+        self.assertFalse(q.depends_on_state(True))
+        q = myokit.Plus(c, myokit.PartialDerivative(v, c))
+        self.assertFalse(q.depends_on_state(False))
+        self.assertFalse(q.depends_on_state(True))
+        q = myokit.InitialValue(myokit.Name(v.var()))
+        self.assertFalse(q.depends_on_state(False))
+        self.assertFalse(q.depends_on_state(True))
+        q = myokit.Plus(c, myokit.InitialValue(myokit.Name(v.var())))
+        self.assertFalse(q.depends_on_state(False))
+        self.assertFalse(q.depends_on_state(True))
+
     def test_diff(self):
         # Tests :meth:`Expression.diff()`
 
@@ -754,35 +852,6 @@ class NameTest(unittest.TestCase):
         self.assertEqual(a, b)
         b = z.clone(expand=True, retain=[vx])
         self.assertEqual(a, b)
-
-    def test_depends_on(self):
-        # Tests the depends_on method on Name
-
-        # Shallow checking
-        m = pd_model.clone()
-        c = m.get('membrane.C').lhs()
-        v = m.get('membrane.V').lhs()
-        self.assertTrue(c.depends_on(c))
-        self.assertFalse(c.depends_on(v))
-        self.assertTrue(v.depends_on(v))
-        self.assertFalse(v.depends_on(c))
-
-        # Deep checking
-        self.assertFalse(c.depends_on(v, deep=True))
-        self.assertTrue(v.depends_on(c, deep=True))
-
-        # Deep checking can handle improper names
-        p = myokit.Plus(c, myokit.Name('x'))
-        self.assertTrue(p.depends_on(c, True))
-        self.assertTrue(p.depends_on(myokit.Name('x')), True)
-
-        # Deep checking can handle partial derivs and inits
-        q = myokit.Plus(p, myokit.PartialDerivative(v, c))
-        self.assertTrue(q.depends_on(c, True))
-        self.assertTrue(q.depends_on(myokit.Name('x')), True)
-        q = myokit.Plus(p, myokit.InitialValue(myokit.Name(v.var())))
-        self.assertTrue(q.depends_on(c, True))
-        self.assertTrue(q.depends_on(myokit.Name('x')), True)
 
     def test_diff(self):
         # Tests Name.diff

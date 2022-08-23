@@ -187,27 +187,29 @@ class Expression(object):
             return lhs in self._references
 
         # Determine if this variable has a (deep) dependency on the given lhs
-        dependent = False
         done = set()
+        if isinstance(self, myokit.LhsExpression):
+            done.add(self)
         todo = set(self._references)
         while todo:
             ref = todo.pop()
+            done.add(ref)
             if ref == lhs:
-                dependent = True
+                return True
             elif ref._has_partials or ref._has_initials:
                 # Partial derivatives and initial values have no rhs
                 continue
             elif not ref._proper:
                 # Values that are not variables count as independent
                 continue
+
             var = ref.var()
             if ref.is_state_value() or var.is_bound():
                 # State values and bound variables have no rhs
                 continue
             else:
                 todo.update(var.rhs()._references - done)
-
-        return dependent
+        return False
 
     def depends_on_state(self, deep=False):
         """
@@ -228,8 +230,8 @@ class Expression(object):
 
         # Determine if this variable has a (deep) dependency on a state
         todo = set(self._references)
-        done = set()
-        if isinstance(self, myokit.Name):
+        done = set([self])
+        if isinstance(self, myokit.LhsExpression):
             done.add(self)
         while todo:
             ref = todo.pop()
@@ -1293,15 +1295,15 @@ class PartialDerivative(LhsExpression):
     __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
 
     def __init__(self, var1, var2):
-        super(PartialDerivative, self).__init__((var1, var2))
         if not isinstance(var1, (Name, Derivative)):
             raise IntegrityError(
                 'The first argument to a partial derivative must be a'
-                ' variable name or a dot() expression.', self._token)
+                ' variable name or a dot() expression.')
         if not isinstance(var2, (Name, InitialValue)):
             raise IntegrityError(
                 'The second argument to a partial derivative must be a'
-                ' variable name or an initial value.', self._token)
+                ' variable name or an initial value.')
+        super(PartialDerivative, self).__init__((var1, var2))
 
         self._var1 = var1
         self._var2 = var2
