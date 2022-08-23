@@ -230,7 +230,7 @@ class Expression(object):
 
         # Determine if this variable has a (deep) dependency on a state
         todo = set(self._references)
-        done = set([self])
+        done = set()
         if isinstance(self, myokit.LhsExpression):
             done.add(self)
         while todo:
