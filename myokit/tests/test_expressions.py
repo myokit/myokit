@@ -68,6 +68,16 @@ pd_model = myokit.parse_model("""
         in [pA]
     I2 = 0.4 * g * m^3 * (V - E)
         in [pA]
+
+    [bound]
+    pace = 0 bind pace
+    pace_direct = pace
+    pace_indirect = pace_direct
+    time_direct = engine.time
+        in [ms]
+    time_indirect = time_direct
+        in [ms]
+
 """)
 
 
@@ -823,6 +833,50 @@ class NameTest(unittest.TestCase):
             myokit.Number(0, myokit.units.ms / myokit.units.pF))
         self.assertEqual(
             t.diff(C, independent_states=False),
+            myokit.Number(0, myokit.units.ms / myokit.units.pF))
+
+        # Derivative of something depending only on a bound variable is one or
+        # zero
+        p = myokit.Name(m.get('bound.pace'))
+        self.assertEqual(p.diff(p, independent_states=True), myokit.Number(1))
+        self.assertEqual(p.diff(p, independent_states=False), myokit.Number(1))
+        self.assertEqual(
+            p.diff(C, independent_states=True),
+            myokit.Number(0, 1 / myokit.units.pF))
+        self.assertEqual(
+            p.diff(C, independent_states=False),
+            myokit.Number(0, 1 / myokit.units.pF))
+
+        pd = myokit.Name(m.get('bound.pace_direct'))
+        self.assertEqual(
+            pd.diff(C, independent_states=True),
+            myokit.Number(0, 1 / myokit.units.pF))
+        self.assertEqual(
+            pd.diff(C, independent_states=False),
+            myokit.Number(0, 1 / myokit.units.pF))
+
+        pi = myokit.Name(m.get('bound.pace_indirect'))
+        self.assertEqual(
+            pi.diff(C, independent_states=True),
+            myokit.Number(0, 1 / myokit.units.pF))
+        self.assertEqual(
+            pi.diff(C, independent_states=False),
+            myokit.Number(0, 1 / myokit.units.pF))
+
+        td = myokit.Name(m.get('bound.time_direct'))
+        self.assertEqual(
+            td.diff(C, independent_states=True),
+            myokit.Number(0, myokit.units.ms / myokit.units.pF))
+        self.assertEqual(
+            td.diff(C, independent_states=False),
+            myokit.Number(0, myokit.units.ms / myokit.units.pF))
+
+        ti = myokit.Name(m.get('bound.time_indirect'))
+        self.assertEqual(
+            ti.diff(C, independent_states=True),
+            myokit.Number(0, myokit.units.ms / myokit.units.pF))
+        self.assertEqual(
+            ti.diff(C, independent_states=False),
             myokit.Number(0, myokit.units.ms / myokit.units.pF))
 
         # Test diff of "improper" name
