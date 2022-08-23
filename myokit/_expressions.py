@@ -187,13 +187,57 @@ class Expression(object):
             return lhs in self._references
 
         # Determine if this variable has a (deep) dependency on the given lhs
-        dependent = False
         done = set()
+        if isinstance(self, myokit.LhsExpression):
+            done.add(self)
         todo = set(self._references)
         while todo:
             ref = todo.pop()
+            done.add(ref)
             if ref == lhs:
-                dependent = True
+                return True
+            elif ref._has_partials or ref._has_initials:
+                # Partial derivatives and initial values have no rhs
+                continue
+            elif not ref._proper:
+                # Values that are not variables count as independent
+                continue
+
+            var = ref.var()
+            if ref.is_state_value() or var.is_bound():
+                # State values and bound variables have no rhs
+                continue
+            else:
+                todo.update(var.rhs()._references - done)
+        return False
+
+    def depends_on_state(self, deep=False):
+        """
+        Returns ``True`` if this :class:`Expression` depends on one or more
+        state variables.
+
+        With ``deep=False`` (default), only dependencies appearing directly in
+        the expression are checked. With ``deep=True`` the method also checks
+        the right-hand side equation defined in the model for any
+        :class:`Name` or :class:`Derivative` it encounters.
+        """
+        # Shallow check
+        if not deep:
+            for lhs in self._references:
+                if lhs.is_state_value():
+                    return True
+            return False
+
+        # Determine if this variable has a (deep) dependency on a state
+        todo = set(self._references)
+        done = set()
+        if isinstance(self, myokit.LhsExpression):
+            done.add(self)
+        while todo:
+            ref = todo.pop()
+            done.add(ref)
+            if ref.is_state_value():
+                return True
             elif ref._has_partials or ref._has_initials:
                 # Partial derivatives and initial values have no rhs
                 continue
@@ -201,13 +245,9 @@ class Expression(object):
                 # Values that are not variables count as independent
                 continue
             var = ref.var()
-            if ref.is_state_value() or var.is_bound():
-                # State values and bound variables have no rhs
-                continue
-            else:
+            if not var.is_bound():
                 todo.update(var.rhs()._references - done)
-
-        return dependent
+        return False
 
     def diff(self, lhs, independent_states=True):
         """
@@ -229,15 +269,14 @@ class Expression(object):
         - The partial derivative of a :class:`Name` referencing a state
           variable is zero if ``independent_states=True``, but will otherwise
           be represented as a :class:`PartialDerivative`.
-        - The partial derivative of a :class:`Derivative`, and the partial
-          derivative of a :class:`Name` referencing a non-state variable, will
-          both be determined based on the corresponding right-hand side
-          expression. If this references the ``lhs`` a ``PartialDerivative``
-          will be returned. If it does not reference the ``lhs`` and
-          ``independent_states=True``, then zero will be returned. If it does
-          not reference the ``lhs``, but ``independent_states=False`` and one
-          or more states are referenced, a :class:`PartialDerivative` will be
-          returned.
+        - The partial derivative of a :class:`Derivative` or of a :class:`Name`
+          referencing a non-state variable, will both be determined based on
+          the corresponding right-hand side expression. If this references the
+          ``lhs``, then a ``PartialDerivative`` will be returned. If it does
+          not reference the ``lhs`` and ``independent_states=True``, then zero
+          will be returned. If it does not reference the ``lhs``, but
+          ``independent_states=False`` and one or more states are referenced,
+          then a :class:`PartialDerivative` will be returned.
         - The partial derivative of a :class:`Name` referencing a bound
           variable is zero.
 
@@ -1031,10 +1070,14 @@ class Name(LhsExpression):
             return PartialDerivative(self, lhs)
 
         # If idstates=False, a state variable reference returns an object, and
-        # any intermediary variable is dependent on the lhs (via a state)
+        # any state-dependent variable is dependent on the lhs.
         if not idstates:
-            if self._value.is_state() or self._value.is_intermediary():
+            if self._value.is_state():
                 return PartialDerivative(self, lhs)
+            elif self._value.is_intermediary():
+                # Possible state dependency: check!
+                if self.depends_on_state(deep=True):
+                    return PartialDerivative(self, lhs)
 
         # Otherwise, check for dependency (includes checks on this variable!)
         if self.depends_on(lhs, deep=True):
@@ -1166,13 +1209,18 @@ class Derivative(LhsExpression):
         rhs = self._op._value.rhs()
 
         # Not treating states as independent: then return object if any of the
-        # RHS's references are to intermediary or state variables
+        # RHS's references are to intermediary or state variables.
+        # (Note that the fact that this is a dot(state) doesn't mean it depends
+        # on that state: We should instead inspect the RHS.)
         if not idstates:
             for ref in rhs._references:
                 var = ref.var()
-                if (ref == lhs or (not ref._proper) or
-                        var.is_intermediary() or var.is_state()):
+                if ref == lhs or (not ref._proper) or var.is_state():
                     return PartialDerivative(self, lhs)
+                if var.is_intermediary():
+                    # Possible state dependency: check!
+                    if ref.depends_on_state(deep=True):
+                        return PartialDerivative(self, lhs)
 
         # Check for dependencies in RHS
         if rhs.depends_on(lhs, deep=True):
@@ -1247,15 +1295,15 @@ class PartialDerivative(LhsExpression):
     __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
 
     def __init__(self, var1, var2):
-        super(PartialDerivative, self).__init__((var1, var2))
         if not isinstance(var1, (Name, Derivative)):
             raise IntegrityError(
                 'The first argument to a partial derivative must be a'
-                ' variable name or a dot() expression.', self._token)
+                ' variable name or a dot() expression.')
         if not isinstance(var2, (Name, InitialValue)):
             raise IntegrityError(
                 'The second argument to a partial derivative must be a'
-                ' variable name or an initial value.', self._token)
+                ' variable name or an initial value.')
+        super(PartialDerivative, self).__init__((var1, var2))
 
         self._var1 = var1
         self._var2 = var2
