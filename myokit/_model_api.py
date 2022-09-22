@@ -473,6 +473,8 @@ class VarOwner(ModelPart, VarProvider):
     def add_variable(self, name):
         """
         Adds a child variable with the given `name` to this :class:`VarOwner`.
+
+        Returns the newly created :class:`myokit.Variable` object.
         """
         if not self.can_add_variable(name):
             raise myokit.DuplicateName(
@@ -499,7 +501,7 @@ class VarOwner(ModelPart, VarProvider):
         This method can be used when symbolically manipulating a model in
         situations where the exact names are unimportant.
 
-        Returns the newly created variable.
+        Returns the newly created :class:`myokit.Variable` object.
         """
         try:
             return self.add_variable(name)
@@ -834,9 +836,11 @@ class Model(ObjectWithMeta, VarProvider):
 
     def add_component(self, name):
         """
-        Adds a component with the given `name` to this model.
+        Adds a component with the given ``name`` to this model.
 
         This method resets the model's validation status.
+
+        Returns the newly created :class:`myokit.Component` object.
         """
         name = check_name(name)
         # Check for duplicate names
@@ -861,7 +865,7 @@ class Model(ObjectWithMeta, VarProvider):
         This method can be used when symbolically manipulating a model in
         situations where the exact names are unimportant.
 
-        Returns the newly created component.
+        Returns the newly created :class:`myokit.Component` object.
         """
         try:
             return self.add_component(name)
@@ -882,6 +886,8 @@ class Model(ObjectWithMeta, VarProvider):
     def add_function(self, name, arguments, template):
         """
         Adds a user function to this model.
+
+        Returns the newly created :class:`myokit.UserFunction` object.
         """
         name = check_name(name)
 
@@ -3656,7 +3662,7 @@ class Component(VarOwner):
 
     def add_alias(self, name, variable):
         """
-        Adds an alias to this component. The alias ``name`` will be refer to
+        Adds an alias to this component: the alias ``name`` will be refer to
         the :class:`Variable` object given as ``variable``.
 
         Aliases can only be created for variables of other components.
@@ -3712,8 +3718,9 @@ class Component(VarOwner):
 
     def alias_for(self, variable):
         """
-        Returns an alias for the :class:`Variable` variable. Raises a
-        ``KeyError`` if no such alias is found.
+        Returns an alias for the :class:`Variable` variable.
+
+        Raises a ``KeyError`` if no such alias is found.
         """
         for alias, var in self._alias_map.items():
             if var == variable:
@@ -3742,6 +3749,8 @@ class Component(VarOwner):
 
     def qname(self, hide=None):
         """
+        Returns this component's ``qname``.
+
         A component's ``qname`` is simply its name. No model name is prefixed.
         """
         return self._name
