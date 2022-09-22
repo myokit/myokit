@@ -13,6 +13,7 @@ This page lists the main changes made to Myokit in each release.
   - [#888](https://github.com/MichaelClerx/myokit/pull/888) [#892](https://github.com/MichaelClerx/myokit/pull/892) Improved documentation for `Unit.conversion_factor` with help from @martinjrobins.
   - [#895](https://github.com/MichaelClerx/myokit/pull/895) Fixed the value returned by `Name.diff()` and `Expression.diff()` for the situation where the associated RHS depends on a bound variable.
   - [#895](https://github.com/MichaelClerx/myokit/pull/895) Fixed performance issue in `Expression.depends_on`.
+  - [#896](https://github.com/MichaelClerx/myokit/pull/896) Small improvements to Model, Component, and Variable documentation. 
 
 ## [1.33.7] - 2022-07-27
 - Fixed
