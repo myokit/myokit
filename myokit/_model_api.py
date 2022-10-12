@@ -834,8 +834,6 @@ class Model(ObjectWithMeta, VarProvider):
         if name:
             self.meta['name'] = str(name)
 
-    def eval_current_state(self):
-        return [float(eqn.rhs) for eqn in self.inits()]
 
     def add_component(self, name):
         """
@@ -3259,7 +3257,7 @@ class Model(ObjectWithMeta, VarProvider):
         Returns the current state of the model as a list of floating point
         numbers.
         """
-        return list(self._current_state)
+        return [float(eqn.rhs) for eqn in self.inits()]
 
     def states(self):
         """
@@ -4752,7 +4750,7 @@ class Variable(VarOwner):
         """
         if not self._is_state:
             raise Exception('Only state variables have initial values.')
-        return self.model()._current_state[self._indice]
+        return float(self.model()._current_state[self._indice])
 
     def unit(self, mode=myokit.UNIT_TOLERANT):
         """

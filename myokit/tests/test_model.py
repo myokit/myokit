@@ -2055,6 +2055,22 @@ class ModelTest(unittest.TestCase):
         m.validate()
         self.assertEqual(len(m.warnings()), 0)  # issue fixed!
 
+    def test_state(self):
+        m = myokit.Model()
+        c = m.add_component('c')
+        y = c.add_variable('y')
+        y.promote(2.0)
+        t = c.add_variable('t')
+        t.set_binding('time')
+        p = c.add_variable('p')
+        p.set_rhs(3)
+
+        self.assertEqual(m.state(), [2])
+
+        y.demote()
+        y.promote(myokit.Multiply(myokit.Number(2), myokit.Name(p)))
+        self.assertEqual(m.state(), [6])
+
     def test_value(self):
         # Test :meth:`Model.value()`.
 

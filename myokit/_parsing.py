@@ -477,15 +477,6 @@ def parse_model_from_stream(stream, syntax_only=False):
                 'All initial conditions must be constant', t[2], t[3], str(e), cause=e)
         model._current_state[i] = expr
 
-    try:
-        model.eval_current_state()
-    except myokit.NonConstantExpressionError as e:
-        t = e.token()
-        if t:
-            raise ParseError('NonConstantExpressionError', t[2], t[3], str(e), cause=e)
-        else:   # pragma: no cover
-            raise ParseError('NonConstantExpressionError', 0, 0, str(e), cause=e)
-
     # Check the semantics of the model
     try:
         model.validate()
