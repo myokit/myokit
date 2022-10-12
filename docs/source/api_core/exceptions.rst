@@ -89,3 +89,5 @@ Inheriting classes
 
 .. autoclass:: VariableMappingError
 
+.. autoclass:: NonConstantExpressionError
+
