@@ -799,7 +799,7 @@ class Model(ObjectWithMeta, VarProvider):
         # The model's state variables
         self._state = []
 
-        # The model's current state (list of floats)
+        # The model's current state (list of myokit.Expression)
         self._current_state = []
 
         # A dict mapping binding names to variables
@@ -833,6 +833,9 @@ class Model(ObjectWithMeta, VarProvider):
         # Name meta property
         if name:
             self.meta['name'] = str(name)
+
+    def eval_current_state(self):
+        return [float(eqn.rhs) for eqn in self.inits()]
 
     def add_component(self, name):
         """
@@ -2055,7 +2058,7 @@ class Model(ObjectWithMeta, VarProvider):
         def StateDefIterator(model):
             for k, var in enumerate(model._state):
                 yield Equation(
-                    myokit.Name(var), myokit.Number(self._current_state[k]))
+                    myokit.Name(var), self._current_state[k])
         return StateDefIterator(self)
 
     def is_similar(self, other, check_unames=False):
@@ -4357,10 +4360,11 @@ class Variable(VarOwner):
         """
         return self._lhs
 
-    def promote(self, state_value=0):
+    def promote(self, state_value=0, check_const=True):
         """
         Turns this variable into a state variable with a current state value
-        given by ``state_value``.
+        given by ``state_value``. state_value could be a value, an Expression,
+        or a proto expression
 
         This will reset the validation status of the model this variable
         belongs to.
@@ -4372,15 +4376,19 @@ class Variable(VarOwner):
         if self._binding is not None:
             raise Exception(
                 'State variables cannot be bound to an external value.')
-
-        # Check state value argument
-        if isinstance(state_value, myokit.Expression):
-            if not state_value.is_literal():
-                raise myokit.NonLiteralValueError(
-                    'Expressions for state values can not contain references'
-                    ' to other variables.')
+        if not isinstance(state_value, (myokit.Expression, tuple)):
+            state_value = myokit.Number(state_value)
 
         model = self.model()
+
+        # Check state value argument, turn off when parsing as rhs
+        # for variables have not yet been set
+        if check_const:
+            if not state_value.is_constant():
+                raise myokit.NonConstantExpressionError(
+                    'Expressions for state values must only contain'
+                    'references to constant variables'
+                )
         try:
             # Set lhs to derivative expression
             self._lhs = myokit.Derivative(myokit.Name(self))
@@ -4391,8 +4399,8 @@ class Variable(VarOwner):
             # Add to list of states
             model._state.append(self)
 
-            # Add value to list of current values
-            model._current_state.append(float(state_value))
+            # Add state_value to list of current values
+            model._current_state.append(state_value)
 
             # All references to this variable are now considered references to
             # its state value

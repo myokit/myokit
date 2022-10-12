@@ -420,10 +420,9 @@ def parse_model_from_stream(stream, syntax_only=False):
                     'Duplicate initial value', t0[2], t0[3],
                     'A value for <' + name + '> was already specified.')
             expect(next(stream), EQUAL)
-            expr = parse_expression_stream(stream)
+            expr = parse_proto_expression(stream)
             expect(next(stream), EOL)
             info.initial_values[name] = expr
-            reg_token(info, t0, expr)
 
         token = stream.peek()
 
@@ -467,6 +466,25 @@ def parse_model_from_stream(stream, syntax_only=False):
             # won't have been resolved in the first place.
             var.set_rhs(convert_proto_expression(var._proto_rhs, var, info))
         del var._proto_rhs
+
+
+    # Resolve variable references in initial conditions
+    # check that current state can be evaluated
+    for i, rhs in enumerate(model._current_state):
+        expr = convert_proto_expression(rhs, var, info)
+        if not expr.is_constant():
+            raise ParseError(
+                'All initial conditions must be constant', t[2], t[3], str(e), cause=e)
+        model._current_state[i] = expr
+
+    try:
+        model.eval_current_state()
+    except myokit.NonConstantExpressionError as e:
+        t = e.token()
+        if t:
+            raise ParseError('NonConstantExpressionError', t[2], t[3], str(e), cause=e)
+        else:   # pragma: no cover
+            raise ParseError('NonConstantExpressionError', 0, 0, str(e), cause=e)
 
     # Check the semantics of the model
     try:
@@ -677,7 +695,7 @@ def parse_variable(stream, info, parent):
                 'No initial value was found for "' + var.qname() + '"')
         state_value = info.initial_values[var.qname()]
         try:
-            var.promote(state_value)
+            var.promote(state_value, check_const=False)
         except myokit.NonLiteralValueError as e:
             t = state_value._token
             raise ParseError(

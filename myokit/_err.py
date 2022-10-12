@@ -426,3 +426,11 @@ class VariableMappingError(MyokitError):
 
     *Extends:* :class:`myokit.MyokitError`.
     """
+
+
+class NonConstantExpressionError(MyokitError):
+    """
+    Raised when a constant expression is required, but a non-constant is found.
+
+    *Extends:* :class:`myokit.MyokitError`.
+    """
