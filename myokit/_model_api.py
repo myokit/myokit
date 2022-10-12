@@ -4385,7 +4385,7 @@ class Variable(VarOwner):
         if check_const:
             if not state_value.is_constant():
                 raise myokit.NonConstantExpressionError(
-                    'Expressions for state values must only contain'
+                    'Expressions for state values must only contain '
                     'references to constant variables'
                 )
         try:

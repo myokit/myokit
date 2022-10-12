@@ -1418,6 +1418,19 @@ class ModelParseTest(unittest.TestCase):
             """
         self.assertRaises(myokit.ParseError, myokit.parse, code)
 
+        # non-constant initial value
+        code = """
+            [[model]]
+            c.p = engine.time
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            dot(p) = 1
+            """
+        self.assertRaises(myokit.ParseError, myokit.parse, code)
+
     def test_aliases(self):
         code = """
             [[model]]

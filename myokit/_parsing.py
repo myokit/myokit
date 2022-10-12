@@ -472,9 +472,10 @@ def parse_model_from_stream(stream, syntax_only=False):
     for i, rhs in enumerate(model._current_state):
         expr = convert_proto_expression(rhs, var, info)
         if not expr.is_constant():
+            t = rhs[2][0]
             raise ParseError(
-                'All initial conditions must be constant',
-                t[2], t[3], str(e), cause=e
+                'NonConstantExpression', t[2], t[3],
+                "All initial conditions must be constant"
             )
         model._current_state[i] = expr
 
@@ -686,12 +687,7 @@ def parse_variable(stream, info, parent):
                 'Missing initial value', line, char,
                 'No initial value was found for "' + var.qname() + '"')
         state_value = info.initial_values[var.qname()]
-        try:
-            var.promote(state_value, check_const=False)
-        except myokit.NonLiteralValueError as e:
-            t = state_value._token
-            raise ParseError(
-                'Illegal state value', t[2], t[3], str(e), cause=e)
+        var.promote(state_value, check_const=False)
         del info.initial_values[var.qname()]
 
     # Parse definition, quick unit, bind, label and description syntax

@@ -133,6 +133,22 @@ class ModelBuildTest(unittest.TestCase):
         self.assertFalse(x.is_constant())
         self.assertEqual(x.lhs(), myokit.Derivative(myokit.Name(x)))
 
+        # set number initial value
+        x.demote()
+        x.promote(1)
+        self.assertEqual(x.state_value(), 1)
+
+        # non-constant expression initial value should error
+        b.promote()
+        x.demote()
+        with self.assertRaises(myokit.NonConstantExpressionError):
+            x.promote(myokit.Name(b))
+        b.demote()
+
+        # set constant expression initial value
+        x.promote(myokit.Name(b1))
+        self.assertEqual(x.state_value(), 1)
+
         # Add second component, variables
         Y = m.add_component('Y')
         self.assertNotEqual(X, Y)
