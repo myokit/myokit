@@ -2934,7 +2934,7 @@ class Model(ObjectWithMeta, VarProvider):
         Changes this model's state. Accepts any type of input handled by
         :meth:`map_to_state`.
         """
-        self._current_state = self.map_to_state(state)
+        self._current_state = [myokit.Number(x) for x in self.map_to_state(state)]
 
     def set_value(self, qname, value):
         """
@@ -4722,11 +4722,13 @@ class Variable(VarOwner):
             raise Exception('Only state variables have state values.')
         model = self.model()
         if isinstance(value, myokit.Expression):
-            if not value.is_literal():
-                raise myokit.NonLiteralValueError(
-                    'Expressions for state values can not contain references'
-                    ' to other variables.')
-        model._current_state[self._indice] = float(value)
+            if not value.is_constant():
+                raise myokit.NonConstantExpressionError(
+                    'Expressions for state values must be constant in time.')
+            expr = value
+        else:
+            expr = myokit.Number(float(value))
+        model._current_state[self._indice] = expr
         # No need to reset validation status or cache here.
 
     def set_unit(self, unit=None):
