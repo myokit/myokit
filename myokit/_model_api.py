@@ -834,7 +834,6 @@ class Model(ObjectWithMeta, VarProvider):
         if name:
             self.meta['name'] = str(name)
 
-
     def add_component(self, name):
         """
         Adds a component with the given ``name`` to this model.
@@ -2934,7 +2933,9 @@ class Model(ObjectWithMeta, VarProvider):
         Changes this model's state. Accepts any type of input handled by
         :meth:`map_to_state`.
         """
-        self._current_state = [myokit.Number(x) for x in self.map_to_state(state)]
+        self._current_state = [
+            myokit.Number(x) for x in self.map_to_state(state)
+        ]
 
     def set_value(self, qname, value):
         """

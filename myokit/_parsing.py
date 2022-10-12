@@ -467,14 +467,15 @@ def parse_model_from_stream(stream, syntax_only=False):
             var.set_rhs(convert_proto_expression(var._proto_rhs, var, info))
         del var._proto_rhs
 
-
     # Resolve variable references in initial conditions
     # check that current state can be evaluated
     for i, rhs in enumerate(model._current_state):
         expr = convert_proto_expression(rhs, var, info)
         if not expr.is_constant():
             raise ParseError(
-                'All initial conditions must be constant', t[2], t[3], str(e), cause=e)
+                'All initial conditions must be constant',
+                t[2], t[3], str(e), cause=e
+            )
         model._current_state[i] = expr
 
     # Check the semantics of the model

@@ -659,10 +659,12 @@ class VariableTest(unittest.TestCase):
         self.assertRaisesRegex(
             Exception, 'Only state variables', w.set_state_value, 3)
 
-        # State values must be literals
         v.promote(3)
+
+        # State values must be constant
+        w.promote(1)
         self.assertRaises(
-            myokit.NonLiteralValueError, v.set_state_value, w.lhs())
+            myokit.NonConstantExpressionError, v.set_state_value, w.lhs())
 
     def test_set_unit(self):
         # Test :meth:`Variable.set_unit()`.
