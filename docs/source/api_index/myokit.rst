@@ -91,6 +91,7 @@ myokit
 - :class:`myokit.Multiply`
 - :class:`myokit.MyokitError`
 - :class:`myokit.Name`
+- :class:`myokit.NonConstantExpressionError`
 - :class:`myokit.NonLiteralValueError`
 - :class:`myokit.Not`
 - :class:`myokit.NotEqual`
