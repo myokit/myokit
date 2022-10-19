@@ -77,6 +77,23 @@ config_pyqt5 = """
 backend=pyqt5
 """
 
+# Compatibility options
+config_no_capture_true = """
+[compatibility]
+no_capture = True
+"""
+
+config_no_capture_false = """
+[compatibility]
+no_capture = False
+"""
+
+config_no_capture_empty = """
+[compatibility]
+no_capture = False
+"""
+
+
 # Config with extra bits
 config3 = """
 [extra]
@@ -118,6 +135,7 @@ class TestConfig(unittest.TestCase):
             sys.path = path
 
         # Back-up current settings
+        compat_no_capture = myokit.COMPAT_NO_CAPTURE
         date_format = myokit.DATE_FORMAT
         time_format = myokit.TIME_FORMAT
         force_pyside = myokit.FORCE_PYSIDE
@@ -229,6 +247,24 @@ class TestConfig(unittest.TestCase):
                 self.assertFalse(myokit.FORCE_PYQT4)
                 self.assertFalse(myokit.FORCE_PYQT5)
 
+                # Compatibility
+                myokit.COMPAT_NO_CAPTURE = False
+                with open(d.path('myokit.ini'), 'w') as f:
+                    f.write(config_no_capture_true)
+                config._load()
+                self.assertTrue(myokit.COMPAT_NO_CAPTURE)
+
+                with open(d.path('myokit.ini'), 'w') as f:
+                    f.write(config_no_capture_false)
+                config._load()
+                self.assertFalse(myokit.COMPAT_NO_CAPTURE)
+
+                myokit.COMPAT_NO_CAPTURE = True
+                with open(d.path('myokit.ini'), 'w') as f:
+                    f.write(config_no_capture_empty)
+                config._load()
+                self.assertFalse(myokit.COMPAT_NO_CAPTURE)
+
                 # Odd ini file
                 with open(d.path('myokit.ini'), 'w') as f:
                     f.write(config3)
@@ -243,6 +279,7 @@ class TestConfig(unittest.TestCase):
             myokit.DIR_USER = path
 
             # Reset data and time
+            myokit.COMPAT_NO_CAPTURE = compat_no_capture
             myokit.DATE_FORMAT = date_format
             myokit.TIME_FORMAT = time_format
             myokit.FORCE_PYSIDE = force_pyside

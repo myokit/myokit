@@ -219,7 +219,7 @@ class CModule(object):
             )
 
             # Compile in build directory, catch output
-            capture = not myokit.DEBUG_SC
+            capture = not (myokit.DEBUG_SC or myokit.COMPAT_NO_CAPTURE)
             error, trace = None, None
             with myokit.tools.capture(fd=True, enabled=capture) as s:
                 try:

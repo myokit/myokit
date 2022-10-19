@@ -48,6 +48,11 @@ def _create(path):
         '# This file can be used to set global configuration options for'
         ' Myokit.')
 
+    # Compatibility settings
+    config.add_section('compatibility')
+    config.set('compatibility', '# Don\'t capture compiler output.')
+    config.set('compatibility', '#no_capture = True')
+
     # Date format
     config.add_section('time')
     config.set('time', '# Date format used throughout Myokit')
@@ -203,6 +208,14 @@ def _load():
 
     # Parse the config file
     config.read(path)
+
+    # Compatibility options
+    if config.has_option('compatibility', 'no_capture'):
+        x = config.get('compatibility', 'no_capture').strip().lower()
+        if x == 'true':
+            myokit.COMPAT_NO_CAPTURE = True
+        elif x in ('false', ''):
+            myokit.COMPAT_NO_CAPTURE = False
 
     # Date format
     if config.has_option('time', 'date_format'):

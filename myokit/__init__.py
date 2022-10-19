@@ -242,16 +242,21 @@ del os, inspect
 #
 # Debugging modes
 #
-# Show Generated code, or Write Generated code to file(s)
+# Show Generated code, or Write Generated code to file(s):
 DEBUG_SG = False
 DEBUG_WG = False
-# Show compiler output
+# Show compiler output, with lots of warnings enabled:
 DEBUG_SC = False
-# Show C debug Messages when running compiled code
+# Show C debug Messages when running compiled code:
 DEBUG_SM = False
-# Show C Profiling information when running compiled code
+# Show C Profiling information when running compiled code:
 DEBUG_SP = False
 
+#
+# Disable capturing from myokit.ini, without adding extra warnings.
+# See: https://github.com/myokit/myokit/issues/900
+#
+COMPAT_NO_CAPTURE = False
 
 #
 # Data logging flags (bitmasks)
