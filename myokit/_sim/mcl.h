@@ -18,16 +18,29 @@
 #include <string.h>
 #include <ctype.h>
 
-// Load the opencl libraries.
+/* Load the opencl libraries. */
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
 #else
 #include <CL/cl.h>
 #endif
 
-// Maximum number of platforms/devices to check for.
+/* Maximum number of platforms/devices to check for. */
 #define MCL_MAX_PLATFORMS 255
 #define MCL_MAX_DEVICES 255
+
+/* Prototypes (not required, but avoids warnings) */
+void rtrim(char *str);
+void ltrim(char *str);
+void trim(char *str);
+int mcl_select_device(PyObject* platform, PyObject* device, cl_platform_id* pid, cl_device_id* did);
+int mcl_round_total_size(const int ws_size, const int total_size);
+int mcl_platform_supports_extension(cl_platform_id platform_id, const char* extension);
+PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, char* buffer);
+PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buffer);
+PyObject* mcl_info(void);
+PyObject* mcl_info_current(PyObject* platform_name, PyObject* device_name);
+
 
 /*
  * String functions, straight from Wikipedia
@@ -272,6 +285,8 @@ int mcl_select_device(
 {
     // String containing name of platform/device
     char name[65536];
+    const char* pname;
+    const char* dname;
 
     // Array of platform ids
     cl_uint n_platforms;
@@ -286,14 +301,13 @@ int mcl_select_device(
 
     // OpenCL ints for iterating
     cl_uint i, j;
+    int found;
 
     // By default, don't recommend a platform or device
     *pid = NULL;
     *did = NULL;
 
     // Check input
-    const char* pname;
-    const char* dname;
     if (platform != Py_None) {
         if (!PyBytes_Check(platform)) {
             PyErr_SetString(PyExc_Exception, "MCL_SELECT_DEVICE: 'platform' must be bytes or None.");
@@ -407,8 +421,7 @@ int mcl_select_device(
     } else {
 
         // Find platform id
-        cl_uint i;
-        int found = 0;
+        found = 0;
         for (i=0; i<n_platforms; i++) {
             flag = clGetPlatformInfo(platform_ids[i], CL_PLATFORM_NAME, sizeof(name), name, NULL);
             if(mcl_flag(flag)) return 1;
@@ -429,8 +442,6 @@ int mcl_select_device(
         if (device == Py_None) {
 
             // Find any device on specified platform, prefer GPU
-            cl_device_id device_ids[1];
-            cl_uint n_devices = 0;
             flag = clGetDeviceIDs(*pid, CL_DEVICE_TYPE_GPU, 1, device_ids, &n_devices);
             if(flag == CL_SUCCESS) {
                 // Set selected device and return.
@@ -458,9 +469,6 @@ int mcl_select_device(
         } else {
 
             // Find specified platform/device combo
-            cl_device_id device_ids[MCL_MAX_DEVICES];
-            cl_uint n_devices = 0;
-            cl_uint j;
             flag = clGetDeviceIDs(*pid, CL_DEVICE_TYPE_ALL, MCL_MAX_DEVICES, device_ids, &n_devices);
             if(flag == CL_SUCCESS) {
                 for (j=0; j<n_devices; j++) {
@@ -791,7 +799,7 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
  *     )
  */
 PyObject*
-mcl_info()
+mcl_info(void)
 {
     // Return from OpenCL
     cl_int flag;
