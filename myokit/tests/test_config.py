@@ -223,7 +223,7 @@ class TestConfig(unittest.TestCase):
         with open(self._temp_dir.path('myokit.ini'), 'w') as f:
             f.write(config_paths_2)
         if sys.hexversion < 0x03020000:
-            self.assertRaises(ImportError, config._load)
+            self.assertRaises(ImportError, self._config_module._load)
         else:
             self._config_module._load()
             self.assertEqual(myokit.SUNDIALS_LIB, ['five', 'six'])

@@ -133,7 +133,7 @@ def _create(path):
         config.set('opencl', 'lib', ';'.join([
             c64 + 'Intel\\OpenCL SDK\\6.3\\lib\\x64',
             c64 + 'AMD APP SDK\\2.9\\bin\\x64',
-            c64 + 'NVIDIA GPU Computing Toolkit\CUDA\\v10.1\\lib\\x64',
+            c64 + 'NVIDIA GPU Computing Toolkit\CUDA\\v11.8\\lib\\x64',
         ]))
     else:
         # Linux and mac
@@ -155,7 +155,7 @@ def _create(path):
         config.set('opencl', 'inc', ';'.join([
             c64 + 'Intel\\OpenCL SDK\\6.3\\include',
             c64 + 'AMD APP SDK\\2.9\\include',
-            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\include',
+            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v11.8\\include',
         ]))
     else:
         # Linux and mac
