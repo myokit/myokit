@@ -5,7 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
   - [#895](https://github.com/MichaelClerx/myokit/pull/895) Added method `Expression.depends_on_state()`.
-  - [#900](https://github.com/MichaelClerx/myokit/pull/900) Added an option `compatibility.no_capture` to `myokit.ini` to allow users to disable compiler output capture.
+  - [#901](https://github.com/MichaelClerx/myokit/pull/901) Added options `compatibility.no_capture` and `compatibility.no_fd_capture` to `myokit.ini` to allow users to tweak compiler output capturing.
 - Changed
   - [#893](https://github.com/MichaelClerx/myokit/pull/893) `Variable.convert_unit` now returns `True` if a conversion was carried out or `False` if not.
 - Deprecated

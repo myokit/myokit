@@ -14,11 +14,12 @@ from __future__ import print_function, unicode_literals
 # before this method was called.
 import myokit
 
-# Load libraries
-import os
-import sys
+# Load standard library modules
 import logging
+import os
 import platform
+import sys
+import warnings
 
 # ConfigParser in Python 2 and 3
 try:
@@ -50,26 +51,31 @@ def _create(path):
 
     # Compatibility settings
     config.add_section('compatibility')
+    config.set(
+        'compatibility',
+        '# Optional settings to make Myokit work on tricky systems.')
     config.set('compatibility', '# Don\'t capture compiler output.')
     config.set('compatibility', '#no_capture = True')
+    config.set('compatibility', '# Don\'t use the file-descriptor method.')
+    config.set('compatibility', '#no_fd_capture = True')
 
     # Date format
     config.add_section('time')
     config.set('time', '# Date format used throughout Myokit')
-    config.set('time', '# Format should be acceptable for time.strftime')
+    config.set('time', '# The format should be acceptable for time.strftime')
     config.set('time', 'date_format', myokit.DATE_FORMAT)
     config.set('time', '# Time format used throughout Myokit')
-    config.set('time', '# Format should be acceptable for time.strftime')
-    config.set('time', '# Format should be acceptable for time.strftime')
+    config.set('time', '# The format should be acceptable for time.strftime')
     config.set('time', 'time_format', myokit.TIME_FORMAT)
 
     # GUI Backend
     config.add_section('gui')
     config.set('gui', '# Backend to use for graphical user interface.')
-    config.set('gui', '# Valid options are "pyqt5", "pyqt4" or "pyside".')
+    config.set('gui', '# Valid options are pyqt5, pyqt4, pyside2 and pyside.')
     config.set('gui', '# Leave unset for automatic selection.')
     config.set('gui', '#backend = pyqt5')
     config.set('gui', '#backend = pyqt4')
+    config.set('gui', '#backend = pyside2')
     config.set('gui', '#backend = pyside')
 
     # Locations of sundials library
@@ -214,8 +220,24 @@ def _load():
         x = config.get('compatibility', 'no_capture').strip().lower()
         if x == 'true':
             myokit.COMPAT_NO_CAPTURE = True
-        elif x in ('false', ''):
+        elif x == 'false':
             myokit.COMPAT_NO_CAPTURE = False
+        elif x != '':
+            warnings.warn(
+                'Invalid setting in myokit.ini. Expected values for no_capture'
+                ' are true, false, or not set (empty), but got: ' + x)
+
+    if config.has_option('compatibility', 'no_fd_capture'):
+        x = config.get('compatibility', 'no_fd_capture').strip().lower()
+        if x == 'true':
+            myokit.COMPAT_NO_FD_CAPTURE = True
+        elif x == 'false':
+            myokit.COMPAT_NO_FD_CAPTURE = False
+        elif x != '':
+            warnings.warn(
+                'Invalid setting in myokit.ini. Expected values for'
+                ' no_fd_capture are true, false, or not set (empty), but got: '
+                + x)
 
     # Date format
     if config.has_option('time', 'date_format'):
@@ -252,8 +274,10 @@ def _load():
             myokit.FORCE_PYQT5 = False
             myokit.FORCE_PYSIDE = False
             myokit.FORCE_PYSIDE2 = True
-        #else:
-        # If empty or invalid, don't adjust the settings!
+        elif x != '':
+            warnings.warn(
+                'Invalid setting in myokit.ini. Expected values for backend'
+                ' are pyqt, pyqt4, pyqt5, pyside, or pyside2. Got: ' + x)
 
     # Sundials libraries, header files, and version
     if config.has_option('sundials', 'lib'):

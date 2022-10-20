@@ -253,10 +253,12 @@ DEBUG_SM = False
 DEBUG_SP = False
 
 #
-# Disable capturing from myokit.ini, without adding extra warnings.
-# See: https://github.com/myokit/myokit/issues/900
+# Compatibility settings: Some users report problems with output capturing.
 #
+# Disable capturing (but don't add extra warning flags)
 COMPAT_NO_CAPTURE = False
+# Disable file-descriptor mode capturing
+COMPAT_NO_FD_CAPTURE = False
 
 #
 # Data logging flags (bitmasks)
