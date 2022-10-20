@@ -34,6 +34,7 @@ if myokit.DEBUG_SM:
     print('#endif')
 ?>
 
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include "pacing.h"
 #include "mcl.h"
 
@@ -811,7 +812,7 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Program created.\n");
     #endif
-    sprintf(options, "");
+    options[0] = 0; // Make the options an empty string.
     //sprintf(options, "-w"); // Suppress warnings
     flag = clBuildProgram(program, 1, &device_id, options, NULL, NULL);
     if(flag == CL_BUILD_PROGRAM_FAILURE) {
