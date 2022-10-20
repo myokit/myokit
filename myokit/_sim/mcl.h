@@ -688,49 +688,49 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     // Clock speed (MHz)
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_uint);
+    val = PyLong_FromUnsignedLong(buf_uint);
     PyDict_SetItemString(device, "clock", val);
     Py_CLEAR(val);
 
     // Global memory (bytes)
     flag = clGetDeviceInfo(device_id, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_ulong);
+    val = PyLong_FromUnsignedLongLong(buf_ulong);
     PyDict_SetItemString(device, "global", val);
     Py_CLEAR(val);
 
     // Local memory (bytes)
     flag = clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_ulong);
+    val = PyLong_FromUnsignedLongLong(buf_ulong);
     PyDict_SetItemString(device, "local", val);
     Py_CLEAR(val);
 
     // Const memory (bytes)
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_ulong);
+    val = PyLong_FromUnsignedLongLong(buf_ulong);
     PyDict_SetItemString(device, "const", val);
     Py_CLEAR(val);
 
     // Computing units
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_uint);
+    val = PyLong_FromUnsignedLong(buf_uint);
     PyDict_SetItemString(device, "units", val);
     Py_CLEAR(val);
 
     // Max workgroup size
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(buf_size_t), &buf_size_t, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_size_t);
+    val = PyLong_FromSize_t(buf_size_t);
     PyDict_SetItemString(device, "groups", val);
     Py_CLEAR(val);
 
     // Max workitem sizes
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(buf_uint), &buf_uint, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_uint);
+    val = PyLong_FromUnsignedLong(buf_uint);
     PyDict_SetItemString(device, "dimensions", val);
     Py_CLEAR(val);
 
@@ -739,7 +739,7 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     if(mcl_flag(flag)) { free(work_item_sizes); Py_DECREF(device); return NULL; }
     items_sizes_tuple = PyTuple_New((size_t)buf_uint);
     for (i=0; i<buf_uint; i++) {
-        PyTuple_SetItem(items_sizes_tuple, i, PyLong_FromLong(work_item_sizes[i]));
+        PyTuple_SetItem(items_sizes_tuple, i, PyLong_FromSize_t(work_item_sizes[i]));
     }
     free(work_item_sizes); work_item_sizes = NULL;
     PyDict_SetItemString(device, "items", items_sizes_tuple);
@@ -748,7 +748,7 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     // Maximum size of a kernel parameter
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_PARAMETER_SIZE, sizeof(buf_size_t), &buf_size_t, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_size_t);
+    val = PyLong_FromSize_t(buf_size_t);
     PyDict_SetItemString(device, "param", val);
     Py_CLEAR(val);
 
