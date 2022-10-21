@@ -368,7 +368,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
         // since they are tested by the Python code already!
         if(n > 0) {
             PyObject *item, *attr;
-            events = (ESys_Event)malloc(n*sizeof(struct ESys_Event_mem));
+            events = (ESys_Event)malloc((size_t)n*sizeof(struct ESys_Event_mem));
             e = events;
             for(i=0; i<n; i++) {
                 item = PyList_GetItem(list, i); // Don't decref!
@@ -767,7 +767,7 @@ FSys_Populate(FSys sys, PyObject* times_list, PyObject* values_list)
     if (n < 2) return FSys_POPULATE_NOT_ENOUGH_DATA;
 
     // Convert and check times list
-    sys->times = (double*)malloc(n*sizeof(double));
+    sys->times = (double*)malloc((size_t)n*sizeof(double));
     for(i=0; i<n; i++) {
         // GetItem and convert --> Borrowed reference so ok not to decref!
         sys->times[i] = PyFloat_AsDouble(PyList_GetItem(times_list, i));
@@ -784,7 +784,7 @@ FSys_Populate(FSys sys, PyObject* times_list, PyObject* values_list)
     }
 
     // Convert values list
-    sys->values = (double*)malloc(n*sizeof(double));
+    sys->values = (double*)malloc((size_t)n*sizeof(double));
     for(i=0; i<n; i++) {
         // GetItem and convert --> Borrowed reference so ok not to decref!
         sys->values[i] = PyFloat_AsDouble(PyList_GetItem(values_list, i));

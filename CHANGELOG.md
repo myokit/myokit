@@ -6,6 +6,7 @@ This page lists the main changes made to Myokit in each release.
 - Added
   - [#895](https://github.com/MichaelClerx/myokit/pull/895) Added method `Expression.depends_on_state()`.
   - [#901](https://github.com/MichaelClerx/myokit/pull/901) Added options `compatibility.no_capture` and `compatibility.no_fd_capture` to `myokit.ini` to allow users to tweak compiler output capturing.
+  - [#903](https://github.com/MichaelClerx/myokit/pull/903) Fixed a bug in `SimulationOpenCL` that caused a `CL_INVALID_ARG_SIZE` error on strict systems.
 - Changed
   - [#893](https://github.com/MichaelClerx/myokit/pull/893) `Variable.convert_unit` now returns `True` if a conversion was carried out or `False` if not.
 - Deprecated

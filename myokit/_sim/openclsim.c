@@ -34,6 +34,7 @@ if myokit.DEBUG_SM:
     print('#endif')
 ?>
 
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include "pacing.h"
 #include "mcl.h"
 
@@ -62,9 +63,9 @@ if precision == myokit.DOUBLE_PRECISION:
  *  var      : The variable to add to the logs, if its name is present
  * Returns 0 if not added, 1 if added.
  */
-static int log_add(PyObject* log_dict, PyObject** logs, Real** vars, unsigned long i, char* name, const Real* var)
+static size_t log_add(PyObject* log_dict, PyObject** logs, Real** vars, size_t i, char* name, const Real* var)
 {
-    int added = 0;
+    size_t added = 0;
     PyObject* key = PyUnicode_FromString(name);
     if(PyDict_Contains(log_dict, key)) {
         logs[i] = PyDict_GetItem(log_dict, key);
@@ -90,8 +91,8 @@ int running = 0;    // 1 if a simulation has been initialized, 0 if it's clean
 PyObject *platform_name;// A python string specifying the platform to use
 PyObject *device_name;  // A python string specifying the device to use
 char* kernel_source;    // The kernel code
-unsigned long nx;       // The number of cells in the x direction
-unsigned long ny;       // The number of cells in the y direction
+Py_ssize_t nx_in;       // The number of cells in the x direction
+Py_ssize_t ny_in;       // The number of cells in the y direction
 double gx;              // The cell-to-cell conductance in the x direction
 double gy;              // The cell-to-cell conductance in the y direction
 double tmin;            // The initial simulation time
@@ -105,7 +106,11 @@ double log_interval;    // The time between log writes
 PyObject *inter_log;    // A list of intermediary variables to log
 PyObject *field_data;   // A list containing all field data
 
-// OpenCL objects
+/* Size */
+size_t nx;
+size_t ny;
+
+/* OpenCL objects */
 cl_context context = NULL;
 cl_command_queue command_queue = NULL;
 cl_program program = NULL;
@@ -168,7 +173,7 @@ PyObject* gy_field;
 
 // Arbitrary geometry diffusion
 PyObject* connections;  // List of connection tuples
-unsigned long n_connections;
+size_t n_connections;
 
 // OpenCL work group sizes
 size_t global_work_size[2];
@@ -185,18 +190,18 @@ Real arg_gy;
 /* Logging */
 PyObject** logs = NULL;     /* An array of pointers to a PyObject */
 Real** vars = NULL;         /* An array of pointers to values to log */
-unsigned long n_vars;       /* Number of logging variables */
+size_t n_vars;              /* Number of logging variables */
 double tnext_log;           /* The next logging point */
 unsigned long inext_log;    /* The number of logged steps */
 int logging_diffusion;      /* True if diffusion current is being logged. */
 int logging_states;         /* True if any states are being logged */
 int logging_inters;         /* True if any intermediary variables are being logged. */
-unsigned long n_inter;      /* The number of intermediary variables to log */
+size_t n_inter;             /* The number of intermediary variables to log */
 /* The relationship between n_inter and logging_inters isn't straightforward: */
 /* n_inter is the number of different model variables (so membrane.V, not */
 /* 1.2.membrane.V) being logged, while logging_inters is 1 if at least one */
 /* simulation variable (1.2.membrane.V) is listed in the given log. */
-unsigned long n_field_data; /* The number of floats in the field data */
+size_t n_field_data;        /* The number of floats in the field data */
 
 /* Temporary objects: decref before re-using for another var */
 /* (Unless you got it through PyList_GetItem or PyTuble_GetItem) */
@@ -209,7 +214,7 @@ PyObject* list_update_str = NULL;   /* PyUnicode, used to call "append" method *
  *
  */
 static PyObject*
-sim_clean()
+sim_clean(void)
 {
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Clean called.\n");
@@ -310,8 +315,11 @@ sim_init(PyObject* self, PyObject* args)
     // OpenCL flag
     cl_int flag;
 
-    // Iteration
-    unsigned long i, j, k;
+    // Int used in OpenCL calls
+    cl_uint iarg;
+
+    // Iteration over nx, ny, etc.
+    size_t i, j, k;
 
     // Platform and device id
     cl_platform_id platform_id;
@@ -322,7 +330,7 @@ sim_init(PyObject* self, PyObject* args)
 
     // Variable names
     char log_var_name[1023];
-    unsigned long k_vars;
+    size_t k_vars;
 
     // Compilation error message
     size_t blog_size;
@@ -374,12 +382,12 @@ sim_init(PyObject* self, PyObject* args)
 
     // Check input arguments
     // https://docs.python.org/3.8/c-api/arg.html#c.PyArg_ParseTuple
-    if(!PyArg_ParseTuple(args, "OOskkbddOOOdddOOOOdOO",
+    if(!PyArg_ParseTuple(args, "OOsnnbddOOOdddOOOOdOO",
             &platform_name,     // Must be bytes
             &device_name,       // Must be bytes
             &kernel_source,
-            &nx,                // Small 'k' = unsigned long
-            &ny,
+            &nx_in,             // Small 'n' = Py_ssize_t
+            &ny_in,
             &diffusion,
             &gx,
             &gy,
@@ -407,6 +415,8 @@ sim_init(PyObject* self, PyObject* args)
     arg_gx = (Real)gx;
     arg_gy = (Real)gy;
     halt_sim = 0;
+    nx = (size_t)nx_in;
+    ny = (size_t)ny_in;
 
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Retrieved function arguments.\n");
@@ -433,7 +443,7 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "'state_in' must be a list.");
         return sim_clean();
     }
-    if((unsigned long)PyList_Size(state_in) != nx * ny * n_state) {
+    if((size_t)PyList_Size(state_in) != nx * ny * n_state) {
         PyErr_SetString(PyExc_Exception, "'state_in' must have size nx * ny * n_states.");
         return sim_clean();
     }
@@ -441,7 +451,7 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "'state_out' must be a list.");
         return sim_clean();
     }
-    if((unsigned long)PyList_Size(state_out) != nx * ny * n_state) {
+    if((size_t)PyList_Size(state_out) != nx * ny * n_state) {
         PyErr_SetString(PyExc_Exception, "'state_out' must have size nx * ny * n_states.");
         return sim_clean();
     }
@@ -453,7 +463,7 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "'inter_log' must be a list.");
         return sim_clean();
     }
-    n_inter = PyList_Size(inter_log);
+    n_inter = (size_t)PyList_Size(inter_log);
 
     //
     // Check field data
@@ -462,7 +472,7 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "'field_data' must be a list.");
         return sim_clean();
     }
-    n_field_data = PyList_Size(field_data);
+    n_field_data = (size_t)PyList_Size(field_data);
 
     //
     // Conductance mode
@@ -476,11 +486,11 @@ sim_init(PyObject* self, PyObject* args)
     // Set up pacing system
     //
     pacing = ESys_Create(&flag_pacing);
-    if(flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
+    if(flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_Populate(pacing, protocol);
-    if(flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
+    if(flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_AdvanceTime(pacing, tmin);
-    if(flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
+    if(flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     tnext_pace = ESys_GetNextTime(pacing, NULL);
     engine_pace = ESys_GetLevel(pacing, NULL);
     arg_pace = (Real)engine_pace;
@@ -503,7 +513,7 @@ sim_init(PyObject* self, PyObject* args)
     dsize_state = nx * ny * n_state * sizeof(Real);
     rvec_state = (Real*)malloc(dsize_state);
     for(i=0; i<nx * ny * n_state; i++) {
-        flt = PyList_GetItem(state_in, i);    // Don't decref!
+        flt = PyList_GetItem(state_in, (Py_ssize_t)i);    // Don't decref!
         if(!PyFloat_Check(flt)) {
             char errstr[200];
             sprintf(errstr, "Item %u in state vector is not a float.", (unsigned int)i);
@@ -540,7 +550,7 @@ sim_init(PyObject* self, PyObject* args)
         dsize_field_data = n_field_data * sizeof(Real);
         rvec_field_data = (Real*)malloc(dsize_field_data);
         for(i=0; i<n_field_data; i++) {
-            flt = PyList_GetItem(field_data, i);    // No need to decref
+            flt = PyList_GetItem(field_data, (Py_ssize_t)i);    // No need to decref
             if(!PyFloat_Check(flt)) {
                 char errstr[200];
                 sprintf(errstr, "Item %u in field data is not a float.", (unsigned int)i);
@@ -578,7 +588,7 @@ sim_init(PyObject* self, PyObject* args)
 
         // Populate gx field vector
         for(i=0; i<(nx - 1)*ny; i++) {
-            flt = PyList_GetItem(gx_field, i);   // Borrowed reference
+            flt = PyList_GetItem(gx_field, (Py_ssize_t)i);   // Borrowed reference
             if(!PyFloat_Check(flt)) {
                 PyErr_SetString(PyExc_Exception, "gx field must only contain floats");
                 return sim_clean();
@@ -603,7 +613,7 @@ sim_init(PyObject* self, PyObject* args)
 
             // Populate gy field vector
             for(i=0; i<(ny - 1)*nx; i++) {
-                flt = PyList_GetItem(gy_field, i);   // Borrowed reference
+                flt = PyList_GetItem(gy_field, (Py_ssize_t)i);   // Borrowed reference
                 if(!PyFloat_Check(flt)) {
                     PyErr_SetString(PyExc_Exception, "gy field must only contain floats");
                     return sim_clean();
@@ -627,7 +637,7 @@ sim_init(PyObject* self, PyObject* args)
             PyErr_SetString(PyExc_Exception, "Connections should be None or a list");
             return sim_clean();
         }
-        n_connections = PyList_Size(connections);
+        n_connections = (size_t)PyList_Size(connections);
 
         dsize_conn1 = n_connections * sizeof(unsigned long);  // Same type as nx, ny, etc.
         dsize_conn2 = n_connections * sizeof(unsigned long);
@@ -638,7 +648,7 @@ sim_init(PyObject* self, PyObject* args)
         rvec_conn3 = (Real*)malloc(dsize_conn3);
 
         for(i=0; i<n_connections; i++) {
-            flt = PyList_GetItem(connections, i);   // Borrowed reference
+            flt = PyList_GetItem(connections, (Py_ssize_t)i);   // Borrowed reference
             if(!PyTuple_Check(flt)) {
                 PyErr_SetString(PyExc_Exception, "Connections list must contain all tuples");
                 return sim_clean();
@@ -760,15 +770,15 @@ sim_init(PyObject* self, PyObject* args)
 
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Created buffers.\n");
-    printf("State buffer size: %d.\n", (int)dsize_state);
-    printf("Idiff buffer size: %d.\n", (int)dsize_idiff);
-    printf("Inter-log buffer size: %d.\n", (int)dsize_inter_log);
-    printf("Field-data buffer size: %d.\n", (int)dsize_field_data);
-    printf("Gx field buffer size: %d.\n", (int)dsize_gx);
-    printf("Gy field buffer size: %d.\n", (int)dsize_gy);
-    printf("Connections-1 buffer size: %d.\n", (int)dsize_conn1);
-    printf("Connections-2 buffer size: %d.\n", (int)dsize_conn2);
-    printf("Connections-3 buffer size: %d.\n", (int)dsize_conn3);
+    printf("State buffer size: %u.\n", (unsigned int)dsize_state);
+    printf("Idiff buffer size: %u.\n", (unsigned int)dsize_idiff);
+    printf("Inter-log buffer size: %u.\n", (unsigned int)dsize_inter_log);
+    printf("Field-data buffer size: %u.\n", (unsigned int)dsize_field_data);
+    printf("Gx field buffer size: %u.\n", (unsigned int)dsize_gx);
+    printf("Gy field buffer size: %u.\n", (unsigned int)dsize_gy);
+    printf("Connections-1 buffer size: %u.\n", (unsigned int)dsize_conn1);
+    printf("Connections-2 buffer size: %u.\n", (unsigned int)dsize_conn2);
+    printf("Connections-3 buffer size: %u.\n", (unsigned int)dsize_conn3);
     #endif
 
     /* Copy data into buffers */
@@ -811,7 +821,7 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Program created.\n");
     #endif
-    sprintf(options, "");
+    options[0] = 0; // Make the options an empty string.
     //sprintf(options, "-w"); // Suppress warnings
     flag = clBuildProgram(program, 1, &device_id, options, NULL, NULL);
     if(flag == CL_BUILD_PROGRAM_FAILURE) {
@@ -855,48 +865,48 @@ sim_init(PyObject* self, PyObject* args)
     #endif
 
     // Pass arguments into kernels
-    i = 0;
-    if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(nx), &nx))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(ny), &ny))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(arg_time), &arg_time))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(arg_dt), &arg_dt))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(arg_pace), &arg_pace))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(mbuf_inter_log), &mbuf_inter_log))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(mbuf_field_data), &mbuf_field_data))) return sim_clean();
+    iarg = 0;
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(nx), &nx))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(ny), &ny))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(arg_time), &arg_time))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(arg_dt), &arg_dt))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(arg_pace), &arg_pace))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(cl_mem), &mbuf_state))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(cl_mem), &mbuf_inter_log))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(cl_mem), &mbuf_field_data))) return sim_clean();
 
     // Calculate initial diffusion current
     if(connections != Py_None) {
         // Arbitrary geometry
-        i = 0;
-        if(mcl_flag(clSetKernelArg(kernel_arb_reset, i++, sizeof(nx), &nx))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_reset, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-        i = 0;
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(n_connections), &n_connections))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_conn1), &mbuf_conn1))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_conn2), &mbuf_conn2))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_conn3), &mbuf_conn3))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+        iarg = 0;
+        if(mcl_flag(clSetKernelArg(kernel_arb_reset, iarg++, sizeof(nx), &nx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_reset, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
+        iarg = 0;
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(n_connections), &n_connections))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_conn1))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_conn2))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_conn3))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_state))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
     } else if (gx_field != Py_None) {
         // Heteogeneous, rectangular diffusion
-        i = 0;
-        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(nx), &nx))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(ny), &ny))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_gx), &mbuf_gx))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_gy), &mbuf_gy))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+        iarg = 0;
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(nx), &nx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(ny), &ny))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(cl_mem), &mbuf_gx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(cl_mem), &mbuf_gy))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(cl_mem), &mbuf_state))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
     } else if (diffusion) {
         // Homogeneous, rectangular diffusion
-        i = 0;
-        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(nx), &nx))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(ny), &ny))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(arg_gx), &arg_gx))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(arg_gy), &arg_gy))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+        iarg = 0;
+        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(nx), &nx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(ny), &ny))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(arg_gx), &arg_gx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(arg_gy), &arg_gy))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(cl_mem), &mbuf_state))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
     }
 
     #ifdef MYOKIT_DEBUG_MESSAGES
@@ -911,7 +921,7 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "Log argument must be a dict.");
         return sim_clean();
     }
-    n_vars = PyDict_Size(log_dict);
+    n_vars = (size_t)PyDict_Size(log_dict);
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Number of variables to log:%u.\n", (unsigned int)n_vars);
     #endif
@@ -978,7 +988,7 @@ for var in model.states():
     for(i=0; i<ny; i++) {
         for(j=0; j<nx; j++) {
             for(k=0; k<n_inter; k++) {
-                ret = PyList_GetItem(inter_log, k); // Don't decref
+                ret = PyList_GetItem(inter_log, (Py_ssize_t)k); // Don't decref
 <?
 if dims == 1:
     print(4*tab + 'sprintf(log_var_name, "%u.%s", (unsigned int)j, PyBytes_AsString(ret));')
@@ -1031,9 +1041,9 @@ static PyObject*
 sim_step(PyObject *self, PyObject *args)
 {
     ESys_Flag flag_pacing;
-    long steps_left_in_run;
+    size_t steps_left_in_run;
     cl_int flag;
-    unsigned long i;
+    size_t i;
     double d;
     int logging_condition;
 
@@ -1179,7 +1189,7 @@ sim_step(PyObject *self, PyObject *args)
     flag = clEnqueueReadBuffer(command_queue, mbuf_state, CL_TRUE, 0, dsize_state, rvec_state, 0, NULL, NULL);
     if(mcl_flag(flag)) return sim_clean();
     for(i=0; i<n_state*nx*ny; i++) {
-        PyList_SetItem(state_out, i, PyFloat_FromDouble(rvec_state[i]));
+        PyList_SetItem(state_out, (Py_ssize_t)i, PyFloat_FromDouble(rvec_state[i]));
         /* PyList_SetItem steals a reference: no need to decref the double! */
     }
 
