@@ -129,7 +129,7 @@ class ExpressionTest(unittest.TestCase):
         # Deep checking can handle improper names
         p = myokit.Plus(c, myokit.Name('x'))
         self.assertTrue(p.depends_on(c, True))
-        self.assertTrue(p.depends_on(myokit.Name('x')), True)
+        self.assertTrue(p.depends_on(myokit.Name('x'), True))
 
         # Deep checking can handle partial derivs and inits
         q = myokit.PartialDerivative(myokit.Name(v.var()), c)

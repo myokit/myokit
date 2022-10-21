@@ -20,13 +20,13 @@ jobs:
         sundials-version: ['v2.7.0', 'v3.2.1', 'v4.1.0', 'v5.8.0', 'v6.0.0']
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Configure Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
 
       - name: Check out Sundials ${{ matrix.sundials-version }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: LLNL/sundials
           path: sundials
