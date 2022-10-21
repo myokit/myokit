@@ -823,7 +823,7 @@ mcl_info(void)
     flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
     if ((flag != -1001) && mcl_flag(flag)) return NULL;
     #ifdef MYOKIT_DEBUG_MESSAGES
-    printf("Found %d platforms\n", n_platforms);
+    printf("Found %u platforms\n", (unsigned int)n_platforms);
     #endif
 
     // Create platforms tuple, must decref on exception
@@ -909,11 +909,6 @@ mcl_info_current(
     if (mcl_select_device(platform_name, device_name, &platform_id, &device_id)) {
         return NULL;
     }
-
-    #ifdef MYOKIT_DEBUG_MESSAGES
-    printf("Found platform %d\n", platform_id);
-    printf("Found device %d\n", device_id);
-    #endif
 
     // Create platform dict
     platform = mcl_info_platform_dict(platform_id, sizeof(buffer), buffer);
