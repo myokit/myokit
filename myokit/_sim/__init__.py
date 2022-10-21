@@ -169,9 +169,11 @@ class CModule(object):
                         '-Wextra',
                         '-Wstrict-prototypes',
                         '-Wold-style-definition',
-                        '-Wmissing-prototypes',
-                        '-Wmissing-declarations',
+                        #'-Wmissing-prototypes',
+                        #'-Wmissing-declarations',
                         '-Wdeclaration-after-statement',
+                        '-Wconversion',
+                        '-Wno-unused-parameter',
                     ])
 
             # Add runtime_library_dirs to prevent LD_LIBRARY_PATH errors on
