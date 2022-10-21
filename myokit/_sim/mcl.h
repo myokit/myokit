@@ -29,19 +29,6 @@
 #define MCL_MAX_PLATFORMS 255
 #define MCL_MAX_DEVICES 255
 
-/* Prototypes (not required, but avoids warnings) */
-void rtrim(char *str);
-void ltrim(char *str);
-void trim(char *str);
-int mcl_select_device(PyObject* platform, PyObject* device, cl_platform_id* pid, cl_device_id* did);
-int mcl_round_total_size(const int ws_size, const int total_size);
-int mcl_platform_supports_extension(cl_platform_id platform_id, const char* extension);
-PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, char* buffer);
-PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buffer);
-PyObject* mcl_info(void);
-PyObject* mcl_info_current(PyObject* platform_name, PyObject* device_name);
-
-
 /*
  * String functions, straight from Wikipedia
  * https://en.wikipedia.org/wiki/Trimming_%28computer_programming%29#C.2FC.2B.2B
@@ -652,7 +639,7 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     PyObject* items_sizes_tuple;
 
     // Iteration
-    size_t i;
+    Py_ssize_t i;
 
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Creating device info dict\n");
