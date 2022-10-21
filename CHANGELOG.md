@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.33.8] - 2022-10-21
 - Added
   - [#895](https://github.com/MichaelClerx/myokit/pull/895) Added method `Expression.depends_on_state()`.
