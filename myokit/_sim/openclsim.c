@@ -770,15 +770,15 @@ sim_init(PyObject* self, PyObject* args)
 
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Created buffers.\n");
-    printf("State buffer size: %d.\n", (int)dsize_state);
-    printf("Idiff buffer size: %d.\n", (int)dsize_idiff);
-    printf("Inter-log buffer size: %d.\n", (int)dsize_inter_log);
-    printf("Field-data buffer size: %d.\n", (int)dsize_field_data);
-    printf("Gx field buffer size: %d.\n", (int)dsize_gx);
-    printf("Gy field buffer size: %d.\n", (int)dsize_gy);
-    printf("Connections-1 buffer size: %d.\n", (int)dsize_conn1);
-    printf("Connections-2 buffer size: %d.\n", (int)dsize_conn2);
-    printf("Connections-3 buffer size: %d.\n", (int)dsize_conn3);
+    printf("State buffer size: %u.\n", (unsigned int)dsize_state);
+    printf("Idiff buffer size: %u.\n", (unsigned int)dsize_idiff);
+    printf("Inter-log buffer size: %u.\n", (unsigned int)dsize_inter_log);
+    printf("Field-data buffer size: %u.\n", (unsigned int)dsize_field_data);
+    printf("Gx field buffer size: %u.\n", (unsigned int)dsize_gx);
+    printf("Gy field buffer size: %u.\n", (unsigned int)dsize_gy);
+    printf("Connections-1 buffer size: %u.\n", (unsigned int)dsize_conn1);
+    printf("Connections-2 buffer size: %u.\n", (unsigned int)dsize_conn2);
+    printf("Connections-3 buffer size: %u.\n", (unsigned int)dsize_conn3);
     #endif
 
     /* Copy data into buffers */
@@ -871,33 +871,33 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(arg_time), &arg_time))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(arg_dt), &arg_dt))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(arg_pace), &arg_pace))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(mbuf_inter_log), &mbuf_inter_log))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(mbuf_field_data), &mbuf_field_data))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(cl_mem), &mbuf_state))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(cl_mem), &mbuf_inter_log))) return sim_clean();
+    if(mcl_flag(clSetKernelArg(kernel_cell, iarg++, sizeof(cl_mem), &mbuf_field_data))) return sim_clean();
 
     // Calculate initial diffusion current
     if(connections != Py_None) {
         // Arbitrary geometry
         iarg = 0;
         if(mcl_flag(clSetKernelArg(kernel_arb_reset, iarg++, sizeof(nx), &nx))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_reset, iarg++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_reset, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
         iarg = 0;
         if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(n_connections), &n_connections))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(mbuf_conn1), &mbuf_conn1))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(mbuf_conn2), &mbuf_conn2))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(mbuf_conn3), &mbuf_conn3))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_conn1))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_conn2))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_conn3))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_state))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
     } else if (gx_field != Py_None) {
         // Heteogeneous, rectangular diffusion
         iarg = 0;
         if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(nx), &nx))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(ny), &ny))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(mbuf_gx), &mbuf_gx))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(mbuf_gy), &mbuf_gy))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(cl_mem), &mbuf_gx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(cl_mem), &mbuf_gy))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(cl_mem), &mbuf_state))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
     } else if (diffusion) {
         // Homogeneous, rectangular diffusion
         iarg = 0;
@@ -905,8 +905,8 @@ sim_init(PyObject* self, PyObject* args)
         if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(ny), &ny))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(arg_gx), &arg_gx))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(arg_gy), &arg_gy))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(cl_mem), &mbuf_state))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
     }
 
     #ifdef MYOKIT_DEBUG_MESSAGES
