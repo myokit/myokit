@@ -181,3 +181,11 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
         pairs.append((self.ex(e._e[n]), True))
         return sp.Piecewise(*pairs)
 
+    def _ex_opiecewise(self, e):
+        return self.ex_if(e.if_tree())
+
+    def _ex_polynomial(self, e):
+        return self.ex(e.tree())
+
+    def _ex_spline(self, e):
+        return self.ex_opiecewise(e)

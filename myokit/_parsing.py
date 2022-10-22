@@ -2204,5 +2204,8 @@ functions['abs'] = myokit.Abs
 functions['dot'] = myokit.Derivative
 functions['if'] = myokit.If
 functions['piecewise'] = myokit.Piecewise
+functions['opiecewise'] = myokit.OrderedPiecewise
+functions['spline'] = myokit.Spline
+functions['polynomial'] = myokit.Polynomial
 # TODO: 'partial' and 'init' are also function names used in output, but are
 # not currently handled by the parser. Not sure if they should be!

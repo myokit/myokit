@@ -17,6 +17,7 @@ submodules detailed in the sections listed below.
     dependency_analysis
     guess
     hh
+    function_approximation
     markov
     multi
 

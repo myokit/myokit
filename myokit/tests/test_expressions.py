@@ -4067,5 +4067,153 @@ class EquationTest(unittest.TestCase):
         self.assertEqual(repr(eq1), '<Equation c.x = 3>')
 
 
+class TestOrderedPiecewise(unittest.TestCase):
+    """
+    Tests OrderedPiecewise
+    """
+    def test_opiecewise(self):
+        x = myokit.Name('x')
+        p = myokit.OrderedPiecewise(
+            x,
+            myokit.parse_expression('1 * 10'), myokit.Number(1),
+            myokit.parse_expression('2 * 10'), myokit.Number(2),
+            myokit.parse_expression('3 * 10'), myokit.Number(3),
+            myokit.parse_expression('4 * 10')
+        )
+
+        def test(p, x):
+            self.assertEqual(p.eval(subst={x: 0}), 10)
+            self.assertEqual(p.eval(subst={x: 0.99}), 10)
+            self.assertEqual(p.eval(subst={x: 1}), 20)
+            self.assertEqual(p.eval(subst={x: 1.99}), 20)
+            self.assertEqual(p.eval(subst={x: 2}), 30)
+            self.assertEqual(p.eval(subst={x: 2.99}), 30)
+            self.assertEqual(p.eval(subst={x: 3}), 40)
+            self.assertEqual(p.eval(subst={x: 4}), 40)
+        test(p, x)
+
+        # Conversion to piecewise
+        w = myokit.Piecewise(
+            myokit.Less(x, myokit.Number(1)), myokit.parse_expression('1* 10'),
+            myokit.Less(x, myokit.Number(2)), myokit.parse_expression('2 *10'),
+            myokit.Less(
+                x, myokit.Number(3)), myokit.parse_expression('3 * 10'),
+            myokit.parse_expression('4 * 10'))
+        test(w, x)
+        q = p.piecewise()
+        self.assertEqual(q, w)
+        test(p, x)
+
+        # Test conversion to binary tree
+        r = p.if_tree()
+        test(r, x)
+
+    def test_eval_unit(self):
+        # Test unit evaluation in ordered piecewise
+
+        v = self.v
+        v.set_unit(None)
+        # No units
+        v.set_rhs('opiecewise(v, 4, 3, 7, 12, 2)')
+        self.assertEqual(v.rhs().eval_unit(S), None)
+        self.assertEqual(v.rhs().eval_unit(T), None)
+        # Units in v and switching points
+        v.set_unit('1')
+        v.set_rhs('opiecewise(v, 4, 3 [1], 7, 12, 2)')
+        self.assertEqual(v.rhs().eval_unit(S), None)
+        self.assertEqual(v.rhs().eval_unit(T), None)
+        v.set_unit('1')
+        v.set_rhs('opiecewise(v, 4, 3 [1], 7, 12 [1], 2)')
+        self.assertEqual(v.rhs().eval_unit(S), None)
+        self.assertEqual(v.rhs().eval_unit(T), None)
+        v.set_unit(None)
+        v.set_rhs('opiecewise(v, 4, 3 [1], 7, 12 [1], 2)')
+        self.assertEqual(v.rhs().eval_unit(S), None)
+        self.assertEqual(v.rhs().eval_unit(T), None)
+        v.set_unit(None)
+        v.set_rhs('opiecewise(v, 4, 3 [s], 7, 12 [s], 2)')
+        self.assertRaises(E, v.rhs().eval_unit, S)
+        self.assertEqual(v.rhs().eval_unit(T), None)
+        v.set_unit(None)
+        v.set_rhs('opiecewise(v, 4, 3 [s], 7, 12, 2)')
+        self.assertRaises(E, v.rhs().eval_unit, S)
+        self.assertEqual(v.rhs().eval_unit(T), None)
+        v.set_unit('ks')
+        v.set_rhs('opiecewise(v, 4, 3, 7, 12, 2)')
+        self.assertRaises(E, v.rhs().eval_unit, S)
+        self.assertEqual(v.rhs().eval_unit(T), None)
+        v.set_unit(None)
+        v.set_rhs('opiecewise(v, 4, 3 [s], 7, 12 [ms], 2)')
+        self.assertRaises(E, v.rhs().eval_unit, S)
+        self.assertRaises(E, v.rhs().eval_unit, T)
+        # Units in output
+        v.set_unit(None)
+        v.set_rhs('opiecewise(v, 4 [1], 3, 7, 12, 2)')
+        self.assertEqual(v.rhs().eval_unit(S), pu('1'))
+        self.assertEqual(v.rhs().eval_unit(T), pu('1'))
+        v.set_rhs('opiecewise(v, 4 [1], 3, 7 [1], 12, 2)')
+        self.assertEqual(v.rhs().eval_unit(S), pu('1'))
+        self.assertEqual(v.rhs().eval_unit(T), pu('1'))
+        v.set_rhs('opiecewise(v, 4 [kg], 3, 7, 12, 2)')
+        self.assertRaises(E, v.rhs().eval_unit, S)
+        self.assertEqual(v.rhs().eval_unit(T), pu('kg'))
+        v.set_rhs('opiecewise(v, 4, 3, 7, 12, 2 [kg])')
+        self.assertRaises(E, v.rhs().eval_unit, S)
+        self.assertEqual(v.rhs().eval_unit(T), pu('kg'))
+        v.set_rhs('opiecewise(v, 4 [kg], 3, 7 [kg], 12, 2 [kg])')
+        self.assertEqual(v.rhs().eval_unit(S), pu('kg'))
+        self.assertEqual(v.rhs().eval_unit(T), pu('kg'))
+        v.set_unit('V')
+        v.set_rhs('opiecewise(v, 4 [kg], 3, 7 [kg], 12, 2 [kg])')
+        self.assertRaises(E, v.rhs().eval_unit, S)
+        self.assertEqual(v.rhs().eval_unit(T), pu('kg'))
+        v.set_rhs('opiecewise(v, 4 [V], 3, 7 [V], 12, 2 [V])')
+        self.assertRaises(E, v.rhs().eval_unit, S)
+        self.assertEqual(v.rhs().eval_unit(T), pu('V'))
+        v.set_rhs('opiecewise(v, 4 [V], 3 [V], 7 [V], 12 [V], 2 [V])')
+        self.assertEqual(v.rhs().eval_unit(S), pu('V'))
+        self.assertEqual(v.rhs().eval_unit(T), pu('V'))
+        v.set_unit('mg')
+        v.set_rhs('opiecewise(v, 4 [V], 3 [mg], 7 [V], 12 [mg], 2 [V])')
+        self.assertEqual(v.rhs().eval_unit(S), pu('V'))
+        self.assertEqual(v.rhs().eval_unit(T), pu('V'))
+        v.set_unit(None)
+        v.set_rhs('opiecewise(v, 4 [1], 3, 7, 12, 2)')
+        self.assertEqual(v.rhs().eval_unit(S), pu('1'))
+        self.assertEqual(v.rhs().eval_unit(T), pu('1'))
+        # Reset
+        self.reset()
+
+
+class TestPolynomial(unittest.TestCase):
+    """
+    Tests Polynomial.
+    """
+    def test_polynomial(self):
+        x = myokit.Name('x')
+        c = [
+            myokit.Number(5),
+            myokit.Number(4),
+            myokit.Number(3),
+            myokit.Number(2)
+        ]
+        p = myokit.Polynomial(x, *c)
+        self.assertEqual(p.eval(subst={x: 0}), 5)
+        self.assertEqual(p.eval(subst={x: 1}), 14)
+        self.assertEqual(p.eval(subst={x: 2}), 41)
+        self.assertEqual(p.eval(subst={x: -1}), 2)
+        self.assertEqual(p.eval(subst={x: 0.5}), 8)
+        q = p.tree()
+        self.assertNotEqual(p, q)
+        for i in [-1, 0, 0.5, 1, 2]:
+            s = {x: i}
+            self.assertEqual(p.eval(subst=s), q.eval(subst=s))
+        q = p.tree(horner=False)
+        self.assertNotEqual(p, q)
+        for i in [-1, 0, 0.5, 1, 2]:
+            s = {x: i}
+            self.assertEqual(p.eval(subst=s), q.eval(subst=s))
+
+
 if __name__ == '__main__':
     unittest.main()

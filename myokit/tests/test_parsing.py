@@ -1354,21 +1354,29 @@ class ModelParseTest(unittest.TestCase):
         # Test evaluation
         x = m.get('test.x')
         y = m.get('test.y')
+        xo = m.get('test.xo')
+        yo = m.get('test.yo')
         s = m.state()
         i = m.get('membrane.V').indice()
         # Test x, xo, y, yo
         s[i] = -80
         m.set_state(s)
         self.assertEqual(x.rhs().eval(), 3)
+        self.assertEqual(xo.rhs().eval(), 3)
         self.assertEqual(y.rhs().eval(), 2)
+        self.assertEqual(yo.rhs().eval(), 2)
         s[i] = -10
         m.set_state(s)
         self.assertEqual(x.rhs().eval(), 2)
+        self.assertEqual(xo.rhs().eval(), 2)
         self.assertEqual(y.rhs().eval(), 2)
+        self.assertEqual(yo.rhs().eval(), 2)
         s[i] = 30
         m.set_state(s)
         self.assertEqual(x.rhs().eval(), 1)
+        self.assertEqual(xo.rhs().eval(), 1)
         self.assertEqual(y.rhs().eval(), 1)
+        self.assertEqual(yo.rhs().eval(), 1)
         # Test code() output by cloning
         m.clone()
 

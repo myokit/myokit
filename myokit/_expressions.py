@@ -2851,6 +2851,306 @@ class Piecewise(Function):
         return iter(self._e)
 
 
+class OrderedPiecewise(Function):
+    """
+    *Extends:* :class:`Function`
+
+    An ordered piecewise function is defined as::
+
+        y = opiecewise(x,
+            f[0](x), z[0],
+            f[1](x), z[1],
+            ...,
+            f[n-1](x), z[n-1]
+            f[n](x)
+            )
+
+    Here ``x`` is a variable whose domain is split into segments by the
+    strictly increasing collection of points ``z[i]``. When ``x < z[i]`` for
+    ``i = 0, 1, ..., n-1`` the returned value is calculated from ``f[i]``. When
+    ``x >= z[n-1]`` the returned value is obtained from ``f[n]``.
+
+    The points ``z[i]`` split the range of ``x`` into a continuous series of
+    segments. This structure allows for efficient evaluation using bisection
+    trees. The ``Piecewise`` class implements a more general piecewise
+    function, that poses no restrictions on the type of condition used to
+    select an evaluation function.
+    """
+    _nargs = None
+    _fname = 'opiecewise'
+
+    def __init__(self, *ops):
+        super(OrderedPiecewise, self).__init__(*ops)
+        n = len(self._operands)
+        if n % 2 != 0:
+            raise IntegrityError(
+                'OrderedPiecewise function must have even number of arguments:'
+                ' (variable, [value, point]+, value).')
+        if n < 4:
+            raise IntegrityError(
+                'Piecewise function must have 3 or more arguments.')
+        # Check arguments
+        self._x = ops[0]        # Variable
+        if not isinstance(self._x, LhsExpression):
+            raise IntegrityError(
+                'First argument to OrderedPiecewise function must be a'
+                ' subclass of LhsExpression.')
+        m = n // 2
+        self._p = [0] * (m - 1)     # Points
+        self._e = [0] * m           # Expressions (pieces)
+        oper = iter(ops)
+        next(oper)
+        last = None
+        for i in range(0, m - 1):
+            self._e[i] = next(oper)
+            op = next(oper)
+            if not op.is_literal():
+                raise myokit.NonLiteralValueError(
+                    'The points splitting the domain of an OrderedPiecewise'
+                    ' function must be given as literal values.')
+            self._p[i] = op
+            if last is None:
+                last = op._eval({}, myokit.DOUBLE_PRECISION)
+            else:
+                nxt = op._eval({}, myokit.DOUBLE_PRECISION)
+                if nxt <= last:
+                    raise ValueError(
+                        'The points at which the domain is split must be'
+                        ' strictly increasing (' + str(nxt) + ' <= '
+                        + str(last) + ').')
+                last = nxt
+        self._e[m - 1] = next(oper)
+
+    def count_pieces(self):
+        """
+        Returns the number of pieces in this piecewise function.
+        """
+        return len(self._e)
+
+    def _eval(self, subst, precision):
+        x = self._x._eval(subst, precision)
+        for i in range(len(self._p), 0, -1):
+            if x >= self._p[i - 1]._eval(subst, precision):
+                return self._e[i]._eval(subst, precision)
+        return self._e[0]._eval(subst, precision)
+
+    def _eval_unit(self, mode):
+        # Check all operands
+        x_unit = self._x._eval_unit(mode)
+        p_units = [x._eval_unit(mode) for x in self._p]
+        e_units = [x._eval_unit(mode) for x in self._e]
+        # Check if x and all points have the same units
+        d = myokit.units.dimensionless
+        shared = x_unit
+        for u in p_units:
+            if u == shared:         # Normal case + propagating Nones
+                continue
+            elif shared is None:    # (and u is not None)
+                if mode == myokit.UNIT_TOLERANT or u == d:
+                    shared = u
+                    continue
+            elif u is None:         # (and shared is not None)
+                if mode == myokit.UNIT_TOLERANT or shared == d:
+                    continue
+            raise EvalUnitError(
+                self, 'All split points in an ordered piecewise must have the'
+                ' same unit as the variable.')
+        # Check if all possible values have the same unit
+        units = iter(e_units)
+        shared = next(units)
+        for u in units:
+            if u == shared:         # Normal case + propagating Nones
+                continue
+            elif shared is None:    # (and u is not None)
+                if mode == myokit.UNIT_TOLERANT or u == d:
+                    shared = u
+                    continue
+            elif u is None:         # (and shared is not None)
+                if mode == myokit.UNIT_TOLERANT or shared == d:
+                    continue
+            raise EvalUnitError(
+                self, 'All branches of an ordered piecewise must have the same'
+                ' unit.')
+        return shared
+
+    def if_tree(self):
+        """
+        Returns this expression as a tree of :class:`If` objects.
+        """
+        def split(s, e):
+            n = e - s
+            if n == 0:
+                return self._e[s].clone()
+            elif n == 1:
+                return If(
+                    Less(self._x.clone(), self._p[s].clone()),
+                    self._e[s].clone(), self._e[s + 1].clone())
+            else:
+                m = s + n // 2
+                return If(
+                    Less(self._x.clone(), self._p[m].clone()),
+                    split(s, m), split(m + 1, e))
+        return split(0, len(self._p))
+
+    def is_conditional(self):
+        return True
+
+    def piecewise(self):
+        """
+        Returns this expression as a :class:`Piecewise` object.
+        """
+        var = self._x
+        ops = []
+        for k, p in enumerate(self._p):
+            ops.append(Less(var, p))
+            ops.append(self._e[k])
+        ops.append(self._e[-1])
+        return Piecewise(*ops)
+
+    def var(self):
+        """
+        Returns this object's conditional variable.
+        """
+        return self._x
+
+
+class Polynomial(Function):
+    """
+    *Extends:* :class:`Function`
+
+    Polynomials in myokit can be defined as::
+
+        p = myokit.Polynomial(x, c0, c1, c2, ...)
+
+    where ``c0, c1, c2, ...`` is a sequence of constant coefficients and ``x``
+    is an :class:`LhsExpression`. The function's value is calculated as::
+
+        p(x) = c[0] + x * (c[1] + x * (c[2] + x * (...)))
+
+    Or, equivalently::
+
+        p(x) = c[0] + c[1] * x + c[2] * x^2 + c[3] * x^3 + ...
+
+    """
+    _nargs = None
+    _fname = 'polynomial'
+
+    def __init__(self, *ops):
+        super(Polynomial, self).__init__(*ops)
+        # Check operands
+        n = len(ops)
+        if n < 2:
+            raise IntegrityError(
+                'Polynomial requires an LhsExpression followed by at least one'
+                ' literal.')
+        if not isinstance(ops[0], LhsExpression):
+            raise IntegrityError(
+                'First operand of polynomial must be an LhsExpression.')
+        self._x = ops[0]
+        for op in ops[1:]:
+            if not op.is_constant():
+                raise IntegrityError('Coefficients must be constant values.')
+        self._c = ops[1:]
+
+    def coefficients(self):
+        """
+        Returns an iterator over this polynomial's coefficients.
+        """
+        return iter(self._c)
+
+    def degree(self):
+        """
+        Returns this polynomial's degree.
+        """
+        return len(self._c) - 1
+
+    def _eval(self, subst, precision):
+        x = self._x._eval(subst, precision)
+        c = [c._eval(subst, precision) for c in self._c]
+        v = c.pop()
+        while c:
+            v = v * x + c.pop()
+        return v
+
+    def _eval_unit(self, mode):
+        raise NotImplementedError
+
+    def tree(self, horner=True):
+        """
+        Returns this expression as a tree of :class:`Number`, :class:`Plus` and
+        :class:`Multiply` objects.
+
+        The extra argument ``horner`` can be used to switch between horner
+        form (default) and the more standard (but slower) form::
+
+            a + b*x + c*x**2 + ...
+
+        """
+        n = len(self._c)
+        if horner:
+            p = self._c[-1]
+            for i in range(n - 2, -1, -1):
+                p = Plus(self._c[i], Multiply(self._x, p))
+        else:
+            p = self._c[0]
+            if n > 1:
+                p = Plus(p, Multiply(self._c[1], self._x))
+                for i in range(2, n):
+                    p = Plus(
+                        p, Multiply(self._c[i], Power(self._x, Number(i))))
+        return p
+
+    def var(self):
+        """
+        Returns this polynomial's variable.
+        """
+        return self._x
+
+
+class Spline(OrderedPiecewise):
+    """
+    *Extends:* :class:`Function`
+
+    Splines in myokit are defined as a special case of the
+    :class:`OrderedPiecewise` function, where each piece is defined by a
+    :class:`Polynomial` of a fixed degree.
+
+    Splines / polynomials are defined as univariate. All polynomials in a
+    spline must have the same variable as used in the spline's conditional
+    statements.
+    """
+    _fname = 'spline'
+
+    def __init__(self, *ops):
+        super(Spline, self).__init__(*ops)
+        # Check expressions
+        for p in self._e:
+            if not isinstance(p, Polynomial):
+                raise IntegrityError(
+                    'All pieces of a spline must be explicitly defined as'
+                    ' polynomials using the Polynomial class).')
+        self._d = self._e[0].degree()
+        for p in self._e:
+            if not p.degree() == self._d:
+                raise IntegrityError(
+                    'All polynomials in a spline must have the same degree.')
+                # Dropping rule this breaks the spline optimisation!
+        for p in self._e:
+            if not p.var() == self._x:
+                raise IntegrityError(
+                    'All polynomials in a spline must use the same variable as'
+                    ' the spline itself.')
+
+    def degree(self):
+        """
+        Returns the degree of this spline's pieces.
+        """
+        return self._d
+
+    def _eval_unit(self, mode):
+        raise NotImplementedError
+
+
 class Condition(object):
     """
     *Abstract class*
