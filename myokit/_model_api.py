@@ -4358,11 +4358,10 @@ class Variable(VarOwner):
         """
         return self._lhs
 
-    def promote(self, state_value=0, check_const=True):
+    def promote(self, state_value=0):
         """
         Turns this variable into a state variable with a current state value
-        given by ``state_value``. state_value could be a value, an Expression,
-        or a proto expression
+        given by ``state_value``. state_value could be a value or an Expression,
 
         This will reset the validation status of the model this variable
         belongs to.
@@ -4379,14 +4378,6 @@ class Variable(VarOwner):
 
         model = self.model()
 
-        # Check state value argument, turn off when parsing as rhs
-        # for variables have not yet been set
-        if check_const:
-            if not state_value.is_constant():
-                raise myokit.NonConstantExpressionError(
-                    'Expressions for state values must only contain '
-                    'references to constant variables'
-                )
         try:
             # Set lhs to derivative expression
             self._lhs = myokit.Derivative(myokit.Name(self))

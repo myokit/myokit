@@ -438,11 +438,6 @@ def parse_model_from_stream(stream, syntax_only=False):
     if syntax_only:
         return True
 
-    # All initial variables must have been used
-    for qname, e in info.initial_values.items():
-        raise ParseError(
-            'Unused initial value', 0, 0,
-            'An unused initial value was found for "' + str(qname) + '".')
 
     # Re-order the model state
     model.reorder_state(state_order)
@@ -469,15 +464,23 @@ def parse_model_from_stream(stream, syntax_only=False):
 
     # Resolve variable references in initial conditions
     # check that current state can be evaluated
-    for i, rhs in enumerate(model._current_state):
-        expr = convert_proto_expression(rhs, var, info)
+    for i, var in enumerate(model._state):
+        proto_expr = info.initial_values[var.qname()]
+        expr = convert_proto_expression(proto_expr, var, info)
         if not expr.is_constant():
-            t = rhs[2][0]
+            t = proto_expr[2][0]
             raise ParseError(
                 'NonConstantExpression', t[2], t[3],
                 "All initial conditions must be constant"
             )
         model._current_state[i] = expr
+        del info.initial_values[var.qname()]
+
+    # All initial variables must have been used
+    for qname, e in info.initial_values.items():
+        raise ParseError(
+            'Unused initial value', 0, 0,
+            'An unused initial value was found for "' + str(qname) + '".')
 
     # Check the semantics of the model
     try:
@@ -686,9 +689,7 @@ def parse_variable(stream, info, parent):
             raise ParseError(
                 'Missing initial value', line, char,
                 'No initial value was found for "' + var.qname() + '"')
-        state_value = info.initial_values[var.qname()]
-        var.promote(state_value, check_const=False)
-        del info.initial_values[var.qname()]
+        var.promote()
 
     # Parse definition, quick unit, bind, label and description syntax
     # These token must occur in a fixed order!
