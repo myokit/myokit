@@ -347,6 +347,7 @@ from ._err import (  # noqa
     MissingRhsError,
     MissingTimeVariableError,
     MyokitError,
+    NonConstantExpressionError,
     NonLiteralValueError,
     NumericalError,
     ParseError,
@@ -359,7 +360,6 @@ from ._err import (  # noqa
     UnresolvedReferenceError,
     UnusedVariableError,
     VariableMappingError,
-    NonConstantExpressionError,
 )
 
 # Check if all errors imported
