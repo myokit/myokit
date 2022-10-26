@@ -549,7 +549,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     """
     # Get initial state
     if initial is None:
-        initial = model.state()
+        initial = model.state_value()
 
     # Get evaluation at initial state
     values = model.evaluate_derivatives(

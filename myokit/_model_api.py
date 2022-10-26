@@ -3254,6 +3254,12 @@ class Model(ObjectWithMeta, VarProvider):
 
     def state(self):
         """
+        Returns the current state of the model as a list of Expressions.
+        """
+        return [eqn.rhs for eqn in self.inits()]
+
+    def state_values(self):
+        """
         Returns the current state of the model as a list of floating point
         numbers.
         """
