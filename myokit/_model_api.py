@@ -1352,35 +1352,31 @@ class Model(ObjectWithMeta, VarProvider):
             To return ``NaN`` instead, set ``ignore_errors=True``.
 
         """
-        # Apply new state if required
-        if state is not None:
-            org_state = self.state()
-            self.set_state(self.map_to_state(state))
+        values = {}
 
-        # Apply values of external inputs if required
+        # Insert new state (if required)
+        if state is not None:
+            new_state = self.map_to_state(state)
+            for state, value in zip(self._state, new_state):
+                values[myokit.Name(state)] = value
+            state = None
+
+        # Insert values of inputs (if required)
         if inputs is not None:
-            # Check if values in ``inputs`` are all numbers
-            temp = inputs
-            inputs = {}
-            for label, number in temp.items():
-                if label in self._bindings:
-                    inputs[label] = float(number)
-            del temp
-            # Store original rhs values, set temporary new ones
-            org_inputs = {}
-            for label, number in inputs.items():
-                var = self._bindings[label]
-                org_inputs[var] = var.rhs()
-                var.set_rhs(myokit.Number(number))
+            for label, value in inputs.items():
+                var = self._bindings.get(label)
+                if var is not None:
+                    values[myokit.Name(var)] = float(value)
 
         # Get solvable order
         order = self.solvable_order()
 
         # Evaluate all variables in solvable order
-        values = {}
         if ignore_errors:
             for group in order.values():
                 for eq in group:
+                    if eq.lhs in values:
+                        continue
                     try:
                         value = eq.rhs.eval(values, precision=precision)
                     except myokit.NumericalError:
@@ -1389,24 +1385,12 @@ class Model(ObjectWithMeta, VarProvider):
         else:
             for group in order.values():
                 for eq in group:
+                    if eq.lhs in values:
+                        continue
                     values[eq.lhs] = eq.rhs.eval(values, precision=precision)
 
-        # Extract state from evaluated values
-        out = [0] * self.count_states()
-        for i, v in enumerate(self.states()):
-            out[i] = values[v.lhs()]
-
-        # Reset original state
-        if state is not None:
-            self.set_state(org_state)
-
-        # Reset original values of variables set to external inputs
-        if inputs is not None:
-            for var, rhs in org_inputs.items():
-                var.set_rhs(rhs)
-
         # Return calculated state
-        return out
+        return [values[state.lhs()] for state in self._state]
 
     def eval_state_derivatives(
             self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
