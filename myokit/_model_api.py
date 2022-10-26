@@ -2053,9 +2053,8 @@ class Model(ObjectWithMeta, VarProvider):
         current state.
         """
         def StateDefIterator(model):
-            for k, var in enumerate(model._state):
-                yield Equation(
-                    myokit.Name(var), self._current_state[k])
+            for var, state in zip(model._state, self._current_state):
+                yield Equation(myokit.Name(var), state)
         return StateDefIterator(self)
 
     def is_similar(self, other, check_unames=False):
