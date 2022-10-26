@@ -404,21 +404,45 @@ class ModelTest(unittest.TestCase):
         a = component.add_variable('a')
         b = component.add_variable('b')
         c = component.add_variable('c')
+        d = component.add_variable('d')
         a.promote(1)
         a.set_rhs('1')
         b.promote(2)
         b.set_rhs('2 * b')
         c.promote(3)
-        c.set_rhs('b + c')
+        c.set_rhs('b + d')
+        d.set_rhs('1 * c')
         model.validate()
+
+        # Test without input
         self.assertEqual(model.evaluate_derivatives(), [1, 4, 5])
+        self.assertEqual(model.evaluate_derivatives(ignore_errors=True),
+                         [1, 4, 5])
+
+        # Test with alternative state
         self.assertEqual(
-            model.evaluate_derivatives(state=[1, 1, 2]), [1, 2, 3])
+            model.evaluate_derivatives(state=[2, 3, 4]), [1, 6, 7])
+        self.assertEqual(
+            model.evaluate_derivatives(state=[2, 3, 4], ignore_errors=True),
+            [1, 6, 7])
+
+        # Test with input
         c.set_rhs('b + c + time')
         self.assertEqual(model.evaluate_derivatives(), [1, 4, 6])
         self.assertEqual(
-            model.evaluate_derivatives(state=[1, 1, 2], inputs={'time': 0}),
-            [1, 2, 3])
+            model.evaluate_derivatives(ignore_errors=True), [1, 4, 6])
+        self.assertEqual(
+            model.evaluate_derivatives(state=[2, 3, 4]), [1, 6, 8])
+        self.assertEqual(
+            model.evaluate_derivatives(state=[2, 3, 4], ignore_errors=True),
+            [1, 6, 8])
+        self.assertEqual(
+            model.evaluate_derivatives(state=[2, 3, 4], inputs={'time': 10}),
+            [1, 6, 17])
+        self.assertEqual(
+            model.evaluate_derivatives(
+                state=[2, 3, 4], inputs={'time': 10}, ignore_errors=True),
+            [1, 6, 17])
 
         # Deprecated name
         with WarningCollector() as w:
@@ -428,7 +452,7 @@ class ModelTest(unittest.TestCase):
                 [1, 2, 3])
         self.assertIn('deprecated', w.text())
 
-        # Errors
+        # Ignoring errors should lead to Nans
         c.set_rhs('(b + c) / 0')
         self.assertRaises(myokit.NumericalError, model.evaluate_derivatives)
         nan = model.evaluate_derivatives(ignore_errors=True)[2]

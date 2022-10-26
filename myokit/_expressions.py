@@ -389,10 +389,7 @@ class Expression(object):
 
     def eval(self, subst=None, precision=myokit.DOUBLE_PRECISION):
         """
-        Evaluates this expression and returns the result. This operation will
-        fail if the expression contains any
-        :class:`Names <Name>` that do not resolve to
-        numerical values.
+        Evaluates this expression and returns the result.
 
         The optional argument ``subst`` can be used to pass a dictionary
         mapping :class:`LhsExpression` objects to expressions or numbers to
@@ -401,6 +398,10 @@ class Expression(object):
         For debugging purposes, the argument ``precision`` can be set to
         ``myokit.SINGLE_PRECISION`` to perform the evaluation with 32 bit
         floating point numbers.
+
+        Note: This operation will fail if the expression contains :class:`Name`
+        objects with a value other than an :class:`Expression` or (an object
+        that can be cast to) a float.
         """
         # Check subst dict
         if subst:

@@ -169,9 +169,11 @@ class CModule(object):
                         '-Wextra',
                         '-Wstrict-prototypes',
                         '-Wold-style-definition',
-                        '-Wmissing-prototypes',
-                        '-Wmissing-declarations',
+                        #'-Wmissing-prototypes',
+                        #'-Wmissing-declarations',
                         '-Wdeclaration-after-statement',
+                        '-Wconversion',
+                        '-Wno-unused-parameter',
                     ])
 
             # Add runtime_library_dirs to prevent LD_LIBRARY_PATH errors on
@@ -219,9 +221,10 @@ class CModule(object):
             )
 
             # Compile in build directory, catch output
-            capture = not myokit.DEBUG_SC
+            capture = not (myokit.DEBUG_SC or myokit.COMPAT_NO_CAPTURE)
+            fd = not myokit.COMPAT_NO_FD_CAPTURE
             error, trace = None, None
-            with myokit.tools.capture(fd=True, enabled=capture) as s:
+            with myokit.tools.capture(fd=fd, enabled=capture) as s:
                 try:
                     os.chdir(d_build)
                     setup(

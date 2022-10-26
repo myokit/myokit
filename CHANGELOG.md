@@ -4,11 +4,18 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
-  - [#895](https://github.com/MichaelClerx/myokit/pull/895) Added method `Expression.depends_on_state()`.
 - Changed
-  - [#893](https://github.com/MichaelClerx/myokit/pull/893) `Variable.convert_unit` now returns `True` if a conversion was carried out or `False` if not.
 - Deprecated
 - Removed
+- Fixed
+
+## [1.33.8] - 2022-10-21
+- Added
+  - [#895](https://github.com/MichaelClerx/myokit/pull/895) Added method `Expression.depends_on_state()`.
+  - [#901](https://github.com/MichaelClerx/myokit/pull/901) Added options `compatibility.no_capture` and `compatibility.no_fd_capture` to `myokit.ini` to allow users to tweak compiler output capturing.
+  - [#903](https://github.com/MichaelClerx/myokit/pull/903) Fixed a bug in `SimulationOpenCL` that caused a `CL_INVALID_ARG_SIZE` error on strict systems.
+- Changed
+  - [#893](https://github.com/MichaelClerx/myokit/pull/893) `Variable.convert_unit` now returns `True` if a conversion was carried out or `False` if not.
 - Fixed
   - [#888](https://github.com/MichaelClerx/myokit/pull/888) [#892](https://github.com/MichaelClerx/myokit/pull/892) Improved documentation for `Unit.conversion_factor` with help from @martinjrobins.
   - [#895](https://github.com/MichaelClerx/myokit/pull/895) Fixed the value returned by `Name.diff()` and `Expression.diff()` for the situation where the associated RHS depends on a bound variable.

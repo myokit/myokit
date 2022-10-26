@@ -978,10 +978,15 @@ def run(source, debug_sg, debug_wg, debug_sc, debug_sm, debug_sp):
     import myokit
 
     # Debug modes
+    # Show generated code
     myokit.DEBUG_SG = myokit.DEBUG_SG or debug_sg
+    # Write generated code to file
     myokit.DEBUG_WG = myokit.DEBUG_WG or debug_wg
+    # Show compiler output
     myokit.DEBUG_SC = myokit.DEBUG_SC or debug_sc
+    # Show messages when running compiled code
     myokit.DEBUG_SM = myokit.DEBUG_SM or debug_sm
+    # Show profiling information when running compiled code
     myokit.DEBUG_SP = myokit.DEBUG_SP or debug_sp
 
     # Read mmt file

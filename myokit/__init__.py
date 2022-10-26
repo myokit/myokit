@@ -242,16 +242,23 @@ del os, inspect
 #
 # Debugging modes
 #
-# Show Generated code, or Write Generated code to file(s)
+# Show Generated code, or Write Generated code to file(s):
 DEBUG_SG = False
 DEBUG_WG = False
-# Show compiler output
+# Show compiler output, with lots of warnings enabled:
 DEBUG_SC = False
-# Show C debug Messages when running compiled code
+# Show C debug Messages when running compiled code:
 DEBUG_SM = False
-# Show C Profiling information when running compiled code
+# Show C Profiling information when running compiled code:
 DEBUG_SP = False
 
+#
+# Compatibility settings: Some users report problems with output capturing.
+#
+# Disable capturing (but don't add extra warning flags)
+COMPAT_NO_CAPTURE = False
+# Disable file-descriptor mode capturing
+COMPAT_NO_FD_CAPTURE = False
 
 #
 # Data logging flags (bitmasks)
