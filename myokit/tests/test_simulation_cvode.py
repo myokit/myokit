@@ -605,6 +605,30 @@ class LegacySimulationTest(unittest.TestCase):
 
         # Compare
         self.assertLess(np.max(np.abs(e)), 0.1)
+    
+    def test_initial_state_expression(self):
+        # Create a model with initial expression
+        m1 = myokit.Model()
+        c = m1.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        p = c.add_variable('p')
+        p.set_rhs('1')
+        y = c.add_variable('y')
+        y.promote(myokit.Name(p))
+        y.set_rhs('-y')
+
+        s = myokit.LegacySimulation(m1)
+        d = s.run(1)
+        self.assertAlmostEqual(s.state()[0], 1 * np.exp(-1), 3)
+
+        p.set_rhs('2')
+        s.reset()
+        d = s.run(1)
+        self.assertAlmostEqual(s.state()[0], 2 * np.exp(-1), 3)
+    
+
 
 
 if __name__ == '__main__':
