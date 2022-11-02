@@ -43,22 +43,22 @@ class Simulation1dTest(unittest.TestCase):
         s.set_step_size(0.05)
 
         self.assertEqual(s.time(), 0)
-        self.assertEqual(s.state(0), m.state())
-        self.assertEqual(s.default_state(0), m.state())
+        self.assertEqual(s.state(0), m.state_values())
+        self.assertEqual(s.default_state(0), m.state_values())
         d = s.run(5, log_interval=1)
         self.assertEqual(s.time(), 5)
-        self.assertNotEqual(s.state(0), m.state())
-        self.assertEqual(s.default_state(0), m.state())
+        self.assertNotEqual(s.state(0), m.state_values())
+        self.assertEqual(s.default_state(0), m.state_values())
 
         # Test full state getting and reset
-        self.assertEqual(s.default_state(), m.state() * ncells)
-        self.assertNotEqual(s.state(), m.state() * ncells)
+        self.assertEqual(s.default_state(), m.state_values() * ncells)
+        self.assertNotEqual(s.state(), m.state_values() * ncells)
         s.reset()
         self.assertEqual(s.state(), s.default_state())
 
         # Test pre updates the default state.
         s.pre(1)
-        self.assertNotEqual(s.default_state(0), m.state())
+        self.assertNotEqual(s.default_state(0), m.state_values())
 
         # Test running without a protocol
         s.set_protocol(None)
@@ -130,7 +130,7 @@ class Simulation1dTest(unittest.TestCase):
         n = 4
 
         s = myokit.Simulation1d(m, p, n)
-        self.assertEqual(s.state(), m.state() * n)
+        self.assertEqual(s.state(), m.state_values() * n)
 
         # Test setting a full state
         sx = [0] * 8 * n
@@ -143,7 +143,7 @@ class Simulation1dTest(unittest.TestCase):
         s.set_state(sx)
         self.assertEqual(s.state(), sx * n)
         s.set_state(m.state())
-        self.assertEqual(s.state(), m.state() * n)
+        self.assertEqual(s.state(), m.state_values() * n)
 
         # Test setting a single state
         j = 1
@@ -152,7 +152,7 @@ class Simulation1dTest(unittest.TestCase):
             if i == j:
                 self.assertEqual(s.state(i), sx)
             else:
-                self.assertEqual(s.state(i), m.state())
+                self.assertEqual(s.state(i), m.state_values())
 
         # Invalid cell index
         s.set_state(sx, 0)
@@ -167,7 +167,7 @@ class Simulation1dTest(unittest.TestCase):
         n = 4
 
         s = myokit.Simulation1d(m, p, n)
-        self.assertEqual(s.state(), m.state() * n)
+        self.assertEqual(s.state(), m.state_values() * n)
 
         # Test setting a full state
         sx = [0] * 8 * n
@@ -179,8 +179,8 @@ class Simulation1dTest(unittest.TestCase):
         sx = [0] * 8
         s.set_default_state(sx)
         self.assertEqual(s.default_state(), sx * n)
-        s.set_default_state(m.state())
-        self.assertEqual(s.default_state(), m.state() * n)
+        s.set_default_state(m.state_values())
+        self.assertEqual(s.default_state(), m.state_values() * n)
 
         # Test setting a single state
         j = 1
@@ -189,7 +189,7 @@ class Simulation1dTest(unittest.TestCase):
             if i == j:
                 self.assertEqual(s.default_state(i), sx)
             else:
-                self.assertEqual(s.default_state(i), m.state())
+                self.assertEqual(s.default_state(i), m.state_values())
 
         # Invalid cell index
         s.set_default_state(sx, 0)

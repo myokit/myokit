@@ -37,16 +37,16 @@ class JacobianCalculatorTest(unittest.TestCase):
 
         # Test if still runs with initial x all zero
         # (But does cause a linear algebra issue in this case)
-        x = np.zeros(len(m.state()))
+        x = np.zeros(len(m.state_values()))
         c.newton_root(x, damping=0.01, max_iter=50)
 
         # Test if still works with a single zero (Enno's bug)
-        x = np.array(m.state())
+        x = np.array(m.state_values())
         x[1] = 0
         x, f, j, e = c.newton_root(x, damping=0.01, max_iter=50)
 
         # Test quick return
-        x = np.array(m.state())
+        x = np.array(m.state_values())
         x[0] = 0
         x2, f, j, e = c.newton_root(damping=0.01, max_iter=1)
         self.assertTrue(np.sum((x2 - x)**2) > 10)
@@ -58,12 +58,12 @@ class JacobianCalculatorTest(unittest.TestCase):
             ValueError, 'Damping', c.newton_root, damping=1.1)
 
         # Missing a state
-        x = m.state()[:-1]
+        x = m.state_values()[:-1]
         self.assertRaisesRegex(
             ValueError, 'must have length', c.calculate, x)
 
         # Non-numbers in state
-        x = m.state()
+        x = m.state_values()
         x[0] = 'Hello'
         self.assertRaisesRegex(
             ValueError, 'floats', c.calculate, x)

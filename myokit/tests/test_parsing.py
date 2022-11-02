@@ -1354,7 +1354,7 @@ class ModelParseTest(unittest.TestCase):
         # Test evaluation
         x = m.get('test.x')
         y = m.get('test.y')
-        s = m.state()
+        s = m.state_values()
         i = m.get('membrane.V').indice()
         # Test x, xo, y, yo
         s[i] = -80

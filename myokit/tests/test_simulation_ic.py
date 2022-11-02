@@ -39,13 +39,13 @@ class ICSimulationTest(unittest.TestCase):
         self.assertIn('`ICSimulation` is deprecated', c.text())
 
         self.assertEqual(s.time(), 0)
-        self.assertEqual(s.state(), m.state())
-        self.assertEqual(s.default_state(), m.state())
+        self.assertEqual(s.state(), m.state_values())
+        self.assertEqual(s.default_state(), m.state_values())
         self.assertTrue(np.all(s.derivatives() == np.eye(n)))
         d, e = s.run(20, log_interval=5)
         self.assertEqual(s.time(), 20)
-        self.assertNotEqual(s.state(), m.state())
-        self.assertEqual(s.default_state(), m.state())
+        self.assertNotEqual(s.state(), m.state_values())
+        self.assertEqual(s.default_state(), m.state_values())
         self.assertFalse(np.all(s.derivatives() == np.eye(n)))
 
         # Create a datablock from the simulation log
