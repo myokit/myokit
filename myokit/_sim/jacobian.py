@@ -310,7 +310,7 @@ class JacobianCalculator(myokit.CppModule):
 
         # Get initial state
         if x is None:
-            x = self._model.state()
+            x = self._model.state_values()
         x = np.array(x)
 
         # Calculate derivatives & jacobian

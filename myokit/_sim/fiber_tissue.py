@@ -303,8 +303,8 @@ class FiberTissueSimulation(myokit.CModule):
                 ' and the tissue model: ' + str(ucf) + ' vs ' + str(uct) + '.')
 
         # Set state and default state
-        self._statef = self._modelf.state() * self._ntotalf
-        self._statet = self._modelt.state() * self._ntotalt
+        self._statef = self._modelf.state_values() * self._ntotalf
+        self._statet = self._modelt.state_values() * self._ntotalt
         self._default_statef = list(self._statef)
         self._default_statet = list(self._statet)
 

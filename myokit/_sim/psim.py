@@ -149,7 +149,7 @@ class PSimulation(myokit.CppModule):
             self._values.append(p.rhs().eval())
 
         # Get state and default state from model
-        self._state = self._model.state()
+        self._state = self._model.state_values()
         self._default_state = list(self._state)
 
         # Create list of state-parameter-derivatives

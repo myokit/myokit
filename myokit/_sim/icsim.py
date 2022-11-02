@@ -101,7 +101,7 @@ class ICSimulation(myokit.CppModule):
         self.set_protocol(protocol)
 
         # Get state and default state from model
-        self._state = self._model.state()
+        self._state = self._model.state_values()
         self._default_state = list(self._state)
 
         # Create initial list of derivatives

@@ -176,7 +176,7 @@ class Simulation1d(myokit.CModule):
                 ' next')
 
         # Set state and default state
-        self._state = self._model.state() * ncells
+        self._state = self._model.state_values() * ncells
         self._default_state = list(self._state)
 
         # Unique simulation id

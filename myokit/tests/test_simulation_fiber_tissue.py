@@ -535,7 +535,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         m = self.mf.count_states()
         nx, ny = self.nfx, self.nfy
 
-        sm = self.mf.state()
+        sm = self.mf.state_values()
         for i in range(nx):
             for j in range(ny):
                 self.assertEqual(sm, self.s1.fiber_state(i, j))

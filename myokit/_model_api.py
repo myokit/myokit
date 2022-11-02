@@ -1512,7 +1512,7 @@ class Model(ObjectWithMeta, VarProvider):
                     'Argument `state` must be a list of (' + str(n)
                     + ') floating point numbers.')
         else:
-            state = self.state()
+            state = self.state_values()
 
         if state2 is not None:
             if len(state2) != n:
@@ -1558,7 +1558,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         n = len(self._state)
         if state is None:
-            state = self.state()
+            state = self.state_values()
         elif len(state) != n:
             raise ValueError(
                 'Argument `state` must be a list of (' + str(n)
@@ -2888,7 +2888,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         Saves the model state to a file.
         """
-        return myokit.save_state(filename, self.state(), self)
+        return myokit.save_state(filename, self.state_values(), self)
 
     def set_name(self, name=None):
         """

@@ -186,7 +186,7 @@ class Simulation(myokit.CModule):
         del cmodel
 
         # Get state and default state from model
-        self._state = self._model.state()
+        self._state = self._model.state_values()
         self._default_state = list(self._state)
 
         # Set state and default state for sensitivities
