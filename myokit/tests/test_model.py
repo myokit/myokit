@@ -1454,17 +1454,17 @@ class ModelTest(unittest.TestCase):
         # Test :meth:`Model.save_state()` and :meth:`Model.load_state()`.
 
         m = myokit.load_model('example')
-        s1 = m.state()
+        s1 = m.state_values()
         with TemporaryDirectory() as d:
             path = d.path('state.csv')
             m.save_state(path)
-            self.assertEqual(m.state(), s1)
+            self.assertEqual(m.state_values(), s1)
             sx = list(s1)
             sx[0] = 10
             m.set_state(sx)
-            self.assertNotEqual(m.state(), s1)
+            self.assertNotEqual(m.state_values(), s1)
             m.load_state(path)
-            self.assertEqual(m.state(), s1)
+            self.assertEqual(m.state_values(), s1)
 
     def test_map_to_state(self):
         # Test :meth:`Model.map_to_state()`.
@@ -2089,11 +2089,11 @@ class ModelTest(unittest.TestCase):
         p = c.add_variable('p')
         p.set_rhs(3)
 
-        self.assertEqual(m.state(), [2])
+        self.assertEqual(m.state_values(), [2])
 
         y.demote()
         y.promote(myokit.Multiply(myokit.Number(2), myokit.Name(p)))
-        self.assertEqual(m.state(), [6])
+        self.assertEqual(m.state_values(), [6])
 
     def test_value(self):
         # Test :meth:`Model.value()`.

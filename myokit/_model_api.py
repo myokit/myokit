@@ -4363,10 +4363,17 @@ class Variable(VarOwner):
         if self._binding is not None:
             raise Exception(
                 'State variables cannot be bound to an external value.')
-        if not isinstance(state_value, (myokit.Expression, tuple)):
+        if not isinstance(state_value, myokit.Expression):
             state_value = myokit.Number(state_value)
 
         model = self.model()
+
+        # check initial state value expression is constant
+        if not state_value.is_constant():
+            raise myokit.NonConstantExpressionError(
+                'Expressions for state values must only contain '
+                'references to constant variables'
+            )
 
         try:
             # Set lhs to derivative expression

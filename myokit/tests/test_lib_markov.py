@@ -361,21 +361,21 @@ class AnalyticalSimulationTest(unittest.TestCase):
         voltages = np.arange(-70, 0, 30)
 
         # Generate traces with "solve" method
-        state = s.state_values()
+        state = s.state()
         dstate = s.default_state()
         for v in voltages:
             s.set_membrane_potential(v)
             x, i = s.solve(times)
 
         # Solve shouldn't change the state
-        self.assertEqual(state, s.state_values())
+        self.assertEqual(state, s.state())
         self.assertEqual(dstate, s.default_state())
 
         # Run for a bit
         self.assertIsInstance(s.run(10), myokit.DataLog)
 
         # Calculate current for a particular state
-        self.assertIsInstance(s.current(s.state_values()), float)
+        self.assertIsInstance(s.current(s.state()), float)
 
         # No current variable? Then current can't be calculated
         model2 = model.clone()
@@ -383,7 +383,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         m2 = markov.LinearModel.from_component(model2.get('ina'))
         s2 = markov.AnalyticalSimulation(m2)
         self.assertRaisesRegex(
-            Exception, 'did not specify a current', s2.current, s2.state_values())
+            Exception, 'did not specify a current', s2.current, s2.state())
         # But simulation still works
         self.assertIsInstance(s2.run(10), myokit.DataLog)
         del model2, m2, s2
@@ -412,18 +412,18 @@ class AnalyticalSimulationTest(unittest.TestCase):
             Exception, 'cannot be set if', s.set_membrane_potential, -80)
 
         # Pre should change the state and default state
-        state = s.state_values()
+        state = s.state()
         dstate = s.default_state()
         s.pre(tprep + tstep)
-        self.assertNotEqual(state, s.state_values())
+        self.assertNotEqual(state, s.state())
         self.assertNotEqual(dstate, s.default_state())
         self.assertRaises(ValueError, s.pre, -1)
 
         # Run should change the state, not the default state
-        state = s.state_values()
+        state = s.state()
         dstate = s.default_state()
         d = s.run(t)
-        self.assertNotEqual(state, s.state_values())
+        self.assertNotEqual(state, s.state())
         self.assertEqual(dstate, s.default_state())
         self.assertRaisesRegex(ValueError, 'Duration', s.run, -1)
         self.assertRaisesRegex(
@@ -436,7 +436,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # Reset should reset the state
         s.reset()
-        self.assertEqual(state, s.state_values())
+        self.assertEqual(state, s.state())
 
         # Run can append to log
         d = s.run(10)
@@ -474,12 +474,12 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertEqual(p, s.parameters())
 
         # State
-        state = np.zeros(len(s.state_values()))
+        state = np.zeros(len(s.state()))
         state[0] = 0.5
         state[1] = 0.5
-        self.assertNotEqual(list(state), list(s.state_values()))
+        self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
-        self.assertEqual(list(state), list(s.state_values()))
+        self.assertEqual(list(state), list(s.state()))
         self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_state, state[:-1])
         state[0] += 0.1
@@ -610,24 +610,24 @@ class DiscreteSimulationTest(unittest.TestCase):
             Exception, 'cannot be set if', s.set_membrane_potential, -80)
 
         # Pre should change the state and default state
-        state = s.state_values()
+        state = s.state()
         dstate = s.default_state()
         s.pre(tprep + tstep)
-        self.assertNotEqual(state, s.state_values())
+        self.assertNotEqual(state, s.state())
         self.assertNotEqual(dstate, s.default_state())
         self.assertRaisesRegex(ValueError, 'negative', s.pre, -1)
 
         # Run should change the state, not the default state
-        state = s.state_values()
+        state = s.state()
         dstate = s.default_state()
         d = s.run(15)
-        self.assertNotEqual(state, s.state_values())
+        self.assertNotEqual(state, s.state())
         self.assertEqual(dstate, s.default_state())
         self.assertRaisesRegex(ValueError, 'negative', s.run, -1)
 
         # Reset should reset the state
         s.reset()
-        self.assertEqual(state, s.state_values())
+        self.assertEqual(state, s.state())
 
         # Run can append to log
         n = len(d['engine.time'])
@@ -700,12 +700,12 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertEqual(p, s.parameters())
 
         # State
-        state = np.zeros(len(s.state_values()))
+        state = np.zeros(len(s.state()))
         state[0] = 25
         state[1] = 25
-        self.assertNotEqual(list(state), list(s.state_values()))
+        self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
-        self.assertEqual(list(state), list(s.state_values()))
+        self.assertEqual(list(state), list(s.state()))
         self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_state, state[:-1])
         state[0] += 1

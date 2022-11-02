@@ -438,10 +438,6 @@ def parse_model_from_stream(stream, syntax_only=False):
     if syntax_only:
         return True
 
-
-    # Re-order the model state
-    model.reorder_state(state_order)
-
     # Order encountered tokens
     m = model._tokens
     model._tokens = {}
@@ -481,6 +477,9 @@ def parse_model_from_stream(stream, syntax_only=False):
         raise ParseError(
             'Unused initial value', 0, 0,
             'An unused initial value was found for "' + str(qname) + '".')
+
+    # Re-order the model state
+    model.reorder_state(state_order)
 
     # Check the semantics of the model
     try:

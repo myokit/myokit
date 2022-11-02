@@ -341,7 +341,7 @@ class LoadSaveStateTest(unittest.TestCase):
             # Test save and load without model
             f = d.path('state.txt')
             myokit.save_state(f, m.state_values())
-            self.assertEqual(myokit.load_state(f), m.state())
+            self.assertEqual(myokit.load_state(f), m.state_values())
 
             # Test save and load with model argument
             myokit.save_state(f, m.state_values(), m)

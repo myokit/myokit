@@ -142,7 +142,7 @@ class Simulation1dTest(unittest.TestCase):
         sx = [0] * 8
         s.set_state(sx)
         self.assertEqual(s.state(), sx * n)
-        s.set_state(m.state())
+        s.set_state(m.state_values())
         self.assertEqual(s.state(), m.state_values() * n)
 
         # Test setting a single state
