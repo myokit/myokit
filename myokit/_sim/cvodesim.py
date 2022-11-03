@@ -519,7 +519,8 @@ class Simulation(myokit.CModule):
         Allows you to manually set the default state.
         """
         state_expr = [
-             s if isinstance(s, myokit.Expression) else myokit.Number(s) for s in state
+            s if isinstance(s, myokit.Expression) else myokit.Number(s) 
+            for s in state
         ]
         self._default_state = self._model.map_to_state(state_expr)
 

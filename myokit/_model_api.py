@@ -1112,7 +1112,6 @@ class Model(ObjectWithMeta, VarProvider):
                 self._current_state[k].clone(subst=lhs_map)
             )
 
-
         # Return
         return clone
 
@@ -4355,7 +4354,8 @@ class Variable(VarOwner):
     def promote(self, state_value=0):
         """
         Turns this variable into a state variable with a current state value
-        given by ``state_value``. state_value could be a value or an Expression,
+        given by ``state_value``. state_value could be a value or an 
+        Expression,
 
         This will reset the validation status of the model this variable
         belongs to.
