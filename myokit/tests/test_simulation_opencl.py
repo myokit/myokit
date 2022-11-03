@@ -1180,7 +1180,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         m = 8
         n = 10
         self.s1.reset()
-        sm = self.m.state()
+        sm = self.m.state_values()
         ss = [self.s1.state(x) for x in range(n)]
         for si in ss:
             self.assertEqual(sm, si)
@@ -1277,7 +1277,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         m = 8
         nx, ny = 4, 3
         self.s2.reset()
-        sm = self.m.state()
+        sm = self.m.state_values()
         for i in range(nx):
             for j in range(ny):
                 self.assertEqual(sm, self.s2.state(i, j))
