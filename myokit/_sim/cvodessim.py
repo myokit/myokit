@@ -187,7 +187,7 @@ class Simulation(myokit.CModule):
 
         # Get state and default state from model
         self._state = self._model.state_values()
-        self._default_state = list(self._state)
+        self._default_state = self._model.state()
 
         # Set state and default state for sensitivities
         self._s_state = self._s_default_state = None
@@ -510,9 +510,10 @@ class Simulation(myokit.CModule):
 
         """
         self._time = 0
-        self._state = list(self._default_state)
+        self._state = [float(expr) for expr in self._default_state]
         if self._sensitivities:
             self._s_state = [list(x) for x in self._s_default_state]
+
 
     def run(self, duration, log=None, log_interval=None, log_times=None,
             sensitivities=None, apd_variable=None, apd_threshold=None,
@@ -905,7 +906,11 @@ class Simulation(myokit.CModule):
         """
         Allows you to manually set the default state.
         """
-        self._default_state = self._model.map_to_state(state)
+        state_expr = [
+            s if isinstance(s, myokit.Expression) else myokit.Number(s)
+            for s in state
+        ]
+        self._default_state = self._model.map_to_state(state_expr)
 
     def set_max_step_size(self, dtmax=None):
         """
@@ -1024,7 +1029,8 @@ class Simulation(myokit.CModule):
         """
         Sets the current state.
         """
-        self._state = self._model.map_to_state(state)
+        state_values = [float(s) for s in state]
+        self._state = self._model.map_to_state(state_values)
 
     def set_time(self, time=0):
         """

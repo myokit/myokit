@@ -638,7 +638,8 @@ class Simulation(myokit.CModule):
         """
         Sets the current state.
         """
-        self._state = self._model.map_to_state(state)
+        state_values = [float(s) for s in state]
+        self._state = self._model.map_to_state(state_values)
 
     def set_time(self, time=0):
         """
