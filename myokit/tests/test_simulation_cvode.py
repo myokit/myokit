@@ -605,7 +605,7 @@ class LegacySimulationTest(unittest.TestCase):
 
         # Compare
         self.assertLess(np.max(np.abs(e)), 0.1)
-    
+
     def test_initial_state_expression(self):
         # Create a model with initial expression
         m = myokit.Model()
