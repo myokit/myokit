@@ -174,7 +174,9 @@ class Explorer(QtWidgets.QDialog):
             if pre:
                 s.pre(pre, progress=pbar.reporter())
             d = s.run(run, progress=pbar.reporter()).npview()
-            self._stream.write('Final state: \n' + m.format_state(s.state_value()))
+            self._stream.write(
+                'Final state: \n' + m.format_state(s.state_value())
+            )
             QtWidgets.QApplication.processEvents(
                 QtCore.QEventLoop.ExcludeUserInputEvents)
         except myokit.SimulationCancelledError:
