@@ -273,7 +273,7 @@ class SimulationOpenCL(myokit.CModule):
 
         # Set state and default state
         self._state = self._model.state_values() * self._ntotal
-        self._default_state = list(self._state)
+        self._default_state = self._model.state() * self._ntotal
 
         # List of globally logged inputs
         self._global = ['time', 'pace']
@@ -930,7 +930,7 @@ class SimulationOpenCL(myokit.CModule):
 
         """
         self._time = 0
-        self._state = list(self._default_state)
+        self._state = [float(expr) for expr in self._default_state]
 
     def run(self, duration, log=None, log_interval=1.0, report_nan=True,
             progress=None, msg='Running SimulationOpenCL'):
@@ -1478,7 +1478,14 @@ class SimulationOpenCL(myokit.CModule):
            ``y = 1`` and so on).
 
         """
-        self._default_state = self._set_state(state, x, y, self._default_state)
+
+        state_expr = [
+            s if isinstance(s, myokit.Expression) else myokit.Number(s)
+            for s in state
+        ]
+        self._default_state = self._set_state(
+            state_expr, x, y, self._default_state
+        )
 
     def set_field(self, var, values):
         """
