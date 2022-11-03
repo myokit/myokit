@@ -1087,6 +1087,10 @@ class Model(ObjectWithMeta, VarProvider):
         for c in self._components.values():
             c._clone1(clone)
 
+        # Clone state
+        for k, v in enumerate(self._state):
+            clone.get(v.qname()).promote()
+
         # Create mapping of old var references to new references
         var_map = {}
         lhs_map = {}
@@ -1106,9 +1110,9 @@ class Model(ObjectWithMeta, VarProvider):
         for prefix, prepend in self._reserved_uname_prefixes.items():
             clone.reserve_unique_name_prefix(prefix, prepend)
 
-        # Clone initial state equations
+        # Copy initial state expressions
         for k, v in enumerate(self._state):
-            clone.get(v.qname()).promote(
+            clone.get(v.qname()).set_state_value(
                 self._current_state[k].clone(subst=lhs_map)
             )
 
