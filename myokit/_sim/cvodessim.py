@@ -514,7 +514,6 @@ class Simulation(myokit.CModule):
         if self._sensitivities:
             self._s_state = [list(x) for x in self._s_default_state]
 
-
     def run(self, duration, log=None, log_interval=None, log_times=None,
             sensitivities=None, apd_variable=None, apd_threshold=None,
             progress=None, msg='Running simulation'):

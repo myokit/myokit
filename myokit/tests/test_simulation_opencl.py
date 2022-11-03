@@ -1566,7 +1566,6 @@ class SimulationOpenCLFindNanTest(unittest.TestCase):
         self.assertAlmostEqual(s.state()[0], 2 * np.exp(-1), 3)
 
 
-
 if __name__ == '__main__':
 
     import sys
