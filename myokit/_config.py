@@ -126,7 +126,7 @@ def _create(path):
         # Standard: /usr/local/include
         # Macports: /opt/local/include
         # Homebrew: /opt/homebrew/include
-        config.set('sundials', 'lib', ';'.join([
+        config.set('sundials', 'inc', ';'.join([
             '/usr/local/include',
             '/opt/local/include',
             '/opt/homebrew/include',
