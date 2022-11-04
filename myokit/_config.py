@@ -91,7 +91,7 @@ def _create(path):
             'C:\\Program Files\\sundials\\lib',
             'C:\\Program Files (x86)\\sundials\\lib',
         ]))
-    elif system == 'Darwin':
+    elif system == 'Darwin':    # pragma: no linux cover
         # Apple
         # Standard: /usr/local/lib
         # Macports: /opt/local/lib
@@ -121,7 +121,7 @@ def _create(path):
             'C:\\Program Files\\sundials\\include',
             'C:\\Program Files (x86)\\sundials\\include',
         ]))
-    elif system == 'Darwin':
+    elif system == 'Darwin':    # pragma: no linux cover
         # Apple
         # Standard: /usr/local/include
         # Macports: /opt/local/include
