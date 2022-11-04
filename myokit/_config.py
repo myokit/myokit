@@ -91,15 +91,24 @@ def _create(path):
             'C:\\Program Files\\sundials\\lib',
             'C:\\Program Files (x86)\\sundials\\lib',
         ]))
-    else:
-        # Linux and MacOS
-        # Standard linux and MacOS install: /usr/local/lib
-        # Macports MacOS install: /opt/local/lib ??
+    elif system == 'Darwin':    # pragma: no linux cover
+        # Apple
+        # Standard: /usr/local/lib
+        # Macports: /opt/local/lib
+        # Homebrew: /opt/homebrew
         config.set('sundials', 'lib', ';'.join([
             '/usr/local/lib',
             '/usr/local/lib64',
             '/opt/local/lib',
             '/opt/local/lib64',
+            '/opt/homebrew/lib',
+            '/opt/homebrew/lib64',
+        ]))
+    else:
+        # Linux
+        config.set('sundials', 'lib', ';'.join([
+            '/usr/local/lib',
+            '/usr/local/lib64',
         ]))
 
     config.set('sundials',
@@ -112,13 +121,20 @@ def _create(path):
             'C:\\Program Files\\sundials\\include',
             'C:\\Program Files (x86)\\sundials\\include',
         ]))
-    else:
-        # Linux and MacOS
-        # Standard linux and MacOS install: /usr/local/include
-        # Macports MacOS install: /opt/local/include
-        config.set('sundials', 'inc', ';'.join([
+    elif system == 'Darwin':    # pragma: no linux cover
+        # Apple
+        # Standard: /usr/local/include
+        # Macports: /opt/local/include
+        # Homebrew: /opt/homebrew/include
+        config.set('sundials', 'lib', ';'.join([
             '/usr/local/include',
             '/opt/local/include',
+            '/opt/homebrew/include',
+        ]))
+    else:
+        # Linux
+        config.set('sundials', 'inc', ';'.join([
+            '/usr/local/include',
         ]))
 
     # Locations of OpenCL libraries
