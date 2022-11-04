@@ -72,3 +72,5 @@ New features are best discussed in an issue before starting any implementation w
 ## Citing Myokit
 
 If you use Myokit in your research, please cite it using the information in our [CITATION file](https://github.com/MichaelClerx/myokit/blob/main/CITATION).
+
+I like to [keep track of who's using Myokit](http://myokit.org/publications/) (for my CV!). If you are using Myokit for teaching, I'd love to hear about it. You can drop me a line at michael[at]myokit.org
