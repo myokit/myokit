@@ -2936,7 +2936,6 @@ class Model(ObjectWithMeta, VarProvider):
 
         This will reset the model's validation status.
         """
-        print('set_value', qname, value)
         self.get(qname).set_rhs(value)
 
     def show_evaluation_of(self, var):

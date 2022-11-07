@@ -1179,6 +1179,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         n = 10
         self.s1.reset()
         sm = self.m.state_values()
+        sm_expr = self.m.state()
         ss = [self.s1.state(x) for x in range(n)]
         for si in ss:
             self.assertEqual(sm, si)
@@ -1250,12 +1251,12 @@ class SimulationOpenCLTest(unittest.TestCase):
                 if i == j:
                     self.assertEqual(self.s1.default_state(i), sx)
                 else:
-                    self.assertEqual(self.s1.default_state(i), sm)
+                    self.assertEqual(self.s1.default_state(i), sm_expr)
             sx = [myokit.Number(x) for x in list(range(m * n))]
             self.s1.set_default_state(sx)
             self.assertEqual(sx, self.s1.default_state())
         finally:
-            self.s1.set_default_state(sm)
+            self.s1.set_default_state(sm_expr)
 
         # Check error messages for default_state
         self.assertRaisesRegex(
@@ -1558,12 +1559,12 @@ class SimulationOpenCLFindNanTest(unittest.TestCase):
 
         s = myokit.SimulationOpenCL(m)
         d = s.run(1)
-        self.assertAlmostEqual(s.state()[0], 1 * np.exp(-1), 3)
+        self.assertAlmostEqual(s.state()[0], 1 * np.exp(-1), 2)
 
         s.set_constant('c.p', 2)
         s.reset()
         d = s.run(1)
-        self.assertAlmostEqual(s.state()[0], 2 * np.exp(-1), 3)
+        self.assertAlmostEqual(s.state()[0], 2 * np.exp(-1), 2)
 
 
 if __name__ == '__main__':
