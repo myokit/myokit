@@ -1344,7 +1344,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         # Test set_default_state
         try:
             x, y = 2, 1
-            sx = [myokit.Number(x) for x in list(range(m))]
+            sx = [myokit.Number(i) for i in list(range(m))]
             self.s2.set_state([0] * m)
             self.s2.set_default_state(sx, x, y)
             for i in range(nx):
