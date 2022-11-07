@@ -816,35 +816,33 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Test initial state
         self.s0.reset()
-        x0 = self.s0.default_state()
+        x0_expr = self.s0.default_state()
+        x0 = [float(x) for x in x0_expr]
         self.assertEqual(x0, self.s0.state())
         self.assertEqual(0, self.s0.time())
 
         # Test running, then resetting to default state
         self.s0.run(1)
         x1 = self.s0.state()
-        self.assertEqual(x0, self.s0.default_state())
+        self.assertEqual(x0, [float(x) for x in self.s0.default_state()])
         self.assertNotEqual(x0, x1)
         self.assertEqual(1, self.s0.time())
         self.s0.reset()
-        self.assertEqual(x0, self.s0.default_state())
         self.assertEqual(x0, self.s0.state())
         self.assertEqual(0, self.s0.time())
 
         try:
             # Test pre()
             self.s0.pre(1)
-            self.assertEqual(x1, self.s0.default_state())
+            self.assertEqual(x1, [float(x) for x in self.s0.default_state()])
             self.assertEqual(x1, self.s0.state())
             self.assertEqual(0, self.s0.time())
 
             # Test running and resetting to new default
             self.s0.run(1)
-            self.assertEqual(x1, self.s0.default_state())
             self.assertNotEqual(x1, self.s0.state())
             self.assertEqual(1, self.s0.time())
             self.s0.reset()
-            self.assertEqual(x1, self.s0.default_state())
             self.assertEqual(x1, self.s0.state())
             self.assertEqual(0, self.s0.time())
 
@@ -861,7 +859,7 @@ class SimulationOpenCLTest(unittest.TestCase):
                 ValueError, 'negative', self.s0.run, -1)
 
         finally:
-            self.s0.set_default_state(x0)
+            self.s0.set_default_state(x0_expr)
 
     def test_run_progress_reporter(self):
         # Test running with a progress reporter
@@ -1245,7 +1243,7 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Test set_default_state
         try:
-            sx = list(range(m))
+            sx = [myokit.Number(x) for x in list(range(m))]
             self.s1.set_state([0] * m)
             self.s1.set_default_state(sx, j)
             for i in range(n):
@@ -1253,7 +1251,7 @@ class SimulationOpenCLTest(unittest.TestCase):
                     self.assertEqual(self.s1.default_state(i), sx)
                 else:
                     self.assertEqual(self.s1.default_state(i), sm)
-            sx = list(range(m * n))
+            sx = [myokit.Number(x) for x in list(range(m * n))]
             self.s1.set_default_state(sx)
             self.assertEqual(sx, self.s1.default_state())
         finally:
@@ -1278,6 +1276,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         nx, ny = 4, 3
         self.s2.reset()
         sm = self.m.state_values()
+        sm_expr = self.m.state()
         for i in range(nx):
             for j in range(ny):
                 self.assertEqual(sm, self.s2.state(i, j))
@@ -1344,7 +1343,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         # Test set_default_state
         try:
             x, y = 2, 1
-            sx = list(range(m))
+            sx = [myokit.Number(x) for x in list(range(m))]
             self.s2.set_state([0] * m)
             self.s2.set_default_state(sx, x, y)
             for i in range(nx):
@@ -1352,9 +1351,9 @@ class SimulationOpenCLTest(unittest.TestCase):
                     if i == x and j == y:
                         self.assertEqual(self.s2.default_state(i, j), sx)
                     else:
-                        self.assertEqual(self.s2.default_state(i, j), sm)
+                        self.assertEqual(self.s2.default_state(i, j), sm_expr)
         finally:
-            self.s2.set_default_state(sm)
+            self.s2.set_default_state(sm_expr)
 
         # Check error messages for default_state
         self.assertRaisesRegex(
@@ -1555,6 +1554,7 @@ class SimulationOpenCLFindNanTest(unittest.TestCase):
         y = c.add_variable('y')
         y.promote(myokit.Name(p))
         y.set_rhs('-y')
+        y.set_label('membrane_potential')
 
         s = myokit.SimulationOpenCL(m)
         d = s.run(1)
