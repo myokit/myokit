@@ -809,7 +809,7 @@ class Simulation(myokit.CModule):
                 # not, add the error to the error message.
                 try:
                     self._model.evaluate_derivatives(state)
-                except myokit.NumericalError as en:
+                except Exception as en:
                     txt.append(str(en))
 
                 # Raise numerical simulation error
