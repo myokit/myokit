@@ -127,9 +127,14 @@ class ExpressionTest(unittest.TestCase):
         self.assertTrue(v.depends_on(c, deep=True))
 
         # Deep checking can handle improper names
+        # Note: The order of execution is not guaranteed, so that sometimes
+        # the test will find 'c' before dealing with the improper ref. As a
+        # result, the False scenario is required for consistent coverage.
+        # https://github.com/myokit/myokit/issues/913
         p = myokit.Plus(c, myokit.Name('x'))
         self.assertTrue(p.depends_on(c, True))
         self.assertTrue(p.depends_on(myokit.Name('x'), True))
+        self.assertFalse(p.depends_on(v, True))
 
         # Deep checking can handle partial derivs and inits
         q = myokit.PartialDerivative(myokit.Name(v.var()), c)
@@ -144,12 +149,14 @@ class ExpressionTest(unittest.TestCase):
         self.assertFalse(q.depends_on(myokit.Name(v.var()), False))
 
         # Deep checking can handle partial derivs and inits & improper names
+        # See note above about issue 913
         q = myokit.Plus(p, myokit.PartialDerivative(v, myokit.Name('x')))
         self.assertTrue(q.depends_on(c, True))
         self.assertTrue(q.depends_on(myokit.Name('x'), True))
         q = myokit.Plus(p, myokit.InitialValue(myokit.Name('x')))
         self.assertTrue(q.depends_on(c, True))
         self.assertTrue(q.depends_on(myokit.Name('x'), True))
+        self.assertFalse(q.depends_on(v, True))
 
         # Test with complex web of dependencies
         m.get('ina.E').set_rhs('a + b + c + k1 + k2 + inf')
