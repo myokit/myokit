@@ -2,12 +2,9 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
-- Added
-- Changed
-- Deprecated
-- Removed
+## [1.33.9] - 2022-11-08
 - Fixed
+  - [#912](https://github.com/myokit/myokit/pull/912) Reporting of numerical errors in `Simulation` now catches more exception types arising from `evaluate_derivatives`.
   - [#908](https://github.com/MichaelClerx/myokit/pull/908) Added new homebrew location used on M1 apple devices, potentially solving [#861](https://github.com/myokit/myokit/issues/861).
 
 ## [1.33.8] - 2022-10-21
