@@ -9,6 +9,7 @@ This page lists the main changes made to Myokit in each release.
   - [#898](https://github.com/myokit/myokit/pull/899) `Model.state_values` returns a list of floats, the result of evaluating each element of `Model.state`.
 - Changed
   - [#898](https://github.com/myokit/myokit/pull/899) `Model.state` now returns a list of expressions.
+  - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can take an expression, a number, or a string (parsed as an expression) for the arg `state_value`.
 - Deprecated
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) removed `myokit.NonLiteralValueError` as no longer used.
