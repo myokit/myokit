@@ -148,6 +148,11 @@ class ModelBuildTest(unittest.TestCase):
         # set constant expression initial value
         x.promote(myokit.Name(b1))
         self.assertEqual(x.state_value(), 1)
+        self.assertEqual(m.state(), [myokit.Name(b1)])
+
+        x.demote()
+        x.promote('1 + 2')
+        self.assertEqual(x.state_value(), 3)
 
         # Add second component, variables
         Y = m.add_component('Y')
