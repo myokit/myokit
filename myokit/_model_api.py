@@ -3460,8 +3460,8 @@ class Model(ObjectWithMeta, VarProvider):
         for eqn in self.inits():
             if not eqn.rhs.is_constant():
                 raise myokit.NonConstantExpressionError(
-                    f'Initial condition for variable {eqn.lhs} is '
-                    f'not constant ({eqn})'
+                    'Initial condition for variable {} is '
+                    'not constant ({})'.format(eqn.lhs, eqn)
                 )
 
         # Return
