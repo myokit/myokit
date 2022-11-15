@@ -1432,6 +1432,21 @@ class ModelParseTest(unittest.TestCase):
             """
         self.assertRaises(myokit.ParseError, myokit.parse, code)
 
+        # initial expression using child variables should fail
+        code = """
+            [[model]]
+            c.q = a
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            p = 0.5
+            dot(q) = 2
+                a = 10 * 2 + p
+            """
+        self.assertRaises(myokit.ParseError, myokit.parse, code)
+
         # non-constant initial value
         code = """
             [[model]]

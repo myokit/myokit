@@ -2858,7 +2858,14 @@ class Model(ObjectWithMeta, VarProvider):
 
     def _resolve(self, name):
         """ See :meth:`VarProvider._resolve(). """
-        return self.get(name)
+        def sa(name):
+            # Suggest alternative
+            (var, sug, msg) = self.suggest_variable(name)
+            return msg
+        try:
+            return self.get(name)
+        except KeyError:
+            raise myokit.UnresolvedReferenceError(name, sa(name))
 
     def resolve_interdependent_components(self):
         """
@@ -4369,9 +4376,15 @@ class Variable(VarOwner):
         Turns this variable into a state variable with a current state value
         given by ``state_value``.
         
-        The new ``state_value`` should be either a numerical value or a
-        :class:`myokit.Expression`. If an expression is used, it can contain
-        references to model variables, as long as they are constant-valued.
+        The new ``state_value`` should be:
+         1. a numerical value 
+         2. a :class:`myokit.Expression`. If an expression is used, it can 
+         contain references to model variables, as long as they are 
+         constant-valued.
+         3. a string, in which case it is parsed to a 
+         :class:`myokit.Expression`. Note that this parsing is done in the 
+         context of the model, not the variable, so child variables cannot 
+         be used
 
         This will reset the validation status of the model this variable
         belongs to.
@@ -4385,10 +4398,11 @@ class Variable(VarOwner):
                 'State variables cannot be bound to an external value.')
 
         # Handle string and number rhs's
+        # expressions are evaluated in model context, not variables
         if not isinstance(state_value, myokit.Expression):
             if isinstance(state_value, basestring):
                 state_value = myokit.parse_expression(
-                    state_value, context=self
+                    state_value, context=self.model
                 )
             elif state_value is not None:
                 state_value = myokit.Number(state_value)

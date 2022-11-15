@@ -462,7 +462,7 @@ def parse_model_from_stream(stream, syntax_only=False):
     # check that current state can be evaluated
     for i, var in enumerate(model._state):
         proto_expr = info.initial_values[var.qname()]
-        expr = convert_proto_expression(proto_expr, var, info)
+        expr = convert_proto_expression(proto_expr, context=model, info=info)
         if not expr.is_constant():
             t = proto_expr[2][0]
             raise ParseError(
