@@ -4357,8 +4357,11 @@ class Variable(VarOwner):
     def promote(self, state_value=0):
         """
         Turns this variable into a state variable with a current state value
-        given by ``state_value``. state_value could be a value or an
-        Expression,
+        given by ``state_value``.
+        
+        The new ``state_value`` should be either a numerical value or a
+        :class:`myokit.Expression`. If an expression is used, it can contain
+        references to model variables, as long as they are constant-valued.
 
         This will reset the validation status of the model this variable
         belongs to.
