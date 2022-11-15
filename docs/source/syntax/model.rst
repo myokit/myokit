@@ -44,8 +44,10 @@ Meta-data can be added to a model using the syntax ``field: value``
 All state variables require an initial value to be specified in the model
 header using the syntax ``component.variable = value``
 
-Initial values can be numbers or expressions, as long as they don't reference
-other variables.
+Initial values can be numbers or expressions, they can reference other variables
+as long as these variables are constant in time. Make sure to use the fully
+qualified name when referencing, for example use `c.y` to refer to variable `y`
+in component `c`.
 
 Example::
 
