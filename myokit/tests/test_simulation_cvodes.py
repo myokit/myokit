@@ -1018,5 +1018,6 @@ class SimulationTest(unittest.TestCase):
             s.sensitivities_state()[0][0], 4 * np.exp(-1), 3
         )
 
+
 if __name__ == '__main__':
     unittest.main()
