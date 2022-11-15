@@ -1474,7 +1474,12 @@ class ModelParseTest(unittest.TestCase):
             [c]
             dot(p) = 1
             """
-        myokit.parse(code)[0].get('c.p')
+        # for now we will naively assume that dot(c.p) is non-constant
+        # (https://github.com/myokit/myokit/pull/899#discussion_r1022654662)
+        self.assertRaisesRegex(
+            myokit.ParseError, "NonConstantExpression", myokit.parse, code
+        )
+
 
 
     def test_aliases(self):
