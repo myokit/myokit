@@ -65,8 +65,6 @@ Inheriting classes
 
 .. autoclass:: MissingTimeVariableError
 
-.. autoclass:: NonLiteralValueError
-
 .. autoclass:: NumericalError
 
 .. autoclass:: ParseError
