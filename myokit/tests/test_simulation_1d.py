@@ -44,17 +44,17 @@ class Simulation1dTest(unittest.TestCase):
 
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.state(0), m.state_values())
-        self.assertEqual(s.default_state(0), m.state_values())
+        self.assertEqual(s.default_state(0), m.state())
         d = s.run(5, log_interval=1)
         self.assertEqual(s.time(), 5)
         self.assertNotEqual(s.state(0), m.state_values())
-        self.assertEqual(s.default_state(0), m.state_values())
+        self.assertEqual(s.default_state(0), m.state())
 
         # Test full state getting and reset
-        self.assertEqual(s.default_state(), m.state_values() * ncells)
+        self.assertEqual(s.default_state(), m.state() * ncells)
         self.assertNotEqual(s.state(), m.state_values() * ncells)
         s.reset()
-        self.assertEqual(s.state(), s.default_state())
+        self.assertEqual(s.state(), [float(v) for v in s.default_state()])
 
         # Test pre updates the default state.
         s.pre(1)
@@ -170,17 +170,17 @@ class Simulation1dTest(unittest.TestCase):
         self.assertEqual(s.state(), m.state_values() * n)
 
         # Test setting a full state
-        sx = [0] * 8 * n
+        sx = [myokit.Number(0)] * 8 * n
         self.assertNotEqual(sx, s.default_state())
         s.set_default_state(sx)
         self.assertEqual(sx, s.default_state())
 
         # Test setting a single, global state
-        sx = [0] * 8
+        sx = [myokit.Number(0)] * 8
         s.set_default_state(sx)
         self.assertEqual(s.default_state(), sx * n)
-        s.set_default_state(m.state_values())
-        self.assertEqual(s.default_state(), m.state_values() * n)
+        s.set_default_state(m.state())
+        self.assertEqual(s.default_state(), m.state() * n)
 
         # Test setting a single state
         j = 1
@@ -189,7 +189,7 @@ class Simulation1dTest(unittest.TestCase):
             if i == j:
                 self.assertEqual(s.default_state(i), sx)
             else:
-                self.assertEqual(s.default_state(i), m.state_values())
+                self.assertEqual(s.default_state(i), m.state())
 
         # Invalid cell index
         s.set_default_state(sx, 0)
