@@ -946,7 +946,7 @@ class SimulationTest(unittest.TestCase):
         p = c.add_variable('p')
         p.set_rhs('1')
         y = c.add_variable('y')
-        y.promote(myokit.Name(p))
+        y.promote('c.p^2')
         y.set_rhs('-y')
 
         s = myokit.Simulation(m)
@@ -956,8 +956,68 @@ class SimulationTest(unittest.TestCase):
         s.set_constant('c.p', 2)
         s.reset()
         d = s.run(1)
-        self.assertAlmostEqual(s.state()[0], 2 * np.exp(-1), 3)
+        self.assertAlmostEqual(s.state()[0], 4 * np.exp(-1), 3)
 
+        # test default state sensitivities
+        s.set_constant('c.p', 1)
+        sensitivities = (['c.y'], ['c.p'])
+        s = myokit.Simulation(m, sensitivities=sensitivities)
+        sens = s.default_state_sensitivities()
+        self.assertEqual(float(sens[0][0]), 2)
+
+        s.set_constant('c.p', 2)
+        sens = s.default_state_sensitivities()
+        self.assertEqual(float(sens[0][0]), 4)
+
+        # test state sensitivities are calculated ok
+        s.reset()
+        s.run(1)
+        self.assertAlmostEqual(s.state()[0], 4 * np.exp(-1), 3)
+        self.assertAlmostEqual(
+            s.sensitivities_state()[0][0], 4 * np.exp(-1), 3
+        )
+
+        s.set_constant('c.p', 1)
+        s.reset()
+        s.run(1)
+        self.assertAlmostEqual(s.state()[0], 1 * np.exp(-1), 3)
+        self.assertAlmostEqual(
+            s.sensitivities_state()[0][0], 2 * np.exp(-1), 3
+        )
+
+        # set_state removes dependency of p
+        s.reset()
+        s.set_state([5.0])
+        s.run(1)
+        self.assertAlmostEqual(s.state()[0], 5 * np.exp(-1), 3)
+        self.assertAlmostEqual(
+            s.sensitivities_state()[0][0], 0, 3
+        )
+
+        # doing a sim in two parts doesn't change sensitivities
+        s.reset()
+        s.run(0.5)
+        s.run(0.5)
+        self.assertAlmostEqual(
+            s.sensitivities_state()[0][0], 2 * np.exp(-1), 2
+        )
+
+        # changing p during a sim shouldn't change sensitivities
+        s.reset()
+        s.run(0.5)
+        s.set_constant('c.p', 2)
+        s.run(0.5)
+        self.assertAlmostEqual(
+            s.sensitivities_state()[0][0], 2 * np.exp(-1), 2
+        )
+
+        # make sure the change in c.p is there if we reset
+        s.reset()
+        s.run(1.0)
+        self.assertAlmostEqual(
+            s.sensitivities_state()[0][0], 4 * np.exp(-1), 3
+        )
+        
 
 if __name__ == '__main__':
     unittest.main()

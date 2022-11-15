@@ -4402,7 +4402,7 @@ class Variable(VarOwner):
         if not isinstance(state_value, myokit.Expression):
             if isinstance(state_value, basestring):
                 state_value = myokit.parse_expression(
-                    state_value, context=self.model
+                    state_value, context=self.model()
                 )
             elif state_value is not None:
                 state_value = myokit.Number(state_value)

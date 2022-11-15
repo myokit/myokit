@@ -195,12 +195,11 @@ class Simulation(myokit.CModule):
             # Outer indice: number of independent variables
             # Inner indice: number of states
             self._s_state = []
+            self._s_default_state = []
             for expr in self._sensitivities[1]:
-                row = [0.0] * len(self._state)
-                if isinstance(expr, myokit.InitialValue):
-                    row[expr.var().indice()] = 1.0
-                self._s_state.append(row)
-            self._s_default_state = [list(x) for x in self._s_state]
+                row = [ic.diff(expr) for ic in self._default_state]
+                self._s_state.append([float(ic_expr) for ic_expr in row])
+                self._s_default_state.append(row)
 
         # Last state reached before error
         self._error_state = None
@@ -512,7 +511,9 @@ class Simulation(myokit.CModule):
         self._time = 0
         self._state = [float(expr) for expr in self._default_state]
         if self._sensitivities:
-            self._s_state = [list(x) for x in self._s_default_state]
+            self._s_state = [
+                [float(expr) for expr in x] for x in self._s_default_state
+            ]
 
     def run(self, duration, log=None, log_interval=None, log_times=None,
             sensitivities=None, apd_variable=None, apd_threshold=None,
@@ -1030,6 +1031,10 @@ class Simulation(myokit.CModule):
         """
         state_values = [float(s) for s in state]
         self._state = self._model.map_to_state(state_values)
+        if self._sensitivities:
+            self._s_state = [
+                [0.0] * len(self._state) for _ in self._sensitivities[1]
+            ]
 
     def set_time(self, time=0):
         """
@@ -1061,6 +1066,12 @@ class Simulation(myokit.CModule):
         Returns the current state.
         """
         return list(self._state)
+
+    def sensitivities_state(self):
+        """
+        Returns the current state.
+        """
+        return self._s_state
 
     def time(self):
         """
