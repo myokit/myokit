@@ -467,7 +467,7 @@ def parse_model_from_stream(stream, syntax_only=False):
             t = proto_expr[2][0]
             raise ParseError(
                 'NonConstantExpression', t[2], t[3],
-                "All initial conditions must be constant"
+                'All initial conditions must be constant.'
             )
         model._current_state[i] = expr
         del info.initial_values[var.qname()]
