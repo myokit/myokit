@@ -1445,6 +1445,38 @@ class ModelParseTest(unittest.TestCase):
             """
         self.assertRaises(myokit.ParseError, myokit.parse, code)
 
+        # indirect non-constant initial value
+        code = """
+            [[model]]
+            c.p = c.r
+            c.q = 1
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            dot(p) = 1
+            dot(q) = 2
+            r = 2 * q
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, "NonConstantExpression", myokit.parse, code
+        )
+
+        # looks like it shouldn't be constant, but it is!
+        code = """
+            [[model]]
+            c.p = dot(c.p)
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            dot(p) = 1
+            """
+        myokit.parse(code)[0].get('c.p')
+
+
     def test_aliases(self):
         code = """
             [[model]]
