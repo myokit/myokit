@@ -4375,15 +4375,15 @@ class Variable(VarOwner):
         """
         Turns this variable into a state variable with a current state value
         given by ``state_value``.
-        
+
         The new ``state_value`` should be:
-         1. a numerical value 
-         2. a :class:`myokit.Expression`. If an expression is used, it can 
-         contain references to model variables, as long as they are 
+         1. a numerical value
+         2. a :class:`myokit.Expression`. If an expression is used, it can
+         contain references to model variables, as long as they are
          constant-valued.
-         3. a string, in which case it is parsed to a 
-         :class:`myokit.Expression`. Note that this parsing is done in the 
-         context of the model, not the variable, so child variables cannot 
+         3. a string, in which case it is parsed to a
+         :class:`myokit.Expression`. Note that this parsing is done in the
+         context of the model, not the variable, so child variables cannot
          be used
 
         This will reset the validation status of the model this variable

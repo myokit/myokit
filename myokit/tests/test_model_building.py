@@ -544,8 +544,5 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(myokit.NonConstantExpressionError, m.validate)
 
 
-
-
-
 if __name__ == '__main__':
     unittest.main()

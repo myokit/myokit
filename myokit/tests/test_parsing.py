@@ -223,6 +223,7 @@ class PhasedParseTest(unittest.TestCase):
     """
     Tests several phases of parsing.
     """
+
     def test_segment_parsing(self):
         # Test :meth:`parse_model()`.
         from myokit._parsing import parse
@@ -1494,8 +1495,6 @@ class ModelParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, "NonConstantExpression", myokit.parse, code
         )
-
-
 
     def test_aliases(self):
         code = """
