@@ -3253,6 +3253,8 @@ class Model(ObjectWithMeta, VarProvider):
         Returns the current state of the model as a list of floating point
         numbers.
         """
+        # need to check for cyclic dependencies
+        self.validate()
         return [float(eqn.rhs) for eqn in self.inits()]
 
     def states(self):
@@ -3446,6 +3448,14 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Create globally unique names
         self.create_unique_names()
+
+        # Check initial state expressions are still constant
+        for eqn in self.inits():
+            if not eqn.rhs.is_constant():
+                raise myokit.NonConstantExpressionError(
+                    f'Initial condition for variable {eqn.lhs} is '
+                    f'not constant ({eqn})'
+                )
 
         # Return
         self._valid = True

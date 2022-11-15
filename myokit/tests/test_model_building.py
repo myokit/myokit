@@ -507,6 +507,45 @@ class ModelBuildTest(unittest.TestCase):
         c1_c.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_b)))
         self.assertRaises(myokit.CyclicalDependencyError, m.validate)
 
+    def test_promote_cycles(self):
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        a = c.add_variable('a')
+        b = c.add_variable('b')
+        y = c.add_variable('y')
+
+        # promote *then* introduce the cycle
+        y.set_rhs('1')
+        a.set_rhs('1')
+        b.set_rhs('1 + a')
+        y.promote('a')
+        a.set_rhs('b')
+
+        self.assertRaises(myokit.CyclicalDependencyError, m.state_values)
+
+    def test_validate_constant_initial_conditions(self):
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        y = c.add_variable('y')
+        a = c.add_variable('a')
+        a.set_rhs('1')
+        y.set_rhs('1')
+        y.promote('a')
+
+        # now promote a
+        a.promote('0')
+
+        self.assertRaises(myokit.NonConstantExpressionError, m.validate)
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
