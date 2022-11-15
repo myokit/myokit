@@ -355,7 +355,6 @@ from ._err import (  # noqa
     MissingTimeVariableError,
     MyokitError,
     NonConstantExpressionError,
-    NonLiteralValueError,
     NumericalError,
     ParseError,
     ProtocolEventError,

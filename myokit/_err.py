@@ -300,14 +300,6 @@ class NonConstantExpressionError(MyokitError):
     """
 
 
-class NonLiteralValueError(IntegrityError):
-    """
-    Raised when a literal value is required but not given.
-
-    *Extends:* :class:`myokit.IntegrityError`
-    """
-
-
 class NumericalError(MyokitError):
     """
     Raised when a numerical error occurs during the evaluation of a myokit
