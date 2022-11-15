@@ -4373,8 +4373,15 @@ class Variable(VarOwner):
         if self._binding is not None:
             raise Exception(
                 'State variables cannot be bound to an external value.')
+
+        # Handle string and number rhs's
         if not isinstance(state_value, myokit.Expression):
-            state_value = myokit.Number(state_value)
+            if isinstance(state_value, basestring):
+                state_value = myokit.parse_expression(
+                    state_value, context=self
+                )
+            elif state_value is not None:
+                state_value = myokit.Number(state_value)
 
         model = self.model()
 

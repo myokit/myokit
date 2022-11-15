@@ -2095,6 +2095,10 @@ class ModelTest(unittest.TestCase):
         y.promote(myokit.Multiply(myokit.Number(2), myokit.Name(p)))
         self.assertEqual(m.state_values(), [6])
 
+        y.demote()
+        y.promote('2 * p')
+        self.assertEqual(m.state_values(), [6])
+
     def test_value(self):
         # Test :meth:`Model.value()`.
 
