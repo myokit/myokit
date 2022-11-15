@@ -6,7 +6,9 @@ This page lists the main changes made to Myokit in each release.
 - Added
   - [#898](https://github.com/myokit/myokit/pull/899) allow initial conditions for state variables to be expressions (previously only literals allowed).
   - [#898](https://github.com/myokit/myokit/pull/899) added `myokit.NonConstantExpressionError` for an error where a constant expression is expected.
+  - [#898](https://github.com/myokit/myokit/pull/899) `Model.state_values` returns a list of floats, the result of evaluating each element of `Model.state`.
 - Changed
+  - [#898](https://github.com/myokit/myokit/pull/899) `Model.state` now returns a list of expressions.
 - Deprecated
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) removed `myokit.NonLiteralValueError` as no longer used.
