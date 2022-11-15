@@ -4377,7 +4377,7 @@ class Variable(VarOwner):
         given by ``state_value``.
 
         The new ``state_value`` should be:
-        
+
         1. a numerical value
         2. a :class:`myokit.Expression`. If an expression is used, it can
            contain references to model variables, as long as they are
