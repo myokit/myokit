@@ -1403,6 +1403,20 @@ class ModelParseTest(unittest.TestCase):
             """
         myokit.parse(code)[0].get('c.q')
 
+        # initial expression with just literals
+        code = """
+            [[model]]
+            c.q = 10 * exp(2)
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            p = 0.5
+            dot(q) = 2
+            """
+        myokit.parse(code)[0].get('c.q')
+
         # non-existant variable in initial value
         code = """
             [[model]]
