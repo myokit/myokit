@@ -513,6 +513,9 @@ class AuxTest(unittest.TestCase):
         # Test positive/negative zero comparison
         m1 = myokit.Model()
         c = m1.add_component('c')
+        t = c.add_variable('t')
+        t.set_binding('time')
+        t.set_rhs(0)
         x = c.add_variable('x')
         x.promote(1)
         x.set_rhs('-0.0')

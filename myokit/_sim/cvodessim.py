@@ -198,6 +198,8 @@ class Simulation(myokit.CModule):
             self._s_default_state = []
             for expr in self._sensitivities[1]:
                 row = [ic.diff(expr) for ic in self._default_state]
+                if isinstance(expr, myokit.InitialValue):
+                    row[expr.var().indice()] = myokit.Number(1.0)
                 self._s_state.append([float(ic_expr) for ic_expr in row])
                 self._s_default_state.append(row)
 

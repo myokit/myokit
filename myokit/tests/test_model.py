@@ -2083,9 +2083,11 @@ class ModelTest(unittest.TestCase):
         m = myokit.Model()
         c = m.add_component('c')
         y = c.add_variable('y')
+        y.set_rhs(1)
         y.promote(2.0)
         t = c.add_variable('t')
         t.set_binding('time')
+        t.set_rhs(0)
         p = c.add_variable('p')
         p.set_rhs(3)
 
@@ -2096,7 +2098,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m.state_values(), [6])
 
         y.demote()
-        y.promote('2 * p')
+        y.promote('2 * c.p')
         self.assertEqual(m.state_values(), [6])
 
     def test_value(self):

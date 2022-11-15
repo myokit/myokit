@@ -521,7 +521,7 @@ class ModelBuildTest(unittest.TestCase):
         y.set_rhs('1')
         a.set_rhs('1')
         b.set_rhs('1 + a')
-        y.promote('a')
+        y.promote('c.a')
         a.set_rhs('b')
 
         self.assertRaises(myokit.CyclicalDependencyError, m.state_values)
@@ -536,7 +536,7 @@ class ModelBuildTest(unittest.TestCase):
         a = c.add_variable('a')
         a.set_rhs('1')
         y.set_rhs('1')
-        y.promote('a')
+        y.promote('c.a')
 
         # now promote a
         a.promote('0')
