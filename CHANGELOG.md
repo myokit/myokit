@@ -4,15 +4,15 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
-  - [#898](https://github.com/myokit/myokit/pull/899) allow initial conditions for state variables to be expressions (previously only literals allowed).
-  - [#898](https://github.com/myokit/myokit/pull/899) added `myokit.NonConstantExpressionError` for an error where a constant expression is expected.
-  - [#898](https://github.com/myokit/myokit/pull/899) `Model.state_values` returns a list of floats, the result of evaluating each element of `Model.state`.
+  - [#898](https://github.com/myokit/myokit/pull/899) Initial conditions for state variables can now be (constant-valued) expressions. Previously, only literals were allowed.
+  - [#898](https://github.com/myokit/myokit/pull/899) Added `myokit.NonConstantExpressionError` for an error where a constant expression is expected.
+  - [#898](https://github.com/myokit/myokit/pull/899) `Model.state_values` now returns a list of floats, the result of evaluating each element of `Model.state`.
 - Changed
   - [#898](https://github.com/myokit/myokit/pull/899) `Model.state` now returns a list of expressions.
-  - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can take an expression, a number, or a string (parsed as an expression) for the arg `state_value`.
+  - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (parsed as an expression) for the argument `state_value`.
 - Deprecated
 - Removed
-  - [#898](https://github.com/myokit/myokit/pull/899) removed `myokit.NonLiteralValueError` as no longer used.
+  - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
 - Fixed
 
 ## [1.33.9] - 2022-11-08
