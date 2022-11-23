@@ -435,7 +435,7 @@ Which should be read as::
 
 
 Piecewise conditional statements
-===============================
+================================
 Conditional statements with more than 1 branch can be made using the
 ``piecewise`` construct::
 
