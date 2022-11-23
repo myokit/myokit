@@ -44,10 +44,10 @@ Meta-data can be added to a model using the syntax ``field: value``
 All state variables require an initial value to be specified in the model
 header using the syntax ``component.variable = value``
 
-Initial values can be numbers or expressions, they can reference other variables
-as long as these variables are constant in time. Make sure to use the fully
-qualified name when referencing, for example use `c.y` to refer to variable `y`
-in component `c`.
+Initial values can be numbers or expressions. Expressions can make reference 
+to variables as long as they are constant in time. References must be made
+using fully qualified names, for example using ``c.y`` to refer to variable
+``y`` in component ``c``.
 
 Example::
 
@@ -418,9 +418,9 @@ The following functions are defined:
 In addition, the expression ``dot(x)`` can be used to reference the time
 derivative of state variable ``x``.
 
-Conditional statements
-======================
-Conditional statements can be made using the ``if`` function::
+Conditional statements (if)
+===========================
+Simple conditional statements can be made using the ``if`` function::
 
     x = if(V < -50,
         0.2 * exp((V - 12) / 4.7),
@@ -434,7 +434,7 @@ Which should be read as::
         x = 0.5 * exp((V + 19) / 1.2)
 
 
-Advanced conditional statements
+Piecewise conditional statements
 ===============================
 Conditional statements with more than 1 branch can be made using the
 ``piecewise`` construct::

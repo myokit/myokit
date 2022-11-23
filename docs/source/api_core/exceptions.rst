@@ -65,6 +65,8 @@ Inheriting classes
 
 .. autoclass:: MissingTimeVariableError
 
+.. autoclass:: NonConstantExpressionError
+
 .. autoclass:: NumericalError
 
 .. autoclass:: ParseError
@@ -86,6 +88,4 @@ Inheriting classes
 .. autoclass:: UnusedVariableError
 
 .. autoclass:: VariableMappingError
-
-.. autoclass:: NonConstantExpressionError
 
