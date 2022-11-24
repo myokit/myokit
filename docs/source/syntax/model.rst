@@ -588,7 +588,7 @@ myocyte::
           """
     # Template functions
     sig(V, Vstar, a, b) = exp(a * (Vstar - V)) / (1 + exp(b * (Vstar - V)))
-    # Initial conditions
+    # Initial values
     membrane.V         = -84.4
     na_fast.m          = 0.0017
     na_fast.h          = 0.98
