@@ -46,8 +46,6 @@ the initial state values.
     DataLog
     DataBlock
     Jacobians
-    ICSimulation
-    PSimulation
     RhsBenchmarker
     SimulationErrors
     LongSimulations
