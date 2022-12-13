@@ -458,18 +458,18 @@ def parse_model_from_stream(stream, syntax_only=False):
             var.set_rhs(convert_proto_expression(var._proto_rhs, var, info))
         del var._proto_rhs
 
-    # Resolve variable references in initial conditions
+    # Resolve variable references in initial values
     # check that current state can be evaluated
-    for i, var in enumerate(model._state):
+    for i, var in enumerate(model.states()):
         proto_expr = info.initial_values[var.qname()]
         expr = convert_proto_expression(proto_expr, context=model, info=info)
         if not expr.is_constant():
             t = proto_expr[2][0]
             raise ParseError(
                 'NonConstantExpression', t[2], t[3],
-                'All initial conditions must be constant.'
+                'All initial values must be constant.'
             )
-        model._current_state[i] = expr
+        var.set_initial_value(expr)
         del info.initial_values[var.qname()]
 
     # All initial variables must have been used

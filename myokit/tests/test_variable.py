@@ -92,7 +92,7 @@ class VariableTest(unittest.TestCase):
         # Clamp simple state
         g = m.get('z.g')
         self.assertTrue(g.is_state())
-        self.assertTrue(g.state_value() != 10)
+        self.assertNotEqual(g.initial_value(as_float=True), 10)
         self.assertEqual(g.unit(), myokit.units.m)
         self.assertEqual(g.rhs().unit(), myokit.units.m / myokit.units.s)
         self.assertEqual(m.count_states(), 3)
@@ -286,7 +286,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(v.lhs(), myokit.Name(v))
         self.assertRaises(Exception, v.demote)
         self.assertRaises(Exception, v.indice)
-        self.assertRaises(Exception, v.state_value)
+        self.assertRaises(Exception, v.initial_value)
 
         v.promote(3)
         self.assertFalse(v.is_literal())
@@ -295,7 +295,7 @@ class VariableTest(unittest.TestCase):
         self.assertTrue(v.is_state())
         self.assertEqual(v.lhs(), myokit.Derivative(myokit.Name(v)))
         self.assertEqual(v.indice(), 0)
-        self.assertEqual(v.state_value(), 3)
+        self.assertEqual(v.initial_value(as_float=True), 3)
 
         v.demote()
         self.assertTrue(v.is_literal())
@@ -305,7 +305,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(v.lhs(), myokit.Name(v))
         self.assertRaises(Exception, v.demote)
         self.assertRaises(Exception, v.indice)
-        self.assertRaises(Exception, v.state_value)
+        self.assertRaises(Exception, v.initial_value)
 
         # Test errors
         v.promote(3)
@@ -638,26 +638,36 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(v.name(), 'w')
         self.assertEqual(v.qname(), 'c.w')
 
-    def test_set_state_value(self):
-        # Test :meth:`Variable.set_state_value()`.
+    def test_set_initial_value(self):
+        # Test :meth:`Variable.set_initial_value()`.
 
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
         w = c.add_variable('w')
+        w.set_rhs('1 + 2')
 
         # Test basic functionality
         v.promote(10)
-        self.assertEqual(v.state_value(), 10)
-        v.set_state_value(12)
-        self.assertEqual(v.state_value(), 12)
+        self.assertEqual(v.initial_value(), myokit.Number(10))
+        v.set_initial_value(12)
+        self.assertEqual(v.initial_value(), myokit.Number(12))
+
+        # Test setting expressions
+        v.set_initial_value('1 + 11')
+        #self.assertEqual(v.initial_value(),
+        #                 myokit.Plus(myokit.Number(1), myokit.Number(11)))
+        v.set_initial_value('1 + c.w')
+        self.assertEqual(v.initial_value(),
+                         myokit.Plus(myokit.Number(1), myokit.Name(w)))
+
 
         # Only states have this option
         v.demote()
         self.assertRaisesRegex(
-            Exception, 'Only state variables', v.set_state_value, 3)
+            Exception, 'Only state variables', v.set_initial_value, 3)
         self.assertRaisesRegex(
-            Exception, 'Only state variables', w.set_state_value, 3)
+            Exception, 'Only state variables', w.set_initial_value, 3)
 
         v.promote(3)
 

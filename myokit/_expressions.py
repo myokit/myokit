@@ -239,7 +239,7 @@ class Expression(object):
             if ref.is_state_value():
                 return True
             elif ref._has_partials or ref._has_initials:
-                # Partial derivatives and initial values have no rhs
+                # Partial derivatives and state values have no rhs
                 continue
             elif not ref._proper:
                 # Values that are not variables count as independent
@@ -616,7 +616,7 @@ class Expression(object):
     def is_state_value(self):
         """
         Returns ``True`` if this expression is a :class:`Name` pointing to the
-        current value of a state variable.
+        value of a state variable.
         """
         return False
 
@@ -1142,7 +1142,7 @@ class Name(LhsExpression):
         """See :meth:`LhsExpression.rhs()`."""
         if self._proper:
             if self._value.is_state():
-                return Number(self._value.state_value())
+                return self._value.initial_value()
             elif self._value.lhs() == self:
                 return self._value.rhs()
         return None

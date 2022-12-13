@@ -1230,7 +1230,12 @@ class PhasedParseTest(unittest.TestCase):
 
 
 class ModelParseTest(unittest.TestCase):
+    """
+    Test parsing models.
+    """
+
     def test_model_creation(self):
+        # Basic model creation via the parser
         m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
 
         # Test components
@@ -1264,24 +1269,42 @@ class ModelParseTest(unittest.TestCase):
             1,
             0.0057,
             0.0002]
+        self.assertEqual(len(values), m.count_states())
+
+        # Test initial value parsing
         out = ', '.join([str(x) for x in m.states()])
         ref = ', '.join(states)
         self.assertEqual(ref, out)
-        for k, eq in enumerate(m.inits()):
-            self.assertEqual(eq.rhs.eval(), values[k])
+        for val, ref in zip(m.initial_values(as_floats=True), values):
+            self.assertEqual(val, ref)
 
-        # Test state parsing / setting
-        m.set_state(values)
-        for k, eq in enumerate(m.inits()):
-            self.assertEqual(eq.rhs.eval(), values[k])
+        # Test initial value setting
+        # Set with expressions
+        values[0] -= 1
+        m.set_initial_values([myokit.Number(v) for v in values])
+        for val, ref in zip(m.initial_values(as_floats=True), values):
+            self.assertEqual(val, ref)
+
+        # Set with floats
+        values[1] += 1e4
+        m.set_initial_values(values)
+        for val, ref in zip(m.initial_values(as_floats=True), values):
+            self.assertEqual(val, ref)
+
+        # Set with dict of floats
+        values[2] -= 1e4
         s = dict(zip(states, values))
-        m.set_state(s)
-        for k, eq in enumerate(m.inits()):
-            self.assertEqual(eq.rhs.eval(), values[k])
+        m.set_initial_values(s)
+        for val, ref in zip(m.initial_values(as_floats=True), values):
+            self.assertEqual(val, ref)
+
+        # Set with one big string
+        values[3] += 1e4
+        s = dict(zip(states, values))
         s = '\n'.join([str(a) + '=' + str(b) for a, b in s.items()])
-        m.set_state(s)
-        for k, eq in enumerate(m.inits()):
-            self.assertEqual(eq.rhs.eval(), values[k])
+        m.set_initial_values(s)
+        for val, ref in zip(m.initial_values(as_floats=True), values):
+            self.assertEqual(val, ref)
 
         # Test cloning
         try:
@@ -1355,19 +1378,19 @@ class ModelParseTest(unittest.TestCase):
         # Test evaluation
         x = m.get('test.x')
         y = m.get('test.y')
-        s = m.state_values()
+        s = m.initial_values(as_floats=True)
         i = m.get('membrane.V').indice()
         # Test x, xo, y, yo
         s[i] = -80
-        m.set_state(s)
+        m.set_initial_values(s)
         self.assertEqual(x.rhs().eval(), 3)
         self.assertEqual(y.rhs().eval(), 2)
         s[i] = -10
-        m.set_state(s)
+        m.set_initial_values(s)
         self.assertEqual(x.rhs().eval(), 2)
         self.assertEqual(y.rhs().eval(), 2)
         s[i] = 30
-        m.set_state(s)
+        m.set_initial_values(s)
         self.assertEqual(x.rhs().eval(), 1)
         self.assertEqual(y.rhs().eval(), 1)
         # Test code() output by cloning

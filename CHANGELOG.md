@@ -11,7 +11,7 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.initial_value`, which returns a state variable's initial value as an expression or float.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.set_initial_value`, which sets a state variable's initial value using an expression, string expression, or float.
 - Changed
-  - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `state_value`.
+  - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) The only argument to `Variable.promote` has been renamed from `state_value` to `initial_value`.
 - Deprecated
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.

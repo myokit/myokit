@@ -136,7 +136,7 @@ class ModelBuildTest(unittest.TestCase):
         # set number initial value
         x.demote()
         x.promote(1)
-        self.assertEqual(x.state_value(), 1)
+        self.assertEqual(x.initial_value(as_float=True), 1)
 
         # non-constant expression initial value should error
         b.promote()
@@ -147,12 +147,12 @@ class ModelBuildTest(unittest.TestCase):
 
         # set constant expression initial value
         x.promote(myokit.Name(b1))
-        self.assertEqual(x.state_value(), 1)
-        self.assertEqual(m.state(), [myokit.Name(b1)])
+        self.assertEqual(x.initial_value(as_float=True), 1)
+        self.assertEqual(m.initial_values(), [myokit.Name(b1)])
 
         x.demote()
         x.promote('1 + 2')
-        self.assertEqual(x.state_value(), 3)
+        self.assertEqual(x.initial_value(as_float=True), 3)
 
         # Add second component, variables
         Y = m.add_component('Y')
@@ -173,7 +173,7 @@ class ModelBuildTest(unittest.TestCase):
                 myokit.Name(y)
             )
         ))
-        x.set_state_value(10)
+        x.set_initial_value(10)
         self.assertEqual(x.rhs().code(), 'X.a * X.x - X.b * X.x * Y.y')
         y.set_rhs(myokit.Plus(
             myokit.Multiply(
@@ -184,7 +184,7 @@ class ModelBuildTest(unittest.TestCase):
                 myokit.Name(y)
             )
         ))
-        y.set_state_value(5)
+        y.set_initial_value(5)
         self.assertEqual(y.rhs().code(), '-Y.c * Y.y + Y.d * X.x * Y.y')
 
         # Add ano component, variables
@@ -524,7 +524,8 @@ class ModelBuildTest(unittest.TestCase):
         y.promote('c.a')
         a.set_rhs('b')
 
-        self.assertRaises(myokit.CyclicalDependencyError, m.state_values)
+        self.assertRaises(myokit.CyclicalDependencyError, m.initial_values,
+                          as_floats=True)
 
     def test_validate_constant_initial_conditions(self):
         m = myokit.Model()

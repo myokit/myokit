@@ -285,8 +285,8 @@ class ModelComparison(object):
         """
         s1 = iter([v.qname() for v in m1.states()])
         s2 = iter([v.qname() for v in m2.states()])
-        c1 = m1.state()
-        c2 = m2.state()
+        c1 = m1.initial_values()
+        c2 = m2.initial_values()
         for k, v1 in enumerate(s1):
             try:
                 v2 = next(s2)
@@ -549,7 +549,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     """
     # Get initial state
     if initial is None:
-        initial = model.state_values()
+        initial = model.initial_values(as_floats=True)
 
     # Get evaluation at initial state
     values = model.evaluate_derivatives(

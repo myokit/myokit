@@ -1364,7 +1364,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         pp = mm.get('myokit.param')
         self.assertTrue(pp.is_state())
         self.assertEqual(pp.rhs(), myokit.Number(3.2))
-        self.assertEqual(pp.state_value(), 0)
+        self.assertEqual(pp.initial_value(as_float=True), 0)
 
         # With initial value
         p.set_initial_value(myokit.Number(1))
@@ -1372,7 +1372,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         pp = mm.get('myokit.param')
         self.assertTrue(pp.is_state())
         self.assertEqual(pp.rhs(), myokit.Number(3.2))
-        self.assertEqual(pp.state_value(), 1)
+        self.assertEqual(pp.initial_value(as_float=True), 1)
 
         # Test units
         self.assertIsNone(pp.unit())
@@ -1542,13 +1542,13 @@ class SBMLTestMyokitModel(unittest.TestCase):
         ms = mm.get('comp.spec_1_amount')
         self.assertTrue(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
-        self.assertEqual(ms.state_value(), 0)
+        self.assertEqual(ms.initial_value(as_float=True), 0)
         s1.set_initial_value(myokit.Number(7))
         mm = m.myokit_model()
         ms = mm.get('comp.spec_1_amount')
         self.assertTrue(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
-        self.assertEqual(ms.state_value(), 7)
+        self.assertEqual(ms.initial_value(as_float=True), 7)
 
         # Species in concentration
         s2 = m.add_species(c, 'spec_2', is_amount=False)
@@ -1562,7 +1562,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         sa = mm.get('comp.spec_2_amount')
         self.assertTrue(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
-        self.assertEqual(sa.state_value(), 0)
+        self.assertEqual(sa.initial_value(as_float=True), 0)
 
         # I: Set compartment size
         m = sbml.Model()
@@ -1577,13 +1577,13 @@ class SBMLTestMyokitModel(unittest.TestCase):
         ms = mm.get('comp.spec_1_amount')
         self.assertTrue(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
-        self.assertEqual(ms.state_value(), 0)
+        self.assertEqual(ms.initial_value(as_float=True), 0)
         s1.set_initial_value(myokit.Number(7))
         mm = m.myokit_model()
         ms = mm.get('comp.spec_1_amount')
         self.assertTrue(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
-        self.assertEqual(ms.state_value(), 7)
+        self.assertEqual(ms.initial_value(as_float=True), 7)
 
         # Species in concentration
         s2 = m.add_species(c, 'spec_2', is_amount=False)
@@ -1599,7 +1599,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         sa = mm.get('comp.spec_2_amount')
         self.assertTrue(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
-        self.assertEqual(sa.state_value(), 6 * 2)
+        self.assertEqual(sa.initial_value(as_float=True), 6 * 2)
 
     def test_species_units(self):
         # Tests whether species units are set properly.
@@ -1968,7 +1968,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(var.eval(), 5)
 
         var = mm.get('c.sr2')
-        self.assertEqual(var.state_value(), 0)
+        self.assertEqual(var.initial_value(as_float=True), 0)
         self.assertEqual(var.eval(), 3.82)
 
     def test_reaction_stoichiometries_exist(self):
@@ -2061,7 +2061,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(var.eval(), 15.23)
 
         var = mm.get('c.sr2')
-        self.assertEqual(var.state_value(), 3.5)
+        self.assertEqual(var.initial_value(as_float=True), 3.5)
         self.assertEqual(var.eval(), 9.23)
 
         # Bad value

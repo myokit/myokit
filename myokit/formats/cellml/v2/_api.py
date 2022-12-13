@@ -802,7 +802,7 @@ class Model(AnnotatableElement):
 
                 # Promote states and set rhs and initial value
                 elif variable.is_state():
-                    v.set_initial_value(variable.state_value())
+                    v.set_initial_value(variable.initial_value(as_float=True))
                     v.set_equation(myokit.Equation(lhs, rhs))
 
                 # Store literals (single number) in initial value
