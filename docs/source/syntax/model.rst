@@ -45,9 +45,8 @@ All state variables require an initial value to be specified in the model
 header using the syntax ``component.variable = value``
 
 Initial values can be numbers or expressions. Expressions can make reference 
-to variables as long as they are constant in time. References must be made
-using fully qualified names, for example using ``c.y`` to refer to variable
-``y`` in component ``c``.
+to variables as long as they not nested (see below) and are constant in time.
+References must be made using the syntax ``component.variable``.
 
 Example::
 
@@ -59,7 +58,7 @@ Example::
     membrane.V = -84
     na_fast.m  = 0
     na_fast.h  = 1.0
-    na_fast.j  = 1.0
+    na_fast.j  = 0.5 * na_fast.init_j
 
 Component syntax
 ================
