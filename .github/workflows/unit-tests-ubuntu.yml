@@ -30,16 +30,21 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo ./.github/workflows/install-ubuntu-dependencies.sh
+          sudo .github/workflows/install-ubuntu-dependencies.sh
 
       - name: Install Myokit
         run: |
           python --version
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install .[optional]
+          python .github/workflows/select_opencl_device.py
+
+      - name: Show Myokit info
+        run: |
+          python -m myokit system
+          python -m myokit opencl
 
       - name: Run unit tests
         run: |
-          python -m myokit system
           python -m myokit test unit
 

@@ -288,10 +288,14 @@ class OpenCLInfo(object):
         """
         Returns a formatted string version of this object's information.
         """
+        selected_platform, selected_device = myokit.OpenCL.load_selection()
         b = []
         for i, platform in enumerate(self.platforms):
-            b.append('Platform ' + str(i))
-            platform._format(b, pre=' ')
+            pname = 'Platform ' + str(i)
+            if platform.name == selected_platform:
+                pname += '  <-- Selected platform in myokit.ini'
+            b.append(pname)
+            platform._format(b, selected_platform, selected_device, pre=' ')
         return '\n'.join(b)
 
 
@@ -342,10 +346,10 @@ class OpenCLPlatformInfo(object):
         """
         b = []
         b.append('Platform: ' + self.name)
-        self._format(b, ' ', name=False)
+        self._format(b, pre=' ', name=False)
         return '\n'.join(b)
 
-    def _format(self, b, pre='', name=True):
+    def _format(self, b, p_selected=None, d_selected=None, pre='', name=True):
         """
         Formats the information in this object and adds it to the list ``b``.
         """
@@ -358,7 +362,10 @@ class OpenCLPlatformInfo(object):
         if self.devices is not None:
             b.append(pre + 'Devices:')
             for j, device in enumerate(self.devices):
-                b.append(pre + ' Device ' + str(j))
+                dname = pre + ' Device ' + str(j)
+                if self.name == p_selected and device.name == d_selected:
+                    dname += '  <-- Selected device in myokit.ini'
+                b.append(dname)
                 device._format(b, pre + '  ')
 
         if self.device is not None:
