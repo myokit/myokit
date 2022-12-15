@@ -52,6 +52,5 @@ jobs:
 
       - name: Run unit tests
         run: |
-          python myokit/tests/test_simulation_cvode.py
           python myokit/tests/test_simulation_cvodes.py
 
