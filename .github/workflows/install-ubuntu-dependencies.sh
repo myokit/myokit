@@ -11,11 +11,11 @@ echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt
 
 # Update apt and install "oneapi" opencl driver
 apt-get -qq update;
-apt-get install -y intel-oneapi-runtime-libs intel-oneapi-runtime-opencl;
+#apt-get install -y intel-oneapi-runtime-libs intel-oneapi-runtime-opencl;
 
 # Install OpenCL headers
-apt-get install -y opencl-headers ocl-icd-opencl-dev;
+#apt-get install -y opencl-headers ocl-icd-opencl-dev;
 
 # Install sundials
-apt-get install -y libsundials-dev;
+#apt-get install -y libsundials-dev;
 
