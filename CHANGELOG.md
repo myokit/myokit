@@ -4,15 +4,17 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is now tested on Python 3.11.
 - Changed
+  - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is no longer tested on Python 3.6.
 - Deprecated
 - Removed
 - Fixed
 
 ## [1.33.9] - 2022-11-08
 - Fixed
-  - [#912](https://github.com/myokit/myokit/pull/912) Reporting of numerical errors in `Simulation` now catches more exception types arising from `evaluate_derivatives`.
   - [#908](https://github.com/MichaelClerx/myokit/pull/908) Added new homebrew location used on M1 apple devices, potentially solving [#861](https://github.com/myokit/myokit/issues/861).
+  - [#912](https://github.com/myokit/myokit/pull/912) Reporting of numerical errors in `Simulation` now catches more exception types arising from `evaluate_derivatives`.
 
 ## [1.33.8] - 2022-10-21
 - Added
