@@ -9,14 +9,13 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
-import platform
 import unittest
 
 import numpy as np
 
 import myokit
 
-from myokit.tests import DIR_DATA, WarningCollector
+from myokit.tests import DIR_DATA
 
 # Unit testing in Python 2 and 3
 try:
