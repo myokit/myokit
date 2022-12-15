@@ -33,7 +33,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install .[optional]
           python -m pip install coverage codecov
-          python .github/workflows/select_opencl_device.py
+          python ./.github/workflows/select_opencl_device.py
 
       - name: Show Myokit info
         run: |
