@@ -22,54 +22,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Configure Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          architecture: x64
-
       - name: Add intel repo
         run: |
           sudo .github/workflows/install-ubuntu-dependencies.sh
-
-      - name: Install sundials
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libsundials-dev
-          version: 1
-
-      - name: Install Ubuntu OpenCL packages
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: opencl-headers
-          version: 1
-          # ocl-icd-opencl-dev
 
       - name: Install Intel oneapi libs
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: intel-oneapi-runtime-libs
           version: 1
-
-      - name: Install Intel oneapi OpenCL runtime
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: intel-oneapi-runtime-opencl
-          version: 1
-
-      - name: Install Myokit
-        run: |
-          python --version
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install .[optional]
-          python .github/workflows/select-opencl-device.py
-
-      - name: Show Myokit info
-        run: |
-          python -m myokit system
-          python -m myokit opencl
-
-      - name: Run unit tests
-        run: |
-          python -m myokit test unit
 
