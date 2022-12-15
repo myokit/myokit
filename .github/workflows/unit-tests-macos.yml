@@ -30,16 +30,21 @@ jobs:
 
       - name: Install dependencies
         run: |
-          ./.github/workflows/install-macos-dependencies.sh
+          .github/workflows/install-macos-dependencies.sh
 
       - name: Install Myokit
         run: |
           python --version
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install .[optional]
+          python .github/workflows/select-opencl-device.py
+
+      - name: Show Myokit info
+        run: |
+          python -m myokit system
+          python -m myokit opencl
 
       - name: Run unit tests
         run: |
-          python -m myokit system
           python -m myokit test unit
 

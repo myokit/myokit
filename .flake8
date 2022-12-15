@@ -1,17 +1,17 @@
 [flake8]
 filename=
     *.py,
-    ./test
+    test
 exclude=
-    ./dev,
-    ./.git,
-    ./.github,
-    ./myokit.egg-info,
-    ./myokit/_exec_old.py,
-    ./myokit/formats/python/template,
-    ./build,
-    ./venv,
-    ./venv2,
+    dev,
+    .git,
+    .github,
+    myokit.egg-info,
+    myokit/_exec_old.py,
+    myokit/formats/python/template,
+    build,
+    venv,
+    venv2,
 ignore=
     # Block comment should start with '# '
     # Not if it's a commented out line

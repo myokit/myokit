@@ -25,7 +25,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo ./.github/workflows/install-ubuntu-dependencies.sh
+          sudo .github/workflows/install-ubuntu-dependencies.sh
 
       - name: Install Myokit
         run: |
@@ -33,10 +33,15 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install .[optional]
           python -m pip install coverage codecov
+          python .github/workflows/select-opencl-device.py
+
+      - name: Show Myokit info
+        run: |
+          python -m myokit system
+          python -m myokit opencl
 
       - name: Run coverage tests
         run: |
-          python -m myokit system
           coverage run -m myokit test unit
 
       - name: Submit report to codecov

@@ -44,9 +44,12 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install .[optional]
 
-      - name: Run unit tests
+      - name: Show Myokit info
         run: |
           python -m myokit system
+
+      - name: Run unit tests
+        run: |
           python myokit/tests/test_simulation_cvode.py
           python myokit/tests/test_simulation_cvodes.py
 

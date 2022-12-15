@@ -25,7 +25,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo ./.github/workflows/install-ubuntu-dependencies.sh
+          sudo .github/workflows/install-ubuntu-dependencies.sh
 
       - name: Install Myokit
         run: |
@@ -33,8 +33,11 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install .[docs,optional,gui]
 
-      - name: Run doctests
+      - name: Show Myokit info
         run: |
           python -m myokit system
+
+      - name: Run doctests
+        run: |
           python -m myokit test doc
 
