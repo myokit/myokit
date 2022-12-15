@@ -32,11 +32,30 @@ jobs:
         run: |
           sudo .github/workflows/install-ubuntu-dependencies.sh
 
-      - name: Install dependencies with apt
+      - name: Install sundials
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: libsundials-dev opencl-headers ocl-icd-opencl-dev intel-oneapi-runtime-libs intel-oneapi-runtime-opencl
-          version: 1.0
+          packages: libsundials-dev
+          version: 1
+
+      - name: Install Ubuntu OpenCL packages
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: opencl-headers
+          version: 1
+          # ocl-icd-opencl-dev
+
+      - name: Install Intel oneapi libs
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: intel-oneapi-runtime-libs
+          version: 1
+
+      - name: Install Intel oneapi OpenCL runtime
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: intel-oneapi-runtime-opencl
+          version: 1
 
       - name: Install Myokit
         run: |
