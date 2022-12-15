@@ -27,7 +27,7 @@ jobs:
           C:\Miniconda\python.exe --version
           C:\Miniconda\python.exe -m pip install --upgrade pip setuptools wheel
           C:\Miniconda\python.exe -m pip install .[optional]
-          C:\Miniconda\python.exe ./.github/workflows/select_opencl_device.py
+          C:\Miniconda\python.exe .github/workflows/select-opencl-device.py
 
       - name: Show Myokit info
         run: |

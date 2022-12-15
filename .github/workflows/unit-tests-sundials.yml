@@ -36,7 +36,7 @@ jobs:
 
       - name: Install Sundials ${{ matrix.sundials-version }}
         run: |
-          ./.github/workflows/install-sundials-manually.sh
+          .github/workflows/install-sundials-manually.sh
 
       - name: Install Myokit
         run: |
