@@ -13,7 +13,6 @@ jobs:
   build-and-test:
     name: unit-ubuntu
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
 
     steps:
       - name: Add intel repo
@@ -21,10 +20,10 @@ jobs:
           sudo wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null;
           sudo echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list;
           sudo apt-get -qq update;
-
       - name: Install Intel oneapi libs
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: intel-oneapi-runtime-libs
           version: 1
+          debug: true
 
