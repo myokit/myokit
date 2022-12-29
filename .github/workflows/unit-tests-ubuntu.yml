@@ -10,20 +10,19 @@ on:
 
 jobs:
 
-  build-and-test:
-    name: unit-ubuntu
+  regression_76:
     runs-on: ubuntu-latest
-
+    name: "Cache empty archive (regression issue #76)."
     steps:
-      - name: Add intel repo
+      - id: preconditions
         run: |
           sudo wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null;
           sudo echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list;
           sudo apt-get -qq update;
-      - name: Install Intel oneapi libs
+      - id: cache-apt-pkgs
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: intel-oneapi-runtime-libs
-          version: 1
+          version: ${{ github.run_id }}-${{ github.run_attempt }}-regression_72
           debug: true
 
