@@ -14,26 +14,11 @@ jobs:
     name: unit-ubuntu
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
-    strategy:
-      matrix:
-        # All Python versions except latest, which is tested by coverage.
-        python-version: ['3.10']
 
     steps:
       - uses: actions/checkout@v3
 
-<<<<<<< HEAD
       - name: Add intel repo
-=======
-      - name: Configure Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: setup.py
-
-      - name: Install dependencies
->>>>>>> 2ad8b7136d1d7d4f4426e131168d05de5c6df7f3
         run: |
           sudo .github/workflows/install-ubuntu-dependencies.sh
 
