@@ -20,8 +20,7 @@ jobs:
           sudo echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list;
           sudo apt-get -qq update;
       - id: cache-apt-pkgs
-        #uses: awalsh128/cache-apt-pkgs-action@latest
-        uses: awalsh128/cache-apt-pkgs-action@dev
+        uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: intel-oneapi-runtime-libs
           version: ${{ github.run_id }}-${{ github.run_attempt }}-regression_72
