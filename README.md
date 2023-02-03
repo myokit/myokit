@@ -1,7 +1,7 @@
-[![Ubuntu unit tests](https://github.com/MichaelClerx/myokit/workflows/Ubuntu%20unit%20tests/badge.svg)](https://github.com/MichaelClerx/myokit/actions?query=workflow%3A"Ubuntu+unit+tests")
-[![MacOS unit tests](https://github.com/MichaelClerx/myokit/workflows/MacOS%20unit%20tests/badge.svg)](https://github.com/MichaelClerx/myokit/actions?query=workflow%3A"MacOS+unit+tests")
-[![Windows unit tests](https://github.com/MichaelClerx/myokit/workflows/Windows%20unit%20tests/badge.svg)](https://github.com/MichaelClerx/myokit/actions?query=workflow%3A"Windows+unit+tests")
-[![Windows Miniconda test](https://github.com/MichaelClerx/myokit/workflows/Windows%20Miniconda%20test/badge.svg)](https://github.com/MichaelClerx/myokit/actions?query=workflow%3A"Windows+Miniconda+test")
+[![Ubuntu unit tests](https://github.com/myokit/myokit/actions/workflows/unit-tests-ubuntu.yml/badge.svg)](https://github.com/myokit/myokit/actions/workflows/unit-tests-ubuntu.yml)
+[![MacOS unit tests](https://github.com/myokit/myokit/actions/workflows/unit-tests-macos.yml/badge.svg)](https://github.com/myokit/myokit/actions/workflows/unit-tests-macos.yml)
+[![Windows unit tests](https://github.com/myokit/myokit/actions/workflows/unit-tests-windows.yml/badge.svg)](https://github.com/myokit/myokit/actions/workflows/unit-tests-windows.yml)
+[![Windows Miniconda test](https://github.com/myokit/myokit/actions/workflows/unit-tests-windows-miniconda.yml/badge.svg)](https://github.com/myokit/myokit/actions/workflows/unit-tests-windows-miniconda.yml)
 [![codecov](https://codecov.io/gh/myokit/myokit/branch/main/graph/badge.svg)](https://codecov.io/gh/myokit/myokit)
 [![Documentation Status](https://readthedocs.org/projects/myokit/badge/?version=latest)](https://myokit.readthedocs.io/?badge=latest)
 
