@@ -1,4 +1,4 @@
-name: Ubuntu unit testsz
+name: Ubuntu unit tests
 on:
   push:
     branches:
