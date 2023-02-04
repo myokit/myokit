@@ -10,42 +10,19 @@ on:
 
 jobs:
 
-  build-and-test:
-    name: unit-ubuntu
+  regression_76:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
-    strategy:
-      matrix:
-        # All Python versions except latest, which is tested by coverage.
-        python-version: ['2.7', '3.7', '3.8', '3.9', '3.10']
-
+    name: "Cache empty archive (regression issue #76)."
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Configure Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - id: preconditions
+        run: |
+          sudo wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null;
+          sudo echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list;
+          sudo apt-get -qq update;
+      - id: cache-apt-pkgs
+        uses: awalsh128/cache-apt-pkgs-action@dev
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: setup.py
-
-      - name: Install dependencies
-        run: |
-          sudo .github/workflows/install-ubuntu-dependencies.sh
-
-      - name: Install Myokit
-        run: |
-          python --version
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install .[optional]
-          python .github/workflows/select-opencl-device.py
-
-      - name: Show Myokit info
-        run: |
-          python -m myokit system
-          python -m myokit opencl
-
-      - name: Run unit tests
-        run: |
-          python -m myokit test unit
+          packages: intel-oneapi-runtime-libs
+          version: ${{ github.run_id }}-${{ github.run_attempt }}-regression_72
+          debug: true
 
