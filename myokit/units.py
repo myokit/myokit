@@ -298,6 +298,6 @@ _rep('J/mol/K')
 _rep('mJ/mol/K')
 _rep('C/mol')
 _rep('C/mmol')
-_rep('J/K') # Boltzmann
-_rep('J*s') # Planck
+_rep('J/K')  # Boltzmann
+_rep('J*s')  # Planck
 _rep('J*ms')
