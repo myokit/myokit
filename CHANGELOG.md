@@ -10,7 +10,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
-  - []() Made myokit.step base its error classification (large/small/none) on numerics, not representation.
+  - [#933](https://github.com/myokit/myokit/pull/933) Made myokit.step base its error classification (large/small/none) on numerics, not representation.
 
 ## [1.33.9] - 2022-11-08
 - Fixed
