@@ -1290,11 +1290,6 @@ def add_test_parser(subparsers):
         'examples', help='Test example notebooks.')
     example_parser.set_defaults(testfunc=test_examples)
 
-    # Publication examples
-    pub_parser = subparsers.add_parser(
-        'pub', help='Run publication examples.')
-    pub_parser.set_defaults(testfunc=test_examples_pub)
-
     # Style tests
     style_parser = subparsers.add_parser('style', help='Run code style tests.')
     style_parser.set_defaults(testfunc=test_style)
@@ -1838,23 +1833,6 @@ def test_examples_all(root, books):
         sys.exit(1)
     else:
         print('ok: Successfully ran all (' + str(len(books)) + ') notebooks.')
-
-
-def test_examples_pub(args):
-    """
-    Runs all publication examples, exits if one of them fails.
-    """
-    import os
-    import sys
-    import myokit
-
-    # Get publications directory
-    path = os.path.join(myokit.DIR_MYOKIT, 'tests', 'publications')
-
-    # PBMB 2016. Myokit: A simple interface to cardiac cellular
-    # electrophysiology
-    if test_mmt_files(os.path.join(path, 'pbmb-2016')):
-        sys.exit(1)
 
 
 def test_examples_web(args):

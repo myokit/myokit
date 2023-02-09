@@ -620,8 +620,13 @@ def step(model, initial=None, reference=None, ignore_errors=False):
             # Large error, small error, or no error
             else:
                 mark_error = False
-                threshold = 13
-                if xx[:threshold] != yy[:threshold]:
+                abs_err = abs(x - y)
+                if abs_err:
+                    rel_err = abs(x - y) / max(abs(x), abs(y))
+                    n_eps = rel_err / sys.float_info.epsilon
+                else:
+                    n_eps = rel_err = 0
+                if n_eps > 1e6:
                     # "Large" error
                     errors += 1
                     line += ' X'

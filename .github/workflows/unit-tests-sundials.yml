@@ -17,13 +17,17 @@ jobs:
     strategy:
       matrix:
         # Latest of each major sundials branche (may overlap with ubuntu tests).
-        sundials-version: ['v2.7.0', 'v3.2.1', 'v4.1.0', 'v5.8.0', 'v6.0.0']
+        sundials-version: ['v2.7.0', 'v3.2.1', 'v4.1.0', 'v5.8.0', 'v6.4.1']
 
     steps:
       - uses: actions/checkout@v3
 
       - name: Configure Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: setup.py
 
       - name: Check out Sundials ${{ matrix.sundials-version }}
         uses: actions/checkout@v3
@@ -42,9 +46,11 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install .[optional]
 
-      - name: Run unit tests
+      - name: Show Myokit info
         run: |
           python -m myokit system
-          python myokit/tests/test_simulation_cvode.py
+
+      - name: Run unit tests
+        run: |
           python myokit/tests/test_simulation_cvodes.py
 

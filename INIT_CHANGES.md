@@ -314,9 +314,9 @@ Add checks for refs to non-literal inits in CModel and test them.
 - [ ] `JacobianTracer` Check if inits are used, then as above.
 - [ ] `JacobianCalculator` Check if inits are used, then as above.
 - [ ] `RhsBenchmarker` Check if inits are used, then as above.
-- [ ] `LegacySimulation` Remove in separate PR.
-- [ ] `PSimulation` Remove in separate PR.
-- [ ] `ICSimulation` Remove in separate PR.
+- [x] `LegacySimulation` Remove in separate PR.
+- [x] `PSimulation` Remove in separate PR.
+- [x] `ICSimulation` Remove in separate PR.
 
 ## Exports with proper testing
 

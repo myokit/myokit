@@ -13,6 +13,8 @@ This page lists the main changes made to Myokit in each release.
 - Changed
   - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) The only argument to `Variable.promote` has been renamed from `state_value` to `initial_value`.
+  - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is now tested on Python 3.11.
+  - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is no longer tested on Python 3.6.
 - Deprecated
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favour of `Model.set_initial_values`.
@@ -21,7 +23,11 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
+  - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `LegacySimulation` class.
+  - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `PSimulation` class.
+  - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `ICSimulation` class.
 - Fixed
+  - [#933](https://github.com/myokit/myokit/pull/933) Made `myokit.step` base its error classification (large/small/none) on numerics, not representation.
 
 ## [1.33.9] - 2022-11-08
 - Fixed
