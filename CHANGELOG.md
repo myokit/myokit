@@ -9,8 +9,11 @@ This page lists the main changes made to Myokit in each release.
   - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is no longer tested on Python 3.6.
 - Deprecated
 - Removed
+  - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `LegacySimulation` class.
+  - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `PSimulation` class.
+  - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `ICSimulation` class.
 - Fixed
-  - [#933](https://github.com/myokit/myokit/pull/933) Made myokit.step base its error classification (large/small/none) on numerics, not representation.
+  - [#933](https://github.com/myokit/myokit/pull/933) Made `myokit.step` base its error classification (large/small/none) on numerics, not representation.
 
 ## [1.33.9] - 2022-11-08
 - Fixed
