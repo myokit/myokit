@@ -33,13 +33,23 @@ class ModelBuildTest(unittest.TestCase):
         # Create a model
         m = myokit.Model('LotkaVolterra')
 
-        # Add the first component
+        # Add engine component
+        E = m.add_component('engine')
+        self.assertEqual(len(m), 1)
+        time = E.add_variable('time')
+        time.set_rhs(0)
+        self.assertIsNone(time.binding())
+        time.set_binding('time')
+        self.assertIsNotNone(time.binding())
+
+        # Add the first test component
         X = m.add_component('X')
+        self.assertNotEqual(E, X)
         self.assertEqual(X.qname(), 'X')
         self.assertEqual(X.parent(), m)
         self.assertIsInstance(X, myokit.Component)
         self.assertIn(X.qname(), m)
-        self.assertEqual(len(m), 1)
+        self.assertEqual(len(m), 2)
 
         # Add variable a
         self.assertFalse(X.has_variable('a'))
@@ -133,7 +143,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertFalse(x.is_constant())
         self.assertEqual(x.lhs(), myokit.Derivative(myokit.Name(x)))
 
-        # set number initial value
+        # Set number initial value
         x.demote()
         x.promote(1)
         self.assertEqual(x.initial_value(as_float=True), 1)
@@ -145,11 +155,12 @@ class ModelBuildTest(unittest.TestCase):
             x.promote(myokit.Name(b))
         b.demote()
 
-        # set constant expression initial value
+        # Set constant expression initial value
         x.promote(myokit.Name(b1))
         self.assertEqual(x.initial_value(as_float=True), 1)
-        self.assertEqual(m.initial_values(), [myokit.Name(b1)])
+        self.assertEqual(x.initial_value(), myokit.Name(b1))
 
+        # Set literal valued expression initial value
         x.demote()
         x.promote('1 + 2')
         self.assertEqual(x.initial_value(as_float=True), 3)
@@ -157,7 +168,7 @@ class ModelBuildTest(unittest.TestCase):
         # Add second component, variables
         Y = m.add_component('Y')
         self.assertNotEqual(X, Y)
-        self.assertEqual(len(m), 2)
+        self.assertEqual(len(m), 3)
         c = Y.add_variable('c')
         c.set_rhs(myokit.Minus(myokit.Name(a), myokit.Number(1)))
         d = Y.add_variable('d')
@@ -191,7 +202,7 @@ class ModelBuildTest(unittest.TestCase):
         Z = m.add_component('Z')
         self.assertNotEqual(X, Z)
         self.assertNotEqual(Y, Z)
-        self.assertEqual(len(m), 3)
+        self.assertEqual(len(m), 4)
         t = Z.add_variable('total')
         self.assertEqual(t.name(), 'total')
         self.assertEqual(t.qname(), 'Z.total')
@@ -205,18 +216,6 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(t.rhs().code(X), 'x + Y.y')
         self.assertEqual(t.rhs().code(Y), 'X.x + y')
         self.assertEqual(t.rhs().code(Z), 'X.x + Y.y')
-
-        # Add engine component
-        E = m.add_component('engine')
-        self.assertNotEqual(X, E)
-        self.assertNotEqual(Y, E)
-        self.assertNotEqual(Z, E)
-        self.assertEqual(len(m), 4)
-        time = E.add_variable('time')
-        time.set_rhs(0)
-        self.assertIsNone(time.binding())
-        time.set_binding('time')
-        self.assertIsNotNone(time.binding())
 
         # Check state
         state = [i for i in m.states()]

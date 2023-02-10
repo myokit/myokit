@@ -56,9 +56,9 @@ Example::
           backslash notation.
     author: Identifies the author of the model implementation
     membrane.V = -84
-    na_fast.m  = 0
-    na_fast.h  = 1.0
-    na_fast.j  = 0.5 * na_fast.init_j
+    ina.m  = 0
+    ina.h  = 0.9
+    ina.j  = ina.initial_j + 0.1
 
 Component syntax
 ================

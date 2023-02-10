@@ -12,14 +12,16 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.set_initial_value`, which sets a state variable's initial value using an expression, string expression, or float.
 - Changed
   - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `initial_value`.
-  - [#918](https://github.com/myokit/myokit/pull/918) The only argument to `Variable.promote` has been renamed from `state_value` to `initial_value`.
   - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is now tested on Python 3.11.
   - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is no longer tested on Python 3.6.
+  - [#918](https://github.com/myokit/myokit/pull/918) The only argument to `Variable.promote` has been renamed from `state_value` to `initial_value`.
 - Deprecated
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favour of `Model.set_initial_values`.
-  - [#918](https://github.com/myokit/myokit/pull/918) `Model.inits` is deprecated in favour of `Model.initial_values(as_equations=True)`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Model.inits` is deprecated.
   - [#918](https://github.com/myokit/myokit/pull/918) `Variable.state_value` is deprecated in favour of `Variable.initial_value`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Model.save_state` and `Model.load_state` are deprecated.
   - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.

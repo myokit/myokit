@@ -898,7 +898,7 @@ class Model(AnnotatableElement):
                 # Promote states and set rhs and initial value
                 elif variable.is_state():
                     v.set_is_state(True)
-                    v.set_initial_value(variable.initial_value(as_float=True))
+                    v.set_initial_value(variable.initial_value(True))
                     v.set_rhs(rhs)
 
                 # Store literals (single number) in initial value

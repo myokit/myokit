@@ -459,7 +459,6 @@ def parse_model_from_stream(stream, syntax_only=False):
         del var._proto_rhs
 
     # Resolve variable references in initial values
-    # check that current state can be evaluated
     for i, var in enumerate(model.states()):
         proto_expr = info.initial_values[var.qname()]
         expr = convert_proto_expression(proto_expr, context=model, info=info)

@@ -1085,7 +1085,7 @@ class Model(ObjectWithMeta, VarProvider):
         for c in self._components.values():
             c._clone1(clone)
 
-        # Clone state
+        # Create states
         for k, v in enumerate(self._state_vars):
             clone.get(v.qname()).promote()
 
@@ -1147,12 +1147,12 @@ class Model(ObjectWithMeta, VarProvider):
         if self._state_vars:
             pre = t * TAB
             b.write(pre + '# Initial values\n')
-            eqs = self.initial_values(as_equations=True)
-            names = [eq.lhs.code() for eq in eqs]
+            names = [v.qname() for v in self._state_vars]
+            values = [e.code() for e in self._state_init]
             n = max([len(name) for name in names])
-            for eq, name in zip(eqs, names):
+            for name, value in zip(names, values):
                 b.write(pre + name + ' ' * (n - len(name)) + ' = '
-                        + eq.rhs.code() + '\n')
+                        + value + '\n')
             b.write(pre + '\n')
         else:
             # No initial state? Then add newline
@@ -1569,7 +1569,7 @@ class Model(ObjectWithMeta, VarProvider):
             derivatives = self.evaluate_derivatives(state, precision=precision)
         elif len(derivatives) != n:
             raise ValueError(
-                'Argument `deriv` must be a sequence of (' + str(n)
+                'Argument `derivatives` must be a sequence of (' + str(n)
                 + ') floating point numbers.')
 
         out = []
@@ -2031,40 +2031,35 @@ class Model(ObjectWithMeta, VarProvider):
                         var.set_rhs(
                             myokit.Multiply(rhs, myokit.Number(time_factor)))
 
-    def initial_values(self, as_floats=False, as_equations=False):
+    def initial_values(self, as_floats=False):
         """
-        Returns a list with the model's initial state.
+        Returns a list of the model's initial values.
 
-        By default, expressions are returned, but this can be changed by
-        setting ``as_floats=True`` to obtain a list of floats, or
-        ``as_equations`` to obtain a list of equations.
+        By default, expressions are returned, but this can be changed to
+        a list of floats by setting ``as_floats=True``.
         """
-        if as_floats and as_equations:
-            raise ValueError('The arguments as_floats and as_equations cannot'
-                             ' both be set to True.')
-
-        if as_equations:
-            return [myokit.Equation(myokit.Name(x), y) for x, y in zip(
-                self._state_vars, self._state_init)]
         if as_floats:
-            # Check for cyclical dependencies: only needed when evaluating
-            self.validate()
-
+            if any(not e.is_literal() for e in self._state_init):
+                self.validate()  # Check for cycles before evaluating
             return [float(y) for y in self._state_init]
         return list(self._state_init)
 
-    def OLD_inits(self):
+    def inits(self):
         """
-        Deprecated method, use
-        :meth:`iter(model.initial_values(as_equations=True))<initial_values>`
-        instead.
+        Deprecated method: Returns an iterator over the ``Equation`` objects
+        defining this model's initial values.
         """
-        # Deprecated since 2022-11-24
+        # Deprecated since 2023-02-10
         import warnings
         warnings.warn(
             'The method `inits` is deprecated. Please use'
             ' `iter(model.initial_values(as_equations=True)`.')
-        return iter(model.initial_values(as_equations=True))
+
+        def StateDefIterator(model):
+            for var, value in zip(model._state_vars, model._state_init):
+                yield Equation(myokit.Name(var), value)
+
+        return StateDefIterator(self)
 
     def is_similar(self, other, check_unames=False):
         """
@@ -2158,9 +2153,12 @@ class Model(ObjectWithMeta, VarProvider):
 
     def load_state(self, filename):
         """
-        Sets the model's initial values using data from a file formatted in any
-        style accepted by :func:`myokit.map_to_state`.
+        Deprecated method: Sets the model's initial values using data from a
+        file formatted in any style accepted by :func:`myokit.map_to_state`.
         """
+        # Deprecated since 2023-02-10
+        import warnings
+        warnings.warn('The method `load_state` is deprecated.')
         self.set_initial_values(myokit.load_state(filename, self))
 
     def map_component_dependencies(
@@ -2915,11 +2913,12 @@ class Model(ObjectWithMeta, VarProvider):
 
     def save_state(self, filename):
         """
-        Saves the model state to a file (as floats).
-
-        Note that any expressions (either literal or containing references to
-        constants) will be evaluated and stored as numbers.
+        Deprecated method: Saves the model state to a file (as floats).
         """
+        # Deprecated since 2023-02-10
+        import warnings
+        warnings.warn('The method `save_state` is deprecated.')
+
         return myokit.save_state(
             filename, self.initial_values(as_floats=True), self)
 
@@ -2972,11 +2971,11 @@ class Model(ObjectWithMeta, VarProvider):
         self._reserved_unames = state[0]
         self._reserved_uname_prefixes = state[1]
 
-    def OLD_set_state(self, state):
+    def set_state(self, state):
         """
         Deprecated method: use :meth:`set_initial_values` instead.
         """
-        # Deprecated since 2022-11-24
+        # Deprecated since 2023-02-10
         import warnings
         warnings.warn(
             'The method `set_state` is deprecated. Please use'
@@ -3003,7 +3002,7 @@ class Model(ObjectWithMeta, VarProvider):
         and formula of any nested variables and the values of all dependencies.
         """
         # Model must be valid, or cycles can occur
-        self.model().validate()
+        self.validate()
 
         def format_float(number):
             s = str(number)
@@ -3305,7 +3304,7 @@ class Model(ObjectWithMeta, VarProvider):
         # Return
         return out
 
-    def OLD_state(self):
+    def state(self):
         """
         Deprecated method, use
         :meth:`initial_values(as_floats=True)<initial_values>` instead.
@@ -3315,7 +3314,7 @@ class Model(ObjectWithMeta, VarProvider):
         warnings.warn(
             'The method `state` is deprecated. Please use'
             ' `initial_values(as_floats=True)` instead.')
-        return model.initial_values(as_floats=True)
+        return self.initial_values(as_floats=True)
 
     def states(self):
         """
@@ -3962,13 +3961,11 @@ class Variable(VarOwner):
         - Any child variables will be removed.
 
         """
-        # Model must be valid before evaluations
-        self.model().validate()
-
         # Set value
         if value is None:
+            self.model().validate()  # Model must be valid before evaluations
             if self._is_state:
-                value = self.initial_value().eval()
+                value = self.initial_value(True)
             else:
                 value = self._rhs.eval()
         else:
@@ -4364,15 +4361,19 @@ class Variable(VarOwner):
         Returns a state variable's initial value, or raises an exception when
         called on a non-state variable.
 
-        By default, a :class:`myokit.Expression` is returned. To evaluate as a
-        float set ``as_float=True``.
+        By default, a :class:`myokit.Expression` is returned. To evaluate and
+        return a float set ``as_float=True``.
         """
         if not self._is_state:
             raise Exception('Only state variables have initial values.')
-        expr = self.model()._state_init[self._indice]
-        print(self, expr, type(expr))
 
-        return float(expr) if as_float else expr
+        model = self.model()
+        expr = model._state_init[self._indice]
+        if not as_float:
+            return expr
+        if not expr.is_literal():
+            model.validate()
+        return expr.eval()
 
     def is_bound(self):
         """
@@ -4846,11 +4847,11 @@ class Variable(VarOwner):
         self.model()._reset_validation()
         self._reset_cache(bubble=True)
 
-    def OLD_set_state_value(self, value):
+    def set_state_value(self, value):
         """
         Deprecated method, use :meth:`set_initial_value` instead.
         """
-        # Deprecated since 2022-11-24
+        # Deprecated since 2023-02-10
         import warnings
         warnings.warn(
             'The method `set_state_value` is deprecated. Please use'
@@ -4871,12 +4872,12 @@ class Variable(VarOwner):
         # No need to reset validation status or cache. Units are checked only
         # by the model.
 
-    def OLD_state_value(self):
+    def state_value(self):
         """
         Deprecated method, use
         :meth:`initial_value(as_float=True)<initial_value>` instead.
         """
-        # Deprecated since 2022-11-24
+        # Deprecated since 2023-02-10
         import warnings
         warnings.warn(
             'The method `state_value` is deprecated. Please use'

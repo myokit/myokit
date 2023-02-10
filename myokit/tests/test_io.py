@@ -340,22 +340,22 @@ class LoadSaveStateTest(unittest.TestCase):
         with TemporaryDirectory() as d:
             # Test save and load without model
             f = d.path('state.txt')
-            myokit.save_state(f, m.state_values())
-            self.assertEqual(myokit.load_state(f), m.state_values())
+            myokit.save_state(f, m.initial_values(True))
+            self.assertEqual(myokit.load_state(f), m.initial_values(True))
 
             # Test save and load with model argument
-            myokit.save_state(f, m.state_values(), m)
-            self.assertEqual(myokit.load_state(f, m), m.state_values())
+            myokit.save_state(f, m.initial_values(True), m)
+            self.assertEqual(myokit.load_state(f, m), m.initial_values(True))
 
             # Save without, load with model
-            myokit.save_state(f, m.state_values())
-            self.assertEqual(myokit.load_state(f, m), m.state_values())
+            myokit.save_state(f, m.initial_values(True))
+            self.assertEqual(myokit.load_state(f, m), m.initial_values(True))
 
             # Save with model, load without
             # Loaded version is dict!
-            myokit.save_state(f, m.state_values(), m)
-            dct = dict(zip([v.qname() for v in m.states()], m.state_values()))
-            self.assertEqual(myokit.load_state(f), dct)
+            myokit.save_state(f, m.state_values(True), m)
+            self.assertEqual(myokit.load_state(f), dict(zip(
+                [v.qname() for v in m.states()], m.initial_values(True))))
 
     def test_load_save_state_bin(self):
         # Test loading/saving state in binary format.
@@ -364,13 +364,15 @@ class LoadSaveStateTest(unittest.TestCase):
 
             # Test save and load with double precision
             f = d.path('state.bin')
-            myokit.save_state_bin(f, m.state_values())
-            self.assertEqual(myokit.load_state_bin(f), m.state_values())
+            myokit.save_state_bin(f, m.initial_values(True))
+            self.assertEqual(myokit.load_state_bin(f), m.initial_values(True))
 
             # Test save and load with single precision
             f = d.path('state.bin')
-            myokit.save_state_bin(f, m.state_values(), myokit.SINGLE_PRECISION)
-            d = np.array(myokit.load_state_bin(f)) - np.array(m.state_values())
+            myokit.save_state_bin(
+                f, m.initial_values(True), myokit.SINGLE_PRECISION)
+            d = np.array(myokit.load_state_bin(f))
+            d -= np.array(m.initial_values(True))
             self.assertTrue(np.all(np.abs(d) < 1e-5))   # Not very precise!
 
 

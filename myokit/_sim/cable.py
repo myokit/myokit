@@ -176,8 +176,8 @@ class Simulation1d(myokit.CModule):
                 ' next')
 
         # Set state and default state
-        self._state = self._model.state_values() * ncells
-        self._default_state = self._model.state() * ncells
+        self._state = self._model.initial_values(True) * ncells
+        self._default_state = list(self._state)
 
         # Unique simulation id
         Simulation1d._index += 1
@@ -263,7 +263,7 @@ class Simulation1d(myokit.CModule):
 
         """
         self._time = 0
-        self._state = [float(expr) for expr in self._default_state]
+        self._state = list(self._default_state)
 
     def run(
             self, duration, log=None, log_interval=1.0, progress=None,
@@ -444,13 +444,8 @@ class Simulation1d(myokit.CModule):
            for each cell.
 
         """
-        state_expr = [
-            s if isinstance(s, myokit.Expression) else myokit.Number(s)
-            for s in state
-        ]
         self._default_state = self._set_state(
-            state_expr, icell, self._default_state
-        )
+            state, icell, self._default_state)
 
     def set_paced_cells(self, n=5):
         """

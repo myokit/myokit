@@ -92,7 +92,7 @@ class VariableTest(unittest.TestCase):
         # Clamp simple state
         g = m.get('z.g')
         self.assertTrue(g.is_state())
-        self.assertNotEqual(g.initial_value(as_float=True), 10)
+        self.assertNotEqual(g.initial_value(True), 10)
         self.assertEqual(g.unit(), myokit.units.m)
         self.assertEqual(g.rhs().unit(), myokit.units.m / myokit.units.s)
         self.assertEqual(m.count_states(), 3)
@@ -295,7 +295,7 @@ class VariableTest(unittest.TestCase):
         self.assertTrue(v.is_state())
         self.assertEqual(v.lhs(), myokit.Derivative(myokit.Name(v)))
         self.assertEqual(v.indice(), 0)
-        self.assertEqual(v.initial_value(as_float=True), 3)
+        self.assertEqual(v.initial_value(), myokit.Number(3))
 
         v.demote()
         self.assertTrue(v.is_literal())
@@ -660,7 +660,6 @@ class VariableTest(unittest.TestCase):
         v.set_initial_value('1 + c.w')
         self.assertEqual(v.initial_value(),
                          myokit.Plus(myokit.Number(1), myokit.Name(w)))
-
 
         # Only states have this option
         v.demote()

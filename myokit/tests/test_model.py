@@ -355,45 +355,6 @@ class ModelTest(unittest.TestCase):
             '13 d = comp1.a\n'
         )
 
-    def test_is_similar(self):
-        # Check that equality takes both code() and unames into account
-
-        # Test without custom reserved names
-        m1 = myokit.load_model('example')
-        m2 = m1.clone()
-        self.assertIsInstance(m2, myokit.Model)
-        self.assertFalse(m1 is m2)
-        self.assertNotEqual(m1, m2)
-        self.assertNotEqual(m2, m1)
-        self.assertTrue(m1.is_similar(m2, False))
-        self.assertTrue(m1.is_similar(m2, True))
-        self.assertTrue(m2.is_similar(m1, False))
-        self.assertTrue(m2.is_similar(m1, True))
-        self.assertTrue(m1.is_similar(m1, True))
-        self.assertTrue(m2.is_similar(m2, False))
-
-        # Test with none-model
-        self.assertFalse(m1.is_similar(None))
-        self.assertFalse(m1.is_similar(m1.code()))
-
-        # Add reserved names
-        m1.reserve_unique_names('bertie')
-        self.assertFalse(m1.is_similar(m2))
-        m1.reserve_unique_names('clair')
-        self.assertFalse(m1.is_similar(m2))
-        m2.reserve_unique_names('clair', 'bertie')
-        self.assertTrue(m1.is_similar(m2))
-
-        # Add reserved name prefixes
-        m1.reserve_unique_name_prefix('aa', 'bb')
-        m1.reserve_unique_name_prefix('cc', 'dd')
-        self.assertFalse(m1.is_similar(m2))
-        m2.reserve_unique_name_prefix('aa', 'bb')
-        m2.reserve_unique_name_prefix('cc', 'ee')
-        self.assertFalse(m1.is_similar(m2))
-        m2.reserve_unique_name_prefix('cc', 'dd')
-        self.assertTrue(m1.is_similar(m2))
-
     def test_evaluate_derivatives(self):
         # Test Model.evaluate_derivatives().
         model = myokit.Model('m')
@@ -1154,7 +1115,7 @@ class ModelTest(unittest.TestCase):
         self.assertTrue(m1.get('r.f').is_state())
         self.assertEqual(m1.get('r.f').unit(), ms.get('r.f').unit())
         self.assertEqual(
-            m1.get('r.f').state_value(), ms.get('r.f').state_value())
+            m1.get('r.f').initial_value(), ms.get('r.f').initial_value())
         self.assertEqual(
             m1.get('r.f').rhs().code(),
             myokit.Multiply(ms.get('r.f').rhs(), s2ms).code())
@@ -1167,12 +1128,12 @@ class ModelTest(unittest.TestCase):
         self.assertFalse(m1['y'] is ms['y'])
         self.assertEqual(m1.get('x.a').unit(), ms.get('x.a').unit())
         self.assertEqual(
-            m1.get('x.a').state_value(), ms.get('x.a').state_value())
+            m1.get('x.a').initial_value(), ms.get('x.a').initial_value())
         self.assertEqual(
             m1.get('x.a').rhs().code(),
             myokit.Multiply(ms.get('x.a').rhs(), s2ms).code())
         self.assertEqual(
-            m1.get('y.e').state_value(), ms.get('y.e').state_value())
+            m1.get('y.e').initial_value(), ms.get('y.e').initial_value())
         self.assertEqual(
             m1.get('y.e').rhs().code(),
             myokit.Multiply(ms.get('y.e').rhs(), s2ms).code())
@@ -1316,6 +1277,107 @@ class ModelTest(unittest.TestCase):
             m1.import_component, ms['q'], var_map=vm, convert_units=True)
         self.assertTrue(ms.is_similar(ms_unaltered, True))
 
+    def test_initial_values(self):
+        # Tests :meth:`Model.initial_values`.
+
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 2
+            c.y = 1 + 2
+            c.z = 2 * c.p
+
+            [c]
+            t = 0 bind time
+            dot(x) = 0
+            dot(y) = 0
+            dot(z) = 0
+            p = 3
+        ''')
+
+        # Test expression version
+        p = m.get('c.p')
+        x0 = m.initial_values()
+        self.assertEqual(x0[0], myokit.Number(2))
+        self.assertEqual(
+            x0[1], myokit.Plus(myokit.Number(1), myokit.Number(2)))
+        self.assertEqual(x0[2], myokit.Multiply(myokit.Number(2), p.lhs()))
+
+        # Test float version
+        self.assertEqual(m.initial_values(True), [2, 3, 6])
+
+        # Test deprecated alias
+        with WarningCollector() as w:
+            self.assertEqual(m.state(), m.initial_values(True))
+        self.assertIn('deprecated', w.text())
+
+    def test_inits(self):
+        # Tests :meth:`Model.inits`
+
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 2
+            c.y = 1 + 2
+            c.z = 2 * c.p
+
+            [c]
+            t = 0 bind time
+            dot(x) = 0
+            dot(y) = 0
+            dot(z) = 0
+            p = 3
+        ''')
+        with WarningCollector() as w:
+            eqs = m.inits()
+        self.assertIn('deprecated', w.text())
+
+        self.assertEqual(list(eqs), [
+            myokit.Equation(myokit.Name(m.get('c.x')), myokit.Number(2)),
+            myokit.Equation(myokit.Name(m.get('c.y')),
+                            myokit.Plus(myokit.Number(1), myokit.Number(2))),
+            myokit.Equation(myokit.Name(m.get('c.z')),
+                            myokit.Multiply(myokit.Number(2),
+                                            m.get('c.p').lhs()))
+        ])
+
+    def test_is_similar(self):
+        # Check that equality takes both code() and unames into account
+
+        # Test without custom reserved names
+        m1 = myokit.load_model('example')
+        m2 = m1.clone()
+        self.assertIsInstance(m2, myokit.Model)
+        self.assertFalse(m1 is m2)
+        self.assertNotEqual(m1, m2)
+        self.assertNotEqual(m2, m1)
+        self.assertTrue(m1.is_similar(m2, False))
+        self.assertTrue(m1.is_similar(m2, True))
+        self.assertTrue(m2.is_similar(m1, False))
+        self.assertTrue(m2.is_similar(m1, True))
+        self.assertTrue(m1.is_similar(m1, True))
+        self.assertTrue(m2.is_similar(m2, False))
+
+        # Test with none-model
+        self.assertFalse(m1.is_similar(None))
+        self.assertFalse(m1.is_similar(m1.code()))
+
+        # Add reserved names
+        m1.reserve_unique_names('bertie')
+        self.assertFalse(m1.is_similar(m2))
+        m1.reserve_unique_names('clair')
+        self.assertFalse(m1.is_similar(m2))
+        m2.reserve_unique_names('clair', 'bertie')
+        self.assertTrue(m1.is_similar(m2))
+
+        # Add reserved name prefixes
+        m1.reserve_unique_name_prefix('aa', 'bb')
+        m1.reserve_unique_name_prefix('cc', 'dd')
+        self.assertFalse(m1.is_similar(m2))
+        m2.reserve_unique_name_prefix('aa', 'bb')
+        m2.reserve_unique_name_prefix('cc', 'ee')
+        self.assertFalse(m1.is_similar(m2))
+        m2.reserve_unique_name_prefix('cc', 'dd')
+        self.assertTrue(m1.is_similar(m2))
+
     def test_item_at_text_position(self):
         # Test :meth:`Model.item_at_text_position()`.
 
@@ -1454,17 +1516,21 @@ class ModelTest(unittest.TestCase):
         # Test :meth:`Model.save_state()` and :meth:`Model.load_state()`.
 
         m = myokit.load_model('example')
-        s1 = m.state_values()
+        s1 = m.initial_values(True)
         with TemporaryDirectory() as d:
             path = d.path('state.csv')
-            m.save_state(path)
-            self.assertEqual(m.state_values(), s1)
+            with WarningCollector() as w:
+                m.save_state(path)
+            self.assertIn('deprecated', w.text())
+            self.assertEqual(m.initial_values(True), s1)
             sx = list(s1)
             sx[0] = 10
-            m.set_state(sx)
-            self.assertNotEqual(m.state_values(), s1)
-            m.load_state(path)
-            self.assertEqual(m.state_values(), s1)
+            m.set_initial_values(sx)
+            self.assertNotEqual(m.initial_values(True), s1)
+            with WarningCollector() as w:
+                m.load_state(path)
+            self.assertIn('deprecated', w.text())
+            self.assertEqual(m.initial_values(True), s1)
 
     def test_map_to_state(self):
         # Test :meth:`Model.map_to_state()`.
@@ -1830,6 +1896,39 @@ class ModelTest(unittest.TestCase):
         c = model['membrane']
         self.assertEqual(c.name(), 'membrane')
 
+    def test_set_initial_values(self):
+        # Tests :meth:`Model.set_initial_values()`.
+        m = myokit.load_model('example')
+        states = [v.qname() for v in m.states()]
+        values = m.initial_values(as_floats=True)
+
+        # Set with floats
+        values[0] += 2
+        m.set_initial_values(values)
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Set with expressions
+        values[1] -= 3
+        m.set_initial_values([myokit.Number(v) for v in values])
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Set with dict of floats
+        values[2] -= 4
+        s = dict(zip(states, values))
+        m.set_initial_values(s)
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Set with one big string
+        values[3] += 5
+        s = dict(zip(states, values))
+        s = '\n'.join([str(a) + '=' + str(b) for a, b in s.items()])
+        m.set_initial_values(s)
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
     def test_show_evaluation_of(self):
         # Test :meth:`Model.show_evaluation_of(variable)`.
         # Depends mostly on `references()`, and `code()` methods.
@@ -2078,28 +2177,6 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(len(m.warnings()), 2)  # 2 removal warnings
         m.validate()
         self.assertEqual(len(m.warnings()), 0)  # issue fixed!
-
-    def test_state(self):
-        m = myokit.Model()
-        c = m.add_component('c')
-        y = c.add_variable('y')
-        y.set_rhs(1)
-        y.promote(2.0)
-        t = c.add_variable('t')
-        t.set_binding('time')
-        t.set_rhs(0)
-        p = c.add_variable('p')
-        p.set_rhs(3)
-
-        self.assertEqual(m.state_values(), [2])
-
-        y.demote()
-        y.promote(myokit.Multiply(myokit.Number(2), myokit.Name(p)))
-        self.assertEqual(m.state_values(), [6])
-
-        y.demote()
-        y.promote('2 * c.p')
-        self.assertEqual(m.state_values(), [6])
 
     def test_value(self):
         # Test :meth:`Model.value()`.

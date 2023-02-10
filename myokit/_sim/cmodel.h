@@ -1225,7 +1225,7 @@ for eq in parameters.values():
     /* State values */
 <?
 for var in model.states():
-    print(tab + v(var) + ' = 0;')
+    print(tab + v(var) + ' = ' + myokit.float.str(var.initial_value(True)) + ';')
 ?>
     /*
      * Caching.
