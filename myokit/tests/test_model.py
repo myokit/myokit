@@ -355,6 +355,36 @@ class ModelTest(unittest.TestCase):
             '13 d = comp1.a\n'
         )
 
+        # Test initial value expressions are maintained
+        model = myokit.Model('moo')
+        component = model.add_component('c')
+        p = component.add_variable('p')
+        q = component.add_variable('q')
+        r = component.add_variable('r')
+        z = component.add_variable('z')
+        z.set_rhs(123)
+        p.promote(1)
+        q.promote('1 + exp(3)')
+        r.promote('c.z')
+        p.set_rhs(1)
+        q.set_rhs(2)
+        r.set_rhs(3)
+
+        self.assertEqual(model.code(line_numbers=False), '\n'.join([
+            '[[model]]',
+            'name: moo',
+            '# Initial values',
+            'c.p = 1',
+            'c.q = 1 + exp(3)',
+            'c.r = c.z',
+            '',
+            '[c]',
+            'dot(p) = 1',
+            'dot(q) = 2',
+            'dot(r) = 3',
+            'z = 123\n\n',
+        ]))
+
     def test_evaluate_derivatives(self):
         # Test Model.evaluate_derivatives().
         model = myokit.Model('m')
@@ -1914,18 +1944,41 @@ class ModelTest(unittest.TestCase):
         for val, ref in zip(m.initial_values(True), values):
             self.assertEqual(val, ref)
 
+        # Set with mix, including strings and expressions
+        values[2] += 10
+        mixed = list(values)
+        mixed[2] = myokit.Number(mixed[2])
+        mixed[3] = str(values[3])
+        m.set_initial_values(mixed)
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
         # Set with dict of floats
-        values[2] -= 4
+        values = m.initial_values(as_floats=True)
         s = dict(zip(states, values))
         m.set_initial_values(s)
         for val, ref in zip(m.initial_values(True), values):
             self.assertEqual(val, ref)
 
         # Set with one big string
-        values[3] += 5
+        values[0] += 5
         s = dict(zip(states, values))
         s = '\n'.join([str(a) + '=' + str(b) for a, b in s.items()])
         m.set_initial_values(s)
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Non-constant is not allowed
+        values[0] = myokit.Name(m.get('membrane.V'))
+        self.assertRaises(
+            myokit.NonConstantExpressionError, m.set_initial_values, values)
+
+        # Deprecated alias
+        values = m.initial_values(as_floats=True)
+        values[0] += 10
+        with WarningCollector() as w:
+            m.set_state(values)
+        self.assertIn('deprecated', w.text())
         for val, ref in zip(m.initial_values(True), values):
             self.assertEqual(val, ref)
 

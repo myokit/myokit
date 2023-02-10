@@ -2922,33 +2922,28 @@ class Model(ObjectWithMeta, VarProvider):
         return myokit.save_state(
             filename, self.initial_values(as_floats=True), self)
 
-    def set_initial_values(self, state):
+    def set_initial_values(self, values):
         """
-        Sets this model's initial values using either a list of expressions or
-        anything that's accepted by :meth:`map_to_state`.
+        Sets this model's initial values.
+
+        The ``values`` must be specified as either a list of floats,
+        expressions, and/or strings; or as a dict or string in a format
+        accepted by :meth:`map_to_state`.
         """
-        # Sequence of expressions?
-        is_expr = False
-        try:
-            if len(state) == len(self._state_vars):
-                if all(isinstance(i, myokit.Expression) for i in state):
-                    is_expr = True
-        except TypeError:
-            pass
-
-        # List of expressions
-        if is_expr:
-            for expr in state:
-                if not expr.is_constant():
-                    raise ValueError(
-                        'Expressions in a model\'s initial values may not'
-                        ' refer to variables that vary in time.')
-            self._state_init = list(state)
-
-        # Anything accepted by map_to_state
-        else:
+        # Use map to state?
+        if isinstance(values, basestring) or isinstance(values, dict):
             self._state_init = [
-                myokit.Number(x) for x in self.map_to_state(state)]
+                myokit.Number(x) for x in self.map_to_state(values)]
+        elif len(values) != len(self._state_vars):
+            raise ValueError('Wrong number of initial values, expecting '
+                             + str(len(self._state_vars)) + '.')
+        else:
+            # Set all at once, so that nothing is changed if this fails.
+            expr = []
+            for var, value in zip(self._state_vars, values):
+                expr.append(var._set_initial_value(value, False))
+            self._state_init = expr
+        # No need to reset validation status or cache here
 
     def set_name(self, name=None):
         """
@@ -4745,7 +4740,10 @@ class Variable(VarOwner):
         """
         if not self._is_state:
             raise Exception('Only state variables have state values.')
+        self._set_initial_value(value, True)
 
+    def _set_initial_value(self, value, make_the_change):
+        """ Internal version of `set_initial_value`. """
         # Handle strings and floats
         model = self.model()
         if not isinstance(value, myokit.Expression):
@@ -4759,8 +4757,11 @@ class Variable(VarOwner):
             raise myokit.NonConstantExpressionError(
                 'Expressions for state values must be constant in time.')
 
-        model._state_init[self._indice] = value
-        # No need to reset validation status or cache here.
+        if make_the_change:
+            model._state_init[self._indice] = value
+            # No need to reset validation status or cache here.
+        else:
+            return value
 
     def set_label(self, label=None):
         """
