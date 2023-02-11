@@ -411,25 +411,27 @@ class Simulation(myokit.CModule):
             return [list(x) for x in self._s_state]
         return None
 
-    def set_state_sensitivities(self):
+    def set_state_sensitivities(self, s_values):
         """
-        Sets the sensitivities with respect to state variables
+        Sets the sensitivities with respect to state variables if
+        sensitivities are enabled
+
+        The N x M list of lists 's_values', defines the sensitivities
+        dz/dx for the N state variables and M independent variables
         """
         if self._sensitivities:
-            # Outer indice: number of independent variables
-            # Inner indice: number of states
-            self._s_state = []
-            for expr in self._sensitivities[1]:
-                row = [0.0] * len(self._state)
-                if isinstance(expr, myokit.InitialValue):
-                    row[expr.var().indice()] = 1.0
-                self._s_state.append(row)
+            self._s_state = s_values
 
-    def set_default_sensitivities(self):
+    def set_default_sensitivities(self, s_values):
         """
-        Sets the default sensitivities with respect to state variables
+        Sets the default sensitivities with respect to state variables if
+        sensitivities are enabled
+
+        The N x M list of lists 's_values', defines the sensitivities
+        dz/dx for the N state variables and M independent variables
         """
-        self._s_default_state = [list(x) for x in self._s_state]
+        if self._sensitivities:
+            self._s_default_state = s_values
 
     def last_state(self):
         """
