@@ -600,7 +600,7 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s[1][0], 0)
 
         # Set sensitivities and check set values
-        s_values = [[2],[3]]
+        s_values = [[2], [3]]
         sim.set_state_sensitivities(s_values)
         sim.set_default_sensitivities(s_values)
         sd = sim.default_state_sensitivities()
