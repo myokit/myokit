@@ -908,10 +908,19 @@ class Simulation(myokit.CModule):
         """
         Allows you to manually set the default state.
         """
-        state_expr = [
-            s if isinstance(s, myokit.Expression) else myokit.Number(s)
-            for s in state
-        ]
+        if isinstance(state, dict):
+            state_expr = {
+                k: (
+                    s if isinstance(s, myokit.Expression)
+                    else myokit.Number(s)
+                )
+                for k, s in state.items()
+            }
+        else:
+            state_expr = [
+                s if isinstance(s, myokit.Expression) else myokit.Number(s)
+                for s in state
+            ]
         self._default_state = self._model.map_to_state(state_expr)
 
     def set_max_step_size(self, dtmax=None):
