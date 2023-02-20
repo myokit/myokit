@@ -23,6 +23,7 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.save_state` and `Model.load_state` are deprecated.
   - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
+  - [#918](https://github.com/myokit/myokit/pull/918) The `Variable.promote` keyword argument `state_value` is deprecated in favour of `initial_value`.
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `LegacySimulation` class.

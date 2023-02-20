@@ -3,7 +3,6 @@ name: Luo-Rudy 1991
 desc: """
 Implementation of the Luo-Rudy model I for the ventricular myocyte.
 Based on an updated formulation downloaded from http://rudylab.wustl.edu
-and licensed under a GNU GPL license version 2.
 """
 # Initial conditions
 membrane.V = -84.5286
@@ -19,7 +18,7 @@ ica.Ca_i   = 0.0002
 desc: """
 Membrane potential and stimulus
 """
-C = 1.0 [uF/cm^2]
+C = 1 [uF/cm^2]
     in [uF/cm^2]
 dot(V) = - (1/C) * (i_ion + i_diff + i_stim) in [mV]
     label membrane_potential

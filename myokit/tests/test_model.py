@@ -281,7 +281,7 @@ class ModelTest(unittest.TestCase):
         m.check_units(s)
 
     def test_clone(self):
-        # Test :meth:`Model.clone() and :meth:`Model.has_parse_info()`.
+        # Test :meth:`Model.clone()
 
         # Test model, component, variables
         m1 = myokit.load_model('example')
@@ -300,6 +300,26 @@ class ModelTest(unittest.TestCase):
         # Test tokens are not cloned
         self.assertTrue(m1.has_parse_info())
         self.assertFalse(m2.has_parse_info())
+
+        # Test initial value expressions are maintained
+        m1 = myokit.Model('moo')
+        component = m1.add_component('c')
+        p = component.add_variable('p')
+        q = component.add_variable('q')
+        r = component.add_variable('r')
+        s = component.add_variable('s')
+        z = component.add_variable('z')
+        z.set_rhs(123)
+        p.promote(1)
+        q.promote('1 + exp(3)')
+        r.promote('c.z')
+        s.promote('1 [g] + c.z / 2 [1/g]')
+        m2 = m1.clone()
+        self.assertEqual(m2.get('c.p').initial_value(), myokit.Number(1))
+        self.assertEqual(m2.get('c.q').initial_value().code(), '1 + exp(3)')
+        self.assertEqual(m2.get('c.r').initial_value(), m2.get('c.z').lhs())
+        self.assertEqual(m2.get('c.s').initial_value().code(),
+                         '1 [g] + c.z / 2 [1/g]')
 
     def test_code(self):
         # Test :meth:`Model.code()`.
@@ -361,14 +381,18 @@ class ModelTest(unittest.TestCase):
         p = component.add_variable('p')
         q = component.add_variable('q')
         r = component.add_variable('r')
+        s = component.add_variable('s')
         z = component.add_variable('z')
         z.set_rhs(123)
         p.promote(1)
         q.promote('1 + exp(3)')
         r.promote('c.z')
+        s.promote('1 [g] + c.z / 2 [1/g]')
+
         p.set_rhs(1)
         q.set_rhs(2)
         r.set_rhs(3)
+        s.set_rhs('4 [g/s]')
 
         self.assertEqual(model.code(line_numbers=False), '\n'.join([
             '[[model]]',
@@ -377,11 +401,13 @@ class ModelTest(unittest.TestCase):
             'c.p = 1',
             'c.q = 1 + exp(3)',
             'c.r = c.z',
+            'c.s = 1 [g] + c.z / 2 [1/g]',
             '',
             '[c]',
             'dot(p) = 1',
             'dot(q) = 2',
             'dot(r) = 3',
+            'dot(s) = 4 [g/s]',
             'z = 123\n\n',
         ]))
 
@@ -520,6 +546,23 @@ class ModelTest(unittest.TestCase):
             ValueError, r'sequence of \(8\)', m.format_state,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
+        # Test with model that has expressions in its initial state.
+        # These will be evaluated (the method handles states, not initial state
+        # expressions).
+        m.get('ina.m').set_initial_value('sqrt(4) / 4')
+        m.get('ina.h').set_initial_value('ina.gNa / 20')
+        self.assertEqual(
+            m.format_state(),
+            'membrane.V = -84.5286\n'
+            'ina.m      = 0.5\n'
+            'ina.h      = 0.8\n'
+            'ina.j      = 0.995484\n'
+            'ica.d      = 3e-06\n'
+            'ica.f      = 1.0\n'
+            'ik.x       = 0.0057\n'
+            'ica.Ca_i   = 0.0002'
+        )
+
     def test_format_state_derivatives(self):
         # Test Model.format_state_derivatives().
 
@@ -629,6 +672,25 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, r'sequence of \(8\)', m.format_state_derivatives,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
+
+        # Test without expressions in the initial state (these will be
+        # evaluated)
+        m.get('ina.m').set_initial_value('sqrt(0.25)')
+        m.get('ina.h').set_initial_value('ina.gNa / 20')
+        x = m.format_state_derivatives().splitlines()
+        y = [
+'membrane.V = -84.5286                   dot =  2.46843981754470434e+02', # noqa
+'ina.m      = 0.5                        dot = -8.68225658924664856e+01', # noqa
+'ina.h      = 0.8                        dot =  4.89677127030544446e-02', # noqa
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04', # noqa
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04', # noqa
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07', # noqa
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07', # noqa
+'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'  # noqa
+        ]
+        for a, b in zip(x, y):
+            self.assertTrue(almost_equal(a, b))
+        self.assertEqual(len(x), len(y))
 
     def test_get(self):
         # Test Model.get().
@@ -2038,7 +2100,7 @@ class ModelTest(unittest.TestCase):
         m = myokit.load_model('example')
         v = m.get('ina.INa')
         e = m.show_line_of(v)
-        self.assertIn('Defined on line 91', e)
+        self.assertIn('Defined on line 90', e)
         self.assertIn('Intermediary variable', e)
         self.assertEqual(len(e.splitlines()), 4)
 
@@ -2051,7 +2113,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(len(e.splitlines()), 3)
 
         # 'raw' version
-        self.assertEqual(m.show_line_of(v, raw=True), 91)
+        self.assertEqual(m.show_line_of(v, raw=True), 90)
         self.assertIsNone(m2.show_line_of(v2, raw=True))
 
     def test_str(self):

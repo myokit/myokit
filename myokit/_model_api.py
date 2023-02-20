@@ -1496,8 +1496,8 @@ class Model(ObjectWithMeta, VarProvider):
         Arguments:
 
         ``state=None``
-            The state to show derivatives for. If no state is given the state
-            returned by :meth:`state` is used.
+            The state to display. If no state is given this model's (evaluated)
+            :meth:`<initial_values()>initial values` are used.
         ``state2=None``
             An optional second state, to be shown next to ``state`` for
             comparison.
@@ -1545,8 +1545,9 @@ class Model(ObjectWithMeta, VarProvider):
         Arguments:
 
         ``state=None``
-            The state to display. If no state is given the state returned by
-            :meth:`initial_values` is used.
+            The state to show derivatives for. If no state is given this
+            model's (evaluated) :meth:`<initial_values()>initial values` are
+            used.
         ``derivatives=None``
             An optional list or other sequence of evaluated derivatives. If not
             given, the values will be calculed from ``state`` using
@@ -1559,7 +1560,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         n = len(self._state_vars)
         if state is None:
-            state = self.initial_values()
+            state = self.initial_values(as_floats=True)
         elif len(state) != n:
             raise ValueError(
                 'Argument `state` must be a sequence of (' + str(n)
@@ -3304,7 +3305,7 @@ class Model(ObjectWithMeta, VarProvider):
         Deprecated method, use
         :meth:`initial_values(as_floats=True)<initial_values>` instead.
         """
-        # Deprecated since 2022-11-24
+        # Deprecated since 2023-02-20
         import warnings
         warnings.warn(
             'The method `state` is deprecated. Please use'
@@ -4442,7 +4443,7 @@ class Variable(VarOwner):
         """
         return self._lhs
 
-    def promote(self, initial_value=0):
+    def promote(self, initial_value=0, state_value=None):
         """
         Turns this variable into a state variable with an initial value given
         by ``initial_value``.
@@ -4469,6 +4470,17 @@ class Variable(VarOwner):
         if self._binding is not None:
             raise Exception(
                 'State variables cannot be bound to an external value.')
+
+        # Deprecated on 2023-02-20
+        if state_value is not None:
+            if initial_value != 0:
+                raise Exception('Deprecated keyword argument `state_value` can'
+                                ' not be used at the same time as its'
+                                ' replacement `initial_value`.')
+
+            import warnings
+            warnings.warn('The keyword argument `state_value` is deprecated.'
+                          ' Please use `initial_value` instead.')
 
         # Handle string and number rhs's
         model = self.model()
@@ -4760,8 +4772,7 @@ class Variable(VarOwner):
         if make_the_change:
             model._state_init[self._indice] = value
             # No need to reset validation status or cache here.
-        else:
-            return value
+        return value
 
     def set_label(self, label=None):
         """
