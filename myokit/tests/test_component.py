@@ -236,6 +236,16 @@ class VarOwnerTest(unittest.TestCase):
         self.assertIs(m.binding('time'), None)
         self.assertIs(m.label('membrane_potential'), None)
 
+    def test_resolve(self):
+        # Test if an error is raised when a variable can't be resolved.
+
+        m = myokit.Model('Resolve')
+        c = m.add_component('c')
+        p = c.add_variable('p')
+        q = c.add_variable('q')
+        p.set_rhs('10 * q')
+        self.assertRaises(myokit.ParseError, q.set_rhs, '10 * r')
+
     def test_sequence_interface(self):
         # Test the sequence interface implementation
 

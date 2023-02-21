@@ -1465,6 +1465,7 @@ class ModelTest(unittest.TestCase):
             dot(y) = 0
             dot(z) = 0
             p = 3
+            q = 4
         ''')
 
         # Test expression version
@@ -1482,6 +1483,13 @@ class ModelTest(unittest.TestCase):
         with WarningCollector() as w:
             self.assertEqual(m.state(), m.initial_values(True))
         self.assertIn('deprecated', w.text())
+
+        # Test cycles are detected
+        p.set_rhs('1 / q')
+        m.get('c.q').set_rhs('1 + p')
+        m.initial_values()  # No evaluation, so no error
+        self.assertRaises(
+            myokit.CyclicalDependencyError, m.initial_values, as_floats=True)
 
     def test_inits(self):
         # Tests :meth:`Model.inits`
@@ -2355,6 +2363,56 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'prepend cannot start with prefix',
             m.reserve_unique_name_prefix, 'x', 'x')
+
+    def test_unused_and_cycles(self):
+        # Test unused variable and cycle detection.
+
+        m = myokit.Model('LotkaVolterra')
+        c0 = m.add_component('c0')
+        t = c0.add_variable('time')
+        t.set_rhs(myokit.Number(0))
+        t.set_binding('time')
+        c1 = m.add_component('c1')
+        m.add_component('c2')
+        c1_a = c1.add_variable('a')
+        c1_b = c1.add_variable('b')
+        c1_a.promote(1.0)
+        c1_a.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(0.5)))
+        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(1.0)))
+        # b is unused, test if found
+        m.validate()
+        w = m.warnings()
+        self.assertEqual(len(w), 1)
+        self.assertEqual(type(w[0]), myokit.UnusedVariableError)
+        # b is used by c, c is unused, test if found
+        c1_c = c1.add_variable('c')
+        c1_c.set_rhs(myokit.Name(c1_b))
+        m.validate()
+        w = m.warnings()
+        self.assertEqual(len(w), 2)
+        self.assertEqual(type(w[0]), myokit.UnusedVariableError)
+        self.assertEqual(type(w[1]), myokit.UnusedVariableError)
+        # Test 1:1 cycle
+        c1_b.set_rhs(myokit.Name(c1_b))
+        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
+        # Test longer cycles
+        c1_b.set_rhs(myokit.Multiply(myokit.Number(10), myokit.Name(c1_c)))
+        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
+        # Reset
+        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(1.0)))
+        m.validate()
+        # Test cycle involving state variable
+        c1_a.set_rhs(myokit.Name(c1_b))
+        m.validate()
+        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_b)))
+        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
+        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_c)))
+        c1_c.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(3)))
+        m.validate()
+        w = m.warnings()
+        self.assertEqual(len(w), 0)
+        c1_c.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_b)))
+        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
 
     def test_validate_and_remove_unused_variables(self):
         # Test :class:`Model.validate` with ``remove_unused_variables=True``.

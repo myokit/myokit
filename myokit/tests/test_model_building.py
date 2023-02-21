@@ -2,6 +2,9 @@
 #
 # Tests the model building API.
 #
+# NOTE: THESE TESTS SHOULD SLOWLY BE MERGED INTO test_model, test_variable, etc
+#
+#
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
@@ -375,16 +378,6 @@ class ModelBuildTest(unittest.TestCase):
         code2 = m.clone().code()
         self.assertEqual(code1, code2)
 
-    def test_resolve(self):
-        # Test if an error is raised when a variable can't be resolved.
-
-        m = myokit.Model('Resolve')
-        c = m.add_component('c')
-        p = c.add_variable('p')
-        q = c.add_variable('q')
-        p.set_rhs('10 * q')
-        self.assertRaises(myokit.ParseError, q.set_rhs, '10 * r')
-
     def test_scope(self):
         # Test if illegal references are detected.
 
@@ -455,93 +448,6 @@ class ModelBuildTest(unittest.TestCase):
         # Keywords
         self.assertRaises(myokit.InvalidNameError, v1.add_variable, 'not')
         self.assertRaises(myokit.InvalidNameError, v1.add_variable, 'in')
-
-    def test_unused_and_cycles(self):
-        # Test unused variable and cycle detection.
-
-        m = myokit.Model('LotkaVolterra')
-        c0 = m.add_component('c0')
-        t = c0.add_variable('time')
-        t.set_rhs(myokit.Number(0))
-        t.set_binding('time')
-        c1 = m.add_component('c1')
-        m.add_component('c2')
-        c1_a = c1.add_variable('a')
-        c1_b = c1.add_variable('b')
-        c1_a.promote(1.0)
-        c1_a.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(0.5)))
-        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(1.0)))
-        # b is unused, test if found
-        m.validate()
-        w = m.warnings()
-        self.assertEqual(len(w), 1)
-        self.assertEqual(type(w[0]), myokit.UnusedVariableError)
-        # b is used by c, c is unused, test if found
-        c1_c = c1.add_variable('c')
-        c1_c.set_rhs(myokit.Name(c1_b))
-        m.validate()
-        w = m.warnings()
-        self.assertEqual(len(w), 2)
-        self.assertEqual(type(w[0]), myokit.UnusedVariableError)
-        self.assertEqual(type(w[1]), myokit.UnusedVariableError)
-        # Test 1:1 cycle
-        c1_b.set_rhs(myokit.Name(c1_b))
-        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
-        # Test longer cycles
-        c1_b.set_rhs(myokit.Multiply(myokit.Number(10), myokit.Name(c1_c)))
-        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
-        # Reset
-        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(1.0)))
-        m.validate()
-        # Test cycle involving state variable
-        c1_a.set_rhs(myokit.Name(c1_b))
-        m.validate()
-        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_b)))
-        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
-        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_c)))
-        c1_c.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(3)))
-        m.validate()
-        w = m.warnings()
-        self.assertEqual(len(w), 0)
-        c1_c.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_b)))
-        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
-
-    def test_promote_cycles(self):
-        m = myokit.Model()
-        c = m.add_component('c')
-        t = c.add_variable('t')
-        t.set_rhs(0)
-        t.set_binding('time')
-        a = c.add_variable('a')
-        b = c.add_variable('b')
-        y = c.add_variable('y')
-
-        # promote *then* introduce the cycle
-        y.set_rhs('1')
-        a.set_rhs('1')
-        b.set_rhs('1 + a')
-        y.promote('c.a')
-        a.set_rhs('b')
-
-        self.assertRaises(myokit.CyclicalDependencyError, m.initial_values,
-                          as_floats=True)
-
-    def test_validate_constant_initial_conditions(self):
-        m = myokit.Model()
-        c = m.add_component('c')
-        t = c.add_variable('t')
-        t.set_rhs(0)
-        t.set_binding('time')
-        y = c.add_variable('y')
-        a = c.add_variable('a')
-        a.set_rhs('1')
-        y.set_rhs('1')
-        y.promote('c.a')
-
-        # now promote a
-        a.promote('0')
-
-        self.assertRaises(myokit.NonConstantExpressionError, m.validate)
 
 
 if __name__ == '__main__':

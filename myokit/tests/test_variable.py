@@ -242,6 +242,7 @@ class VariableTest(unittest.TestCase):
             t = 0 bind time
             dot(x) = 0
             p = 3
+            q = 4
         ''')
 
         # Test expression version
@@ -265,6 +266,13 @@ class VariableTest(unittest.TestCase):
         with WarningCollector() as w:
             self.assertEqual(x.state_value(), x.initial_value(True))
         self.assertIn('deprecated', w.text())
+
+        # Test cycles are detected
+        p.set_rhs('1 - 2 * q')
+        m.get('c.q').set_rhs('7 * sqrt(p)')
+        x.initial_value()  # No evaluation, so no error
+        self.assertRaises(
+            myokit.CyclicalDependencyError, x.initial_value, as_float=True)
 
     def test_is_referenced(self):
         # Test :meth:`Variable.is_referenced().
