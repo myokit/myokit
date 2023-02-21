@@ -847,7 +847,6 @@ class ModelTest(unittest.TestCase):
             dot(b) = 1 [1/s]
             dot(c) = 2 [1/s]
             p = 0.1
-
         ''')
         ms.validate()
         ms.check_units(myokit.UNIT_STRICT)
@@ -1871,7 +1870,7 @@ class ModelTest(unittest.TestCase):
     def test_remove_derivative_references(self):
         # Test the remove_derivative_references() method.
 
-        m0 = myokit.parse_model("""
+        m0 = myokit.parse_model('''
             [[model]]
             c.x = 0
             c.y = 1
@@ -1890,8 +1889,8 @@ class ModelTest(unittest.TestCase):
 
             [d]
             z = 3 * dot(c.x) / dot(c.y)
-            """)
-        m2 = myokit.parse_model("""
+            ''')
+        m2 = myokit.parse_model('''
             [[model]]
             c.x = 0
             c.y = 1
@@ -1912,7 +1911,7 @@ class ModelTest(unittest.TestCase):
 
             [d]
             z = 3 * c.dot_x_1 / c.dot_y
-            """)
+            ''')
 
         # Remove derivatives from m1
         m1 = m0.clone()

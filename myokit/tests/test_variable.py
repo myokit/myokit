@@ -324,6 +324,8 @@ class VariableTest(unittest.TestCase):
 
         m = myokit.Model()
         c = m.add_component('c')
+        p = c.add_variable('p')
+        p.set_rhs(1)
         v = c.add_variable('v')
         v.set_rhs(3)
 
@@ -364,6 +366,19 @@ class VariableTest(unittest.TestCase):
         w = v.add_variable('w')
         self.assertRaisesRegex(
             Exception, 'only be added to Components', w.promote, 4)
+
+        # Test that promote accepts expressions and strings
+        v.set_binding(None)
+        v.remove_variable(w)
+        v.promote(myokit.Number(3, myokit.units.kg))
+        self.assertEqual(v.initial_value(), myokit.Number(3, myokit.units.kg))
+        v.demote()
+        v.promote('1 + c.p')
+        self.assertEqual(v.initial_value().code(), '1 + c.p')
+        v.demote()
+
+        # Test that promote only works with global syntax references
+        self.assertRaisesRegex(myokit.ParseError, 'Unresolved', v.promote, 'p')
 
         # Test we can't demote a variable with references to its derivative
         m = myokit.Model()
