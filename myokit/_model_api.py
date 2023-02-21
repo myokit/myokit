@@ -1086,6 +1086,8 @@ class Model(ObjectWithMeta, VarProvider):
             c._clone1(clone)
 
         # Create states
+        # Note that the order in which promote() is called determines the
+        # state ordering, so this happens here and not in the Variable class.
         for k, v in enumerate(self._state_vars):
             clone.get(v.qname()).promote()
 
@@ -1803,6 +1805,9 @@ class Model(ObjectWithMeta, VarProvider):
             for var in comp.variables():
                 vars_ref.update(var.refs_to(state_refs=False))
                 vars_ref.update(var.refs_to(state_refs=True))
+                if var.is_state():
+                    vars_ref.update(
+                        [e.var() for e in var.initial_value().references()])
             vars_ref.update(comp._alias_map.values())
             vars_ref -= set(comp.variables())
             vars_ref = [x for x in vars_ref if not x.is_nested()]
@@ -1878,8 +1883,8 @@ class Model(ObjectWithMeta, VarProvider):
                 if ext_var in vars_to_map:
                     var_map[ext_var] = self_var
 
-        # add variables to var_map that map to other imported components
-        # but will be reassigned to the clone later
+        # Add variables to var_map that map to other imported components but
+        # will be reassigned to the clone later
         for l in map_to_clone:
             for ext_var in l:
                 if ext_var not in var_map:
@@ -1964,18 +1969,28 @@ class Model(ObjectWithMeta, VarProvider):
                             ' mismatch: ' + str(e))
 
         # Clone component pt 1: create, meta data, empty variables
-        new_component = []
+        new_component = []  # List of components
         for i, comp in enumerate(external_component):
             new_component.append(comp._clone1(self, new_name[i]))
 
-            for var in comp.variables(state=True):
-                # Clone states
-                # TODO: Not sure why clone() code doesn't do this?
-                new_component[i].get(var.qname(comp)).promote(
-                    var.initial_value())
             # Now we can add variable to var_map if needed
             for var in map_to_clone[i]:
                 var_map[var] = new_component[i].get(var.qname(comp))
+
+        # Clone states, preserving the state order
+        # Note: The order in which promote() is called determines the order
+        # of the states in the new component. (This is one of the reasons that
+        # the component._clone1 method called above doesn't call promote.)
+        new_states = []     # New states, from all components
+        state_map = {}      # New-state to old state
+        for old_comp, comp in zip(external_component, new_component):
+            for ext_var in old_comp.variables(state=True):
+                var = comp.get(ext_var.name())
+                state_map[var] = ext_var
+                new_states.append(var)
+        new_states.sort(key=lambda var: state_map[var].indice())
+        for var in new_states:
+            var.promote()   # Initial value is set later
 
         # Create mapping of old var references to new references
         # This is a mapping from Name(var) and Derivative(Name(var)) objects
@@ -1992,9 +2007,10 @@ class Model(ObjectWithMeta, VarProvider):
                     lhs_map[myokit.Derivative(myokit.Name(ext_var))] = \
                         myokit.Derivative(myokit.Name(self_var))
 
-        # Next, add all entries in the var_map. If unit conversion is enabled,
-        # this may include the addition of unit conversion factors
-
+        # Next, add all entries in the var_map to the lhs_map. If unit
+        # conversion is enabled, this may include the addition of unit
+        # conversion factors (so some Names in lhs_map will be mapped onto
+        # Multiply expressions).
         for ext_var, self_var in var_map.items():
             # Substitute in either a reference to self_var, or an expression
             # that converts self_var to the units ext_var's equation expects.
@@ -2022,6 +2038,11 @@ class Model(ObjectWithMeta, VarProvider):
         # Clone component/variable contents (equations, references)
         for i, comp in enumerate(external_component):
             comp._clone2(new_component[i], lhs_map, var_map)
+
+        # Clone initial values
+        for var in new_states:
+            var.set_initial_value(
+                state_map[var].initial_value().clone(subst=lhs_map))
 
         # Time unit conversion? Then update all derivatives.
         if time_factor is not None:
@@ -4019,6 +4040,10 @@ class Variable(VarOwner):
         # Clone child variables
         for k in self.variables():
             k._clone2(v[k.name()], lhs_map)
+
+        # Note: initial values are stored inside the model, and the state order
+        # depends on the order in which promoting occurs, so states are only
+        # created by Model.clone()
 
     def _code(self, b, t):
         """

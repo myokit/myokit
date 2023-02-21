@@ -778,10 +778,12 @@ class ModelTest(unittest.TestCase):
         # Source model, to import stuff from
         ms = myokit.parse_model('''
             [[model]]
+            n.c = 1 + n.p
+            n.b = sqrt(0.25)
             p.b = 0.2
             q.e = 0.2
-            x.a = 0.2
             y.e = 0.2
+            x.a = 0.2
 
             [e]
             t = 0 [s] bind time
@@ -831,14 +833,21 @@ class ModelTest(unittest.TestCase):
                 sub_e = 2 * e
                     in [m]
 
-            # another group component but this isn't independant
+            # Another group component but this isn't independent
             [z]
             use x.d
             use y.e
             use e.h
-
             f = d * e * h
                 in [m/s]
+
+            # A component with expressions in initial states
+            [n]
+            a = 1
+            dot(b) = 1 [1/s]
+            dot(c) = 2 [1/s]
+            p = 0.1
+
         ''')
         ms.validate()
         ms.check_units(myokit.UNIT_STRICT)
@@ -969,6 +978,19 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m1['x'].code(), ms['x'].code())
         self.assertEqual(m1['y'].code(), ms['y'].code())
         self.assertTrue(ms.is_similar(ms_unaltered, True))
+        # Check that state order is preserved
+        self.assertLess(m1.get('y.e').indice(), m1.get('x.a').indice())
+
+        # Import multiple components and rename
+        component_list = [ms['x'], ms['y']]
+        m1.import_component(component_list, new_name=['xx', 'yy'])
+        self.assertTrue(m1.has_component('xx'))
+        self.assertTrue(m1.has_component('yy'))
+        self.assertFalse(m1['xx'] is ms['x'])
+        self.assertFalse(m1['yy'] is ms['y'])
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
+        # Check that state order is preserved
+        self.assertLess(m1.get('yy.e').indice(), m1.get('xx.a').indice())
 
         # Import 1 component in list
         m1.import_component([ms['p']], new_name='p3')
@@ -979,6 +1001,26 @@ class ModelTest(unittest.TestCase):
         c1 = '\n'.join((m1['p3'].code().splitlines())[1:])
         self.assertEqual(cs, c1)
         self.assertTrue(ms.is_similar(ms_unaltered, True))
+
+        # Import state variables with expressions in their initial values
+        m1_unaltered = m1.clone()
+        m1.import_component(ms['n'])
+        self.assertEqual(m1.get('n.b').initial_value().code(), 'sqrt(0.25)')
+        self.assertEqual(
+            m1.get('n.c').initial_value(),
+            myokit.Plus(myokit.Number(1), myokit.Name(m1.get('n.p'))))
+        # Check that state order is preserved
+        self.assertLess(m1.get('n.c').indice(), m1.get('n.b').indice())
+        m1 = m1_unaltered
+
+        # ...including references to parameters in other components
+        ms2 = ms.clone()
+        ms2.get('n.c').set_initial_value('1 + e.h')
+        ms2_unaltered = ms2.clone()
+        self.assertRaises(
+            myokit.VariableMappingError, m1.import_component, ms2['n'])
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms2.is_similar(ms2_unaltered, True))
 
         # Try and fail to import r without a mapping
         m1_unaltered = m1.clone()
