@@ -1411,6 +1411,45 @@ class ModelTest(unittest.TestCase):
             m1.import_component, ms['q'], var_map=vm, convert_units=True)
         self.assertTrue(ms.is_similar(ms_unaltered, True))
 
+    def test_initial_value_made_non_constant(self):
+        # Tests that the validate() method picks up on non-constant initial
+        # values.
+
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 0
+            c.y = 0
+
+            [c]
+            t = 0 bind time
+            dot(x) = 0
+            dot(y) = 0
+            p = 0
+        ''')
+
+        # Change to involve p, this is OK
+        x = m.get('c.x')
+        x.set_initial_value('1 / log(c.p)')
+        m.validate()
+
+        # State? Not ok
+        p = m.get('c.p')
+        p.promote()
+        self.assertRaises(myokit.NonConstantExpressionError, m.validate)
+        p.demote()
+        m.validate()
+
+        # State-dependent? Not ok
+        p.set_rhs('1 + y')
+        self.assertRaises(myokit.NonConstantExpressionError, m.validate)
+        p.set_rhs(10)
+        m.validate()
+
+        # Bound? Not ok
+        p.set_binding('hello')
+        self.assertRaises(myokit.NonConstantExpressionError, m.validate)
+        # Don't test everything, is_const() should work!
+
     def test_initial_values(self):
         # Tests :meth:`Model.initial_values`.
 
@@ -2122,6 +2161,16 @@ class ModelTest(unittest.TestCase):
         self.assertIn('cell.Na_o = ', e)
         self.assertIn('Literal constant', e)
         self.assertEqual(len(e.splitlines()), 7)
+
+        # Test with expressions in initial values
+        m.get('ina.m').set_initial_value('1 / sqrt(4)')
+        e = m.show_evaluation_of('ina.m')
+        self.assertIn('Initial value = 1 / sqrt(4)', e)
+        self.assertEqual(len(e.splitlines()), 16)
+        m.get('ina.m').set_initial_value('1 / sqrt(ina.gNa)')
+        e = m.show_evaluation_of('ina.m')
+        self.assertIn('Initial value = 1 / sqrt(ina.gNa)', e)
+        self.assertIn('              = 2.5000000', e)
 
         # Test with nothing similar
         m = myokit.Model()

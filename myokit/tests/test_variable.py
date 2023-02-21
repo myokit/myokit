@@ -8,9 +8,13 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import myokit
-import numpy as np
 import unittest
+
+import numpy as np
+
+import myokit
+
+from myokit.tests import WarningCollector
 
 
 # Unit testing in Python 2 and 3
@@ -24,6 +28,7 @@ class VariableTest(unittest.TestCase):
     """
     Tests parts of :class:`myokit.Variable`.
     """
+
     def test_clamp(self):
         # Tests clamping a variable to a fixed value
         m = myokit.parse_model("""
@@ -225,6 +230,41 @@ class VariableTest(unittest.TestCase):
         vdot *= 1000
         self.assertEqual(vdot, v.rhs().eval())
         m.check_units(myokit.UNIT_STRICT)
+
+    def test_initial_value(self):
+        # Tests :meth:`Variable.initial_value`.
+
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 2
+
+            [c]
+            t = 0 bind time
+            dot(x) = 0
+            p = 3
+        ''')
+
+        # Test expression version
+        x, p = m.get('c.x'), m.get('c.p')
+        p = m.get('c.p')
+        self.assertEqual(x.initial_value(), myokit.Number(2))
+        x.set_initial_value(3)
+        self.assertEqual(x.initial_value(), myokit.Number(3))
+        x.set_initial_value('3 [kg]')
+        self.assertEqual(x.initial_value(), myokit.Number(3, myokit.units.kg))
+        x.set_initial_value('sqrt(c.p) / log(c.p)')
+        self.assertEqual(x.initial_value(), myokit.Divide(
+            myokit.Sqrt(p.lhs()), myokit.Log(p.lhs())))
+
+        # Test float version
+        p.set_rhs(9)
+        x.set_initial_value('1 + sqrt(c.p)')
+        self.assertEqual(x.initial_value(True), 4)
+
+        # Test deprecated alias
+        with WarningCollector() as w:
+            self.assertEqual(x.state_value(), x.initial_value(True))
+        self.assertIn('deprecated', w.text())
 
     def test_is_referenced(self):
         # Test :meth:`Variable.is_referenced().
@@ -650,8 +690,8 @@ class VariableTest(unittest.TestCase):
         # Test basic functionality
         v.promote(10)
         self.assertEqual(v.initial_value(), myokit.Number(10))
-        v.set_initial_value(12)
-        self.assertEqual(v.initial_value(), myokit.Number(12))
+        v.set_initial_value(myokit.Number(12, myokit.units.g))
+        self.assertEqual(v.initial_value(), myokit.Number(12, myokit.units.g))
 
         # Test setting expressions
         v.set_initial_value('1 + 11')
@@ -661,19 +701,28 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(v.initial_value(),
                          myokit.Plus(myokit.Number(1), myokit.Name(w)))
 
+        # Strings must use global context
+        self.assertRaisesRegex(myokit.ParseError, 'No component specified for',
+                               v.set_initial_value, '1 / w')
+
         # Only states have this option
         v.demote()
         self.assertRaisesRegex(
             Exception, 'Only state variables', v.set_initial_value, 3)
         self.assertRaisesRegex(
             Exception, 'Only state variables', w.set_initial_value, 3)
-
         v.promote(3)
 
-        # State values must be constant
+        # Initial values must be constant
         w.promote(1)
         self.assertRaises(
-            myokit.NonConstantExpressionError, v.set_state_value, w.lhs())
+            myokit.NonConstantExpressionError, v.set_initial_value, w.lhs())
+
+        # Deprecated alias
+        with WarningCollector() as w:
+            v.set_state_value(1)
+        self.assertIn('deprecated', w.text())
+        self.assertEqual(v.initial_value(), myokit.Number(1))
 
     def test_set_unit(self):
         # Test :meth:`Variable.set_unit()`.

@@ -3522,7 +3522,7 @@ class Model(ObjectWithMeta, VarProvider):
         # Create globally unique names
         self.create_unique_names()
 
-        # Check initial state expressions are still constant
+        # Check initial state expressions are (still) constant
         for var, expr in zip(self._state_vars, self._state_init):
             if not expr.is_constant():
                 raise myokit.NonConstantExpressionError(
