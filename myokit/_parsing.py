@@ -352,6 +352,7 @@ class ParseInfo(object):
     def __init__(self):
         self.model = None
         self.initial_values = OrderedDict()
+        self.initial_value_tokens = {}
         self.alias_map = {}
         self.user_functions = {}
 
@@ -423,6 +424,7 @@ def parse_model_from_stream(stream, syntax_only=False):
             expr = parse_proto_expression(stream)
             expect(next(stream), EOL)
             info.initial_values[name] = expr
+            info.initial_value_tokens[name] = t0
 
         token = stream.peek()
 
@@ -460,16 +462,17 @@ def parse_model_from_stream(stream, syntax_only=False):
 
     # Resolve variable references in initial values
     for i, var in enumerate(model.states()):
-        proto_expr = info.initial_values[var.qname()]
-        expr = convert_proto_expression(proto_expr, context=model, info=info)
+        e = info.initial_values[var.qname()]
+        expr = convert_proto_expression(e, model, info)
         var.set_initial_value(expr)
         del info.initial_values[var.qname()]
 
     # All initial variables must have been used
     for qname, e in info.initial_values.items():
+        t = info.initial_value_tokens[qname]
         raise ParseError(
-            'Unused initial value', 0, 0,
-            'An unused initial value was found for "' + str(qname) + '".')
+            'Unused initial value', t[2], t[3],
+            'An unused initial value was found for "' + qname + '".')
 
     # Re-order the model state
     model.reorder_state(state_order)

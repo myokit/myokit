@@ -239,7 +239,7 @@ class Expression(object):
             if ref.is_state_value():
                 return True
             elif ref._has_partials or ref._has_initials:
-                # Partial derivatives and state values have no rhs
+                # Partial derivatives and initial values have no rhs
                 continue
             elif not ref._proper:
                 # Values that are not variables count as independent
@@ -616,7 +616,7 @@ class Expression(object):
     def is_state_value(self):
         """
         Returns ``True`` if this expression is a :class:`Name` pointing to the
-        value of a state variable.
+        current value of a state variable.
         """
         return False
 
@@ -2852,7 +2852,7 @@ class Piecewise(Function):
         return iter(self._e)
 
 
-class Condition():
+class Condition(object):
     """
     *Abstract class*
 
@@ -2860,6 +2860,7 @@ class Condition():
     False. Doesn't add any methods but simply indicates that this is a
     condition.
     """
+
     def _diff(self, lhs, idstates):
         raise NotImplementedError(
             'Conditions do not have partial derivatives.')

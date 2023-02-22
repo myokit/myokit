@@ -2071,7 +2071,7 @@ class Model(ObjectWithMeta, VarProvider):
         Deprecated method: Returns an iterator over the ``Equation`` objects
         defining this model's initial values.
         """
-        # Deprecated since 2023-02-10
+        # Deprecated since 2023-02-22
         import warnings
         warnings.warn(
             'The method `inits` is deprecated. Please use'
@@ -2178,7 +2178,7 @@ class Model(ObjectWithMeta, VarProvider):
         Deprecated method: Sets the model's initial values using data from a
         file formatted in any style accepted by :func:`myokit.map_to_state`.
         """
-        # Deprecated since 2023-02-10
+        # Deprecated since 2023-02-22
         import warnings
         warnings.warn('The method `load_state` is deprecated.')
         self.set_initial_values(myokit.load_state(filename, self))
@@ -2937,7 +2937,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         Deprecated method: Saves the model state to a file (as floats).
         """
-        # Deprecated since 2023-02-10
+        # Deprecated since 2023-02-22
         import warnings
         warnings.warn('The method `save_state` is deprecated.')
 
@@ -2994,7 +2994,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         Deprecated method: use :meth:`set_initial_values` instead.
         """
-        # Deprecated since 2023-02-10
+        # Deprecated since 2023-02-22
         import warnings
         warnings.warn(
             'The method `set_state` is deprecated. Please use'
@@ -3328,7 +3328,7 @@ class Model(ObjectWithMeta, VarProvider):
         Deprecated method, use
         :meth:`initial_values(as_floats=True)<initial_values>` instead.
         """
-        # Deprecated since 2023-02-20
+        # Deprecated since 2023-02-22
         import warnings
         warnings.warn(
             'The method `state` is deprecated. Please use'
@@ -3489,7 +3489,7 @@ class Model(ObjectWithMeta, VarProvider):
                 'Invalid time variable set. Time variable must be bound to'
                 ' external value "time".')
 
-        # Test initial value vector
+        # Test initial value expresions
         n = len(self._state_vars)
         if n != len(self._state_init):   # pragma: no cover
             # Cover pragma: This can only happen if there's an API bug
@@ -4179,7 +4179,7 @@ class Variable(VarOwner):
 
         # For states, update the current/initial value
         if self._is_state:
-            # Number? Then just multiply
+            # Number? Then just multiply. Else use expression.
             value = self.initial_value()
             if isinstance(value, myokit.Number):
                 self.set_initial_value(float(value) * float(fw))
@@ -4513,7 +4513,7 @@ class Variable(VarOwner):
             raise Exception(
                 'State variables cannot be bound to an external value.')
 
-        # Deprecated on 2023-02-20
+        # Deprecated on 2023-02-22
         if state_value is not None:
             if initial_value != 0:
                 raise Exception('Deprecated keyword argument `state_value` can'
@@ -4901,7 +4901,7 @@ class Variable(VarOwner):
         """
         Deprecated method, use :meth:`set_initial_value` instead.
         """
-        # Deprecated since 2023-02-10
+        # Deprecated since 2023-02-22
         import warnings
         warnings.warn(
             'The method `set_state_value` is deprecated. Please use'
@@ -4927,7 +4927,7 @@ class Variable(VarOwner):
         Deprecated method, use
         :meth:`initial_value(as_float=True)<initial_value>` instead.
         """
-        # Deprecated since 2023-02-10
+        # Deprecated since 2023-02-22
         import warnings
         warnings.warn(
             'The method `state_value` is deprecated. Please use'

@@ -58,7 +58,7 @@ Example::
     membrane.V = -84
     ina.m  = 0
     ina.h  = 0.9
-    ina.j  = ina.initial_j + 0.1
+    ina.j  = 1 / ina.parameter_1
 
 Component syntax
 ================
