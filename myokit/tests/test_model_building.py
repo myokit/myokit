@@ -2,6 +2,9 @@
 #
 # Tests the model building API.
 #
+# NOTE: THESE TESTS SHOULD SLOWLY BE MERGED INTO test_model, test_variable, etc
+#
+#
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
@@ -33,13 +36,23 @@ class ModelBuildTest(unittest.TestCase):
         # Create a model
         m = myokit.Model('LotkaVolterra')
 
-        # Add the first component
+        # Add engine component
+        E = m.add_component('engine')
+        self.assertEqual(len(m), 1)
+        time = E.add_variable('time')
+        time.set_rhs(0)
+        self.assertIsNone(time.binding())
+        time.set_binding('time')
+        self.assertIsNotNone(time.binding())
+
+        # Add the first test component
         X = m.add_component('X')
+        self.assertNotEqual(E, X)
         self.assertEqual(X.qname(), 'X')
         self.assertEqual(X.parent(), m)
         self.assertIsInstance(X, myokit.Component)
         self.assertIn(X.qname(), m)
-        self.assertEqual(len(m), 1)
+        self.assertEqual(len(m), 2)
 
         # Add variable a
         self.assertFalse(X.has_variable('a'))
@@ -133,31 +146,32 @@ class ModelBuildTest(unittest.TestCase):
         self.assertFalse(x.is_constant())
         self.assertEqual(x.lhs(), myokit.Derivative(myokit.Name(x)))
 
-        # set number initial value
+        # Set number initial value
         x.demote()
         x.promote(1)
-        self.assertEqual(x.state_value(), 1)
+        self.assertEqual(x.initial_value(as_float=True), 1)
 
-        # non-constant expression initial value should error
+        # Set constant expression initial value
+        x.set_initial_value(myokit.Name(b))
+        self.assertEqual(x.initial_value(as_float=True), 2)
+        self.assertEqual(x.initial_value(), myokit.Name(b))
+
+        # Non-constant expression initial value can be set, but isn't valid
+        m.validate()
         b.promote()
-        x.demote()
-        with self.assertRaises(myokit.NonConstantExpressionError):
-            x.promote(myokit.Name(b))
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'not constant', m.validate)
         b.demote()
 
-        # set constant expression initial value
-        x.promote(myokit.Name(b1))
-        self.assertEqual(x.state_value(), 1)
-        self.assertEqual(m.state(), [myokit.Name(b1)])
-
+        # Set literal valued expression initial value
         x.demote()
         x.promote('1 + 2')
-        self.assertEqual(x.state_value(), 3)
+        self.assertEqual(x.initial_value(as_float=True), 3)
 
         # Add second component, variables
         Y = m.add_component('Y')
         self.assertNotEqual(X, Y)
-        self.assertEqual(len(m), 2)
+        self.assertEqual(len(m), 3)
         c = Y.add_variable('c')
         c.set_rhs(myokit.Minus(myokit.Name(a), myokit.Number(1)))
         d = Y.add_variable('d')
@@ -173,7 +187,7 @@ class ModelBuildTest(unittest.TestCase):
                 myokit.Name(y)
             )
         ))
-        x.set_state_value(10)
+        x.set_initial_value(10)
         self.assertEqual(x.rhs().code(), 'X.a * X.x - X.b * X.x * Y.y')
         y.set_rhs(myokit.Plus(
             myokit.Multiply(
@@ -184,14 +198,14 @@ class ModelBuildTest(unittest.TestCase):
                 myokit.Name(y)
             )
         ))
-        y.set_state_value(5)
+        y.set_initial_value(5)
         self.assertEqual(y.rhs().code(), '-Y.c * Y.y + Y.d * X.x * Y.y')
 
         # Add ano component, variables
         Z = m.add_component('Z')
         self.assertNotEqual(X, Z)
         self.assertNotEqual(Y, Z)
-        self.assertEqual(len(m), 3)
+        self.assertEqual(len(m), 4)
         t = Z.add_variable('total')
         self.assertEqual(t.name(), 'total')
         self.assertEqual(t.qname(), 'Z.total')
@@ -205,18 +219,6 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(t.rhs().code(X), 'x + Y.y')
         self.assertEqual(t.rhs().code(Y), 'X.x + y')
         self.assertEqual(t.rhs().code(Z), 'X.x + Y.y')
-
-        # Add engine component
-        E = m.add_component('engine')
-        self.assertNotEqual(X, E)
-        self.assertNotEqual(Y, E)
-        self.assertNotEqual(Z, E)
-        self.assertEqual(len(m), 4)
-        time = E.add_variable('time')
-        time.set_rhs(0)
-        self.assertIsNone(time.binding())
-        time.set_binding('time')
-        self.assertIsNotNone(time.binding())
 
         # Check state
         state = [i for i in m.states()]
@@ -376,16 +378,6 @@ class ModelBuildTest(unittest.TestCase):
         code2 = m.clone().code()
         self.assertEqual(code1, code2)
 
-    def test_resolve(self):
-        # Test if an error is raised when a variable can't be resolved.
-
-        m = myokit.Model('Resolve')
-        c = m.add_component('c')
-        p = c.add_variable('p')
-        q = c.add_variable('q')
-        p.set_rhs('10 * q')
-        self.assertRaises(myokit.ParseError, q.set_rhs, '10 * r')
-
     def test_scope(self):
         # Test if illegal references are detected.
 
@@ -456,92 +448,6 @@ class ModelBuildTest(unittest.TestCase):
         # Keywords
         self.assertRaises(myokit.InvalidNameError, v1.add_variable, 'not')
         self.assertRaises(myokit.InvalidNameError, v1.add_variable, 'in')
-
-    def test_unused_and_cycles(self):
-        # Test unused variable and cycle detection.
-
-        m = myokit.Model('LotkaVolterra')
-        c0 = m.add_component('c0')
-        t = c0.add_variable('time')
-        t.set_rhs(myokit.Number(0))
-        t.set_binding('time')
-        c1 = m.add_component('c1')
-        m.add_component('c2')
-        c1_a = c1.add_variable('a')
-        c1_b = c1.add_variable('b')
-        c1_a.promote(1.0)
-        c1_a.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(0.5)))
-        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(1.0)))
-        # b is unused, test if found
-        m.validate()
-        w = m.warnings()
-        self.assertEqual(len(w), 1)
-        self.assertEqual(type(w[0]), myokit.UnusedVariableError)
-        # b is used by c, c is unused, test if found
-        c1_c = c1.add_variable('c')
-        c1_c.set_rhs(myokit.Name(c1_b))
-        m.validate()
-        w = m.warnings()
-        self.assertEqual(len(w), 2)
-        self.assertEqual(type(w[0]), myokit.UnusedVariableError)
-        self.assertEqual(type(w[1]), myokit.UnusedVariableError)
-        # Test 1:1 cycle
-        c1_b.set_rhs(myokit.Name(c1_b))
-        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
-        # Test longer cycles
-        c1_b.set_rhs(myokit.Multiply(myokit.Number(10), myokit.Name(c1_c)))
-        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
-        # Reset
-        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(1.0)))
-        m.validate()
-        # Test cycle involving state variable
-        c1_a.set_rhs(myokit.Name(c1_b))
-        m.validate()
-        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_b)))
-        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
-        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_c)))
-        c1_c.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(3)))
-        m.validate()
-        w = m.warnings()
-        self.assertEqual(len(w), 0)
-        c1_c.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_b)))
-        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
-
-    def test_promote_cycles(self):
-        m = myokit.Model()
-        c = m.add_component('c')
-        t = c.add_variable('t')
-        t.set_rhs(0)
-        t.set_binding('time')
-        a = c.add_variable('a')
-        b = c.add_variable('b')
-        y = c.add_variable('y')
-
-        # promote *then* introduce the cycle
-        y.set_rhs('1')
-        a.set_rhs('1')
-        b.set_rhs('1 + a')
-        y.promote('c.a')
-        a.set_rhs('b')
-
-        self.assertRaises(myokit.CyclicalDependencyError, m.state_values)
-
-    def test_validate_constant_initial_conditions(self):
-        m = myokit.Model()
-        c = m.add_component('c')
-        t = c.add_variable('t')
-        t.set_rhs(0)
-        t.set_binding('time')
-        y = c.add_variable('y')
-        a = c.add_variable('a')
-        a.set_rhs('1')
-        y.set_rhs('1')
-        y.promote('c.a')
-
-        # now promote a
-        a.promote('0')
-
-        self.assertRaises(myokit.NonConstantExpressionError, m.validate)
 
 
 if __name__ == '__main__':

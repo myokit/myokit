@@ -690,7 +690,7 @@ if model.binding('pace') is not None:
 }
 
 /*
- * Updates the state variables to the values given in `states`.
+ * Updates the state variables to the float values given in `states`.
  *
  * If any of the values are changed, the model caches are cleared.
  *
@@ -1222,10 +1222,10 @@ for eq in parameters.values():
         return NULL;
     }
 
-    /* States */
+    /* State values */
 <?
 for var in model.states():
-    print(tab + v(var) + ' = ' + myokit.float.str(var.state_value()) + ';')
+    print(tab + v(var) + ' = ' + myokit.float.str(var.initial_value(True)) + ';')
 ?>
     /*
      * Caching.

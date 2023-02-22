@@ -93,7 +93,7 @@ def load_script(filename):
 
 def load_state(filename, model=None):
     """
-    Loads an initial state from a file in one of the formats specified by
+    Loads a model state from a file in one of the formats specified by
     :func:`myokit.parse_state()`.
 
     If a :class:`Model` is provided the state will be run through
@@ -110,7 +110,8 @@ def load_state(filename, model=None):
 
 def load_state_bin(filename):
     """
-    Loads an initial state from a file in the binary format used by myokit.
+    Loads a model state from a file in the binary format used by Myokit.
+
     See :meth:`save_state_bin` for details.
     """
     filename = os.path.expanduser(filename)
@@ -244,7 +245,7 @@ def save_script(filename, script):
 
 def save_state(filename, state, model=None):
     """
-    Stores the given state in the file at ``filename``.
+    Stores a model state to the path ``filename``.
 
     If no ``model`` is specified ``state`` should be given as a list of
     floating point numbers and will be stored by simply placing each number on
@@ -272,8 +273,8 @@ def save_state(filename, state, model=None):
 
 def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
     """
-    Stores the given state (or any list of floating point numbers) in the file
-    at ``filename``, using a binary format.
+    Stores a model state (or any given list of floating point numbers) to the
+    path ``filename``, using a binary format.
 
     The used format is a zip file, containing a single entry: ``state_x_y``,
     where ``x`` is the used data type (``d`` or ``f``) and ``y`` is the number

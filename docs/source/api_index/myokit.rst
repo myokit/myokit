@@ -50,10 +50,10 @@ myokit
 - :class:`myokit.GenerationError`
 - :class:`myokit.JacobianCalculator`
 - :class:`myokit.JacobianTracer`
-- :class:`myokit.ICSimulation`
 - :class:`myokit.If`
 - :class:`myokit.IllegalAliasError`
 - :class:`myokit.IllegalReferenceError`
+- :class:`myokit.IllegalReferenceInInitialValueError`
 - :class:`myokit.ImportError`
 - :class:`myokit.IncompatibleModelError`
 - :class:`myokit.IncompatibleUnitError`
@@ -67,7 +67,6 @@ myokit
 - :class:`myokit.InvalidLabelError`
 - :class:`myokit.InvalidMetaDataNameError`
 - :class:`myokit.InvalidNameError`
-- :class:`myokit.LegacySimulation`
 - :class:`myokit.Less`
 - :class:`myokit.LessEqual`
 - :class:`myokit.LhsExpression`
@@ -91,7 +90,6 @@ myokit
 - :class:`myokit.Multiply`
 - :class:`myokit.MyokitError`
 - :class:`myokit.Name`
-- :class:`myokit.NonConstantExpressionError`
 - :class:`myokit.Not`
 - :class:`myokit.NotEqual`
 - :class:`myokit.Number`
@@ -126,7 +124,6 @@ myokit
 - :class:`myokit.ProtocolEvent`
 - :class:`myokit.ProtocolEventError`
 - :class:`myokit.ProtocolParseError`
-- :class:`myokit.PSimulation`
 - :meth:`myokit.python_writer`
 - :class:`myokit.Quantity`
 - :class:`myokit.Quotient`

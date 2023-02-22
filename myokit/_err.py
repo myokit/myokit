@@ -169,8 +169,19 @@ class IllegalReferenceError(IntegrityError):
     def __init__(self, reference, owner):
         super(IllegalReferenceError, self).__init__(
             'Illegal reference: The referenced variable <' + reference.qname()
-            + '> is outside the scope of <' + owner.qname() + '>.'
-        )
+            + '> is outside the scope of <' + owner.qname() + '>.')
+
+
+class IllegalReferenceInInitialValueError(IllegalReferenceError):
+    """
+    Raised when an illegal reference is made in an initial value.
+
+    The only way this can occur is if the reference is to a nested variable.
+    """
+    def __init__(self, reference, owner):
+        super(IllegalReferenceError, self).__init__(
+            'Illegal reference made in initial value: The referenced variable'
+            ' <' + reference.qname() + '> is nested.')
 
 
 class ImportError(MyokitError):
@@ -290,14 +301,6 @@ class MissingTimeVariableError(IntegrityError):
         msg = 'No variable bound to time. At least one of the model\'s' \
               ' variables must be bound to "time".'
         super(MissingTimeVariableError, self).__init__(msg)
-
-
-class NonConstantExpressionError(MyokitError):
-    """
-    Raised when a constant expression is required, but a non-constant is found.
-
-    *Extends:* :class:`myokit.MyokitError`.
-    """
 
 
 class NumericalError(MyokitError):

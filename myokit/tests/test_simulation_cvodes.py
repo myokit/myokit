@@ -319,8 +319,8 @@ class SimulationTest(unittest.TestCase):
         sim = myokit.Simulation(model, sensitivities=sensitivities)
         s = sim.default_state_sensitivities()
         self.assertEqual(len(s), 2)
-        self.assertEqual(float(s[0][0]), 1)
-        self.assertEqual(float(s[1][0]), 0)
+        self.assertEqual(s[0][0], 1)
+        self.assertEqual(s[1][0], 0)
 
     def test_eval_derivatives(self):
         # Test :meth:`Simulation.eval_derivatives()`.

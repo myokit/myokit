@@ -5,20 +5,38 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
   - [#898](https://github.com/myokit/myokit/pull/899) Initial conditions for state variables can now be (constant-valued) expressions. Previously, only literals were allowed.
-  - [#898](https://github.com/myokit/myokit/pull/899) Added `myokit.NonConstantExpressionError` for an error where a constant expression is expected.
-  - [#898](https://github.com/myokit/myokit/pull/899) `Model.state_values` now returns a list of floats, the result of evaluating each element of `Model.state`.
+  - [#918](https://github.com/myokit/myokit/pull/918) Added `Model.initial_values`, which returns the model's initial values as a list of expressions, floats, or equations.
+  - [#918](https://github.com/myokit/myokit/pull/918) Added `Model.set_initial_values`, which sets the model's initial values using a list of expressions or anything accepted by `map_to_state`.
+  - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.initial_value`, which returns a state variable's initial value as an expression or float.
+  - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.set_initial_value`, which sets a state variable's initial value using an expression, string expression, or float.
+  - [#918](https://github.com/myokit/myokit/pull/918) Added `IllegalReferenceInInitialValueError` for illegal references made in initial value expressions.
 - Changed
-  - [#898](https://github.com/myokit/myokit/pull/899) `Model.state` now returns a list of expressions.
-  - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `state_value`.
+  - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `initial_value`.
+  - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is now tested on Python 3.11.
+  - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is no longer tested on Python 3.6.
+  - [#918](https://github.com/myokit/myokit/pull/918) The only argument to `Variable.promote` has been renamed from `state_value` to `initial_value`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Model.import_component` now preserves the ordering of the imported states.
 - Deprecated
+  - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favour of `Model.set_initial_values`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Model.inits` is deprecated.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Variable.state_value` is deprecated in favour of `Variable.initial_value`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Model.save_state` and `Model.load_state` are deprecated.
+  - [#918](https://github.com/myokit/myokit/pull/918) The `Variable.promote` keyword argument `state_value` is deprecated in favour of `initial_value`.
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
+  - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `LegacySimulation` class.
+  - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `PSimulation` class.
+  - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `ICSimulation` class.
 - Fixed
+  - [#933](https://github.com/myokit/myokit/pull/933) Made `myokit.step` base its error classification (large/small/none) on numerics, not representation.
+  - [#918](https://github.com/myokit/myokit/pull/918) Fixed error when `var()` was called on a `PartialDerivative` with a `Derivative` as first argument.
 
 ## [1.33.9] - 2022-11-08
 - Fixed
-  - [#912](https://github.com/myokit/myokit/pull/912) Reporting of numerical errors in `Simulation` now catches more exception types arising from `evaluate_derivatives`.
   - [#908](https://github.com/MichaelClerx/myokit/pull/908) Added new homebrew location used on M1 apple devices, potentially solving [#861](https://github.com/myokit/myokit/issues/861).
+  - [#912](https://github.com/myokit/myokit/pull/912) Reporting of numerical errors in `Simulation` now catches more exception types arising from `evaluate_derivatives`.
 
 ## [1.33.8] - 2022-10-21
 - Added

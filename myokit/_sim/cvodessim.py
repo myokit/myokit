@@ -186,8 +186,8 @@ class Simulation(myokit.CModule):
         del cmodel
 
         # Get state and default state from model
-        self._state = self._model.state_values()
-        self._default_state = self._model.state()
+        self._state = self._model.initial_values(as_floats=True)
+        self._default_state = list(self._state)
 
         # Set state and default state for sensitivities
         self._s_state = self._s_default_state = None
@@ -195,13 +195,12 @@ class Simulation(myokit.CModule):
             # Outer indice: number of independent variables
             # Inner indice: number of states
             self._s_state = []
-            self._s_default_state = []
             for expr in self._sensitivities[1]:
-                row = [ic.diff(expr) for ic in self._default_state]
+                row = [0.0] * len(self._state)
                 if isinstance(expr, myokit.InitialValue):
-                    row[expr.var().indice()] = myokit.Number(1.0)
-                self._s_state.append([float(ic_expr) for ic_expr in row])
-                self._s_default_state.append(row)
+                    row[expr.var().indice()] = 1.0
+                self._s_state.append(row)
+            self._s_default_state = [list(x) for x in self._s_state]
 
         # Last state reached before error
         self._error_state = None
@@ -511,11 +510,9 @@ class Simulation(myokit.CModule):
 
         """
         self._time = 0
-        self._state = [float(expr) for expr in self._default_state]
+        self._state = list(self._default_state)
         if self._sensitivities:
-            self._s_state = [
-                [float(expr) for expr in x] for x in self._s_default_state
-            ]
+            self._s_state = [list(x) for x in self._s_default_state]
 
     def run(self, duration, log=None, log_interval=None, log_times=None,
             sensitivities=None, apd_variable=None, apd_threshold=None,
@@ -906,12 +903,9 @@ class Simulation(myokit.CModule):
 
     def set_default_state(self, state):
         """
-        Allows you to manually set the default state.
+        Change the default state to ``state``.
         """
-        self._default_state = [
-            s if isinstance(s, myokit.Expression) else myokit.Number(s)
-            for s in self._model.map_to_state(state)
-        ]
+        self._default_state = self._model.map_to_state(state)
 
     def set_max_step_size(self, dtmax=None):
         """
@@ -1030,12 +1024,7 @@ class Simulation(myokit.CModule):
         """
         Sets the current state.
         """
-        state_values = [float(s) for s in state]
-        self._state = self._model.map_to_state(state_values)
-        if self._sensitivities:
-            self._s_state = [
-                [0.0] * len(self._state) for _ in self._sensitivities[1]
-            ]
+        self._state = self._model.map_to_state(state)
 
     def set_time(self, time=0):
         """
@@ -1067,12 +1056,6 @@ class Simulation(myokit.CModule):
         Returns the current state.
         """
         return list(self._state)
-
-    def sensitivities_state(self):
-        """
-        Returns the current state.
-        """
-        return self._s_state
 
     def time(self):
         """

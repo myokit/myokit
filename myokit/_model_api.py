@@ -720,9 +720,7 @@ class VarOwner(ModelPart, VarProvider):
         """ See :meth:`VarProvider._resolve(). """
         def sa(name):
             # Suggest alternative
-            m = self.model()
-            (var, sug, msg) = m.suggest_variable(name)
-            return msg
+            return self.model().suggest_variable(name)[2]
 
         # Try resolving as an alias
         try:
@@ -772,7 +770,7 @@ class Model(ObjectWithMeta, VarProvider):
     Variables stored inside components can be accessed using :meth:`get()` or
     :meth:`values()`. Values defined through their derivative make up the
     model state and can be accessed using :meth:`states()`. States have
-    initial values accessible through :meth:`inits()`.
+    initial values accessible through :meth:`initial_values()`.
 
     A model's validity can be checked using :meth:`is_valid()`, which returns
     the latest validation status and :meth:`validate()`, which (re)validates
@@ -797,10 +795,10 @@ class Model(ObjectWithMeta, VarProvider):
         self._components = {}
 
         # The model's state variables
-        self._state = []
+        self._state_vars = []
 
-        # The model's current state (list of myokit.Expression)
-        self._current_state = []
+        # The model's initial state, as a list of Expressions
+        self._state_init = []
 
         # A dict mapping binding names to variables
         self._bindings = {}
@@ -1087,8 +1085,10 @@ class Model(ObjectWithMeta, VarProvider):
         for c in self._components.values():
             c._clone1(clone)
 
-        # Clone state
-        for k, v in enumerate(self._state):
+        # Create states
+        # Note that the order in which promote() is called determines the
+        # state ordering, so this happens here and not in the Variable class.
+        for k, v in enumerate(self._state_vars):
             clone.get(v.qname()).promote()
 
         # Create mapping of old var references to new references
@@ -1111,10 +1111,9 @@ class Model(ObjectWithMeta, VarProvider):
             clone.reserve_unique_name_prefix(prefix, prepend)
 
         # Copy initial state expressions
-        for k, v in enumerate(self._state):
-            clone.get(v.qname()).set_state_value(
-                self._current_state[k].clone(subst=lhs_map)
-            )
+        for k, v in enumerate(self._state_vars):
+            clone.get(v.qname()).set_initial_value(
+                self._state_init[k].clone(subst=lhs_map))
 
         # Return
         return clone
@@ -1147,17 +1146,15 @@ class Model(ObjectWithMeta, VarProvider):
         self._code_meta(b, 0)
 
         # Initial state
-        if self._state:
+        if self._state_vars:
             pre = t * TAB
             b.write(pre + '# Initial values\n')
-            names = [eq.lhs.code() for eq in self.inits()]
+            names = [v.qname() for v in self._state_vars]
+            values = [e.code() for e in self._state_init]
             n = max([len(name) for name in names])
-            names = iter(names)
-            for eq in self.inits():
-                name = next(names)
-                b.write(
-                    pre + name + ' ' * (n - len(name)) + ' = ' + eq.rhs.code()
-                    + '\n')
+            for name, value in zip(names, values):
+                b.write(pre + name + ' ' * (n - len(name)) + ' = '
+                        + value + '\n')
             b.write(pre + '\n')
         else:
             # No initial state? Then add newline
@@ -1249,7 +1246,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         Returns the number of state variables in this model.
         """
-        return len(self._state)
+        return len(self._state_vars)
 
     def create_unique_names(self):
         """
@@ -1363,7 +1360,7 @@ class Model(ObjectWithMeta, VarProvider):
         # Insert new state (if required)
         if state is not None:
             new_state = self.map_to_state(state)
-            for state, value in zip(self._state, new_state):
+            for state, value in zip(self._state_vars, new_state):
                 values[myokit.Name(state)] = value
             state = None
 
@@ -1396,7 +1393,7 @@ class Model(ObjectWithMeta, VarProvider):
                     values[eq.lhs] = eq.rhs.eval(values, precision=precision)
 
         # Return calculated state
-        return [values[state.lhs()] for state in self._state]
+        return [values[state.lhs()] for state in self._state_vars]
 
     def eval_state_derivatives(
             self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
@@ -1495,14 +1492,14 @@ class Model(ObjectWithMeta, VarProvider):
     def format_state(self, state=None, state2=None,
                      precision=myokit.DOUBLE_PRECISION):
         """
-        Converts the given list of floating point numbers to a string where
-        each line has the format ``<full_qualified_name> = <float_value>``.
+        Converts a sequence of floating point numbers to a string where each
+        line has the format ``<full_qualified_name> = <float_value>``.
 
         Arguments:
 
         ``state=None``
-            The state to show derivatives for. If no state is given the state
-            returned by :meth:`state` is used.
+            The state to display. If no state is given this model's (evaluated)
+            :meth:`<initial_values()>initial values` are used.
         ``state2=None``
             An optional second state, to be shown next to ``state`` for
             comparison.
@@ -1511,19 +1508,19 @@ class Model(ObjectWithMeta, VarProvider):
             :meth:`myokit.float.str` when formatting the state values.
 
         """
-        n = len(self._state)
-        if state is not None:
+        n = len(self._state_vars)
+        if state is None:
+            state = self.initial_values(as_floats=True)
+        else:
             if len(state) != n:
                 raise ValueError(
-                    'Argument `state` must be a list of (' + str(n)
+                    'Argument `state` must be a sequence of (' + str(n)
                     + ') floating point numbers.')
-        else:
-            state = self.state_values()
 
         if state2 is not None:
             if len(state2) != n:
                 raise ValueError(
-                    'Argument `state2` must be a list of (' + str(n)
+                    'Argument `state2` must be a sequence of (' + str(n)
                     + ') floating point numbers.')
 
         out = []
@@ -1547,35 +1544,35 @@ class Model(ObjectWithMeta, VarProvider):
         Like :meth:`format_state` but displays the derivatives along with
         each state's value.
 
-
         Arguments:
 
         ``state=None``
-            The state to display. If no state is given the state returned by
-            :meth:`state` is used.
+            The state to show derivatives for. If no state is given this
+            model's (evaluated) :meth:`<initial_values()>initial values` are
+            used.
         ``derivatives=None``
-            An optional list of evaluated derivatives. If not given, the values
-            will be calculed from ``state`` using :meth:`eval_derivatives()`.
+            An optional list or other sequence of evaluated derivatives. If not
+            given, the values will be calculed from ``state`` using
+            :meth:`eval_derivatives()`.
         ``precision=myokit.DOUBLE_PRECISION``
             An optional precision argument to use when evaluating the state
             derivatives, and to pass into :meth:`myokit.float.str` when
             formatting the state values and derivatives.
 
         """
-        n = len(self._state)
+        n = len(self._state_vars)
         if state is None:
-            state = self.state_values()
+            state = self.initial_values(as_floats=True)
         elif len(state) != n:
             raise ValueError(
-                'Argument `state` must be a list of (' + str(n)
+                'Argument `state` must be a sequence of (' + str(n)
                 + ') floating point numbers.')
 
         if derivatives is None:
-            derivatives = self.evaluate_derivatives(
-                state, precision=precision)
+            derivatives = self.evaluate_derivatives(state, precision=precision)
         elif len(derivatives) != n:
             raise ValueError(
-                'Argument `deriv` must be a list of (' + str(n)
+                'Argument `derivatives` must be a sequence of (' + str(n)
                 + ') floating point numbers.')
 
         out = []
@@ -1808,6 +1805,9 @@ class Model(ObjectWithMeta, VarProvider):
             for var in comp.variables():
                 vars_ref.update(var.refs_to(state_refs=False))
                 vars_ref.update(var.refs_to(state_refs=True))
+                if var.is_state():
+                    vars_ref.update(
+                        [e.var() for e in var.initial_value().references()])
             vars_ref.update(comp._alias_map.values())
             vars_ref -= set(comp.variables())
             vars_ref = [x for x in vars_ref if not x.is_nested()]
@@ -1883,8 +1883,8 @@ class Model(ObjectWithMeta, VarProvider):
                 if ext_var in vars_to_map:
                     var_map[ext_var] = self_var
 
-        # add variables to var_map that map to other imported components
-        # but will be reassigned to the clone later
+        # Add variables to var_map that map to other imported components but
+        # will be reassigned to the clone later
         for l in map_to_clone:
             for ext_var in l:
                 if ext_var not in var_map:
@@ -1969,18 +1969,28 @@ class Model(ObjectWithMeta, VarProvider):
                             ' mismatch: ' + str(e))
 
         # Clone component pt 1: create, meta data, empty variables
-        new_component = []
+        new_component = []  # List of components
         for i, comp in enumerate(external_component):
             new_component.append(comp._clone1(self, new_name[i]))
 
-            for var in comp.variables(state=True):
-                # Clone states
-                # TODO: Not sure why clone() code doesn't do this?
-                new_component[i].get(var.qname(comp)).promote(
-                    var.state_value())
             # Now we can add variable to var_map if needed
             for var in map_to_clone[i]:
                 var_map[var] = new_component[i].get(var.qname(comp))
+
+        # Clone states, preserving the state order
+        # Note: The order in which promote() is called determines the order
+        # of the states in the new component. (This is one of the reasons that
+        # the component._clone1 method called above doesn't call promote.)
+        new_states = []     # New states, from all components
+        state_map = {}      # New-state to old state
+        for old_comp, comp in zip(external_component, new_component):
+            for ext_var in old_comp.variables(state=True):
+                var = comp.get(ext_var.name())
+                state_map[var] = ext_var
+                new_states.append(var)
+        new_states.sort(key=lambda var: state_map[var].indice())
+        for var in new_states:
+            var.promote()   # Initial value is set later
 
         # Create mapping of old var references to new references
         # This is a mapping from Name(var) and Derivative(Name(var)) objects
@@ -1997,9 +2007,10 @@ class Model(ObjectWithMeta, VarProvider):
                     lhs_map[myokit.Derivative(myokit.Name(ext_var))] = \
                         myokit.Derivative(myokit.Name(self_var))
 
-        # Next, add all entries in the var_map. If unit conversion is enabled,
-        # this may include the addition of unit conversion factors
-
+        # Next, add all entries in the var_map to the lhs_map. If unit
+        # conversion is enabled, this may include the addition of unit
+        # conversion factors (so some Names in lhs_map will be mapped onto
+        # Multiply expressions).
         for ext_var, self_var in var_map.items():
             # Substitute in either a reference to self_var, or an expression
             # that converts self_var to the units ext_var's equation expects.
@@ -2028,6 +2039,11 @@ class Model(ObjectWithMeta, VarProvider):
         for i, comp in enumerate(external_component):
             comp._clone2(new_component[i], lhs_map, var_map)
 
+        # Clone initial values
+        for var in new_states:
+            var.set_initial_value(
+                state_map[var].initial_value().clone(subst=lhs_map))
+
         # Time unit conversion? Then update all derivatives.
         if time_factor is not None:
             for comp in new_component:
@@ -2037,14 +2053,34 @@ class Model(ObjectWithMeta, VarProvider):
                         var.set_rhs(
                             myokit.Multiply(rhs, myokit.Number(time_factor)))
 
+    def initial_values(self, as_floats=False):
+        """
+        Returns a list of the model's initial values.
+
+        By default, expressions are returned, but this can be changed to
+        a list of floats by setting ``as_floats=True``.
+        """
+        if as_floats:
+            if any(not e.is_literal() for e in self._state_init):
+                self.validate()  # Check for cycles before evaluating
+            return [float(y) for y in self._state_init]
+        return list(self._state_init)
+
     def inits(self):
         """
-        Returns an iterator over the ``Equation`` objects defining this model's
-        current state.
+        Deprecated method: Returns an iterator over the ``Equation`` objects
+        defining this model's initial values.
         """
+        # Deprecated since 2023-02-10
+        import warnings
+        warnings.warn(
+            'The method `inits` is deprecated. Please use'
+            ' `iter(model.initial_values(as_equations=True)`.')
+
         def StateDefIterator(model):
-            for var, state in zip(model._state, self._current_state):
-                yield Equation(myokit.Name(var), state)
+            for var, value in zip(model._state_vars, model._state_init):
+                yield Equation(myokit.Name(var), value)
+
         return StateDefIterator(self)
 
     def is_similar(self, other, check_unames=False):
@@ -2139,10 +2175,13 @@ class Model(ObjectWithMeta, VarProvider):
 
     def load_state(self, filename):
         """
-        Sets the model state using data from a file formatted in any style
-        accepted by :func:`myokit.parse_state`.
+        Deprecated method: Sets the model's initial values using data from a
+        file formatted in any style accepted by :func:`myokit.map_to_state`.
         """
-        self.set_state(myokit.load_state(filename, self))
+        # Deprecated since 2023-02-10
+        import warnings
+        warnings.warn('The method `load_state` is deprecated.')
+        self.set_initial_values(myokit.load_state(filename, self))
 
     def map_component_dependencies(
             self, omit_states=True, omit_constants=False):
@@ -2706,7 +2745,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         This method does not affect the model's validation status.
         """
-        n = len(self._state)
+        n = len(self._state_vars)
         if len(order) != n:
             raise ValueError(
                 'The given list must contain the same number of entries as'
@@ -2724,9 +2763,9 @@ class Model(ObjectWithMeta, VarProvider):
                     'Duplicate entry in order specification: "'
                     + str(v.qname()) + '".')
             state.append(v)
-            current.append(self._current_state[v._indice])
-        self._state = state
-        self._current_state = current
+            current.append(self._state_init[v._indice])
+        self._state_vars = state
+        self._state_init = current
         for k, v in enumerate(state):
             v._indice = k
 
@@ -2776,7 +2815,7 @@ class Model(ObjectWithMeta, VarProvider):
             time_unit = time.unit()
 
         # Scan all states
-        for state in self._state:
+        for state in self._state_vars:
 
             # Search for references to dot(state)
             refs = list(state.refs_by())
@@ -2847,7 +2886,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         Resets the indices of this model's state variables.
         """
-        for k, v in enumerate(self._state):
+        for k, v in enumerate(self._state_vars):
             v._indice = k
 
     def _reset_validation(self):
@@ -2858,14 +2897,11 @@ class Model(ObjectWithMeta, VarProvider):
 
     def _resolve(self, name):
         """ See :meth:`VarProvider._resolve(). """
-        def sa(name):
-            # Suggest alternative
-            (var, sug, msg) = self.suggest_variable(name)
-            return msg
         try:
             return self.get(name)
         except KeyError:
-            raise myokit.UnresolvedReferenceError(name, sa(name))
+            raise myokit.UnresolvedReferenceError(
+                name, self.suggest_variable(name)[2])
 
     def resolve_interdependent_components(self):
         """
@@ -2899,9 +2935,39 @@ class Model(ObjectWithMeta, VarProvider):
 
     def save_state(self, filename):
         """
-        Saves the model state to a file.
+        Deprecated method: Saves the model state to a file (as floats).
         """
-        return myokit.save_state(filename, self.state_values(), self)
+        # Deprecated since 2023-02-10
+        import warnings
+        warnings.warn('The method `save_state` is deprecated.')
+
+        return myokit.save_state(
+            filename, self.initial_values(as_floats=True), self)
+
+    def set_initial_values(self, values):
+        """
+        Sets this model's initial values.
+
+        The ``values`` must be specified as either a list of floats,
+        expressions, and/or strings; or as a dict or string in a format
+        accepted by :meth:`map_to_state`.
+        """
+        # Use map to state?
+        if isinstance(values, basestring) or isinstance(values, dict):
+            self._state_init = [
+                myokit.Number(x) for x in self.map_to_state(values)]
+        elif len(values) != len(self._state_vars):
+            raise ValueError('Wrong number of initial values, expecting '
+                             + str(len(self._state_vars)) + '.')
+        else:
+            # Parsing of arguments without making changes, in case it fails.
+            expr = []
+            for var, value in zip(self._state_vars, values):
+                expr.append(var._set_initial_value(value, False))
+
+            # Set all at once, and reset validation status
+            self._state_init = expr
+            self._valid = None
 
     def set_name(self, name=None):
         """
@@ -2926,12 +2992,14 @@ class Model(ObjectWithMeta, VarProvider):
 
     def set_state(self, state):
         """
-        Changes this model's state. Accepts any type of input handled by
-        :meth:`map_to_state`.
+        Deprecated method: use :meth:`set_initial_values` instead.
         """
-        self._current_state = [
-            myokit.Number(x) for x in self.map_to_state(state)
-        ]
+        # Deprecated since 2023-02-10
+        import warnings
+        warnings.warn(
+            'The method `set_state` is deprecated. Please use'
+            ' `set_initial_values` instead.')
+        self.set_initial_values(state)
 
     def set_value(self, qname, value):
         """
@@ -2952,6 +3020,9 @@ class Model(ObjectWithMeta, VarProvider):
         The variable's equation and value are displayed, along with the value
         and formula of any nested variables and the values of all dependencies.
         """
+        # Model must be valid, or cycles can occur
+        self.validate()
+
         def format_float(number):
             s = str(number)
             if len(s) < 10:
@@ -2965,7 +3036,10 @@ class Model(ObjectWithMeta, VarProvider):
         # Add initial value
         rhs = var.rhs()
         if var.is_state():
-            out.append('Initial value = ' + str(var.state_value()))
+            value = var.initial_value()
+            out.append('Initial value = ' + value.code())
+            if not isinstance(value, myokit.Number):
+                out.append('              = ' + format_float(value))
             out.append(spacer)
         varname = var.lhs().code()
 
@@ -3251,25 +3325,22 @@ class Model(ObjectWithMeta, VarProvider):
 
     def state(self):
         """
-        Returns the current state of the model as a list of Expressions.
+        Deprecated method, use
+        :meth:`initial_values(as_floats=True)<initial_values>` instead.
         """
-        return [eqn.rhs for eqn in self.inits()]
-
-    def state_values(self):
-        """
-        Returns the current state of the model as a list of floating point
-        numbers.
-        """
-        # need to check for cyclic dependencies
-        self.validate()
-        return [float(eqn.rhs) for eqn in self.inits()]
+        # Deprecated since 2023-02-20
+        import warnings
+        warnings.warn(
+            'The method `state` is deprecated. Please use'
+            ' `initial_values(as_floats=True)` instead.')
+        return self.initial_values(as_floats=True)
 
     def states(self):
         """
         Returns an iterator over this model's state :class:`variable
         <myokit.Variable>` objects.
         """
-        return iter(self._state)
+        return iter(self._state_vars)
 
     def suggest_variable(self, name):
         """
@@ -3350,10 +3421,7 @@ class Model(ObjectWithMeta, VarProvider):
         "time". For a valid model, this method always returns a unique
         variable. If no time variable has been declared ``None`` is returned.
         """
-        try:
-            return self._bindings['time']
-        except KeyError:
-            return None
+        return self._bindings.get('time')
 
     def timex(self):
         """
@@ -3421,6 +3489,15 @@ class Model(ObjectWithMeta, VarProvider):
                 'Invalid time variable set. Time variable must be bound to'
                 ' external value "time".')
 
+        # Test initial value vector
+        n = len(self._state_vars)
+        if n != len(self._state_init):   # pragma: no cover
+            # Cover pragma: This can only happen if there's an API bug
+            self._valid = False
+            raise myokit.IntegrityError(
+                'Initial values list must have same size as state variables'
+                ' list.')
+
         # Validation of components, variables
         for c in self.components():
             if c._parent != self:   # pragma: no cover
@@ -3441,28 +3518,11 @@ class Model(ObjectWithMeta, VarProvider):
                     'Component called <' + c.qname() + '> found at index <'
                     + n + '>.')
 
-        # Test current state values
-        n = len(self._state)
-        if n != len(self._current_state):   # pragma: no cover
-            # Cover pragma: This can only happen if there's an API bug
-            self._valid = False
-            raise myokit.IntegrityError(
-                'Current state values list must have same size as state'
-                ' variables list.')
-
         # Find cycles, warn of unused variables
         self._validate_solvability(remove_unused_variables)
 
         # Create globally unique names
         self.create_unique_names()
-
-        # Check initial state expressions are still constant
-        for eqn in self.inits():
-            if not eqn.rhs.is_constant():
-                raise myokit.NonConstantExpressionError(
-                    'Initial condition for variable {} is '
-                    'not constant ({})'.format(eqn.lhs, eqn)
-                )
 
         # Return
         self._valid = True
@@ -3511,7 +3571,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Follow all state variables (unless already visited), all bound
         # variables and all used variables.
-        used = [x for x in self._state]
+        used = [x for x in self._state_vars]
         used += [x for x in self._bindings.values()]
         used += [x for x in self._labels.values()]
 
@@ -3915,7 +3975,11 @@ class Variable(VarOwner):
         """
         # Set value
         if value is None:
-            value = self.state_value() if self._is_state else self._rhs.eval()
+            self.model().validate()  # Model must be valid before evaluations
+            if self._is_state:
+                value = self.initial_value(True)
+            else:
+                value = self._rhs.eval()
         else:
             value = float(value)
 
@@ -3971,6 +4035,10 @@ class Variable(VarOwner):
         # Clone child variables
         for k in self.variables():
             k._clone2(v[k.name()], lhs_map)
+
+        # Note: initial values are stored inside the model, and the state order
+        # depends on the order in which promoting occurs, so states are only
+        # created by Model.clone()
 
     def _code(self, b, t):
         """
@@ -4111,7 +4179,12 @@ class Variable(VarOwner):
 
         # For states, update the current/initial value
         if self._is_state:
-            self.set_state_value(self.state_value() * float(fw))
+            # Number? Then just multiply
+            value = self.initial_value()
+            if isinstance(value, myokit.Number):
+                self.set_initial_value(float(value) * float(fw))
+            else:
+                self.set_initial_value(myokit.Multiply(value, fw))
 
         # Update all references to the variable
         old_ref = myokit.Name(self)
@@ -4189,6 +4262,29 @@ class Variable(VarOwner):
                     ' can not be removed: it is used by ' + ' and '.join(
                         ['<' + v.qname() + '>' for v in refs]) + '.')
 
+        # Third check: Do initial values depend on this variable?
+        # Note that, instead of using a cached set in every variable, this
+        # reference is just checked by scanning all init expressions (which
+        # contain a cached set of references).
+        # Note that we don't optimise by checking if this variable is constant,
+        # as it's possible to create (invalid) models where non-constants are
+        # referenced in initial values (but validate() will pick this up!).
+        refs = set()
+        m = self.model()
+        n = myokit.Name(self)
+        for v, e in zip(m._state_vars, m._state_init):
+            if n in e.references():
+                refs.add(v)
+        if ignore_siblings:
+            # Refs from sibling variables are allowed
+            refs = refs.difference(
+                set([x for x in refs if x.has_ancestor(self._parent)]))
+        if refs:
+            raise myokit.IntegrityError(
+                'Variable <' + self.qname() + '> can not be removed: it is'
+                ' used in the inital value(s) for ' + ' and '.join(
+                    ['<' + v.qname() + '>' for v in refs]) + '.')
+
         # At this point it's OK to delete. Rest of the code makes changes,
         # shouldn't raise errors.
 
@@ -4213,7 +4309,6 @@ class Variable(VarOwner):
             self.set_label(None)
 
             # Remove any aliases
-            m = self.parent(Model)
             for c in m.components():
                 c.remove_aliases_for(self)
 
@@ -4248,10 +4343,10 @@ class Variable(VarOwner):
         model = self.model()
         try:
             # Remove initial value
-            del model._current_state[self._indice]
+            del model._state_init[self._indice]
 
             # Remove this variable from the state
-            del model._state[self._indice]
+            del model._state_vars[self._indice]
 
             # Set lhs to name expression
             self._lhs = myokit.Name(self)
@@ -4298,6 +4393,25 @@ class Variable(VarOwner):
         if self._indice is None:
             raise Exception('Only state variables have initial values.')
         return self._indice
+
+    def initial_value(self, as_float=False):
+        """
+        Returns a state variable's initial value, or raises an exception when
+        called on a non-state variable.
+
+        By default, a :class:`myokit.Expression` is returned. To evaluate and
+        return a float set ``as_float=True``.
+        """
+        if not self._is_state:
+            raise Exception('Only state variables have initial values.')
+
+        model = self.model()
+        expr = model._state_init[self._indice]
+        if not as_float:
+            return expr
+        if not expr.is_literal():
+            model.validate()
+        return expr.eval()
 
     def is_bound(self):
         """
@@ -4371,24 +4485,25 @@ class Variable(VarOwner):
         """
         return self._lhs
 
-    def promote(self, state_value=0):
+    def promote(self, initial_value=0, state_value=None):
         """
-        Turns this variable into a state variable with a current state value
-        given by ``state_value``.
+        Turns this variable into a state variable with an initial value given
+        by ``initial_value``.
 
-        The new ``state_value`` should be:
+        The new ``initial_value`` should be:
 
-        1. a numerical value
-        2. a :class:`myokit.Expression`. If an expression is used, it can
-           contain references to model variables, as long as they are
-           constant-valued.
-        3. a string, in which case it is parsed to a
-           :class:`myokit.Expression`. Note that this parsing is done in the
-           context of the model, not the variable, so child variables cannot
-           be used
+        1. A numerical value.
+        2. A :class:`myokit.Expression`.
+        3. A string which can be parsed to a :class:`myokit.Expression`. Any
+           references to variables must be made using their fully qualified
+           names.
 
-        This will reset the validation status of the model this variable
-        belongs to.
+        Note that expressions can contain references to non-nested and
+        constant-valued variables (i.e. their right-hand side is either a
+        literal expression or refers only to constants).
+
+        Calling ``promote`` will reset the validation status of the model this
+        variable belongs to.
         """
         if self._indice is not None:
             raise Exception('Variable is already a state variable')
@@ -4398,37 +4513,40 @@ class Variable(VarOwner):
             raise Exception(
                 'State variables cannot be bound to an external value.')
 
+        # Deprecated on 2023-02-20
+        if state_value is not None:
+            if initial_value != 0:
+                raise Exception('Deprecated keyword argument `state_value` can'
+                                ' not be used at the same time as its'
+                                ' replacement `initial_value`.')
+            initial_value = state_value
+
+            import warnings
+            warnings.warn('The keyword argument `state_value` is deprecated.'
+                          ' Please use `initial_value` instead.')
+
         # Handle string and number rhs's
-        # expressions are evaluated in model context, not variables
-        if not isinstance(state_value, myokit.Expression):
-            if isinstance(state_value, basestring):
-                state_value = myokit.parse_expression(
-                    state_value, context=self.model()
-                )
-            elif state_value is not None:
-                state_value = myokit.Number(state_value)
-
         model = self.model()
-
-        # check initial state value expression is constant
-        if not state_value.is_constant():
-            raise myokit.NonConstantExpressionError(
-                'Expressions for state values must only contain '
-                'references to constant variables'
-            )
+        if not isinstance(initial_value, myokit.Expression):
+            if isinstance(initial_value, basestring):
+                # Expressions are evaluated in model context
+                initial_value = myokit.parse_expression(
+                    initial_value, context=model)
+            elif initial_value is not None:
+                initial_value = myokit.Number(initial_value)
 
         try:
             # Set lhs to derivative expression
             self._lhs = myokit.Derivative(myokit.Name(self))
 
             # Get new indice
-            self._indice = len(model._state)
+            self._indice = len(model._state_vars)
 
             # Add to list of states
-            model._state.append(self)
+            model._state_vars.append(self)
 
-            # Add state_value to list of current values
-            model._current_state.append(state_value)
+            # Add initial_value to list of current values
+            model._state_init.append(initial_value)
 
             # All references to this variable are now considered references to
             # its state value
@@ -4658,6 +4776,42 @@ class Variable(VarOwner):
             # Reset model validation
             model._reset_validation()
 
+    def set_initial_value(self, value):
+        """
+        Sets the initial value of a state variable, or raises an exception if
+        called on a non-state variable.
+
+        The new value can be passed in as an expression, number, or a string
+        (in which case it will be parsed as an expression). Expressions can
+        refer to variables as long as they are not nested and are constant in
+        time. Variable references in strings must be made using fully qualified
+        names (``component.variable``).
+        """
+        if not self._is_state:
+            raise Exception('Only state variables have state values.')
+        self._set_initial_value(value, True)
+
+    def _set_initial_value(self, value, make_the_change):
+        """ Internal version of `set_initial_value`. """
+        # Handle strings and floats
+        model = self.model()
+        if not isinstance(value, myokit.Expression):
+            if isinstance(value, basestring):
+                value = myokit.parse_expression(value, context=model)
+            else:
+                value = myokit.Number(value)
+
+        # Allow internal calls to parse `value` without making a change
+        if not make_the_change:
+            return value
+
+        # Update
+        try:
+            model._state_init[self._indice] = value
+        finally:
+            # Reset model validation, but not the variable cache
+            model._reset_validation()
+
     def set_label(self, label=None):
         """
         Adds a unique ``label`` for this variable, indicated that its value can
@@ -4745,21 +4899,14 @@ class Variable(VarOwner):
 
     def set_state_value(self, value):
         """
-        If this variable is a state variable, its current value will be
-        updated. For all other variables this raises an exception.
+        Deprecated method, use :meth:`set_initial_value` instead.
         """
-        if not self._is_state:
-            raise Exception('Only state variables have state values.')
-        model = self.model()
-        if isinstance(value, myokit.Expression):
-            if not value.is_constant():
-                raise myokit.NonConstantExpressionError(
-                    'Expressions for state values must be constant in time.')
-            expr = value
-        else:
-            expr = myokit.Number(float(value))
-        model._current_state[self._indice] = expr
-        # No need to reset validation status or cache here.
+        # Deprecated since 2023-02-10
+        import warnings
+        warnings.warn(
+            'The method `set_state_value` is deprecated. Please use'
+            ' `set_initial_value` instead.')
+        self.set_initial_value(value)
 
     def set_unit(self, unit=None):
         """
@@ -4777,12 +4924,15 @@ class Variable(VarOwner):
 
     def state_value(self):
         """
-        For state variables, this will return their current value.
-        For all other variables, this will raise an exception.
+        Deprecated method, use
+        :meth:`initial_value(as_float=True)<initial_value>` instead.
         """
-        if not self._is_state:
-            raise Exception('Only state variables have initial values.')
-        return float(self.model()._current_state[self._indice])
+        # Deprecated since 2023-02-10
+        import warnings
+        warnings.warn(
+            'The method `state_value` is deprecated. Please use'
+            ' `initial_value(as_float=True)` instead.')
+        return self.initial_value(as_float=True)
 
     def unit(self, mode=myokit.UNIT_TOLERANT):
         """
@@ -4806,46 +4956,89 @@ class Variable(VarOwner):
         """
         Attempts to check this variable's validity, raises errors if it isn't.
         """
+        #
         # Validate rhs
+        #
         if self._rhs is None:
             raise myokit.MissingRhsError(self)
         self._rhs.validate()
 
-        # Partial derivatives are not allowed in an RHS
+        # RHS: No PartialDerivative objects
         if self._rhs.contains_type(myokit.PartialDerivative):
             raise myokit.IntegrityError(
                 'Partial derivatives may not appear in expressions set as'
-                ' right-hand side of a variable.')
+                ' right-hand side of a variable: <' + self.qname() + '>.')
 
-        # Initial values are not allowed in an RHS
+        # RHS: No InitialValue objects
         if self._rhs.contains_type(myokit.InitialValue):
             raise myokit.IntegrityError(
                 'Initial value operators may not appear in expressions set as'
-                ' right-hand side of a variable.')
+                ' right-hand side of a variable: <' + self.qname() + '>.')
 
-        # Conditions are not allowed as an RHS
+        # RHS: Can't evaluate to True or False
         if isinstance(self._rhs, myokit.Condition):
             raise myokit.IntegrityError(
                 'The right-hand side expression for a variable can not be a'
-                ' condition.')
+                ' condition: <' + self.qname() + '>.')
 
+        #
         # Check state variables
+        #
         is_state = self._indice is not None
         is_deriv = self.lhs().is_derivative()
         if is_state:
+            # Derivative is set
             if not is_deriv:        # pragma: no cover
                 raise myokit.IntegrityError(
                     'Variable <' + self.qname() + '> is listed as a state'
                     ' variable but its lhs is not a derivative.')
+
+            # Not nested
             if self._is_nested:     # pragma: no cover
                 raise myokit.IntegrityError(
                     'State variables should not be nested: <'
                     + str(self.qname()) + '>.')
+
+            # Index matches model
             m = self.model()
-            if not m._state[self._indice] == self:  # pragma: no cover
+            if not m._state_vars[self._indice] == self:  # pragma: no cover
                 raise myokit.IntegrityError(
                     'State variable not listed in model state vector at'
                     ' correct indice: <' + self.qname() + '>.')
+
+            # Initial value is an expression
+            i = m._state_init[self._indice]
+            if not isinstance(i, myokit.Expression):  # pragma: no cover
+                raise myokit.IntegrityError(
+                    'Initial value for <' + self.qname() + '> is not an'
+                    ' expression.')
+
+            # Init: No PartialDerivative or InitialValue operators
+            if i.contains_type(myokit.PartialDerivative):
+                raise myokit.IntegrityError(
+                    'Partial derivatives may not appear in model expressions:'
+                    ' initial value for <' + self.qname() + '>.')
+            if i.contains_type(myokit.InitialValue):
+                raise myokit.IntegrityError(
+                    'Initial values may not appear in model expressions:'
+                    ' initial value for < ' + self.qname() + '>.')
+
+            # Init: Can't evaluate to True or False
+            if isinstance(i, myokit.Condition):
+                raise myokit.IntegrityError(
+                    'The initial value for a variable can not be a'
+                    ' condition: <' + self.qname() + '>.')
+
+            # Init: No nested variables or non-constants
+            for ref in i.references():
+                var = ref.var()
+                if var.is_nested():
+                    raise myokit.IllegalReferenceInInitialValueError(self, ref)
+                if not var.is_constant():
+                    raise myokit.IntegrityError(
+                        'Initial value for variable <' + self.qname() + '> is'
+                        ' not constant: ' + i.code() + '.')
+
         elif is_deriv:  # pragma: no cover
             raise myokit.IntegrityError(
                 'A derivative was set for <' + self.qname() + '> but this is'

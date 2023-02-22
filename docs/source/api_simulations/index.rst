@@ -30,10 +30,7 @@ model's equations which can be useful to optimise model running times. The
 :class:`JacobianCalculator` can be used to calculate a single Jacobian matrix,
 while the :class:`JacobianTracer` can be run after a single cell simulation to
 calculate the Jacobian matrix and (dominant) eigenvalues at every visited point
-of the state space. The :class:`ICSimulation` goes a step further and runs a
-full simulation where the jacobian is integrated along with the state
-derivatives to calculate the partial derivatives of the state with respect to
-the initial state values.
+of the state space.
 
 
 ..  toctree::
@@ -46,8 +43,6 @@ the initial state values.
     DataLog
     DataBlock
     Jacobians
-    ICSimulation
-    PSimulation
     RhsBenchmarker
     SimulationErrors
     LongSimulations

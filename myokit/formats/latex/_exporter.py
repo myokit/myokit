@@ -76,7 +76,7 @@ class PdfExporter(myokit.formats.Exporter):
                 f.write('\\begin{dmath}\n')
                 f.write(e.ex(myokit.Name(v)))
                 f.write(' = ')
-                f.write(e.ex(myokit.Number(v.state_value())))
+                f.write(e.ex(v.initial_value()))
                 f.write('\\end{dmath}\n')
 
             # Write each component

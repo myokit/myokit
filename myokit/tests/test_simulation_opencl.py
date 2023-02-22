@@ -816,33 +816,35 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Test initial state
         self.s0.reset()
-        x0_expr = self.s0.default_state()
-        x0 = [float(x) for x in x0_expr]
+        x0 = self.s0.default_state()
         self.assertEqual(x0, self.s0.state())
         self.assertEqual(0, self.s0.time())
 
         # Test running, then resetting to default state
         self.s0.run(1)
         x1 = self.s0.state()
-        self.assertEqual(x0, [float(x) for x in self.s0.default_state()])
+        self.assertEqual(x0, self.s0.default_state())
         self.assertNotEqual(x0, x1)
         self.assertEqual(1, self.s0.time())
         self.s0.reset()
+        self.assertEqual(x0, self.s0.default_state())
         self.assertEqual(x0, self.s0.state())
         self.assertEqual(0, self.s0.time())
 
         try:
             # Test pre()
             self.s0.pre(1)
-            self.assertEqual(x1, [float(x) for x in self.s0.default_state()])
+            self.assertEqual(x1, self.s0.default_state())
             self.assertEqual(x1, self.s0.state())
             self.assertEqual(0, self.s0.time())
 
             # Test running and resetting to new default
             self.s0.run(1)
+            self.assertEqual(x1, self.s0.default_state())
             self.assertNotEqual(x1, self.s0.state())
             self.assertEqual(1, self.s0.time())
             self.s0.reset()
+            self.assertEqual(x1, self.s0.default_state())
             self.assertEqual(x1, self.s0.state())
             self.assertEqual(0, self.s0.time())
 
@@ -859,7 +861,7 @@ class SimulationOpenCLTest(unittest.TestCase):
                 ValueError, 'negative', self.s0.run, -1)
 
         finally:
-            self.s0.set_default_state(x0_expr)
+            self.s0.set_default_state(x0)
 
     def test_run_progress_reporter(self):
         # Test running with a progress reporter
@@ -1178,8 +1180,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         m = 8
         n = 10
         self.s1.reset()
-        sm = self.m.state_values()
-        sm_expr = self.m.state()
+        sm = self.m.initial_values(True)
         ss = [self.s1.state(x) for x in range(n)]
         for si in ss:
             self.assertEqual(sm, si)
@@ -1244,19 +1245,19 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Test set_default_state
         try:
-            sx = [myokit.Number(x) for x in list(range(m))]
+            sx = list(range(m))
             self.s1.set_state([0] * m)
             self.s1.set_default_state(sx, j)
             for i in range(n):
                 if i == j:
                     self.assertEqual(self.s1.default_state(i), sx)
                 else:
-                    self.assertEqual(self.s1.default_state(i), sm_expr)
-            sx = [myokit.Number(x) for x in list(range(m * n))]
+                    self.assertEqual(self.s1.default_state(i), sm)
+            sx = list(range(m * n))
             self.s1.set_default_state(sx)
             self.assertEqual(sx, self.s1.default_state())
         finally:
-            self.s1.set_default_state(sm_expr)
+            self.s1.set_default_state(sm)
 
         # Check error messages for default_state
         self.assertRaisesRegex(
@@ -1276,8 +1277,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         m = 8
         nx, ny = 4, 3
         self.s2.reset()
-        sm = self.m.state_values()
-        sm_expr = self.m.state()
+        sm = self.m.initial_values(True)
         for i in range(nx):
             for j in range(ny):
                 self.assertEqual(sm, self.s2.state(i, j))
@@ -1344,7 +1344,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         # Test set_default_state
         try:
             x, y = 2, 1
-            sx = [myokit.Number(i) for i in list(range(m))]
+            sx = list(range(m))
             self.s2.set_state([0] * m)
             self.s2.set_default_state(sx, x, y)
             for i in range(nx):
@@ -1352,9 +1352,9 @@ class SimulationOpenCLTest(unittest.TestCase):
                     if i == x and j == y:
                         self.assertEqual(self.s2.default_state(i, j), sx)
                     else:
-                        self.assertEqual(self.s2.default_state(i, j), sm_expr)
+                        self.assertEqual(self.s2.default_state(i, j), sm)
         finally:
-            self.s2.set_default_state(sm_expr)
+            self.s2.set_default_state(sm)
 
         # Check error messages for default_state
         self.assertRaisesRegex(

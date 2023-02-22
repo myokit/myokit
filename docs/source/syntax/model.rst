@@ -45,9 +45,8 @@ All state variables require an initial value to be specified in the model
 header using the syntax ``component.variable = value``
 
 Initial values can be numbers or expressions. Expressions can make reference 
-to variables as long as they are constant in time. References must be made
-using fully qualified names, for example using ``c.y`` to refer to variable
-``y`` in component ``c``.
+to variables as long as they not nested (see below) and are constant in time.
+References must be made using the syntax ``component.variable``.
 
 Example::
 
@@ -57,9 +56,9 @@ Example::
           backslash notation.
     author: Identifies the author of the model implementation
     membrane.V = -84
-    na_fast.m  = 0
-    na_fast.h  = 1.0
-    na_fast.j  = 1.0
+    ina.m  = 0
+    ina.h  = 0.9
+    ina.j  = ina.initial_j + 0.1
 
 Component syntax
 ================
@@ -588,7 +587,7 @@ myocyte::
           """
     # Template functions
     sig(V, Vstar, a, b) = exp(a * (Vstar - V)) / (1 + exp(b * (Vstar - V)))
-    # Initial conditions
+    # Initial values
     membrane.V         = -84.4
     na_fast.m          = 0.0017
     na_fast.h          = 0.98
