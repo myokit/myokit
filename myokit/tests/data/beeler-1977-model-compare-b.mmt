@@ -31,7 +31,7 @@ pace = 0 bind pace
 C = 1 [uF/cm^3] : The membrane capacitance
 dot(V) = -(1/C) * (i_ion + i_stim)
     label membrane_potential
-    desc: Membrane potential
+    desc: Membrane potential    
 i_ion = ik1.IK1 - ix1.Ix1 + ina.INa + isiz.Isi
     label cellular_current
     in [uA/cm^2]

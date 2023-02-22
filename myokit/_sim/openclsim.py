@@ -273,6 +273,7 @@ class SimulationOpenCL(myokit.CModule):
 
         # Set state and default state
         self._state = self._model.initial_values(True) * self._ntotal
+        self._default_state = list(self._state)
 
         # List of globally logged inputs
         self._global = ['time', 'pace']
