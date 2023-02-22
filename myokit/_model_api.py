@@ -3635,7 +3635,7 @@ class Model(ObjectWithMeta, VarProvider):
         if not isinstance(var, ModelPart):
             var = self.suggest_variable(var)
             if var[0] is None:
-                if var[1] is None:
+                if var[1] is None:  # pragma: no cover
                     raise Exception(var[2])
                 var = var[1]
                 out.append(
@@ -4179,7 +4179,6 @@ class Variable(VarOwner):
         if self._is_state:
             # Number? Then just multiply. Else use expression.
             value = self.initial_value()
-            print(type(value), value)
             if isinstance(value, myokit.Number):
                 self.set_initial_value(float(value) * float(fw))
             else:

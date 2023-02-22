@@ -292,7 +292,7 @@ class OpenCLInfo(object):
         b = []
         for i, platform in enumerate(self.platforms):
             pname = 'Platform ' + str(i)
-            if platform.name == selected_platform:
+            if platform.name == selected_platform:  # pragma: no cover
                 pname += '  <-- Selected platform in myokit.ini'
             b.append(pname)
             platform._format(b, selected_platform, selected_device, pre=' ')
@@ -363,7 +363,7 @@ class OpenCLPlatformInfo(object):
             b.append(pre + 'Devices:')
             for j, device in enumerate(self.devices):
                 dname = pre + ' Device ' + str(j)
-                if self.name == p_selected and device.name == d_selected:
+                if self.name == p_selected and device.name == d_selected:  # pragma: no cover # noqa
                     dname += '  <-- Selected device in myokit.ini'
                 b.append(dname)
                 device._format(b, pre + '  ')
