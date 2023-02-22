@@ -2073,9 +2073,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         # Deprecated since 2023-02-22
         import warnings
-        warnings.warn(
-            'The method `inits` is deprecated. Please use'
-            ' `iter(model.initial_values(as_equations=True)`.')
+        warnings.warn('The method `inits` is deprecated.')
 
         def StateDefIterator(model):
             for var, value in zip(model._state_vars, model._state_init):
