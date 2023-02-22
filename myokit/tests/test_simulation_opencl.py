@@ -666,6 +666,31 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 1]))
         self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
 
+    def test_initial_value_expressions(self):
+        # Test if initial value expressions are converted to floats
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 1 + sqrt(3)
+            c.y = 1 / c.p
+            c.z = 3
+
+            [c]
+            t = 0 bind time
+            dot(x) = 1 label membrane_potential
+            dot(y) = 2
+            dot(z) = 3
+            p = log(3)
+            q = 0 bind diffusion_current
+        ''')
+        s = myokit.SimulationOpenCL(m, ncells=2)
+        x = s.state()
+        self.assertIsInstance(x[0], float)
+        self.assertIsInstance(x[1], float)
+        self.assertIsInstance(x[2], float)
+        self.assertEqual(x[:3], x[3:])
+        self.assertEqual(x, m.initial_values(True) * 2)
+        self.assertEqual(x, s.default_state())
+
     def test_neighbours_0d(self):
         # Test listing neighbours in a 0d simulation
 

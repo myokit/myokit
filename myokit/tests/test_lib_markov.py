@@ -155,8 +155,8 @@ class LinearModelTest(unittest.TestCase):
 
         # States must sum to 1
         m2 = model.clone()
-        m2.get(states[0]).set_state_value(0.6)
-        m2.get(states[1]).set_state_value(0.6)
+        m2.get(states[0]).set_initial_value(0.6)
+        m2.get(states[1]).set_initial_value(0.6)
         self.assertRaisesRegex(
             markov.LinearModelError, 'sum of states',
             markov.LinearModel, m2, states, parameters, current)
@@ -283,7 +283,7 @@ class LinearModelTest(unittest.TestCase):
 
         # Check that derivatives with ss are close to zero
         ss = list(ss)
-        model.set_state(ss + ss)    # Model has 2 ina's
+        model.set_initial_values(ss + ss)    # Model has 2 ina's
         derivs = model.evaluate_derivatives()
         for i in range(len(ss)):
             self.assertAlmostEqual(0, derivs[i])
@@ -310,7 +310,7 @@ class LinearModelTest(unittest.TestCase):
         self.assertTrue(np.all(ss <= 1))
 
         # Check that derivatives with ss are close to zero
-        model.set_state(ss)
+        model.set_initial_values(ss)
         derivs = model.evaluate_derivatives()
         for i in range(len(ss)):
             self.assertAlmostEqual(0, derivs[i])
@@ -330,6 +330,22 @@ class LinearModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'Illegal parameter vector size',
             m.rates, parameters=[0.01] * 22)
+
+    def test_initial_value_conversion(self):
+        # Tests that initial value expressions are converted to floats
+
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(fname)
+        model.get('ina.C3').set_initial_value('1 / sqrt(7)')
+        model.get('ina.C2').set_initial_value('-1 / log(ina_ref.p)')
+        model.get('ina.C1').set_initial_value(0.5134619065149598)
+        m = markov.LinearModel.from_component(model.get('ina'))
+        x0 = m.default_state()
+        self.assertEqual(len(x0), 6)
+        self.assertIsInstance(x0[0], float)
+        self.assertIsInstance(x0[1], float)
+        self.assertAlmostEqual(x0[0], 0.3779644730092272)
+        self.assertAlmostEqual(x0[1], 0.10857362047581297)
 
 
 class AnalyticalSimulationTest(unittest.TestCase):

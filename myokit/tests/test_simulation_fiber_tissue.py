@@ -622,6 +622,42 @@ class FiberTissueSimulationTest(unittest.TestCase):
         finally:
             self.s1.reset()
 
+    def test_initial_value_expressions(self):
+        # Test if initial value expressions are converted to floats
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 1 + sqrt(3)
+            c.y = 1 / c.p
+            c.z = 3
+
+            [c]
+            t = 0 bind time
+            dot(x) = 1 label membrane_potential
+                in [mV]
+            dot(y) = 2
+            dot(z) = 3
+            p = log(3)
+            q = 0 bind diffusion_current
+                in [A/F]
+        ''')
+        s = myokit.FiberTissueSimulation(
+            m, m, ncells_fiber=(1, 1), ncells_tissue=(3, 1))
+        x = s.fiber_state()
+        self.assertIsInstance(x[0], float)
+        self.assertIsInstance(x[1], float)
+        self.assertIsInstance(x[2], float)
+        self.assertEqual(x, m.initial_values(True))
+        self.assertEqual(x, s.default_fiber_state())
+
+        x = s.tissue_state()
+        self.assertIsInstance(x[0], float)
+        self.assertIsInstance(x[1], float)
+        self.assertIsInstance(x[2], float)
+        self.assertEqual(x[:3], x[3:6])
+        self.assertEqual(x[:3], x[6:])
+        self.assertEqual(x, m.initial_values(True) * 3)
+        self.assertEqual(x, s.default_tissue_state())
+
     def test_tissue_state(self):
         # Test the set_tissue_state and set_default_tissue_state methods
 

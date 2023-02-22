@@ -37,7 +37,8 @@ class LinearModel(object):
     The model variables to treat as parameter are specified by the user when
     the model is created. Any other variables, for example state variables such
     as intercellular calcium or constants such as temperature, are fixed when
-    the markov model is created and can no longer be changed.
+    the markov model is created and can no longer be changed. Initial values
+    written as expressions are evaluated when the model is made.
 
     To create a :class:`Markov`, pass in a :class:`myokit.Model` and select a
     list of states. All other states will be fixed at their current value and
@@ -205,15 +206,17 @@ class LinearModel(object):
                 'The membrane potential should not be the current variable.')
         del vm
 
+        # Get values of all states
+        # Note: Do this _before_ changing the model!
+        s = self._model.initial_values(True)
+        self._default_state = np.array(
+            [v.initial_value(True) for v in self._states])
+
         #
         # Demote unnecessary states, remove bindings and validate model.
         #
-        # Get values of all states
-        # Note: Do this _before_ changing the model!
-        self._default_state = np.array([v.state_value() for v in self._states])
 
         # Freeze remaining, non-markov-model states
-        s = self._model.state()   # Get state values before changing anything!
         for k, state in enumerate(self._model.states()):
             if state not in self._states:
                 state.demote()

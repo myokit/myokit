@@ -29,7 +29,8 @@ class HHModel(object):
     The model variables to treat as parameter are specified by the user when
     the model is created. Any other variables, for example state variables such
     as intercellular calcium or constants such as temperature, are fixed when
-    the current model is created and can no longer be changed.
+    the current model is created and can no longer be changed. Initial values
+    written as expressions are evaluated when the model is made.
 
     The current variable is optional.
 
@@ -83,7 +84,7 @@ class HHModel(object):
         # Load a model from disk
         model = myokit.load_model('some-model.mmt')
 
-        # Extract a markov model
+        # Extract a Hodgkin-Huxley style channel model
         mm = hh.HHModel.from_component(model.get('ina'))
 
     """
@@ -183,15 +184,18 @@ class HHModel(object):
                 'The membrane potential should not be the current variable.')
         del vm
 
+        # Get values of all states
+        # Note: Do this _before_ changing the model!
+        s = self._model.initial_values(True)
+        self._model.set_initial_values(s)  # Remove expressions
+        self._default_state = np.array(
+            [v.initial_value(True) for v in self._states])
+
         #
         # Demote unnecessary states and remove bindings
         #
-        # Get values of all states
-        # Note: Do this _before_ changing the model!
-        self._default_state = np.array([v.state_value() for v in self._states])
 
         # Freeze remaining, non-current-model states
-        s = self._model.state()   # Get state values before changing anything!
         # Note: list() cast is required so that we iterate over a static list,
         # otherwise we can get issues because the iterator depends on the model
         # (which we're changing).
@@ -346,19 +350,19 @@ class HHModel(object):
 
     def default_membrane_potential(self):
         """
-        Returns this markov model's default membrane potential value.
+        Returns this HH model's default membrane potential value.
         """
         return self._default_inputs[0]
 
     def default_parameters(self):
         """
-        Returns this markov model's default parameter values
+        Returns this HH model's default parameter values
         """
         return list(self._default_inputs[1:])
 
     def default_state(self):
         """
-        Returns this markov model's default state values.
+        Returns this HH model's default state values.
         """
         return list(self._default_state)
 

@@ -31,6 +31,7 @@ class Simulation1dTest(unittest.TestCase):
     """
     Test the non-parallel 1d simulation.
     """
+
     def test_basic(self):
         # Test basic usage.
 
@@ -103,6 +104,31 @@ class Simulation1dTest(unittest.TestCase):
         self.assertNotEqual(s.time(), 100)
         s.set_time(100)
         self.assertEqual(s.time(), 100)
+
+    def test_initial_value_expressions(self):
+        # Test if initial value expressions are converted to floats
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 1 + sqrt(3)
+            c.y = 1 / c.p
+            c.z = 3
+
+            [c]
+            t = 0 bind time
+            dot(x) = 1 label membrane_potential
+            dot(y) = 2
+            dot(z) = 3
+            p = log(3)
+            q = 0 bind diffusion_current
+        ''')
+        s = myokit.Simulation1d(m, ncells=2)
+        x = s.state()
+        self.assertIsInstance(x[0], float)
+        self.assertIsInstance(x[1], float)
+        self.assertIsInstance(x[2], float)
+        self.assertEqual(x[:3], x[3:])
+        self.assertEqual(x, m.initial_values(True) * 2)
+        self.assertEqual(x, s.default_state())
 
     def test_with_progress_reporter(self):
         # Test running with a progress reporter.

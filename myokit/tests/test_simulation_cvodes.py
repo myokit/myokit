@@ -155,7 +155,7 @@ class SimulationTest(unittest.TestCase):
         self.assertGreater(e['engine.time'][n], e['engine.time'][n - 1])
 
     def test_initial_value_expressions(self):
-        # Create a model with expressions in initial values
+        # Test if initial value expressions are converted to floats
         m = myokit.parse_model('''
             [[model]]
             c.x = 1 + sqrt(3)
@@ -174,7 +174,8 @@ class SimulationTest(unittest.TestCase):
         self.assertIsInstance(x[0], float)
         self.assertIsInstance(x[1], float)
         self.assertIsInstance(x[2], float)
-        self.assertEqual(s.state(), m.initial_values(True))
+        self.assertEqual(x, m.initial_values(True))
+        self.assertEqual(x, s.default_state())
 
     def test_pacing_values_at_event_transitions(self):
         # Tests the value of the pacing signal at event transitions
