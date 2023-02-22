@@ -46,11 +46,11 @@ class Simulation1dTest(unittest.TestCase):
         x0 = m.initial_values(True)
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.state(0), x0)
-        self.assertEqual(s.default_state(0), m.state())
+        self.assertEqual(s.default_state(0), x0)
         d = s.run(5, log_interval=1)
         self.assertEqual(s.time(), 5)
         self.assertNotEqual(s.state(0), x0)
-        self.assertEqual(s.default_state(0), m.state())
+        self.assertEqual(s.default_state(0), x0)
 
         # Test full state getting and reset
         self.assertEqual(s.default_state(), x0 * ncells)
@@ -207,8 +207,9 @@ class Simulation1dTest(unittest.TestCase):
         sx = [0] * 8
         s.set_default_state(sx)
         self.assertEqual(s.default_state(), sx * n)
-        s.set_default_state(m.state())
-        self.assertEqual(s.default_state(), m.state() * n)
+        sy = m.initial_values(True)
+        s.set_default_state(sy)
+        self.assertEqual(s.default_state(), sy * n)
 
         # Test setting a single state
         j = 1
@@ -217,7 +218,7 @@ class Simulation1dTest(unittest.TestCase):
             if i == j:
                 self.assertEqual(s.default_state(i), sx)
             else:
-                self.assertEqual(s.default_state(i), m.state())
+                self.assertEqual(s.default_state(i), sy)
 
         # Invalid cell index
         s.set_default_state(sx, 0)
