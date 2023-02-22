@@ -903,7 +903,7 @@ class Simulation(myokit.CModule):
 
     def set_default_state(self, state):
         """
-        Allows you to manually set the default state.
+        Change the default state to ``state``.
         """
         self._default_state = self._model.map_to_state(state)
 
