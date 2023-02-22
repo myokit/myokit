@@ -163,6 +163,7 @@ class VariableTest(unittest.TestCase):
         m = myokit.parse_model("""
             [[model]]
             membrane.V = -83
+            membrane.w = 10
 
             [env]
             t = 0 [ms] bind time
@@ -173,6 +174,8 @@ class VariableTest(unittest.TestCase):
                 in [mV]
             dotv = 5 [mV/ms] + dot(V)
                 in [mV/ms]
+            dot(w) = 0.1 [mg/ms]
+                in [mg]
 
             [cell]
             Cm = 0.123 [uF]
@@ -199,7 +202,7 @@ class VariableTest(unittest.TestCase):
         v.convert_unit('mV')
         self.assertEqual(code, m.code())
 
-        # Convert state
+        # Convert state (note: initial value is treated as PrefixMinus expr!)
         vdot = v.rhs().eval()
         self.assertNotEqual(v.unit(), myokit.units.V)
         v.convert_unit('V')
@@ -209,6 +212,28 @@ class VariableTest(unittest.TestCase):
         vdot /= 1000
         self.assertEqual(vdot, v.rhs().eval())
         m.check_units(myokit.UNIT_STRICT)
+
+        # Check units of the initial value have been converted
+        self.assertEqual(v.initial_value(True), -0.083)
+        # Not sure if this one is desirable, but -83 is parsed as the
+        # expression -(83)
+        self.assertEqual(
+            v.initial_value(),
+            myokit.Multiply(
+                myokit.PrefixMinus(myokit.Number(83)),
+                myokit.Number(0.001, myokit.units.V / myokit.units.mV)))
+
+        # Convert state with number initial value
+        w = m.get('membrane.w')
+        wdot = w.rhs().eval()
+        w.convert_unit('ug')
+        self.assertEqual(w.unit(), myokit.units.g / 1e6)
+        self.assertEqual(wdot * 1000, w.rhs().eval())
+        m.check_units(myokit.UNIT_STRICT)
+        self.assertEqual(w.initial_value(True), 10000)
+        self.assertEqual(w.initial_value(), myokit.Number(10000))
+        #self.assertEqual(
+        #    w.initial_value(), myokit.Number(10000, myokit.units.g / 1e6))
 
         # Convert non-state
         i = m.get('ina.i')
@@ -398,6 +423,9 @@ class VariableTest(unittest.TestCase):
             x.promote(state_value=3)
         self.assertIn('deprecated', w.text())
         self.assertEqual(x.initial_value(), myokit.Number(3))
+        x.demote()
+        self.assertRaisesRegex(
+            Exception, 'at the same time as', x.promote, 3, state_value=3)
 
     def test_pyfunc(self):
         # Test :meth:`Variable.pyfunc().

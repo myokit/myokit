@@ -352,7 +352,7 @@ def cumulative_current(
         # Colormap
         try:
             cmap = matplotlib.colormaps['tab20']
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             cmap = matplotlib.cm.get_cmap(name='tab20')
         colors = [cmap(i) for i in range(nc)]
 

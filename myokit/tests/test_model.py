@@ -2069,6 +2069,11 @@ class ModelTest(unittest.TestCase):
         for val, ref in zip(m.initial_values(True), values):
             self.assertEqual(val, ref)
 
+        # Wrong number of elements
+        self.assertRaisesRegex(
+            ValueError, 'Wrong number of initial values',
+            m.set_initial_values, [1, 2, 3])
+
     def test_show_evaluation_of(self):
         # Test :meth:`Model.show_evaluation_of(variable)`.
         # Depends mostly on `references()`, and `code()` methods.

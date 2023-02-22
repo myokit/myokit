@@ -4179,6 +4179,7 @@ class Variable(VarOwner):
         if self._is_state:
             # Number? Then just multiply. Else use expression.
             value = self.initial_value()
+            print(type(value), value)
             if isinstance(value, myokit.Number):
                 self.set_initial_value(float(value) * float(fw))
             else:
