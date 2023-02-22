@@ -156,6 +156,7 @@ class SimulationTest(unittest.TestCase):
 
     def test_initial_value_expressions(self):
         # Test if initial value expressions are converted to floats
+
         m = myokit.parse_model('''
             [[model]]
             c.x = 1 + sqrt(3)
