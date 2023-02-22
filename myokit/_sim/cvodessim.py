@@ -167,6 +167,18 @@ class Simulation(myokit.CModule):
         cmodel = myokit.CModel(self._model, sensitivities)
         if cmodel.has_sensitivities:
             self._sensitivities = (cmodel.dependents, cmodel.independents)
+
+            # Check for sensitivities w.r.t. variables used in initial state
+            # expressions. This is not implemented yet.
+            inits = self._model.initial_values()
+            for i in self._sensitivities[1]:  # Expressions
+                if isinstance(i, myokit.Name):
+                    for e in inits:
+                        if e.depends_on(i, deep=True):
+                            raise NotImplementedError(
+                                'Sensitivities with respect to parameters used'
+                                ' in initial conditions is not implemented ('
+                                + e.code() + ' depends on ' + i.code() + ').')
         else:
             self._sensitivities = None
 

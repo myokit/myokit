@@ -154,6 +154,29 @@ class SimulationTest(unittest.TestCase):
         self.assertNotEqual(e['engine.time'][n - 1], e['engine.time'][n])
         self.assertGreater(e['engine.time'][n], e['engine.time'][n - 1])
 
+
+    def test_initial_value_expressions(self):
+        # Create a model with expressions in initial values
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 1 + sqrt(3)
+            c.y = 1 / c.p
+            c.z = 3
+
+            [c]
+            t = 0 bind time
+            dot(x) = 1
+            dot(y) = 2
+            dot(z) = 3
+            p = log(3)
+        ''')
+        s = myokit.Simulation(m)
+        x = s.state()
+        self.assertIsInstance(x[0], float)
+        self.assertIsInstance(x[1], float)
+        self.assertIsInstance(x[2], float)
+        self.assertEqual(s.state(), m.initial_values(True))
+
     def test_pacing_values_at_event_transitions(self):
         # Tests the value of the pacing signal at event transitions
 
@@ -335,12 +358,12 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_state(s1)
         self.assertEqual(d1, self.sim.eval_derivatives())
 
-    def test_sensitivites_initial(self):
+    def test_sensitivities_initial(self):
         # Test setting initial sensitivity values.
 
         m = myokit.parse_model('''
             [[model]]
-            e.y = 2.3
+            e.y = 1 + 1.3
 
             [e]
             t = 0 bind time
@@ -351,6 +374,26 @@ class SimulationTest(unittest.TestCase):
 
         #TODO: Test results
         s = myokit.Simulation(m, sensitivities=(['e.y'], ['e.p', 'init(e.y)']))
+
+        # Warn if a parameter sensitivity won't be picked up.
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 1 / c.p
+
+            [c]
+            t = 0 bind time
+            p = 1 / q
+            q = 5
+            r = 3
+            dot(x) = 2 + r
+            ''')
+        m.validate()
+        s = (['c.x'], ['c.q'])
+        self.assertRaisesRegex(
+            NotImplementedError, 'respect to parameters used in initial',
+            myokit.Simulation, m, sensitivities=s)
+        s = (['c.x'], ['c.r'])
+        s = myokit.Simulation(m, sensitivities=s)
 
         # Test bad initial matrix
         self.assertRaisesRegex(
@@ -539,8 +582,8 @@ class SimulationTest(unittest.TestCase):
             ''')
         m.validate()
 
-        x0 = m.get('e.x').state_value()
-        y0 = m.get('e.y').state_value()
+        x0 = m.get('e.x').initial_value(True)
+        y0 = m.get('e.y').initial_value(True)
         p = m.get('e.p').eval()
         q = m.get('e.q').eval()
         r = m.get('e.r').eval()
@@ -935,88 +978,6 @@ class SimulationTest(unittest.TestCase):
 
         # Compare
         self.assertLess(np.max(np.abs(e)), 0.1)
-
-    def test_initial_state_expression(self):
-        # Create a model with initial expression
-        m = myokit.Model()
-        c = m.add_component('c')
-        t = c.add_variable('t')
-        t.set_rhs(0)
-        t.set_binding('time')
-        p = c.add_variable('p')
-        p.set_rhs('1')
-        y = c.add_variable('y')
-        y.promote('c.p^2')
-        y.set_rhs('-y')
-
-        s = myokit.Simulation(m)
-        d = s.run(1)
-        self.assertAlmostEqual(s.state()[0], 1 * np.exp(-1), 3)
-
-        s.set_constant('c.p', 2)
-        s.reset()
-        d = s.run(1)
-        self.assertAlmostEqual(s.state()[0], 4 * np.exp(-1), 3)
-
-        # test default state sensitivities
-        s.set_constant('c.p', 1)
-        sensitivities = (['c.y'], ['c.p'])
-        s = myokit.Simulation(m, sensitivities=sensitivities)
-        sens = s.default_state_sensitivities()
-        self.assertEqual(float(sens[0][0]), 2)
-
-        s.set_constant('c.p', 2)
-        sens = s.default_state_sensitivities()
-        self.assertEqual(float(sens[0][0]), 4)
-
-        # test state sensitivities are calculated ok
-        s.reset()
-        s.run(1)
-        self.assertAlmostEqual(s.state()[0], 4 * np.exp(-1), 3)
-        self.assertAlmostEqual(
-            s.sensitivities_state()[0][0], 4 * np.exp(-1), 3
-        )
-
-        s.set_constant('c.p', 1)
-        s.reset()
-        s.run(1)
-        self.assertAlmostEqual(s.state()[0], 1 * np.exp(-1), 3)
-        self.assertAlmostEqual(
-            s.sensitivities_state()[0][0], 2 * np.exp(-1), 3
-        )
-
-        # set_state removes dependency of p
-        s.reset()
-        s.set_state([5.0])
-        s.run(1)
-        self.assertAlmostEqual(s.state()[0], 5 * np.exp(-1), 3)
-        self.assertAlmostEqual(
-            s.sensitivities_state()[0][0], 0, 3
-        )
-
-        # doing a sim in two parts doesn't change sensitivities
-        s.reset()
-        s.run(0.5)
-        s.run(0.5)
-        self.assertAlmostEqual(
-            s.sensitivities_state()[0][0], 2 * np.exp(-1), 2
-        )
-
-        # changing p during a sim shouldn't change sensitivities
-        s.reset()
-        s.run(0.5)
-        s.set_constant('c.p', 2)
-        s.run(0.5)
-        self.assertAlmostEqual(
-            s.sensitivities_state()[0][0], 2 * np.exp(-1), 2
-        )
-
-        # make sure the change in c.p is there if we reset
-        s.reset()
-        s.run(1.0)
-        self.assertAlmostEqual(
-            s.sensitivities_state()[0][0], 4 * np.exp(-1), 3
-        )
 
 
 if __name__ == '__main__':

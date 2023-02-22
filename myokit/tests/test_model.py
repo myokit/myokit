@@ -281,7 +281,7 @@ class ModelTest(unittest.TestCase):
         m.check_units(s)
 
     def test_clone(self):
-        # Test :meth:`Model.clone()
+        # Test :meth:`Model.clone() and :meth:`Model.has_parse_info()`.
 
         # Test model, component, variables
         m1 = myokit.load_model('example')
