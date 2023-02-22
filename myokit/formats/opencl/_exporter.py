@@ -44,7 +44,7 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
             'kernel.cl': 'kernel.cl',
             'plot.py': 'plot.py',
             'minilog.py': 'minilog.py',
-            'test': 'test',
+            'test.sh': 'test.sh',
         }
 
     def _vars(self, model, protocol):

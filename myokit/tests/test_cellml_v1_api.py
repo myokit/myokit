@@ -830,7 +830,7 @@ class TestCellML1ModelConversion(unittest.TestCase):
 
         # Check state
         self.assertTrue(mx.is_state())
-        self.assertEqual(mx.state_value(), 0.123)
+        self.assertEqual(mx.initial_value(True), 0.123)
 
         # Check binding
         self.assertEqual(mt.binding(), 'time')

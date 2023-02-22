@@ -69,7 +69,7 @@ class DataLog(OrderedDict):
         # Delimiters
         quote = '"'
         delim = ','
-        with open(filename, 'rb') as f:
+        with open(filename, 'r', newline=None) as f:
             # Read header
             keys = []
             try:
