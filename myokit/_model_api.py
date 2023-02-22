@@ -2960,12 +2960,14 @@ class Model(ObjectWithMeta, VarProvider):
             raise ValueError('Wrong number of initial values, expecting '
                              + str(len(self._state_vars)) + '.')
         else:
-            # Set all at once, so that nothing is changed if this fails.
+            # Parsing of arguments without making changes, in case it fails.
             expr = []
             for var, value in zip(self._state_vars, values):
                 expr.append(var._set_initial_value(value, False))
+
+            # Set all at once, and reset validation status
             self._state_init = expr
-        # No need to reset validation status or cache here
+            self._valid = None
 
     def set_name(self, name=None):
         """
@@ -3487,6 +3489,15 @@ class Model(ObjectWithMeta, VarProvider):
                 'Invalid time variable set. Time variable must be bound to'
                 ' external value "time".')
 
+        # Test initial value vector
+        n = len(self._state_vars)
+        if n != len(self._state_init):   # pragma: no cover
+            # Cover pragma: This can only happen if there's an API bug
+            self._valid = False
+            raise myokit.IntegrityError(
+                'Initial values list must have same size as state variables'
+                ' list.')
+
         # Validation of components, variables
         for c in self.components():
             if c._parent != self:   # pragma: no cover
@@ -3507,27 +3518,11 @@ class Model(ObjectWithMeta, VarProvider):
                     'Component called <' + c.qname() + '> found at index <'
                     + n + '>.')
 
-        # Test current state values
-        n = len(self._state_vars)
-        if n != len(self._state_init):   # pragma: no cover
-            # Cover pragma: This can only happen if there's an API bug
-            self._valid = False
-            raise myokit.IntegrityError(
-                'Current state values list must have same size as state'
-                ' variables list.')
-
         # Find cycles, warn of unused variables
         self._validate_solvability(remove_unused_variables)
 
         # Create globally unique names
         self.create_unique_names()
-
-        # Check initial state expressions are (still) constant
-        for var, expr in zip(self._state_vars, self._state_init):
-            if not expr.is_constant():
-                raise myokit.NonConstantExpressionError(
-                    'Initial value for variable <' + var.qname() + '> is not'
-                    ' constant: ' + expr.code() + '.')
 
         # Return
         self._valid = True
@@ -4267,6 +4262,29 @@ class Variable(VarOwner):
                     ' can not be removed: it is used by ' + ' and '.join(
                         ['<' + v.qname() + '>' for v in refs]) + '.')
 
+        # Third check: Do initial values depend on this variable?
+        # Note that, instead of using a cached set in every variable, this
+        # reference is just checked by scanning all init expressions (which
+        # contain a cached set of references).
+        # Note that we don't optimise by checking if this variable is constant,
+        # as it's possible to create (invalid) models where non-constants are
+        # referenced in initial values (but validate() will pick this up!).
+        refs = set()
+        m = self.model()
+        n = myokit.Name(self)
+        for v, e in zip(m._state_vars, m._state_init):
+            if n in e.references():
+                refs.add(v)
+        if ignore_siblings:
+            # Refs from sibling variables are allowed
+            refs = refs.difference(
+                set([x for x in refs if x.has_ancestor(self._parent)]))
+        if refs:
+            raise myokit.IntegrityError(
+                'Variable <' + self.qname() + '> can not be removed: it is'
+                ' used in the inital value(s) for ' + ' and '.join(
+                    ['<' + v.qname() + '>' for v in refs]) + '.')
+
         # At this point it's OK to delete. Rest of the code makes changes,
         # shouldn't raise errors.
 
@@ -4291,7 +4309,6 @@ class Variable(VarOwner):
             self.set_label(None)
 
             # Remove any aliases
-            m = self.parent(Model)
             for c in m.components():
                 c.remove_aliases_for(self)
 
@@ -4502,6 +4519,7 @@ class Variable(VarOwner):
                 raise Exception('Deprecated keyword argument `state_value` can'
                                 ' not be used at the same time as its'
                                 ' replacement `initial_value`.')
+            initial_value = state_value
 
             import warnings
             warnings.warn('The keyword argument `state_value` is deprecated.'
@@ -4516,12 +4534,6 @@ class Variable(VarOwner):
                     initial_value, context=model)
             elif initial_value is not None:
                 initial_value = myokit.Number(initial_value)
-
-        # check initial state value expression is constant
-        if not initial_value.is_constant():
-            raise myokit.NonConstantExpressionError(
-                'Expressions for state values must only contain references to'
-                ' constant variables.')
 
         try:
             # Set lhs to derivative expression
@@ -4789,15 +4801,16 @@ class Variable(VarOwner):
             else:
                 value = myokit.Number(value)
 
-        # Check expression
-        if not value.is_constant():
-            raise myokit.NonConstantExpressionError(
-                'Expressions for state values must be constant in time.')
+        # Allow internal calls to parse `value` without making a change
+        if not make_the_change:
+            return value
 
-        if make_the_change:
+        # Update
+        try:
             model._state_init[self._indice] = value
-            # No need to reset validation status or cache here.
-        return value
+        finally:
+            # Reset model validation, but not the variable cache
+            model._reset_validation()
 
     def set_label(self, label=None):
         """
@@ -4943,46 +4956,89 @@ class Variable(VarOwner):
         """
         Attempts to check this variable's validity, raises errors if it isn't.
         """
+        #
         # Validate rhs
+        #
         if self._rhs is None:
             raise myokit.MissingRhsError(self)
         self._rhs.validate()
 
-        # Partial derivatives are not allowed in an RHS
+        # RHS: No PartialDerivative objects
         if self._rhs.contains_type(myokit.PartialDerivative):
             raise myokit.IntegrityError(
                 'Partial derivatives may not appear in expressions set as'
-                ' right-hand side of a variable.')
+                ' right-hand side of a variable: <' + self.qname() + '>.')
 
-        # Initial values are not allowed in an RHS
+        # RHS: No InitialValue objects
         if self._rhs.contains_type(myokit.InitialValue):
             raise myokit.IntegrityError(
                 'Initial value operators may not appear in expressions set as'
-                ' right-hand side of a variable.')
+                ' right-hand side of a variable: <' + self.qname() + '>.')
 
-        # Conditions are not allowed as an RHS
+        # RHS: Can't evaluate to True or False
         if isinstance(self._rhs, myokit.Condition):
             raise myokit.IntegrityError(
                 'The right-hand side expression for a variable can not be a'
-                ' condition.')
+                ' condition: <' + self.qname() + '>.')
 
+        #
         # Check state variables
+        #
         is_state = self._indice is not None
         is_deriv = self.lhs().is_derivative()
         if is_state:
+            # Derivative is set
             if not is_deriv:        # pragma: no cover
                 raise myokit.IntegrityError(
                     'Variable <' + self.qname() + '> is listed as a state'
                     ' variable but its lhs is not a derivative.')
+
+            # Not nested
             if self._is_nested:     # pragma: no cover
                 raise myokit.IntegrityError(
                     'State variables should not be nested: <'
                     + str(self.qname()) + '>.')
+
+            # Index matches model
             m = self.model()
             if not m._state_vars[self._indice] == self:  # pragma: no cover
                 raise myokit.IntegrityError(
                     'State variable not listed in model state vector at'
                     ' correct indice: <' + self.qname() + '>.')
+
+            # Initial value is an expression
+            i = m._state_init[self._indice]
+            if not isinstance(i, myokit.Expression):  # pragma: no cover
+                raise myokit.IntegrityError(
+                    'Initial value for <' + self.qname() + '> is not an'
+                    ' expression.')
+
+            # Init: No PartialDerivative or InitialValue operators
+            if i.contains_type(myokit.PartialDerivative):
+                raise myokit.IntegrityError(
+                    'Partial derivatives may not appear in model expressions:'
+                    ' initial value for <' + self.qname() + '>.')
+            if i.contains_type(myokit.InitialValue):
+                raise myokit.IntegrityError(
+                    'Initial values may not appear in model expressions:'
+                    ' initial value for < ' + self.qname() + '>.')
+
+            # Init: Can't evaluate to True or False
+            if isinstance(i, myokit.Condition):
+                raise myokit.IntegrityError(
+                    'The initial value for a variable can not be a'
+                    ' condition: <' + self.qname() + '>.')
+
+            # Init: No nested variables or non-constants
+            for ref in i.references():
+                var = ref.var()
+                if var.is_nested():
+                    raise myokit.IllegalReferenceInInitialValueError(self, ref)
+                if not var.is_constant():
+                    raise myokit.IntegrityError(
+                        'Initial value for variable <' + self.qname() + '> is'
+                        ' not constant: ' + i.code() + '.')
+
         elif is_deriv:  # pragma: no cover
             raise myokit.IntegrityError(
                 'A derivative was set for <' + self.qname() + '> but this is'

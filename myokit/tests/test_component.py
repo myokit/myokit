@@ -58,7 +58,7 @@ class VarOwnerTest(unittest.TestCase):
                 myokit.Name(y)
             )
         ))
-        x.set_state_value(10)
+        x.set_initial_value(10)
         y.set_rhs(myokit.Plus(
             myokit.Multiply(
                 myokit.PrefixMinus(myokit.Name(c)), myokit.Name(y)
@@ -67,7 +67,7 @@ class VarOwnerTest(unittest.TestCase):
                 myokit.Multiply(myokit.Name(d), myokit.Name(x)), myokit.Name(y)
             )
         ))
-        y.set_state_value(5)
+        y.set_initial_value(5)
         Z = m.add_component('Z')
         t = Z.add_variable('total')
         t.set_rhs(myokit.Plus(myokit.Name(x), myokit.Name(y)))
@@ -117,92 +117,92 @@ class VarOwnerTest(unittest.TestCase):
         m = myokit.Model('LotkaVolterra')
 
         # Add a variable 'a'
-        X = m.add_component('X')
+        z = m.add_component('z')
 
         # Simplest case
-        a = X.add_variable('a')
-        self.assertEqual(X.count_variables(), 1)
-        X.remove_variable(a)
-        self.assertEqual(X.count_variables(), 0)
-        self.assertRaises(Exception, X.remove_variable, a)
+        a = z.add_variable('a')
+        self.assertEqual(z.count_variables(), 1)
+        z.remove_variable(a)
+        self.assertEqual(z.count_variables(), 0)
+        self.assertRaises(Exception, z.remove_variable, a)
 
         # Test re-adding
-        a = X.add_variable('a')
+        a = z.add_variable('a')
         a.set_rhs(myokit.Number(5))
-        self.assertEqual(X.count_variables(), 1)
+        self.assertEqual(z.count_variables(), 1)
 
         # Test deleting dependent variables
-        b = X.add_variable('b')
-        self.assertEqual(X.count_variables(), 2)
+        b = z.add_variable('b')
+        self.assertEqual(z.count_variables(), 2)
         b.set_rhs(myokit.Plus(myokit.Number(3), myokit.Name(a)))
 
         # Test blocking of removal
-        self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
-        self.assertEqual(X.count_variables(), 2)
+        self.assertRaises(myokit.IntegrityError, z.remove_variable, a)
+        self.assertEqual(z.count_variables(), 2)
 
         # Test removal in the right order
-        X.remove_variable(b)
-        self.assertEqual(X.count_variables(), 1)
-        X.remove_variable(a)
-        self.assertEqual(X.count_variables(), 0)
+        z.remove_variable(b)
+        self.assertEqual(z.count_variables(), 1)
+        z.remove_variable(a)
+        self.assertEqual(z.count_variables(), 0)
 
         # Test reference to current state variable values
-        a = X.add_variable('a')
+        a = z.add_variable('a')
         a.set_rhs(myokit.Number(5))
         a.promote()
-        b = X.add_variable('b')
+        b = z.add_variable('b')
         b.set_rhs(myokit.Plus(myokit.Number(3), myokit.Name(a)))
-        self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
-        X.remove_variable(b)
-        X.remove_variable(a)
-        self.assertEqual(X.count_variables(), 0)
+        self.assertRaises(myokit.IntegrityError, z.remove_variable, a)
+        z.remove_variable(b)
+        z.remove_variable(a)
+        self.assertEqual(z.count_variables(), 0)
 
         # Test reference to current state variable values with "self"-ref
-        a = X.add_variable('a')
+        a = z.add_variable('a')
         a.promote()
         a.set_rhs(myokit.Name(a))
-        X.remove_variable(a)
+        z.remove_variable(a)
 
         # Test it doesn't interfere with normal workings
-        a = X.add_variable('a')
+        a = z.add_variable('a')
         a.promote()
         a.set_rhs(myokit.Name(a))
-        b = X.add_variable('b')
+        b = z.add_variable('b')
         b.set_rhs(myokit.Name(a))
-        self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
-        X.remove_variable(b)
-        X.remove_variable(a)
+        self.assertRaises(myokit.IntegrityError, z.remove_variable, a)
+        z.remove_variable(b)
+        z.remove_variable(a)
 
         # Test reference to dot
-        a = X.add_variable('a')
+        a = z.add_variable('a')
         a.set_rhs(myokit.Number(5))
         a.promote()
-        b = X.add_variable('b')
+        b = z.add_variable('b')
         b.set_rhs(myokit.Derivative(myokit.Name(a)))
-        self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
-        X.remove_variable(b)
-        X.remove_variable(a)
+        self.assertRaises(myokit.IntegrityError, z.remove_variable, a)
+        z.remove_variable(b)
+        z.remove_variable(a)
 
         # Test if orphaned
         self.assertIsNone(b.parent())
 
         # Test deleting variable with nested variables
-        a = X.add_variable('a')
+        a = z.add_variable('a')
         b = a.add_variable('b')
         b.set_rhs(myokit.Plus(myokit.Number(2), myokit.Number(2)))
         a.set_rhs(myokit.Multiply(myokit.Number(3), myokit.Name(b)))
-        self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
+        self.assertRaises(myokit.IntegrityError, z.remove_variable, a)
         self.assertEqual(a.count_variables(), 1)
-        self.assertEqual(X.count_variables(), 1)
+        self.assertEqual(z.count_variables(), 1)
 
         # Test recursive deleting
-        X.remove_variable(a, recursive=True)
+        z.remove_variable(a, recursive=True)
         self.assertEqual(a.count_variables(), 0)
-        self.assertEqual(X.count_variables(), 0)
+        self.assertEqual(z.count_variables(), 0)
 
         # Test deleting variable with nested variables that depend on each
         # other
-        a = X.add_variable('a')
+        a = z.add_variable('a')
         b = a.add_variable('b')
         c = a.add_variable('c')
         d = a.add_variable('d')
@@ -211,12 +211,12 @@ class VarOwnerTest(unittest.TestCase):
         b.set_rhs('2 * a - d')
         c.set_rhs('a + b + d')
         d.set_rhs('3 * a')
-        self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
+        self.assertRaises(myokit.IntegrityError, z.remove_variable, a)
         self.assertEqual(a.count_variables(), 3)
-        self.assertEqual(X.count_variables(), 1)
-        X.remove_variable(a, recursive=True)
+        self.assertEqual(z.count_variables(), 1)
+        z.remove_variable(a, recursive=True)
         self.assertEqual(a.count_variables(), 0)
-        self.assertEqual(X.count_variables(), 0)
+        self.assertEqual(z.count_variables(), 0)
 
         # Test if removed from model's label and binding lists
         m = myokit.Model()
@@ -235,6 +235,58 @@ class VarOwnerTest(unittest.TestCase):
         c.remove_variable(y)
         self.assertIs(m.binding('time'), None)
         self.assertIs(m.label('membrane_potential'), None)
+
+        # Test variable can't be removed if used in initial expression
+        m = myokit.Model()
+        c = m.add_component('c')
+        p = c.add_variable('p')
+        p.set_rhs(2)
+        x = c.add_variable('x')
+        x.set_rhs(1)
+        x.promote('1 + c.p')
+        self.assertRaises(myokit.IntegrityError, c.remove_variable, p)
+        q = c.add_variable('q')
+        q.set_rhs(10)
+        x.set_initial_value('1 / c.q')
+        c.remove_variable(p)
+        self.assertRaises(myokit.IntegrityError, c.remove_variable, q)
+        x.set_initial_value('sqrt(2)')
+        c.remove_variable(q)
+
+        # But it's OK if we're deleting a whole component
+        m = myokit.Model()
+        c = m.add_component('c')
+        p = c.add_variable('p')
+        p.set_rhs(2)
+        x = c.add_variable('x')
+        x.set_rhs(1)
+        x.promote('1 + c.p')
+        m.remove_component('c')
+
+    def test_remove_variable_with_alias(self):
+        # Test cloning of a variable with an alias after an add / remove event.
+
+        m = myokit.Model('AddRemoveClone')
+        c = m.add_component('c')
+        p = c.add_variable('p')
+        p.set_binding('time')
+        p.set_rhs(0)
+        q = c.add_variable('q')
+        q.set_rhs(12)
+        m.validate()    # Raises error if not ok
+        m.clone()       # Raises error if not ok
+        d = m.add_component('d')
+        d.add_alias('bert', p)
+        e = d.add_variable('e')
+        e.set_rhs('10 * bert')
+        m.validate()
+        m.clone()
+        d.add_alias('ernie', q)
+        m.validate()
+        m.clone()
+        c.remove_variable(q)
+        m.validate()
+        m.clone()   # Will raise error if alias isn't deleted
 
     def test_resolve(self):
         # Test if an error is raised when a variable can't be resolved.

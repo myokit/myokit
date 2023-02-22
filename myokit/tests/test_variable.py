@@ -393,6 +393,12 @@ class VariableTest(unittest.TestCase):
         y.set_rhs('1 + x')
         x.demote()
 
+        # Test deprecated keyword argument
+        with WarningCollector() as w:
+            x.promote(state_value=3)
+        self.assertIn('deprecated', w.text())
+        self.assertEqual(x.initial_value(), myokit.Number(3))
+
     def test_pyfunc(self):
         # Test :meth:`Variable.pyfunc().
 
@@ -706,9 +712,14 @@ class VariableTest(unittest.TestCase):
 
         m = myokit.Model()
         c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
         v = c.add_variable('v')
+        v.set_rhs(3)
         w = c.add_variable('w')
         w.set_rhs('1 + 2')
+        m.validate()
 
         # Test basic functionality
         v.promote(10)
@@ -735,11 +746,27 @@ class VariableTest(unittest.TestCase):
         self.assertRaisesRegex(
             Exception, 'Only state variables', w.set_initial_value, 3)
         v.promote(3)
+        m.validate()
 
-        # Initial values must be constant
+        # Initial values must be constant, but this is only picked up in
+        # validation
         w.promote(1)
+        v.set_initial_value(myokit.Name(w))
+        self.assertRaises(myokit.IntegrityError, m.validate)
+        w.demote()
+        m.validate()
+
+        # Nested variables may not be used, but this is only picked up when
+        # validating
+        x = v.add_variable('x')
+        x.set_rhs(1)
+        v.set_initial_value(x.lhs())
         self.assertRaises(
-            myokit.NonConstantExpressionError, v.set_initial_value, w.lhs())
+            myokit.IllegalReferenceInInitialValueError, m.validate)
+        v.set_initial_value(x)
+
+        # InitialValue and PartialDerivative can not be used
+        v.set_initial_value(myokit.PartialDerivative(v.lhs(), x.lhs()))
 
         # Deprecated alias
         with WarningCollector() as w:
@@ -828,6 +855,59 @@ class VariableTest(unittest.TestCase):
         p.set_rhs('q == 3')
         self.assertRaisesRegex(
             myokit.IntegrityError, 'can not be a condition', p.validate)
+        p.set_rhs(3)
+        p.validate()
+
+        # Initial value can not reference nested variables
+        r = c.add_variable('r')
+        r1 = r.add_variable('r1')
+        r1.set_rhs(1)
+        r.set_rhs('1 + r1')
+        p.validate()
+        p.set_initial_value(myokit.Plus(myokit.Number(1), myokit.Name(r1)))
+        self.assertRaises(
+            myokit.IllegalReferenceInInitialValueError, p.validate)
+
+        # Initial value must be constant
+        p.set_initial_value('1 / c.q')
+        q.promote(3)
+        self.assertRaisesRegex(myokit.IntegrityError, 'not const', p.validate)
+        q.demote()
+        p.validate()
+        q.set_rhs('1 + c.p')
+        self.assertRaisesRegex(myokit.IntegrityError, 'not const', p.validate)
+        q.set_rhs(10)
+        p.validate()
+        q.set_binding('hello')
+        self.assertRaisesRegex(myokit.IntegrityError, 'not const', p.validate)
+        # Don't test everything, is_const() should work!
+
+        # Initial value cannot be a partial, init, or condition
+        p.set_initial_value(myokit.PartialDerivative(p.lhs(), q.lhs()))
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'Partial derivatives', p.validate)
+        p.set_initial_value(myokit.InitialValue(myokit.Name(p)))
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'Initial value', p.validate)
+        p.set_initial_value('c.q == 3')
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'can not be a condition', p.validate)
+
+        # Initial value cycles are caught in validation, don't cause loops
+        m = myokit.parse_model('''
+            [[model]]
+            x.x = 0
+            [x]
+            dot(x) = x
+            t = 0 bind time
+            ''')
+        x = m.get('x.x')
+        x.set_initial_value('x.x')
+        self.assertRaisesRegex(myokit.IntegrityError, 'not const', m.validate)
+        x.set_initial_value(1)
+        m.validate()
+        x.set_initial_value('1 + 1 / x.x')
+        self.assertRaisesRegex(myokit.IntegrityError, 'not const', m.validate)
 
     def test_value(self):
         # Test :meth:`Variable.value()`.

@@ -151,17 +151,17 @@ class ModelBuildTest(unittest.TestCase):
         x.promote(1)
         self.assertEqual(x.initial_value(as_float=True), 1)
 
-        # non-constant expression initial value should error
-        b.promote()
-        x.demote()
-        with self.assertRaises(myokit.NonConstantExpressionError):
-            x.promote(myokit.Name(b))
-        b.demote()
-
         # Set constant expression initial value
-        x.promote(myokit.Name(b1))
-        self.assertEqual(x.initial_value(as_float=True), 1)
-        self.assertEqual(x.initial_value(), myokit.Name(b1))
+        x.set_initial_value(myokit.Name(b))
+        self.assertEqual(x.initial_value(as_float=True), 2)
+        self.assertEqual(x.initial_value(), myokit.Name(b))
+
+        # Non-constant expression initial value can be set, but isn't valid
+        m.validate()
+        b.promote()
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'not constant', m.validate)
+        b.demote()
 
         # Set literal valued expression initial value
         x.demote()

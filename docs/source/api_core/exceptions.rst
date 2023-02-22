@@ -43,6 +43,8 @@ Inheriting classes
 
 .. autoclass:: IllegalReferenceError
 
+.. autoclass:: IllegalReferenceInInitialValueError
+
 .. autoclass:: ImportError
 
 .. autoclass:: IncompatibleModelError
@@ -64,8 +66,6 @@ Inheriting classes
 .. autoclass:: MissingRhsError
 
 .. autoclass:: MissingTimeVariableError
-
-.. autoclass:: NonConstantExpressionError
 
 .. autoclass:: NumericalError
 

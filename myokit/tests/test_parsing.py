@@ -1456,7 +1456,7 @@ class ModelParseTest(unittest.TestCase):
             dot(p) = 1
             """
         self.assertRaisesRegex(
-            myokit.ParseError, 'must be constant', myokit.parse, code)
+            myokit.ParseError, 'is not constant', myokit.parse, code)
 
         # indirect non-constant initial value
         code = """
@@ -1473,7 +1473,7 @@ class ModelParseTest(unittest.TestCase):
             r = 2 * q
             """
         self.assertRaisesRegex(
-            myokit.ParseError, 'must be constant', myokit.parse, code)
+            myokit.ParseError, 'is not constant', myokit.parse, code)
 
         # looks like it shouldn't be constant, but it is!
         code = """
@@ -1488,8 +1488,19 @@ class ModelParseTest(unittest.TestCase):
             """
         # Treat all state variables as non-constant
         self.assertRaisesRegex(
-            myokit.ParseError, 'must be constant', myokit.parse, code
-        )
+            myokit.ParseError, 'is not constant', myokit.parse, code)
+
+        # Initial value cycles are caught in validation
+        code = """
+            [[model]]
+            x.x = x.x
+
+            [x]
+            dot(x) = x
+            t = 0 bind time
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, 'is not constant', myokit.parse, code)
 
     def test_aliases(self):
         code = """

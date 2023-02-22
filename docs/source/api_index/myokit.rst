@@ -53,6 +53,7 @@ myokit
 - :class:`myokit.If`
 - :class:`myokit.IllegalAliasError`
 - :class:`myokit.IllegalReferenceError`
+- :class:`myokit.IllegalReferenceInInitialValueError`
 - :class:`myokit.ImportError`
 - :class:`myokit.IncompatibleModelError`
 - :class:`myokit.IncompatibleUnitError`
@@ -89,7 +90,6 @@ myokit
 - :class:`myokit.Multiply`
 - :class:`myokit.MyokitError`
 - :class:`myokit.Name`
-- :class:`myokit.NonConstantExpressionError`
 - :class:`myokit.Not`
 - :class:`myokit.NotEqual`
 - :class:`myokit.Number`

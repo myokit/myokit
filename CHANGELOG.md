@@ -5,11 +5,11 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
   - [#898](https://github.com/myokit/myokit/pull/899) Initial conditions for state variables can now be (constant-valued) expressions. Previously, only literals were allowed.
-  - [#898](https://github.com/myokit/myokit/pull/899) Added `myokit.NonConstantExpressionError` for an error where a constant expression is expected.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Model.initial_values`, which returns the model's initial values as a list of expressions, floats, or equations.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Model.set_initial_values`, which sets the model's initial values using a list of expressions or anything accepted by `map_to_state`.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.initial_value`, which returns a state variable's initial value as an expression or float.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.set_initial_value`, which sets a state variable's initial value using an expression, string expression, or float.
+  - [#918](https://github.com/myokit/myokit/pull/918) Added `IllegalReferenceInInitialValueError` for illegal references made in initial value expressions.
 - Changed
   - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `initial_value`.
   - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is now tested on Python 3.11.
@@ -23,7 +23,6 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) `Variable.state_value` is deprecated in favour of `Variable.initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.save_state` and `Model.load_state` are deprecated.
-  - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) The `Variable.promote` keyword argument `state_value` is deprecated in favour of `initial_value`.
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
@@ -32,6 +31,7 @@ This page lists the main changes made to Myokit in each release.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `ICSimulation` class.
 - Fixed
   - [#933](https://github.com/myokit/myokit/pull/933) Made `myokit.step` base its error classification (large/small/none) on numerics, not representation.
+  - [#918](https://github.com/myokit/myokit/pull/918) Fixed error when `var()` was called on a `PartialDerivative` with a `Derivative` as first argument.
 
 ## [1.33.9] - 2022-11-08
 - Fixed

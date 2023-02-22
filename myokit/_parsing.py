@@ -462,12 +462,6 @@ def parse_model_from_stream(stream, syntax_only=False):
     for i, var in enumerate(model.states()):
         proto_expr = info.initial_values[var.qname()]
         expr = convert_proto_expression(proto_expr, context=model, info=info)
-        if not expr.is_constant():
-            t = proto_expr[2][0]
-            raise ParseError(
-                'NonConstantExpression', t[2], t[3],
-                'All initial values must be constant.'
-            )
         var.set_initial_value(expr)
         del info.initial_values[var.qname()]
 

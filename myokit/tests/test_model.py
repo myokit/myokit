@@ -1410,45 +1410,6 @@ class ModelTest(unittest.TestCase):
             m1.import_component, ms['q'], var_map=vm, convert_units=True)
         self.assertTrue(ms.is_similar(ms_unaltered, True))
 
-    def test_initial_value_made_non_constant(self):
-        # Tests that the validate() method picks up on non-constant initial
-        # values.
-
-        m = myokit.parse_model('''
-            [[model]]
-            c.x = 0
-            c.y = 0
-
-            [c]
-            t = 0 bind time
-            dot(x) = 0
-            dot(y) = 0
-            p = 0
-        ''')
-
-        # Change to involve p, this is OK
-        x = m.get('c.x')
-        x.set_initial_value('1 / log(c.p)')
-        m.validate()
-
-        # State? Not ok
-        p = m.get('c.p')
-        p.promote()
-        self.assertRaises(myokit.NonConstantExpressionError, m.validate)
-        p.demote()
-        m.validate()
-
-        # State-dependent? Not ok
-        p.set_rhs('1 + y')
-        self.assertRaises(myokit.NonConstantExpressionError, m.validate)
-        p.set_rhs(10)
-        m.validate()
-
-        # Bound? Not ok
-        p.set_binding('hello')
-        self.assertRaises(myokit.NonConstantExpressionError, m.validate)
-        # Don't test everything, is_const() should work!
-
     def test_initial_values(self):
         # Tests :meth:`Model.initial_values`.
 
@@ -1483,7 +1444,7 @@ class ModelTest(unittest.TestCase):
             self.assertEqual(m.state(), m.initial_values(True))
         self.assertIn('deprecated', w.text())
 
-        # Test cycles are detected
+        # Test cycles are detected before evaluation
         p.set_rhs('1 / q')
         m.get('c.q').set_rhs('1 + p')
         m.initial_values()  # No evaluation, so no error
@@ -1510,13 +1471,11 @@ class ModelTest(unittest.TestCase):
             eqs = m.inits()
         self.assertIn('deprecated', w.text())
 
+        E, N, M = myokit.Equation, myokit.Number, myokit.Multiply
         self.assertEqual(list(eqs), [
-            myokit.Equation(myokit.Name(m.get('c.x')), myokit.Number(2)),
-            myokit.Equation(myokit.Name(m.get('c.y')),
-                            myokit.Plus(myokit.Number(1), myokit.Number(2))),
-            myokit.Equation(myokit.Name(m.get('c.z')),
-                            myokit.Multiply(myokit.Number(2),
-                                            m.get('c.p').lhs()))
+            E(myokit.Name(m.get('c.x')), N(2)),
+            E(myokit.Name(m.get('c.y')), myokit.Plus(N(1), N(2))),
+            E(myokit.Name(m.get('c.z')), M(N(2), m.get('c.p').lhs()))
         ])
 
     def test_is_similar(self):
@@ -1946,31 +1905,6 @@ class ModelTest(unittest.TestCase):
         m1.remove_derivative_references()
         self.assertEqual(m1.get('c.dot_y').unit(), myokit.parse_unit('mV/ms'))
 
-    def test_remove_variable_with_alias(self):
-        # Test cloning of a variable with an alias after an add / remove event.
-
-        m = myokit.Model('AddRemoveClone')
-        c = m.add_component('c')
-        p = c.add_variable('p')
-        p.set_binding('time')
-        p.set_rhs(0)
-        q = c.add_variable('q')
-        q.set_rhs(12)
-        m.validate()    # Raises error if not ok
-        m.clone()       # Raises error if not ok
-        d = m.add_component('d')
-        d.add_alias('bert', p)
-        e = d.add_variable('e')
-        e.set_rhs('10 * bert')
-        m.validate()
-        m.clone()
-        d.add_alias('ernie', q)
-        m.validate()
-        m.clone()
-        c.remove_variable(q)
-        m.validate()
-        m.clone()   # Will raise error if alias isn't deleted
-
     def test_reorder_state(self):
         # Test :meth:`Model.reorder_state()`.
 
@@ -2118,10 +2052,13 @@ class ModelTest(unittest.TestCase):
         for val, ref in zip(m.initial_values(True), values):
             self.assertEqual(val, ref)
 
-        # Non-constant is not allowed
+        # Test that errors are detected in validation
         values[0] = myokit.Name(m.get('membrane.V'))
-        self.assertRaises(
-            myokit.NonConstantExpressionError, m.set_initial_values, values)
+        m.set_initial_values(values)
+        self.assertRaisesRegex(myokit.IntegrityError, 'not const', m.validate)
+        values[0] = 'sqrt(3)'
+        m.set_initial_values(values)
+        m.validate()
 
         # Deprecated alias
         values = m.initial_values(as_floats=True)

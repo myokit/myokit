@@ -1390,7 +1390,7 @@ class PartialDerivative(LhsExpression):
         As with time-derivatives, this returns the variable of which a
         derivative is taken (i.e. the dependent variable "y" in "dy/dx").
         """
-        return self._var1._value
+        return self._var1.var()
 
 
 class InitialValue(LhsExpression):
@@ -2852,7 +2852,7 @@ class Piecewise(Function):
         return iter(self._e)
 
 
-class Condition(object):
+class Condition():
     """
     *Abstract class*
 
@@ -2860,13 +2860,12 @@ class Condition(object):
     False. Doesn't add any methods but simply indicates that this is a
     condition.
     """
-
     def _diff(self, lhs, idstates):
         raise NotImplementedError(
             'Conditions do not have partial derivatives.')
 
 
-class PrefixCondition(Condition, PrefixExpression):
+class PrefixCondition(PrefixExpression, Condition):
     """
     Interface for prefix conditions.
 
@@ -2920,7 +2919,7 @@ class Not(PrefixCondition):
         self._op._polishb(b)
 
 
-class InfixCondition(Condition, InfixExpression):
+class InfixCondition(InfixExpression, Condition):
     """
     Base class for infix expressions.
 

@@ -353,7 +353,7 @@ class LoadSaveStateTest(unittest.TestCase):
 
             # Save with model, load without
             # Loaded version is dict!
-            myokit.save_state(f, m.state_values(True), m)
+            myokit.save_state(f, m.initial_values(True), m)
             self.assertEqual(myokit.load_state(f), dict(zip(
                 [v.qname() for v in m.states()], m.initial_values(True))))
 
