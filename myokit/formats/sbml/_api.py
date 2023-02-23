@@ -1298,7 +1298,7 @@ class _MyokitConverter(object):
                         'with an initial value. Default is set to 1.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
@@ -1383,7 +1383,7 @@ class _MyokitConverter(object):
                         'value. Default is set to 0.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
                 var.set_rhs(myokit.Number(0))
 
             if (not var.rhs().is_literal()) or var.rhs().eval():
@@ -1473,7 +1473,7 @@ class _MyokitConverter(object):
                         'value. Default is set to 0.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
                 var.set_rhs(myokit.Number(0))
 
             if (not var.rhs().is_literal()) or var.rhs().eval():
@@ -1546,7 +1546,7 @@ class _MyokitConverter(object):
                         'value. Default is set to 0.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
 
             # Set RHS (reactions are dealt with elsewhere)
             expr = species.value()
@@ -1607,7 +1607,7 @@ class _MyokitConverter(object):
                         ' initial value. Default is set to 1.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
@@ -1673,7 +1673,7 @@ class _MyokitConverter(object):
                             ' 1.')
 
                     # Promote size to state variable
-                    var.promote(state_value=state_value)
+                    var.promote(state_value)
 
                 # Set RHS
                 # (assignmentRule overwrites initialAssignment)

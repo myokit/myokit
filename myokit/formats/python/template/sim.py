@@ -96,9 +96,9 @@ class <?= names[1] ?>(object):
         Resets the state variables to their initial values
         """
 <?
-    for eq in model.inits():
-        if eq.lhs.var().parent() == comp:
-            print(tab2 + e(eq))
+    for var, value in zip(model.states(), model.initial_values(True)):
+        if var.parent() == comp:
+            print(tab2 + v(var, comp) + ' = ' + myokit.float.str(value))
     ?>    def update(self):
         """
         Re-calculates all values for the current time and state

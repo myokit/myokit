@@ -223,6 +223,10 @@ class JacobianCalculator(myokit.CppModule):
         # Clone model
         self._model = model.clone()
 
+        # Store the initial values (won't be able to access once time binding
+        # is removed).
+        self._state = self._model.initial_values(as_floats=True)
+
         # Unbind all inputs
         for label, var in self._model.bindings():
             var.set_binding(None)
@@ -310,7 +314,7 @@ class JacobianCalculator(myokit.CppModule):
 
         # Get initial state
         if x is None:
-            x = self._model.state()
+            x = self._state
         x = np.array(x)
 
         # Calculate derivatives & jacobian

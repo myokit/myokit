@@ -31,6 +31,7 @@ class Simulation1dTest(unittest.TestCase):
     """
     Test the non-parallel 1d simulation.
     """
+
     def test_basic(self):
         # Test basic usage.
 
@@ -42,23 +43,24 @@ class Simulation1dTest(unittest.TestCase):
         s = myokit.Simulation1d(m, p, ncells=ncells)
         s.set_step_size(0.05)
 
+        x0 = m.initial_values(True)
         self.assertEqual(s.time(), 0)
-        self.assertEqual(s.state(0), m.state())
-        self.assertEqual(s.default_state(0), m.state())
+        self.assertEqual(s.state(0), x0)
+        self.assertEqual(s.default_state(0), x0)
         d = s.run(5, log_interval=1)
         self.assertEqual(s.time(), 5)
-        self.assertNotEqual(s.state(0), m.state())
-        self.assertEqual(s.default_state(0), m.state())
+        self.assertNotEqual(s.state(0), x0)
+        self.assertEqual(s.default_state(0), x0)
 
         # Test full state getting and reset
-        self.assertEqual(s.default_state(), m.state() * ncells)
-        self.assertNotEqual(s.state(), m.state() * ncells)
+        self.assertEqual(s.default_state(), x0 * ncells)
+        self.assertNotEqual(s.state(), x0 * ncells)
         s.reset()
         self.assertEqual(s.state(), s.default_state())
 
         # Test pre updates the default state.
         s.pre(1)
-        self.assertNotEqual(s.default_state(0), m.state())
+        self.assertNotEqual(s.default_state(0), x0)
 
         # Test running without a protocol
         s.set_protocol(None)
@@ -103,6 +105,31 @@ class Simulation1dTest(unittest.TestCase):
         s.set_time(100)
         self.assertEqual(s.time(), 100)
 
+    def test_initial_value_expressions(self):
+        # Test if initial value expressions are converted to floats
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 1 + sqrt(3)
+            c.y = 1 / c.p
+            c.z = 3
+
+            [c]
+            t = 0 bind time
+            dot(x) = 1 label membrane_potential
+            dot(y) = 2
+            dot(z) = 3
+            p = log(3)
+            q = 0 bind diffusion_current
+        ''')
+        s = myokit.Simulation1d(m, ncells=2)
+        x = s.state()
+        self.assertIsInstance(x[0], float)
+        self.assertIsInstance(x[1], float)
+        self.assertIsInstance(x[2], float)
+        self.assertEqual(x[:3], x[3:])
+        self.assertEqual(x, m.initial_values(True) * 2)
+        self.assertEqual(x, s.default_state())
+
     def test_with_progress_reporter(self):
         # Test running with a progress reporter.
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
@@ -130,7 +157,8 @@ class Simulation1dTest(unittest.TestCase):
         n = 4
 
         s = myokit.Simulation1d(m, p, n)
-        self.assertEqual(s.state(), m.state() * n)
+        x0 = m.initial_values(True)
+        self.assertEqual(s.state(), x0 * n)
 
         # Test setting a full state
         sx = [0] * 8 * n
@@ -142,8 +170,8 @@ class Simulation1dTest(unittest.TestCase):
         sx = [0] * 8
         s.set_state(sx)
         self.assertEqual(s.state(), sx * n)
-        s.set_state(m.state())
-        self.assertEqual(s.state(), m.state() * n)
+        s.set_state(x0)
+        self.assertEqual(s.state(), x0 * n)
 
         # Test setting a single state
         j = 1
@@ -152,7 +180,7 @@ class Simulation1dTest(unittest.TestCase):
             if i == j:
                 self.assertEqual(s.state(i), sx)
             else:
-                self.assertEqual(s.state(i), m.state())
+                self.assertEqual(s.state(i), x0)
 
         # Invalid cell index
         s.set_state(sx, 0)
@@ -167,7 +195,7 @@ class Simulation1dTest(unittest.TestCase):
         n = 4
 
         s = myokit.Simulation1d(m, p, n)
-        self.assertEqual(s.state(), m.state() * n)
+        self.assertEqual(s.state(), m.initial_values(True) * n)
 
         # Test setting a full state
         sx = [0] * 8 * n
@@ -179,8 +207,9 @@ class Simulation1dTest(unittest.TestCase):
         sx = [0] * 8
         s.set_default_state(sx)
         self.assertEqual(s.default_state(), sx * n)
-        s.set_default_state(m.state())
-        self.assertEqual(s.default_state(), m.state() * n)
+        sy = m.initial_values(True)
+        s.set_default_state(sy)
+        self.assertEqual(s.default_state(), sy * n)
 
         # Test setting a single state
         j = 1
@@ -189,7 +218,7 @@ class Simulation1dTest(unittest.TestCase):
             if i == j:
                 self.assertEqual(s.default_state(i), sx)
             else:
-                self.assertEqual(s.default_state(i), m.state())
+                self.assertEqual(s.default_state(i), sy)
 
         # Invalid cell index
         s.set_default_state(sx, 0)

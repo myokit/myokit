@@ -44,8 +44,9 @@ Meta-data can be added to a model using the syntax ``field: value``
 All state variables require an initial value to be specified in the model
 header using the syntax ``component.variable = value``
 
-Initial values can be numbers or expressions, as long as they don't reference
-other variables.
+Initial values can be numbers or expressions. Expressions can make reference 
+to variables as long as they not nested (see below) and are constant in time.
+References must be made using the syntax ``component.variable``.
 
 Example::
 
@@ -55,9 +56,9 @@ Example::
           backslash notation.
     author: Identifies the author of the model implementation
     membrane.V = -84
-    na_fast.m  = 0
-    na_fast.h  = 1.0
-    na_fast.j  = 1.0
+    ina.m  = 0
+    ina.h  = 0.9
+    ina.j  = 1 / ina.parameter_1
 
 Component syntax
 ================
@@ -416,9 +417,9 @@ The following functions are defined:
 In addition, the expression ``dot(x)`` can be used to reference the time
 derivative of state variable ``x``.
 
-Conditional statements
-======================
-Conditional statements can be made using the ``if`` function::
+Conditional statements (if)
+===========================
+Simple conditional statements can be made using the ``if`` function::
 
     x = if(V < -50,
         0.2 * exp((V - 12) / 4.7),
@@ -432,8 +433,8 @@ Which should be read as::
         x = 0.5 * exp((V + 19) / 1.2)
 
 
-Advanced conditional statements
-===============================
+Piecewise conditional statements
+================================
 Conditional statements with more than 1 branch can be made using the
 ``piecewise`` construct::
 
@@ -586,7 +587,7 @@ myocyte::
           """
     # Template functions
     sig(V, Vstar, a, b) = exp(a * (Vstar - V)) / (1 + exp(b * (Vstar - V)))
-    # Initial conditions
+    # Initial values
     membrane.V         = -84.4
     na_fast.m          = 0.0017
     na_fast.h          = 0.98

@@ -1142,7 +1142,7 @@ class Name(LhsExpression):
         """See :meth:`LhsExpression.rhs()`."""
         if self._proper:
             if self._value.is_state():
-                return Number(self._value.state_value())
+                return self._value.initial_value()
             elif self._value.lhs() == self:
                 return self._value.rhs()
         return None
@@ -1390,7 +1390,7 @@ class PartialDerivative(LhsExpression):
         As with time-derivatives, this returns the variable of which a
         derivative is taken (i.e. the dependent variable "y" in "dy/dx").
         """
-        return self._var1._value
+        return self._var1.var()
 
 
 class InitialValue(LhsExpression):
@@ -1410,7 +1410,7 @@ class InitialValue(LhsExpression):
         super(InitialValue, self).__init__((var, ))
         if not isinstance(var, Name):
             raise IntegrityError(
-                'The first argument to an initial condition must be a variable'
+                'The first argument to an initial value must be a variable'
                 ' name.', self._token)
 
         self._var = var
@@ -1436,7 +1436,7 @@ class InitialValue(LhsExpression):
 
     def _diff(self, lhs, idstates):
         raise NotImplementedError(
-            'Partial derivatives of initial conditions are not supported.')
+            'Partial derivatives of initial values are not supported.')
 
     def _eval_unit(self, mode):
         return self._var._eval_unit(mode)
@@ -1453,7 +1453,7 @@ class InitialValue(LhsExpression):
         See :meth:`LhsExpression.rhs()`.
 
         The RHS returned in this case will be ``None``, as there is no RHS
-        associated with initial conditions in the model.
+        associated with initial values in the model.
         """
         # Note: This _could_ return a Number(init, var unit) instead...
         return None
@@ -1471,7 +1471,7 @@ class InitialValue(LhsExpression):
         var = self._var._value
         if not (isinstance(var, myokit.Variable) and var.is_state()):
             raise IntegrityError(
-                'Initial conditions can only be defined for state variables.',
+                'Initial values can only be defined for state variables.',
                 self._token)
 
 
@@ -2866,7 +2866,7 @@ class Condition(object):
             'Conditions do not have partial derivatives.')
 
 
-class PrefixCondition(Condition, PrefixExpression):
+class PrefixCondition(PrefixExpression, Condition):
     """
     Interface for prefix conditions.
 
@@ -2920,7 +2920,7 @@ class Not(PrefixCondition):
         self._op._polishb(b)
 
 
-class InfixCondition(Condition, InfixExpression):
+class InfixCondition(InfixExpression, Condition):
     """
     Base class for infix expressions.
 

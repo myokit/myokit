@@ -372,8 +372,8 @@ class EasyMLExporter(myokit.formats.Exporter):
 
             # Write initial conditions
             for v in model.states():
-                f.write(lhs(v) + '_init = ' + myokit.float.str(v.state_value())
-                        + eos)
+                f.write(lhs(v) + '_init = '
+                        + myokit.float.str(v.initial_value(True)) + eos)
             f.write(eol)
 
             # Write remaining variables

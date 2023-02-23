@@ -17,7 +17,7 @@ import myokit
 from myokit.tests import TemporaryDirectory, WarningCollector
 
 
-debug = True
+debug = False
 
 
 # Simple test

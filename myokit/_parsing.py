@@ -352,6 +352,7 @@ class ParseInfo(object):
     def __init__(self):
         self.model = None
         self.initial_values = OrderedDict()
+        self.initial_value_tokens = {}
         self.alias_map = {}
         self.user_functions = {}
 
@@ -420,10 +421,10 @@ def parse_model_from_stream(stream, syntax_only=False):
                     'Duplicate initial value', t0[2], t0[3],
                     'A value for <' + name + '> was already specified.')
             expect(next(stream), EQUAL)
-            expr = parse_expression_stream(stream)
+            expr = parse_proto_expression(stream)
             expect(next(stream), EOL)
             info.initial_values[name] = expr
-            reg_token(info, t0, expr)
+            info.initial_value_tokens[name] = t0
 
         token = stream.peek()
 
@@ -438,15 +439,6 @@ def parse_model_from_stream(stream, syntax_only=False):
     # Syntax checking mode
     if syntax_only:
         return True
-
-    # All initial variables must have been used
-    for qname, e in info.initial_values.items():
-        raise ParseError(
-            'Unused initial value', 0, 0,
-            'An unused initial value was found for "' + str(qname) + '".')
-
-    # Re-order the model state
-    model.reorder_state(state_order)
 
     # Order encountered tokens
     m = model._tokens
@@ -467,6 +459,23 @@ def parse_model_from_stream(stream, syntax_only=False):
             # won't have been resolved in the first place.
             var.set_rhs(convert_proto_expression(var._proto_rhs, var, info))
         del var._proto_rhs
+
+    # Resolve variable references in initial values
+    for i, var in enumerate(model.states()):
+        e = info.initial_values[var.qname()]
+        expr = convert_proto_expression(e, model, info)
+        var.set_initial_value(expr)
+        del info.initial_values[var.qname()]
+
+    # All initial variables must have been used
+    for qname, e in info.initial_values.items():
+        t = info.initial_value_tokens[qname]
+        raise ParseError(
+            'Unused initial value', t[2], t[3],
+            'An unused initial value was found for "' + qname + '".')
+
+    # Re-order the model state
+    model.reorder_state(state_order)
 
     # Check the semantics of the model
     try:
@@ -675,14 +684,7 @@ def parse_variable(stream, info, parent):
             raise ParseError(
                 'Missing initial value', line, char,
                 'No initial value was found for "' + var.qname() + '"')
-        state_value = info.initial_values[var.qname()]
-        try:
-            var.promote(state_value)
-        except myokit.NonLiteralValueError as e:
-            t = state_value._token
-            raise ParseError(
-                'Illegal state value', t[2], t[3], str(e), cause=e)
-        del info.initial_values[var.qname()]
+        var.promote()
 
     # Parse definition, quick unit, bind, label and description syntax
     # These token must occur in a fixed order!

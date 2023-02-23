@@ -272,7 +272,7 @@ class SimulationOpenCL(myokit.CModule):
         self._nstate = self._model.count_states()
 
         # Set state and default state
-        self._state = self._model.state() * self._ntotal
+        self._state = self._model.initial_values(True) * self._ntotal
         self._default_state = list(self._state)
 
         # List of globally logged inputs

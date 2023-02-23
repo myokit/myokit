@@ -223,6 +223,7 @@ class PhasedParseTest(unittest.TestCase):
     """
     Tests several phases of parsing.
     """
+
     def test_segment_parsing(self):
         # Test :meth:`parse_model()`.
         from myokit._parsing import parse
@@ -1229,7 +1230,12 @@ class PhasedParseTest(unittest.TestCase):
 
 
 class ModelParseTest(unittest.TestCase):
+    """
+    Test parsing models.
+    """
+
     def test_model_creation(self):
+        # Basic model creation via the parser
         m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
 
         # Test components
@@ -1263,36 +1269,14 @@ class ModelParseTest(unittest.TestCase):
             1,
             0.0057,
             0.0002]
+        self.assertEqual(len(values), m.count_states())
+
+        # Test initial value parsing
         out = ', '.join([str(x) for x in m.states()])
         ref = ', '.join(states)
         self.assertEqual(ref, out)
-        for k, eq in enumerate(m.inits()):
-            self.assertEqual(eq.rhs.eval(), values[k])
-
-        # Test state parsing / setting
-        m.set_state(values)
-        for k, eq in enumerate(m.inits()):
-            self.assertEqual(eq.rhs.eval(), values[k])
-        s = dict(zip(states, values))
-        m.set_state(s)
-        for k, eq in enumerate(m.inits()):
-            self.assertEqual(eq.rhs.eval(), values[k])
-        s = '\n'.join([str(a) + '=' + str(b) for a, b in s.items()])
-        m.set_state(s)
-        for k, eq in enumerate(m.inits()):
-            self.assertEqual(eq.rhs.eval(), values[k])
-
-        # Test cloning
-        try:
-            m2 = m.clone()
-        except Exception as e:
-            s = m.code(line_numbers=True)
-            print('\n')
-            print(s)
-            print('-' * 80)
-            print(myokit.format_parse_error(e, s.splitlines()))
-            raise e
-        self.assertEqual(m.code(), m2.code())
+        for val, ref in zip(m.initial_values(as_floats=True), values):
+            self.assertEqual(val, ref)
 
     def test_unresolved_reference_error(self):
         # Test unresolved reference errors.
@@ -1354,19 +1338,21 @@ class ModelParseTest(unittest.TestCase):
         # Test evaluation
         x = m.get('test.x')
         y = m.get('test.y')
-        s = m.state()
+        s = m.initial_values(as_floats=True)
         i = m.get('membrane.V').indice()
         # Test x, xo, y, yo
+
+        v = myokit.Name(m.get('membrane.V'))
         s[i] = -80
-        m.set_state(s)
+        m.set_initial_values(s)
         self.assertEqual(x.rhs().eval(), 3)
         self.assertEqual(y.rhs().eval(), 2)
         s[i] = -10
-        m.set_state(s)
+        m.set_initial_values(s)
         self.assertEqual(x.rhs().eval(), 2)
         self.assertEqual(y.rhs().eval(), 2)
         s[i] = 30
-        m.set_state(s)
+        m.set_initial_values(s)
         self.assertEqual(x.rhs().eval(), 1)
         self.assertEqual(y.rhs().eval(), 1)
         # Test code() output by cloning
@@ -1387,13 +1373,50 @@ class ModelParseTest(unittest.TestCase):
             dot(p) = 1
             dot(q) = 2
             """
-        myokit.parse(code)
+        m = myokit.parse_model(code)
+        self.assertEqual(m.get('c.p').initial_value(), myokit.Number(1))
+        self.assertEqual(m.get('c.q').initial_value().code(), '10 * 2')
 
-        # Non-literal value
+        # initial expression
+        code = """
+            [[model]]
+            c.q = 10 * 2 + c.p
+            c.r = c.p + c.a
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            p = 0.5
+            dot(q) = 2
+            dot(r) = 1
+            a = p + 1
+            """
+        m = myokit.parse_model(code)
+        self.assertEqual(
+            m.get('c.q').initial_value().code(), '10 * 2 + c.p')
+
+        # initial expression with just literals
+        code = """
+            [[model]]
+            c.q = 10 * exp(2)
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            p = 0.5
+            dot(q) = 2
+            """
+        m = myokit.parse_model(code)
+        self.assertEqual(
+            m.get('c.q').initial_value().code(), '10 * exp(2)')
+
+        # non-existent variable in initial value
         code = """
             [[model]]
             c.p = 1.0
-            c.q = 10 * 2 + b
+            c.q = 10 * 2 + c.b
 
             [engine]
             time = 0 bind time
@@ -1402,7 +1425,82 @@ class ModelParseTest(unittest.TestCase):
             dot(p) = 1
             dot(q) = 2
             """
-        self.assertRaises(myokit.ParseError, myokit.parse, code)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unresolved reference', myokit.parse, code)
+
+        # initial expression using child variables should fail
+        code = """
+            [[model]]
+            c.q = a
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            p = 0.5
+            dot(q) = 2
+                a = 10 * 2 + p
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unresolved reference', myokit.parse, code)
+
+        # non-constant initial value
+        code = """
+            [[model]]
+            c.p = engine.time
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            dot(p) = 1
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, 'is not constant', myokit.parse, code)
+
+        # indirect non-constant initial value
+        code = """
+            [[model]]
+            c.p = c.r
+            c.q = 1
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            dot(p) = 1
+            dot(q) = 2
+            r = 2 * q
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, 'is not constant', myokit.parse, code)
+
+        # looks like it shouldn't be constant, but it is!
+        code = """
+            [[model]]
+            c.p = dot(c.p)
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            dot(p) = 0
+            """
+        # Treat all state variables as non-constant
+        self.assertRaisesRegex(
+            myokit.ParseError, 'is not constant', myokit.parse, code)
+
+        # Initial value cycles are caught in validation
+        code = """
+            [[model]]
+            x.x = x.x
+
+            [x]
+            dot(x) = x
+            t = 0 bind time
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, 'is not constant', myokit.parse, code)
 
     def test_aliases(self):
         code = """

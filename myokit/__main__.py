@@ -240,7 +240,7 @@ def add_compiler_parser(subparsers):
 
 def debug(source, variable, deps=False):
     """
-    Shows how a single variable is calculated from the initial conditions.
+    Shows how a single variable is calculated from the initial values.
     """
     import myokit
 
@@ -261,8 +261,8 @@ def add_debug_parser(subparsers):
     parser = subparsers.add_parser(
         'debug',
         description='Shows how a single variable is calculated from the '
-                    'initial conditions. The variable\'s equation and value'
-                    ' are displayed, along with the value and formula of any'
+                    ' initial values. The variable\'s equation and value are'
+                    ' displayed, along with the value and formula of any'
                     ' nested variables and the values of all dependencies.',
         help='Shows how a single variable is calculated.',
     )

@@ -730,8 +730,8 @@ class TestCellML1ModelConversion(unittest.TestCase):
         # Recreate myokit model and test states
         mm = cm.myokit_model()
         mm.validate()
-        state_1 = m.state()
-        state_2 = mm.state()
+        state_1 = m.initial_values(True)
+        state_2 = mm.initial_values(True)
         states_1 = [x.name() for x in m.states()]
         states_2 = [x.name() for x in mm.states()]
         state_2 = [state_2[states_2.index(x)] for x in states_1]
@@ -830,7 +830,7 @@ class TestCellML1ModelConversion(unittest.TestCase):
 
         # Check state
         self.assertTrue(mx.is_state())
-        self.assertEqual(mx.state_value(), 0.123)
+        self.assertEqual(mx.initial_value(True), 0.123)
 
         # Check binding
         self.assertEqual(mt.binding(), 'time')

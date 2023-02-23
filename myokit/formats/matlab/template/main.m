@@ -5,6 +5,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import myokit
 ?>%
 % Driver file for <?= model.name() ?>
 %
@@ -15,8 +16,8 @@ clear all
 
 % Initial values
 <?
-for eq in model.inits():
-    print(e(eq) + ';')
+for var, value in zip(model.states(), model.initial_values(True)):
+    print(v(var) + ' = ' + myokit.float.str(value) + ';')
 ?>
 
 % Vector for initial values

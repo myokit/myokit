@@ -350,7 +350,10 @@ def cumulative_current(
             colors.extend(colors)
     else:
         # Colormap
-        cmap = matplotlib.cm.get_cmap(name='tab20')
+        try:
+            cmap = matplotlib.colormaps['tab20']
+        except AttributeError:  # pragma: no cover
+            cmap = matplotlib.cm.get_cmap(name='tab20')
         colors = [cmap(i) for i in range(nc)]
 
     # Line drawing keyword arguments

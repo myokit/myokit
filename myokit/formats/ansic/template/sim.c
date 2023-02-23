@@ -131,8 +131,8 @@ static void
 default_initial_values(N_Vector y)
 {
 <?
-for eq in model.inits():
-    print(tab + w.eq(eq) + ';')
+for var, init in zip(model.states(), model.initial_values(True)):
+    print(tab + v(var) + ' = ' + myokit.float.str(init) + ';')
 ?>
 }
 

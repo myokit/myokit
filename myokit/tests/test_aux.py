@@ -163,6 +163,7 @@ class AuxTest(unittest.TestCase):
             '[1] Missing User function <g(1)>.',
             '[x] Mismatched Time variable: [1]<engine.time> [2]<engine.toim>',
             '[x] Mismatched Initial value for <ina.h>',
+            '[x] Mismatched Initial value for <ina.j>',
             '[x] Mismatched State at position 5: [1]<isi.d> [2]<isiz.d>',
             '[x] Mismatched State at position 6: [1]<isi.f> [2]<isiz.f>',
             '[2] Missing state at position 7',
@@ -192,9 +193,6 @@ class AuxTest(unittest.TestCase):
             'Done',
             '  ' + str(len(differences)) + ' differences found',
         ]
-
-        # Show massive diff messages
-        self.maxDiff = None
 
         caught_differences = set(capture.text().splitlines())
         live = set(live)
@@ -276,8 +274,6 @@ class AuxTest(unittest.TestCase):
             'import myokit',
             'm = get_model()',  # Test magic methods
             'p = get_protocol()',
-            's = myokit.Simulation(m, p)',
-            's.run(200)',
         ])
         with myokit.tools.capture():
             myokit.run(m, p, x)
@@ -513,6 +509,9 @@ class AuxTest(unittest.TestCase):
         # Test positive/negative zero comparison
         m1 = myokit.Model()
         c = m1.add_component('c')
+        t = c.add_variable('t')
+        t.set_binding('time')
+        t.set_rhs(0)
         x = c.add_variable('x')
         x.promote(1)
         x.set_rhs('-0.0')

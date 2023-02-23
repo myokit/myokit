@@ -365,13 +365,13 @@ class HHDetectionTest(unittest.TestCase):
         a = m2.get('ikr.a')
         rl = hh.get_rl_expression(a, myokit.Name(dt))
         a1 = rl.eval()
-        a2 = a.state_value() + dt.eval() * a.rhs().eval()
+        a2 = a.initial_value(True) + dt.eval() * a.rhs().eval()
         self.assertAlmostEqual(a1, a2)
         # And for r
         r = m2.get('ikr.r')
         rl = hh.get_rl_expression(r, myokit.Name(dt))
         r1 = rl.eval()
-        r2 = r.state_value() + dt.eval() * r.rhs().eval()
+        r2 = r.initial_value(True) + dt.eval() * r.rhs().eval()
         self.assertAlmostEqual(r1, r2)
 
         # Dt must be an expression
@@ -608,7 +608,7 @@ class HHModelTest(unittest.TestCase):
         # Test if derivatives are zero
         for k, x in enumerate(['ina.m', 'ina.h', 'ina.j']):
             x = model.get(x)
-            x.set_state_value(ss[k])
+            x.set_initial_value(ss[k])
             self.assertAlmostEqual(x.eval(), 0)
 
         # Test arguments
@@ -644,6 +644,20 @@ class HHModelTest(unittest.TestCase):
         m = hh.HHModel.from_component(model.get('binding'))
 
         self.assertEqual(len(m.states()), 3)
+
+    def test_initial_value_conversion(self):
+        # Tests that initial value expressions are converted to floats
+
+        model = myokit.parse_model(MODEL)
+        model.get('ikr.a').set_initial_value('1 / sqrt(7)')
+        model.get('ikr.r').set_initial_value('log(binding.koff, 10)')
+        m = hh.HHModel.from_component(model.get('ikr'))
+        x0 = m.default_state()
+        self.assertEqual(len(x0), 2)
+        self.assertIsInstance(x0[0], float)
+        self.assertIsInstance(x0[1], float)
+        self.assertAlmostEqual(x0[0], 0.377964473)
+        self.assertAlmostEqual(x0[1], -5)
 
 
 class AnalyticalSimulationTest(unittest.TestCase):
