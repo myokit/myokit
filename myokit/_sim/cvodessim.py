@@ -158,9 +158,9 @@ class Simulation(myokit.CModule):
         del model
 
         # Set protocol
-        self._protocol = None
+        self._protocols = {}
         self._fixed_form_protocol = None
-        self.set_protocol(protocol)
+        self.set_protocol('pace', protocol)
         del protocol
 
         # Generate C Model code, get sensitivity and constants info
@@ -299,7 +299,7 @@ class Simulation(myokit.CModule):
             with open(fname, 'wb') as f:
                 pickle.dump(str(name), f)
                 pickle.dump(self._model, f)
-                pickle.dump(self._protocol, f)
+                pickle.dump(self._protocols, f)
                 pickle.dump(sens_arg, f)
 
             # Zip it all in
@@ -498,7 +498,7 @@ class Simulation(myokit.CModule):
 
         return (
             self.__class__,
-            (self._model, self._protocol, sens_arg),
+            (self._model, self._protocols, sens_arg),
             (
                 self._time,
                 self._state,
@@ -754,7 +754,7 @@ class Simulation(myokit.CModule):
                 # 6. Parameter values
                 list(self._parameters.values()),
                 # 7. An event-based pacing protocol
-                self._protocol,
+                self._protocols,
                 # 8. A fixed-form protocol
                 self._fixed_form_protocol,
                 # 9. A DataLog
@@ -986,7 +986,7 @@ class Simulation(myokit.CModule):
                 raise ValueError('Times and values array must have same size.')
 
         # Clear event-based protocol, if set
-        self._protocol = None
+        self._protocols = {}
 
         # Set new protocol
         if times is None:
@@ -996,21 +996,21 @@ class Simulation(myokit.CModule):
             # Copy data and set
             self._fixed_form_protocol = (list(times), list(values))
 
-    def set_protocol(self, protocol=None):
+    def set_protocol(self, label, protocol=None):
         """
-        Sets the pacing :class:`Protocol` used by this simulation.
+        Binds the pacing :class:`Protocol` to the variable with given label `label`.
 
-        To run without pacing call this method with ``protocol = None``. In
-        this case, the value of any variables bound to `pace` will be set to 0.
+        To remove a previously set binding call this method with ``protocol = None``. In
+        this case, the value of any variables bound to `label` will be set to 0.
         """
         # Clear predetermined protocol, if set
         self._fixed_form_protocol = None
 
         # Set new protocol
         if protocol is None:
-            self._protocol = None
+            self._protocols[label] = None
         else:
-            self._protocol = protocol.clone()
+            self._protocols[label] = protocol.clone()
 
     def __setstate__(self, state):
         """
