@@ -86,17 +86,15 @@ class CModel(object):
         # bother with keywords.
         model.create_unique_names()
 
-        # Remove any unused bindings, and get mapping from variables to C
-        # variable names as used in model.h
-        #TODO: Think about best way to do this for model re-use with different
-        # sets of bound variables... Presumably the model would simply support
-        # all bindings used by any of the simulations based on model.h ?
-        bound_variables = model.prepare_bindings({
-            'time': 'time',
-            'pace': 'pace',
-            'realtime': 'realtime',
-            'evaluations': 'evaluations',
-        })
+        # get mapping from variables to C variable names as used in model.h
+        bound_variables = self._prepare_bindings(
+            model,
+            {
+                'time': 'time',
+                'realtime': 'realtime',
+                'evaluations': 'evaluations',
+            }
+        )
 
         # Get equations in solvable order (grouped by component)
         equations = model.solvable_order()
@@ -136,6 +134,40 @@ class CModel(object):
         self.literal_derived = literal_derived
         self.parameters = parameters
         self.parameter_derived = parameter_derived
+
+    def _prepare_bindings(self, model, labels):
+        """
+        Takes a mapping of labels to internal references as input and
+        returns a mapping of variables to internal references. All variables
+        appearing in the map will have their right hand side set to zero.
+
+        The argument ``mapping`` should take the form::
+
+            labels = {
+                'binding_label_1' : internal_name_1,
+                'binding_label_2' : internal_name_2,
+                ...
+                }
+
+        The returned dictionary will have the form::
+
+            variables = {
+                variable_x : internal_name_1,
+                variable_y : internal_name_2,
+                ...
+                }
+
+        Unsupported labels (i.e. labels not appearing in ``labels``) will
+        be ignored.
+        """
+        variables = {}
+        for label, var in model._labels.items():
+            try:
+                variables[var] = labels[label]
+            except KeyError:
+                continue
+            var.set_rhs(0)
+        return variables
 
     def _parse_sensitivities(self, model, sensitivities):
         """
