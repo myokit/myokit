@@ -208,7 +208,7 @@ PSysType *pacing_types; /* array of pacing system types */
 PyObject* eprotocols;   /* An list of event-based pacing protocol */
 PyObject* fprotocols;   /* A list of fixed-form pacing protocol */
 double* pacing;         /* Pacing values, same size as pacing_systems and pacing_types*/
-int npace;              /* The number of pacing systems */
+int n_pace;              /* The number of pacing systems */
 
 /*
  * CVODE Memory
@@ -360,7 +360,7 @@ rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
     int i;
 
     /* Fixed-form pacing? Then look-up correct value of pacing variable! */
-    for (int i = 0; i < npace; i++) {
+    for (int i = 0; i < n_pace; i++) {
         if (pacing_types[i] == FIXED) {
             pacing[i] = FSys_GetLevel(pacing_systems[i].fixed, t, &flag_fpacing);
             if (flag_fpacing != FSys_OK) { /* This should never happen */
@@ -943,8 +943,8 @@ sim_init(PyObject *self, PyObject *args)
     /*
      * Set up pacing system
      */
-    int npace_event = 0;
-    int npace_fixed = 0;
+    int n_pace_event = 0;
+    int n_pace_fixed = 0;
     if (eprotocols != Py_None) {
         if (!PyList_Check(eprotocols)) {
             return sim_cleanx(PyExc_TypeError, "'eprotocols' must be a list.");
@@ -957,15 +957,17 @@ sim_init(PyObject *self, PyObject *args)
         }
         npace_fixed = PyList_Size(fprotocols);
     }
-    int npace = npace_event + npace_fixed;
+    n_pace = n_pace_event + n_pace_fixed;
+    model->n_pace = n_pace;
     pacing_systems = (PacingSystem*)malloc(sizeof(PacingSystem) * npace);
     if (pacing_systems == NULL) {
         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing systems.");
     }
-    pacing_types = (int*)malloc(sizeof(int) * npace);
+    pacing_types = (int*)malloc(sizeof(int) * n_pace);
     if (pacing_types == NULL) {
         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing types.");
     }
+    Model_SetupPacing(model, n_pace);
 
     /*
      *  unless set by pacing, tnext is set to tmax
@@ -1518,7 +1520,7 @@ sim_step(PyObject *self, PyObject *args)
              * is safe to update the pacing mechanism to time t.
              */
             tnext = tmax;
-            for (int i = 0; i < npace; i++) {
+            for (int i = 0; i < n_pace; i++) {
                 if (pacing_types[i] != PacingType_EVENT) continue;
                 ESys* epacing = pacing_systems[i].event;
                 flag_epacing = ESys_AdvanceTime(epacing, t);
@@ -1551,7 +1553,7 @@ sim_step(PyObject *self, PyObject *args)
                 } else if (model->logging_bound) {
                     /* Logging bounds but not derivs or inters: No need to run
                        full rhs, just update bound variables */
-                    Model_SetBoundVariables(model, t, pace, realtime, evaluations);
+                    Model_SetBoundVariables(model, t, pacing, realtime, evaluations);
                 }
 
                 /* Write to log */
