@@ -310,6 +310,7 @@ class Simulation(myokit.CModule):
                 pickle.dump(str(name), f)
                 pickle.dump(self._model, f)
                 pickle.dump(self._protocols, f)
+                pickle.dump(self._pacing_labels, f)
                 pickle.dump(sens_arg, f)
 
             # Zip it all in
@@ -355,7 +356,8 @@ class Simulation(myokit.CModule):
             with open(fname, 'rb') as f:
                 name = pickle.load(f)
                 model = pickle.load(f)
-                protocol = pickle.load(f)
+                protocols = pickle.load(f)
+                pacing_labels = pickle.load(f)
                 sensitivities = pickle.load(f)
 
             # Load module
@@ -363,7 +365,10 @@ class Simulation(myokit.CModule):
             module = load_module(name, d_build)
 
             # Create and return simulation
-            return Simulation(model, protocol, sensitivities, (path, module))
+            labeled_protocols = {
+                k: v for k, v in zip(pacing_labels, protocols)
+            }
+            return Simulation(model, labeled_protocols, sensitivities, (path, module))
 
         finally:
             myokit.tools.rmtree(d_build, silent=True)
