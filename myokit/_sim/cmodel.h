@@ -285,7 +285,6 @@ struct Model_Memory {
 
     /* pacing */
     realtype *pace_values;
-    char **pace_labels;
     int n_pace;
 
     /* Bound variables */

@@ -167,10 +167,7 @@ class CModel(object):
         """
         variables = {}
         unused = []
-        print('prepare bindings', labels)
         for label, var in model._bindings.items():
-            print('label', label)
-            print('var', var)
             try:
                 variables[var] = labels[label]
             except KeyError:
@@ -178,7 +175,6 @@ class CModel(object):
                 continue
             var.set_rhs(0)
         for var in unused:
-            print('unused', var)
             var.set_binding(None)
         return variables
 

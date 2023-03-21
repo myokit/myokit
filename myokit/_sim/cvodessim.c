@@ -983,6 +983,7 @@ sim_init(PyObject *self, PyObject *args)
             const char* protocol_type_name = Py_TYPE(protocol)->tp_name;
             if (strcmp(protocol_type_name, "Protocol") == 0) {
                 pacing_systems[i].event = ESys_Create(&flag_epacing);
+                pacing_types[i] = EVENT;
                 ESys epacing = pacing_systems[i].event;
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 flag_epacing = ESys_Populate(epacing, protocol);
@@ -998,6 +999,7 @@ sim_init(PyObject *self, PyObject *args)
                 #endif
             } else if (strcmp(protocol_type_name, "FixedProtocol") == 0) {
                 pacing_systems[i].fixed = FSys_Create(&flag_fpacing);
+                pacing_types[i] = FIXED;
                 FSys fpacing = pacing_systems[i].fixed;
                 if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
                 flag_fpacing = FSys_Populate(fpacing, protocol);
@@ -1670,7 +1672,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
 
     /* Check input arguments */
     /* Check input arguments     0123456789ABCDEF*/
-    if (!PyArg_ParseTuple(args, "ddOOOO",
+    if (!PyArg_ParseTuple(args, "dOOOOO",
             &time_in,           /* 0. Float: time */
             &pace_in,           /* 1. List: pace */
             &state,             /* 2. List: state */
@@ -1719,9 +1721,15 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
         goto error;
     }
 
+    flag_model = Model_SetupPacing(model, n_pace);
+    if (flag_model != Model_OK) {
+        Model_SetPyErr(flag_model);
+        goto error;
+    }
+
     /* Set pacing values */
     pacing_in = (double*)malloc(sizeof(double) * n_pace);
-    for (i=0; i < n_pace; i++) {
+    for (int i = 0; i < n_pace; i++) {
         val = PyList_GetItem(pace_in, i); /* Don't decref */
         if (!PyFloat_Check(val)) {
             PyErr_Format(PyExc_Exception, "Item %d in pace vector is not a float.", i);

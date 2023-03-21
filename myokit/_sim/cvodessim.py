@@ -394,7 +394,7 @@ class Simulation(myokit.CModule):
         """
         return list(self._error_state) if self._error_state else None
 
-    def eval_derivatives(self, y=None):
+    def eval_derivatives(self, y=None, pacing=None):
         """
         Evaluates and returns the state derivatives.
 
@@ -407,6 +407,11 @@ class Simulation(myokit.CModule):
         else:
             y = self._model.map_to_state(y)
 
+        if pacing is None:
+            pacing = [0.0]
+        else:
+            pacing = list(pacing)
+
         # Create space to store derivatives
         dy = list(self._state)
 
@@ -415,7 +420,7 @@ class Simulation(myokit.CModule):
             # 0. Time
             0,
             # 1. Pace
-            0,
+            pacing,
             # 2. State
             y,
             # 3. Space to store the state derivatives
