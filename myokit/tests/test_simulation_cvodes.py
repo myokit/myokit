@@ -830,6 +830,7 @@ class SimulationTest(unittest.TestCase):
         z.promote(0)
 
         # Test without protocol and dynamic logging
+        #myokit.DEBUG_WG = True
         s1 = myokit.Simulation(m1)
         d1 = s1.run(5)
         self.assertEqual(len(d1.time()), 2)

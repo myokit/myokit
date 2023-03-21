@@ -164,13 +164,14 @@ class Simulation(myokit.CModule):
         # Set protocol
         if isinstance(protocols, myokit.Protocol):
             protocols = {'pace': protocols}
+        if protocols is None:
+            protocols = {'pace': myokit.Protocol()}
         self._protocols = []
         self._pacing_labels = []
-        if protocols is not None:
-            for label, protocol in protocols.items():
-                self._pacing_labels.append(label)
-                self._protocols.append(None)
-                self.set_protocol(label, protocol)
+        for label, protocol in protocols.items():
+            self._pacing_labels.append(label)
+            self._protocols.append(myokit.Protocol())
+            self.set_protocol(label, protocol)
 
         # Generate C Model code, get sensitivity and constants info
         cmodel = myokit.CModel(self._model, self._pacing_labels, sensitivities)
@@ -514,7 +515,6 @@ class Simulation(myokit.CModule):
                 self._default_state,
                 self._s_state,
                 self._s_default_state,
-                self._fixed_form_protocol,  # Can't be set in constructor
                 self._tolerance,
                 self._dtmin,
                 self._dtmax,
@@ -956,7 +956,7 @@ class Simulation(myokit.CModule):
         # Set in simulation
         self._sim.set_min_step_size(dtmin)
 
-    def set_protocol(self, label, protocol=None):
+    def set_protocol(self, label_or_protocol, protocol=None):
         """
         Binds the pacing :class:`Protocol` or :class:`FixedProtocol` to the
         variable with given label `label`. The label must be one of the pacing
@@ -965,7 +965,17 @@ class Simulation(myokit.CModule):
         To remove a previously set binding call this method with ``protocol =
         None``. In this case, the value of any variables bound to `label` will
         be set to 0.
+
+        For backwards compatibility, this method can also be called with a
+        single argument of type :class:`Protocol`. In this case, the pacing
+        label 'pace' is assumed.`
         """
+        if protocol is None and isinstance(label_or_protocol, myokit.Protocol):
+            label = 'pace'
+            protocol = label_or_protocol
+        else:
+            label = label_or_protocol
+
         if label not in self._pacing_labels:
             raise ValueError('Unknown pacing label: ' + str(label))
 
@@ -973,7 +983,7 @@ class Simulation(myokit.CModule):
          
         # Set new protocol
         if protocol is None:
-            self._protocols[index] = None
+            self._protocols[index] = myokit.Protocol()
         else:
             self._protocols[index] = protocol.clone()
 
@@ -989,7 +999,6 @@ class Simulation(myokit.CModule):
         self._default_state = state[2]
         self._s_state = state[3]
         self._s_default_state = state[4]
-        self._fixed_form_protocol = state[5]
 
         # The following properties need to be set on the internal simulation
         # object
