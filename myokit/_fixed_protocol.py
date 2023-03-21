@@ -6,6 +6,9 @@
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
+from __future__ import annotations
+from bisect import bisect_left
+from typing import List
 
 
 class FixedProtocol(object):
@@ -29,11 +32,11 @@ class FixedProtocol(object):
 
         if len(times) != len(values):
             raise ValueError('Times and values array must have same size.')
-        self._times, self._values = zip(*[
+        times_tpl, values_tpl = zip(*[
             (float(t), float(v)) for t, v in sorted(zip(times, values))
         ])
-        self._times = list(self._times)
-        self._values = list(self._values)
+        self._times = list(times_tpl)
+        self._values = list(values_tpl)
         if method is None:
             method = 'linear'
         else:
@@ -42,17 +45,30 @@ class FixedProtocol(object):
                 raise ValueError('Unknown interpolation method: ' + method)
         self._method = method
 
-    def times(self):
+    def times(self) -> List[float]:
         """
         Returns a list of the times in this protocol.
         """
         return self._times
 
-    def values(self):
+    def values(self) -> List[float]:
         """
         Returns a list of the values in this protocol.
         """
         return self._values
+
+    def pace(self, t: float) -> float:
+        """
+        Returns the value of the pacing variable at time ``t``.
+        """
+        if t < self._times[0]:
+            return self._values[0]
+        if t > self._times[-1]:
+            return self._values[-1]
+        i = bisect_left(self._times, t) - 1
+        return self._values[i] + (t - self._times[i]) * (
+            self._values[i + 1] - self._values[i]
+        ) / (self._times[i + 1] - self._times[i])
 
     def __eq__(self, other):
         if self is other:
@@ -72,7 +88,7 @@ class FixedProtocol(object):
             'method': self._method,
         }
 
-    def clone(self):
+    def clone(self) -> FixedProtocol:
         """
         Returns a clone of this protocol.
         """

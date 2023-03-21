@@ -126,8 +126,8 @@ class Simulation(myokit.CModule):
         :class:`myokit.Protocol` or None. if None, the paced variable will be
         set to 0, or the pacing protocol can be set later using
         :meth:set_protocol. For backwards compatibility, a single protocol
-        of type :class:`myokit.Protocol` can be passed in instead of a dict, the
-        label in this case will be 'pace'.
+        of type :class:`myokit.Protocol` can be passed in instead of a dict,
+        the label in this case will be 'pace'.
     ``sensitivities``
         An optional tuple ``(dependents, independents)`` where ``dependents``
         is a list of variables or expressions to take derivatives of (``y`` in
@@ -368,7 +368,9 @@ class Simulation(myokit.CModule):
             labeled_protocols = {
                 k: v for k, v in zip(pacing_labels, protocols)
             }
-            return Simulation(model, labeled_protocols, sensitivities, (path, module))
+            return Simulation(
+                model, labeled_protocols, sensitivities, (path, module)
+            )
 
         finally:
             myokit.tools.rmtree(d_build, silent=True)
@@ -972,11 +974,11 @@ class Simulation(myokit.CModule):
 
     def set_fixed_form_protocol(self, times=None, values=None):
         """
-        Sets a fixed-form protocol to the label ``pace`` using 
+        Sets a fixed-form protocol to the label ``pace`` using
         :meth:`set_protocol`.
 
-        This method is provided for backwards compatibility with older versions,
-        please use :meth:`set_protocol` instead.
+        This method is provided for backwards compatibility with older
+        versions, please use :meth:`set_protocol` instead.
         """
         if times is None and values is None:
             self.set_protocol(None)
@@ -1005,7 +1007,7 @@ class Simulation(myokit.CModule):
             raise ValueError('Unknown pacing label: ' + str(label))
 
         index = self._pacing_labels.index(label)
-         
+
         # Set new protocol
         if protocol is None:
             self._protocols[index] = myokit.Protocol()

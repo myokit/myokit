@@ -19,6 +19,53 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
+class FixedPacingPythonTest(unittest.TestCase):
+    """
+    Tests the pure python FixedProtocol class.
+    """
+    def test_errors(self):
+        # Test input checking
+        self.assertRaises(Exception, myokit.FixedProtocol, 1, 2)
+        self.assertRaises(
+            Exception, myokit.FixedProtocol, [1, 2], [2])
+
+    def tests_constructor(self):
+        p = myokit.FixedProtocol([1], [2])
+        self.assertEqual(p.times(), [1])
+        self.assertEqual(p.values(), [2])
+
+        p = myokit.FixedProtocol([1, 2], [1, 2])
+        self.assertEqual(p.times(), [1, 2])
+        self.assertEqual(p.values(), [1, 2])
+
+        p = myokit.FixedProtocol([2, 1], [2, 1])
+        self.assertEqual(p.times(), [1, 2])
+        self.assertEqual(p.values(), [1, 2])
+
+    def test_values(self):
+        values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        times = [0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 5, 7]
+        values = list(range(len(times)))
+        pacing = myokit.FixedProtocol(times, values)
+
+        def test(value, index):
+            self.assertEqual(pacing.pace(value), index)
+
+        test(-1, 0)
+        test(0, 0)
+        test(1, 2)
+        test(2, 5)
+        test(3, 8)
+        test(4, 9)
+        test(5, 10)
+        test(7, 11)
+        test(8, 11)
+        test(1.5, 4.5)
+        test(1.75, 4.75)
+        test(6, 10.5)
+        test(5.5, 10.25)
+
+
 class EventBasedPacingPythonTest(unittest.TestCase):
     """
     Tests the pure python PacingSystem class.

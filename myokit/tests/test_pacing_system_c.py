@@ -144,24 +144,11 @@ class FixedFormPacingAnsicTest(unittest.TestCase):
             import sys
             sys.exit(1)
 
-        # Test input checking
-        times = 1
-        values = [1, 2]
-        self.assertRaises(Exception, AnsicFixedFormPacing)
-        self.assertRaises(Exception, AnsicFixedFormPacing, 1)
-        self.assertRaises(Exception, AnsicFixedFormPacing, 1, 2)
-        self.assertRaises(Exception, AnsicFixedFormPacing, [1], [2])
-        self.assertRaises(
-            Exception, AnsicFixedFormPacing, [1, 2], [2])
-        self.assertRaises(
-            Exception, AnsicFixedFormPacing, [2, 1], [2, 2])
-        AnsicFixedFormPacing([1, 2], [1, 2])
-
         # Test with small lists
         values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         times = [0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 5, 7]
         values = list(range(len(times)))
-        pacing = AnsicFixedFormPacing(times, values)
+        pacing = AnsicFixedFormPacing(myokit.FixedProtocol(times, values))
 
         def test(value, index):
             self.assertEqual(pacing.pace(value), index)
