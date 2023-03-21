@@ -30,8 +30,10 @@ class FixedProtocol(object):
         if len(times) != len(values):
             raise ValueError('Times and values array must have same size.')
         self._times, self._values = zip(*[
-            (t, v) for t, v in sorted(zip(times, values))
+            (float(t), float(v)) for t, v in sorted(zip(times, values))
         ])
+        self._times = list(self._times)
+        self._values = list(self._values)
         if method is None:
             method = 'linear'
         else:
@@ -39,6 +41,18 @@ class FixedProtocol(object):
             if method not in ['linear']:
                 raise ValueError('Unknown interpolation method: ' + method)
         self._method = method
+
+    def times(self):
+        """
+        Returns a list of the times in this protocol.
+        """
+        return self._times
+
+    def values(self):
+        """
+        Returns a list of the values in this protocol.
+        """
+        return self._values
 
     def __eq__(self, other):
         if self is other:

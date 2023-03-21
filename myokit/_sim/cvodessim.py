@@ -171,7 +171,7 @@ class Simulation(myokit.CModule):
         for label, protocol in protocols.items():
             self._pacing_labels.append(label)
             self._protocols.append(myokit.Protocol())
-            self.set_protocol(label, protocol)
+            self.set_protocol(protocol, label)
 
         # Generate C Model code, get sensitivity and constants info
         cmodel = myokit.CModel(self._model, self._pacing_labels, sensitivities)
@@ -511,9 +511,13 @@ class Simulation(myokit.CModule):
             # etc.
             sens_arg = [[x.code() for x in y] for y in self._sensitivities]
 
+        protocols = {
+            k: p for k, p in zip(self._pacing_labels, self._protocols)
+        }
+
         return (
             self.__class__,
-            (self._model, self._protocols, sens_arg),
+            (self._model, protocols, sens_arg),
             (
                 self._time,
                 self._state,
@@ -961,25 +965,36 @@ class Simulation(myokit.CModule):
         # Set in simulation
         self._sim.set_min_step_size(dtmin)
 
-    def set_protocol(self, label_or_protocol, protocol=None):
+    def set_fixed_form_protocol(self, times=None, values=None):
+        """
+        Sets a fixed-form protocol to the label ``pace`` using 
+        :meth:`set_protocol`.
+
+        This method is provided for backwards compatibility with older versions,
+        please use :meth:`set_protocol` instead.
+        """
+        if times is None and values is None:
+            self.set_protocol(None)
+            return
+        if times is None:
+            raise ValueError('no times given.')
+        if values is None:
+            raise ValueError('no values given.')
+
+        self.set_protocol(myokit.FixedProtocol(times, values))
+
+    def set_protocol(self, protocol, label=None):
         """
         Binds the pacing :class:`Protocol` or :class:`FixedProtocol` to the
         variable with given label `label`. The label must be one of the pacing
-        labels set in the constructor.
+        labels set in the constructor, and if None then 'pace' is used.
 
         To remove a previously set binding call this method with ``protocol =
         None``. In this case, the value of any variables bound to `label` will
         be set to 0.
-
-        For backwards compatibility, this method can also be called with a
-        single argument of type :class:`Protocol`. In this case, the pacing
-        label 'pace' is assumed.`
         """
-        if protocol is None and isinstance(label_or_protocol, myokit.Protocol):
+        if label is None:
             label = 'pace'
-            protocol = label_or_protocol
-        else:
-            label = label_or_protocol
 
         if label not in self._pacing_labels:
             raise ValueError('Unknown pacing label: ' + str(label))
@@ -1007,9 +1022,9 @@ class Simulation(myokit.CModule):
 
         # The following properties need to be set on the internal simulation
         # object
-        self.set_tolerance(*state[6])
-        self.set_min_step_size(state[7])
-        self.set_max_step_size(state[8])
+        self.set_tolerance(*state[5])
+        self.set_min_step_size(state[6])
+        self.set_max_step_size(state[7])
 
     def set_state(self, state):
         """

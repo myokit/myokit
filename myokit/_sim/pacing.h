@@ -771,13 +771,13 @@ FSys_Populate(FSys sys, PyObject* protocol)
     if(times_list == NULL) return FSys_POPULATE_INVALID_PROTOCOL;
     if(!PyList_Check(times_list)) {
         Py_DECREF(times_list);
-        return ESys_POPULATE_INVALID_PROTOCOL;
+        return FSys_POPULATE_INVALID_TIMES;
     }
     n = PyList_Size(times_list);
     PyObject* values_list = PyObject_CallMethod(protocol, (char*)"values", NULL); // Returns a new reference
     if(values_list == NULL) {
         Py_DECREF(values_list);
-        return FSys_POPULATE_INVALID_PROTOCOL;
+        return FSys_POPULATE_INVALID_VALUES;
     }
 
     // Convert and check times list
