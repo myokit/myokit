@@ -605,8 +605,8 @@ sim_init(PyObject *self, PyObject *args)
     sundials_context = NULL;
     #endif
 
-    /* Check input arguments     0123456789012345678 */
-    if (!PyArg_ParseTuple(args, "ddOOOOOOOOdOOidOOi",
+    /* Check input arguments     012345678901234567 */
+    if (!PyArg_ParseTuple(args, "ddOOOOOOOdOOidOOi",
             &tmin,              /*  0. Float: initial time */
             &tmax,              /*  1. Float: final time */
             &state_py,          /*  2. List: initial and final state */
@@ -981,7 +981,7 @@ sim_init(PyObject *self, PyObject *args)
         for (int i = 0; i < PyList_Size(protocols); i++) {
             PyObject *protocol = PyList_GetItem(protocols, i);
             const char* protocol_type_name = Py_TYPE(protocol)->tp_name;
-            if (strcmp(protocol_type_name, "myokit.Protocol") == 0) {
+            if (strcmp(protocol_type_name, "Protocol") == 0) {
                 pacing_systems[i].event = ESys_Create(&flag_epacing);
                 ESys epacing = pacing_systems[i].event;
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
@@ -996,7 +996,7 @@ sim_init(PyObject *self, PyObject *args)
                 #ifdef MYOKIT_DEBUG_PROFILING
                 benchmarker_print("CP Created event-based pacing system.");
                 #endif
-            } else if (strcmp(protocol_type_name, "myokit.FixedProtocol") == 0) {
+            } else if (strcmp(protocol_type_name, "FixedProtocol") == 0) {
                 pacing_systems[i].fixed = FSys_Create(&flag_fpacing);
                 FSys fpacing = pacing_systems[i].fixed;
                 if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
@@ -1008,6 +1008,7 @@ sim_init(PyObject *self, PyObject *args)
                 benchmarker_print("CP Created fixed-form pacing system.");
                 #endif
             } else {
+                printf("protocol_type_name: %s", protocol_type_name);
                 return sim_cleanx(PyExc_TypeError, "Item %d in 'protocols' is not a myokit.Protocol or myokit.FixedProtocol object.", i);
             }
 

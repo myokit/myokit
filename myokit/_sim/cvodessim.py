@@ -762,7 +762,7 @@ class Simulation(myokit.CModule):
                 list(self._literals.values()),
                 # 6. Parameter values
                 list(self._parameters.values()),
-                # 7. An event-based pacing protocol
+                # 7. Pacing protocols
                 self._protocols,
                 # 8. A DataLog
                 log,
