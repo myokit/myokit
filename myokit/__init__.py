@@ -463,6 +463,9 @@ from ._protocol import (  # noqa
     Protocol,
     ProtocolEvent,
 )
+from ._fixed_protocol import (  # noqa
+    FixedProtocol,
+)
 from . import pacing  # noqa
 
 # Parser functions

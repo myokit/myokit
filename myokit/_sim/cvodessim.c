@@ -607,17 +607,16 @@ sim_init(PyObject *self, PyObject *args)
             &bound_py,          /*  4. List: store final bound variables here */
             &literals,          /*  5. List: literal constant values */
             &parameters,        /*  6. List: parameter values */
-            &eprotocols,        /*  7. Event-based protocol */
-            &fprotocols,        /*  8. Fixed-form protocol (tuple) */
-            &log_dict,          /*  9. DataLog */
-            &log_interval,      /* 10. Float: log interval, or 0 */
-            &log_times,         /* 11. List of logging times, or None */
-            &sens_list,         /* 12. List to store sensitivities in */
-            &rf_indice,         /* 13. Int: root-finding state variable */
-            &rf_threshold,      /* 14. Float: root-finding threshold */
-            &rf_list,           /* 15. List to store roots in or None */
-            &benchmarker,       /* 16. myokit.tools.Benchmarker object */
-            &log_realtime       /* 17. Int: 1 if logging real time */
+            &protocols,        /*   7. Event-based or fixed protocols */
+            &log_dict,          /*  8. DataLog */
+            &log_interval,      /*  9. Float: log interval, or 0 */
+            &log_times,         /* 10. List of logging times, or None */
+            &sens_list,         /* 11. List to store sensitivities in */
+            &rf_indice,         /* 12. Int: root-finding state variable */
+            &rf_threshold,      /* 13. Float: root-finding threshold */
+            &rf_list,           /* 14. List to store roots in or None */
+            &benchmarker,       /* 15. myokit.tools.Benchmarker object */
+            &log_realtime       /* 16. Int: 1 if logging real time */
     )) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         return 0;
@@ -943,21 +942,13 @@ sim_init(PyObject *self, PyObject *args)
     /*
      * Set up pacing system
      */
-    int n_pace_event = 0;
-    int n_pace_fixed = 0;
-    if (eprotocols != Py_None) {
-        if (!PyList_Check(eprotocols)) {
-            return sim_cleanx(PyExc_TypeError, "'eprotocols' must be a list.");
+    npace = 0;
+    if (protocols != Py_None) {
+        if (!PyList_Check(protocols)) {
+            return sim_cleanx(PyExc_TypeError, "'protocols' must be a list.");
         }
-        npace_event = PyList_Size(eprotocols);
+        npace = PyList_Size(eprotocols);
     }
-    if (fprotocols != Py_None) {
-        if (!PyList_Check(fprotocols)) {
-            return sim_cleanx(PyExc_TypeError, "'fprotocols' must be a list.");
-        }
-        npace_fixed = PyList_Size(fprotocols);
-    }
-    n_pace = n_pace_event + n_pace_fixed;
     model->n_pace = n_pace;
     pacing_systems = (PacingSystem*)malloc(sizeof(PacingSystem) * npace);
     if (pacing_systems == NULL) {
@@ -974,52 +965,41 @@ sim_init(PyObject *self, PyObject *args)
      */
     tnext = tmax;
 
-    /* Set up event-based pacing */
-    if (eprotocols != Py_None) {
-        for (int i = 0; i < PyList_Size(eprotocols); i++) {
-            const PyObject *eprotocol = PyList_GetItem(eprotocols, i);
-            pacing_systems[i].event = ESys_Create(&flag_epacing);
-            ESys *epacing = pacing_systems[i].event;
-            if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-            flag_epacing = ESys_Populate(epacing, eprotocol);
-            if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-            flag_epacing = ESys_AdvanceTime(epacing, tmin);
-            if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-            const double ptnext = ESys_GetNextTime(epacing, &flag_epacing);
-            pacing[i] = ESys_GetLevel(epacing, &flag_epacing);
-            tnext = min(ptnext, tnext);
+    /* Set up event-based or fixed pacing */
+    if (protocols != Py_None) {
+        for (int i = 0; i < PyList_Size(protocols); i++) {
+            const PyObject *protocol = PyList_GetItem(protocols, i);
+            const char* protocol_type_name = Py_TYPE(obj)->tp_name;
+            if strcmp(protocol_type_name, "myokit.Protocol") {
+                pacing_systems[i].event = ESys_Create(&flag_epacing);
+                ESys *epacing = pacing_systems[i].event;
+                if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+                flag_epacing = ESys_Populate(epacing, protocol);
+                if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+                flag_epacing = ESys_AdvanceTime(epacing, tmin);
+                if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+                const double ptnext = ESys_GetNextTime(epacing, &flag_epacing);
+                pacing[i] = ESys_GetLevel(epacing, &flag_epacing);
+                tnext = min(ptnext, tnext);
 
-            #ifdef MYOKIT_DEBUG_PROFILING
-            benchmarker_print("CP Created event-based pacing system.");
-            #endif
-        }
-    }
+                #ifdef MYOKIT_DEBUG_PROFILING
+                benchmarker_print("CP Created event-based pacing system.");
+                #endif
+            } else if strcmp(protocol_type_name, "myokit.FixedProtocol") {
+                pacing_systems[i].fixed = FSys_Create(&flag_fpacing);
+                FSys *fpacing = pacing_systems[i].fixed;
+                if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
+                flag_fpacing = FSys_Populate(fpacing, protocol);
+                if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
 
-    /* Set up fixed-form pacing */
-    if (fprotocols != Py_None) {
-        for (int j = 0; j < PyList_Size(fprotocols); j++) {
-            const int i = j + npace_event;
-            const PyObject *fprotocol = PyList_GetItem(fprotocols, j);
 
-            /* Check 'protocol' is tuple (times, values) */
-            if (!PyTuple_Check(fprotocol)) {
-                return sim_cleanx(PyExc_TypeError, "Fixed-form pacing protocol should be tuple or None.");
+                #ifdef MYOKIT_DEBUG_PROFILING
+                benchmarker_print("CP Created fixed-form pacing system.");
+                #endif
+            } else {
+                return sim_cleanx(PyExc_TypeError, "Item %d in 'protocols' is not a myokit.Protocol or myokit.FixedProtocol object.", i);
             }
-            if (PyTuple_Size(fprotocol) != 2) {
-                return sim_cleanx(PyExc_ValueError, "Fixed-form pacing protocol tuple should have size 2.");
-            }
-            /* Create fixed-form pacing object and populate */
-            pacing_systems[i].fixed = FSys_Create(&flag_fpacing);
-            FSys *fpacing = pacing_systems[i].fixed;
-            if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
-            flag_fpacing = FSys_Populate(fpacing,
-                PyTuple_GetItem(fprotocol, 0),  /* Borrowed, no decref */
-                PyTuple_GetItem(fprotocol, 1));
-            if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
 
-            #ifdef MYOKIT_DEBUG_PROFILING
-            benchmarker_print("CP Created fixed-form pacing system.");
-            #endif
         }
     }
 

@@ -121,9 +121,13 @@ class Simulation(myokit.CModule):
 
     ``model``
         The model to simulate
-    ``protocol``
-        An optional :class:`myokit.Protocol` to use as input for variables
-        bound to ``pace``.
+    ``protocols``
+        An optional dict mapping paced variable labels (str) to a
+        :class:`myokit.Protocol` or None. if None, the paced variable will be
+        set to 0, or the pacing protocol can be set later using
+        :meth:set_protocol. For backwards compatibility, a single protocol
+        of type :class:`myokit.Protocol` can be passed in instead of a dict, the
+        label in this case will be 'pace'.
     ``sensitivities``
         An optional tuple ``(dependents, independents)`` where ``dependents``
         is a list of variables or expressions to take derivatives of (``y`` in
@@ -148,7 +152,7 @@ class Simulation(myokit.CModule):
     """
     _index = 0  # Simulation id
 
-    def __init__(self, model, protocol=None, sensitivities=None, path=None):
+    def __init__(self, model, protocols=None, sensitivities=None, path=None):
         super(Simulation, self).__init__()
 
         # Require a valid model
@@ -158,13 +162,18 @@ class Simulation(myokit.CModule):
         del model
 
         # Set protocol
-        self._protocols = {}
-        self._fixed_form_protocol = None
-        self.set_protocol('pace', protocol)
-        del protocol
+        if isinstance(protocols, myokit.Protocol):
+            protocols = {'pace': protocols}
+        self._protocols = []
+        self._pacing_labels = []
+        if protocols is not None:
+            for label, protocol in protocols.items():
+                self._pacing_labels.append(label)
+                self._protocols.append(None)
+                self.set_protocol(label, protocol)
 
         # Generate C Model code, get sensitivity and constants info
-        cmodel = myokit.CModel(self._model, sensitivities)
+        cmodel = myokit.CModel(self._model, self._pacing_labels, sensitivities)
         if cmodel.has_sensitivities:
             self._sensitivities = (cmodel.dependents, cmodel.independents)
 
@@ -755,28 +764,26 @@ class Simulation(myokit.CModule):
                 list(self._parameters.values()),
                 # 7. An event-based pacing protocol
                 self._protocols,
-                # 8. A fixed-form protocol
-                self._fixed_form_protocol,
-                # 9. A DataLog
+                # 8. A DataLog
                 log,
-                # 10. The log interval, or 0
+                # 9. The log interval, or 0
                 log_interval,
-                # 11. A list of predetermind logging times, or None
+                # 10. A list of predetermind logging times, or None
                 log_times,
-                # 12. A list to store calculated sensitivities in
+                # 11. A list to store calculated sensitivities in
                 sensitivities,
-                # 13. The state variable indice for root finding (only used if
+                # 12. The state variable indice for root finding (only used if
                 #     root_list is a list)
                 root_indice,
-                # 14. The threshold for root crossing (can be 0 too, only used
+                # 13. The threshold for root crossing (can be 0 too, only used
                 #     if root_list is a list).
                 root_threshold,
-                # 15. A list to store calculated root crossing times and
+                # 14. A list to store calculated root crossing times and
                 #     directions in, or None
                 root_list,
-                # 16. A myokit.tools.Benchmarker or None (if not used)
+                # 15. A myokit.tools.Benchmarker or None (if not used)
                 b,
-                # 17. Boolean/int: 1 if we are logging realtime
+                # 16. Boolean/int: 1 if we are logging realtime
                 int(self._model.binding('realtime') is not None),
             )
             t = tmin
@@ -949,68 +956,26 @@ class Simulation(myokit.CModule):
         # Set in simulation
         self._sim.set_min_step_size(dtmin)
 
-    def set_fixed_form_protocol(self, times=None, values=None):
-        """
-        Configures this simulation to run with a predetermined protocol
-        instead of the usual event-based mechanism.
-
-        A 1D time-series should be given as input. During the simulation, the
-        value of the pacing variable will be determined by linearly
-        interpolating between the two nearest points in the series. If the
-        simulation time is outside the bounds of the time-series, the first or
-        last value in the series will be used.
-
-        Setting a predetermined protocol clears any previously set (event-based
-        or pre-determined) protocol. To clear all protocols, call this method
-        with `times=None`. When a simulation is run without any protocol, the
-        value of any variables bound to `pace` will be set to 0.
-
-        Arguments:
-
-        ``times``
-            A non-decreasing array of times. If any times appear more than
-            once, only the value at the highest index will be used.
-        ``values``
-            An array of values for the pacing variable. Must have the same size
-            as ``times``.
-
-        """
-        # Check input
-        if times is None:
-            if values is not None:
-                raise ValueError('Values array given, but no times array.')
-        else:
-            if values is None:
-                raise ValueError('Times array given, but no values array.')
-            if len(times) != len(values):
-                raise ValueError('Times and values array must have same size.')
-
-        # Clear event-based protocol, if set
-        self._protocols = {}
-
-        # Set new protocol
-        if times is None:
-            # Clear predetermined protocol
-            self._fixed_form_protocol = None
-        else:
-            # Copy data and set
-            self._fixed_form_protocol = (list(times), list(values))
-
     def set_protocol(self, label, protocol=None):
         """
-        Binds the pacing :class:`Protocol` to the variable with given label `label`.
+        Binds the pacing :class:`Protocol` or :class:`FixedProtocol` to the
+        variable with given label `label`. The label must be one of the pacing
+        labels set in the constructor.
 
-        To remove a previously set binding call this method with ``protocol = None``. In
-        this case, the value of any variables bound to `label` will be set to 0.
+        To remove a previously set binding call this method with ``protocol =
+        None``. In this case, the value of any variables bound to `label` will
+        be set to 0.
         """
-        # Clear predetermined protocol, if set
-        self._fixed_form_protocol = None
+        if label not in self._pacing_labels:
+            raise ValueError('Unknown pacing label: ' + str(label))
 
+        index = self._pacing_labels.index(label)
+         
         # Set new protocol
         if protocol is None:
-            self._protocols[label] = None
+            self._protocols[index] = None
         else:
-            self._protocols[label] = protocol.clone()
+            self._protocols[index] = protocol.clone()
 
     def __setstate__(self, state):
         """

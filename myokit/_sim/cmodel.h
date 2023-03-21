@@ -374,11 +374,6 @@ print('/* Bound variables */')
 for var, local in bound_variables.items():
     print('#define ' + v(var) + ' model->' + local)
 
-<?
-print('/* pacing variables */')
-for i, var in enumerate(pacing_variables):
-    print('#define ' + v(var) + ' model->pace_values[' + str(i) + ']')
-
 print('/* States */')
 for i, var in enumerate(model.states()):
     print('#define ' + v(var) + ' model->states[' + str(i) + ']')
@@ -556,7 +551,8 @@ for eq in parameter_derived.values():
  *
  * Returns a model flag.
  */
-Model_FlaNoneodel_SetParameters(Model model, const realtype* parameters)
+Model_Flag
+Model_SetParameters(Model model, const realtype* parameters)
 {
     int i;
     if (model == NULL) return Model_INVALID_MODEL;
