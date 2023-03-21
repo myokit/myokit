@@ -203,10 +203,9 @@ enum PSysType {
     EVENT,
     FIXED
 };
-Psys *pacing_systems;   /* array of pacing system (event or fixed) */
-PSysType *pacing_types; /* array of pacing system types */
-PyObject* eprotocols;   /* An list of event-based pacing protocol */
-PyObject* fprotocols;   /* A list of fixed-form pacing protocol */
+union PSys *pacing_systems;   /* array of pacing system (event or fixed) */
+enum PSysType *pacing_types; /* array of pacing system types */
+PyObject *protocols;         /* The protocols used to generate the pacing systems */
 double* pacing;         /* Pacing values, same size as pacing_systems and pacing_types*/
 int n_pace;              /* The number of pacing systems */
 
@@ -474,8 +473,16 @@ sim_clean()
         }
 
         /* Pacing systems */
-        ESys_Destroy(epacing); epacing = NULL;
-        FSys_Destroy(fpacing); fpacing = NULL;
+        for (int i = 0; i < n_pace; i++) {
+            if (pacing_types[i] == FIXED) {
+                FSys_Destroy(pacing_systems[i].fixed);
+            } else if (pacing_types[i] == EVENT) {
+                ESys_Destroy(pacing_systems[i].event);
+            }
+        }
+        free(pacing_systems); pacing_systems = NULL;
+        free(pacing_types); pacing_types = NULL;
+        free(pacing); pacing = NULL;
 
         /* CModel */
         Model_Destroy(model); model = NULL;
@@ -942,21 +949,25 @@ sim_init(PyObject *self, PyObject *args)
     /*
      * Set up pacing system
      */
-    npace = 0;
+    n_pace = 0;
     if (protocols != Py_None) {
         if (!PyList_Check(protocols)) {
             return sim_cleanx(PyExc_TypeError, "'protocols' must be a list.");
         }
-        npace = PyList_Size(eprotocols);
+        n_pace = PyList_Size(protocols);
     }
     model->n_pace = n_pace;
-    pacing_systems = (PacingSystem*)malloc(sizeof(PacingSystem) * npace);
+    pacing_systems = (union PSys*)malloc(sizeof(union PSys) * n_pace);
     if (pacing_systems == NULL) {
         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing systems.");
     }
-    pacing_types = (int*)malloc(sizeof(int) * n_pace);
+    pacing_types = (enum PSysType *)malloc(sizeof(enum PSysType) * n_pace);
     if (pacing_types == NULL) {
         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing types.");
+    }
+    pacing = (realtype*)malloc(sizeof(realtype) * n_pace);
+    if (pacing == NULL) {
+        return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing values.");
     }
     Model_SetupPacing(model, n_pace);
 
@@ -968,11 +979,11 @@ sim_init(PyObject *self, PyObject *args)
     /* Set up event-based or fixed pacing */
     if (protocols != Py_None) {
         for (int i = 0; i < PyList_Size(protocols); i++) {
-            const PyObject *protocol = PyList_GetItem(protocols, i);
-            const char* protocol_type_name = Py_TYPE(obj)->tp_name;
-            if strcmp(protocol_type_name, "myokit.Protocol") {
+            PyObject *protocol = PyList_GetItem(protocols, i);
+            const char* protocol_type_name = Py_TYPE(protocol)->tp_name;
+            if (strcmp(protocol_type_name, "myokit.Protocol") == 0) {
                 pacing_systems[i].event = ESys_Create(&flag_epacing);
-                ESys *epacing = pacing_systems[i].event;
+                ESys epacing = pacing_systems[i].event;
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 flag_epacing = ESys_Populate(epacing, protocol);
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
@@ -980,14 +991,14 @@ sim_init(PyObject *self, PyObject *args)
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 const double ptnext = ESys_GetNextTime(epacing, &flag_epacing);
                 pacing[i] = ESys_GetLevel(epacing, &flag_epacing);
-                tnext = min(ptnext, tnext);
+                tnext = fmin(ptnext, tnext);
 
                 #ifdef MYOKIT_DEBUG_PROFILING
                 benchmarker_print("CP Created event-based pacing system.");
                 #endif
-            } else if strcmp(protocol_type_name, "myokit.FixedProtocol") {
+            } else if (strcmp(protocol_type_name, "myokit.FixedProtocol") == 0) {
                 pacing_systems[i].fixed = FSys_Create(&flag_fpacing);
-                FSys *fpacing = pacing_systems[i].fixed;
+                FSys fpacing = pacing_systems[i].fixed;
                 if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
                 flag_fpacing = FSys_Populate(fpacing, protocol);
                 if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
@@ -1318,9 +1329,11 @@ sim_step(PyObject *self, PyObject *args)
                     /* PyList_SetItem steals a reference: no need to decref the double! */
                 }
                 PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));
-                PyList_SetItem(bound_py, 1, PyFloat_FromDouble(pace));
-                PyList_SetItem(bound_py, 2, PyFloat_FromDouble(realtime));
-                PyList_SetItem(bound_py, 3, PyFloat_FromDouble(evaluations));
+                PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
+                PyList_SetItem(bound_py, 2, PyFloat_FromDouble(evaluations));
+                for (int i = 0; i < n_pace; i++) {
+                    PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
+                }
                 return sim_clean();
             }
 
@@ -1501,14 +1514,14 @@ sim_step(PyObject *self, PyObject *args)
              */
             tnext = tmax;
             for (int i = 0; i < n_pace; i++) {
-                if (pacing_types[i] != PacingType_EVENT) continue;
-                ESys* epacing = pacing_systems[i].event;
+                if (pacing_types[i] != EVENT) continue;
+                ESys epacing = pacing_systems[i].event;
                 flag_epacing = ESys_AdvanceTime(epacing, t);
                 if (flag_epacing != ESys_OK) {
                     ESys_SetPyErr(flag_epacing); return sim_clean();
                 }
                 const double ptnext = ESys_GetNextTime(epacing, NULL);
-                tnext = min(tnext, ptnext);
+                tnext = fmin(tnext, ptnext);
                 pacing[i] = ESys_GetLevel(epacing, NULL);
             }
 
@@ -1617,9 +1630,11 @@ sim_step(PyObject *self, PyObject *args)
 
     /* Set bound variable values */
     PyList_SetItem(bound_py, 0, PyFloat_FromDouble(t));
-    PyList_SetItem(bound_py, 1, PyFloat_FromDouble(pace));
-    PyList_SetItem(bound_py, 2, PyFloat_FromDouble(realtime));
-    PyList_SetItem(bound_py, 3, PyFloat_FromDouble(evaluations));
+    PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
+    PyList_SetItem(bound_py, 2, PyFloat_FromDouble(evaluations));
+    for (int i = 0; i < n_pace; i++) {
+        PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
+    }
 
     #ifdef MYOKIT_DEBUG_PROFILING
     benchmarker_print("CP Set final state and bound variable values.");
@@ -1639,7 +1654,8 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     int i;
     int success;
     double time_in;
-    double pace_in;
+    PyObject *pace_in;
+    double *pacing_in;
     Model model;
     Model_Flag flag_model;
     PyObject *state;
@@ -1655,7 +1671,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     /* Check input arguments     0123456789ABCDEF*/
     if (!PyArg_ParseTuple(args, "ddOOOO",
             &time_in,           /* 0. Float: time */
-            &pace_in,           /* 1. Float: pace */
+            &pace_in,           /* 1. List: pace */
             &state,             /* 2. List: state */
             &deriv,             /* 3. List: store derivatives here */
             &literals,          /* 4. List: literal constant values */
@@ -1667,6 +1683,10 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     }
 
     /* Check lists are sequences */
+    if (!PyList_Check(pace_in)) {
+        PyErr_SetString(PyExc_Exception, "Pace argument must be a list.");
+        return 0;
+    }
     if (!PyList_Check(state)) {
         PyErr_SetString(PyExc_Exception, "State argument must be a list.");
         return 0;
@@ -1698,8 +1718,19 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
         goto error;
     }
 
+    /* Set pacing values */
+    pacing_in = (double*)malloc(sizeof(double) * n_pace);
+    for (i=0; i < n_pace; i++) {
+        val = PyList_GetItem(pace_in, i); /* Don't decref */
+        if (!PyFloat_Check(val)) {
+            PyErr_Format(PyExc_Exception, "Item %d in pace vector is not a float.", i);
+            goto error;
+        }
+        pacing_in[i] = PyFloat_AsDouble(val);
+    }
+
     /* Set bound variables */
-    Model_SetBoundVariables(model, time_in, pace_in, 0, 0);
+    Model_SetBoundVariables(model, time_in, pacing_in, 0, 0);
 
     /* Set literal values */
     for (i=0; i<model->n_literals; i++) {

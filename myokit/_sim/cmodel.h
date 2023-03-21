@@ -1198,7 +1198,6 @@ for i, expr in enumerate(s_independents):
 
     /* Bound variables */
     model->time = 0;
-    model->pace = 0;
     model->realtime = 0;
     model->evaluations = 0;
 

@@ -141,9 +141,10 @@ class CModel(object):
 
     def _prepare_bindings(self, model, labels):
         """
-        Takes a mapping of labels to internal references as input and
+        Takes a mapping of binding labels to internal references as input and
         returns a mapping of variables to internal references. All variables
-        appearing in the map will have their right hand side set to zero.
+        appearing in the map will have their right hand side set to zero. All
+        bindings not mapped to any internal reference will be deleted.
 
         The argument ``mapping`` should take the form::
 
@@ -161,16 +162,20 @@ class CModel(object):
                 ...
                 }
 
-        Unsupported labels (i.e. labels not appearing in ``labels``) will
+        Unsupported bindings (i.e. bindings not appearing in ``labels``) will
         be ignored.
         """
         variables = {}
-        for label, var in model._labels.items():
+        unused = []
+        for label, var in model._bindings.items():
             try:
                 variables[var] = labels[label]
             except KeyError:
+                unused.append(var)
                 continue
             var.set_rhs(0)
+        for var in unused:
+            var.set_binding(None)
         return variables
 
     def _parse_sensitivities(self, model, sensitivities):
