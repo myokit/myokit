@@ -19,7 +19,7 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
-class FixedPacingPythonTest(unittest.TestCase):
+class TimeSeriesPacingPythonTest(unittest.TestCase):
     """
     Tests the pure python FixedProtocol class.
     """
@@ -28,6 +28,21 @@ class FixedPacingPythonTest(unittest.TestCase):
         self.assertRaises(Exception, myokit.TimeSeriesProtocol, 1, 2)
         self.assertRaises(
             Exception, myokit.TimeSeriesProtocol, [1, 2], [2])
+        self.assertRaises(
+            Exception, myokit.TimeSeriesProtocol,
+            [1, 2], [2, 4], method='cubic'
+        )
+
+    def test_eq(self):
+        p1 = myokit.TimeSeriesProtocol([1, 2], [2, 4])
+        p2 = myokit.TimeSeriesProtocol([1, 2], [2, 4])
+        self.assertEqual(p1, p2)
+
+    def test_pickle(self):
+        import pickle
+        p1 = myokit.TimeSeriesProtocol([1, 2], [2, 4])
+        p2 = pickle.loads(pickle.dumps(p1))
+        self.assertEqual(p1, p2)
 
     def tests_constructor(self):
         p = myokit.TimeSeriesProtocol([1], [2])
