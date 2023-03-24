@@ -8,7 +8,6 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from __future__ import annotations
 from bisect import bisect_right
-from typing import List
 
 
 class TimeSeriesProtocol(object):
@@ -74,7 +73,7 @@ class TimeSeriesProtocol(object):
         """
         return TimeSeriesProtocol(self._times, self._values, self._method)
 
-    def pace(self, t: float) -> float:
+    def pace(self, t):
         """
         Returns the value of the pacing variable at time ``t``.
         """
@@ -89,17 +88,14 @@ class TimeSeriesProtocol(object):
             self._values[i + 1] - self._values[i]
         ) / (self._times[i + 1] - self._times[i])
 
-    def times(self) -> List[float]:
+    def times(self):
         """
         Returns a list of the times in this protocol.
         """
         return self._times
 
-    def values(self) -> List[float]:
+    def values(self):
         """
         Returns a list of the values in this protocol.
         """
         return self._values
-
-
-
