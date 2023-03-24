@@ -91,6 +91,13 @@ class SimulationTest(unittest.TestCase):
         # Check if pace was set to zero (see prop 651 / technical docs).
         self.assertTrue(np.all(d['engine.pace'] == 0.0))
 
+    def test_wrong_label_set_pacing(self):
+        # Test set_pacing with incorrect label
+        self.sim.reset()
+        self.sim.pre(50)
+        with self.assertRaisesRegex(ValueError, 'Unknown pacing label'):
+            self.sim.set_protocol(None, label='does not exist')
+
     def test_fixed_form_protocol(self):
         # Test running with a fixed form protocol.
 
