@@ -1,4 +1,5 @@
 .. _api/simulations/myokit.Protocol:
+.. _api/simulations/myokit.TimeSeriesProtocol:
 
 ****************
 Pacing protocols
