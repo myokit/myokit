@@ -45,33 +45,6 @@ class TimeSeriesProtocol(object):
                 raise ValueError('Unknown interpolation method: ' + method)
         self._method = method
 
-    def times(self) -> List[float]:
-        """
-        Returns a list of the times in this protocol.
-        """
-        return self._times
-
-    def values(self) -> List[float]:
-        """
-        Returns a list of the values in this protocol.
-        """
-        return self._values
-
-    def pace(self, t: float) -> float:
-        """
-        Returns the value of the pacing variable at time ``t``.
-        """
-        if t < self._times[0]:
-            return self._values[0]
-        if t > self._times[-1]:
-            return self._values[-1]
-        i = bisect_right(self._times, t) - 1
-        if i == len(self._times) - 1:
-            return self._values[i]
-        return self._values[i] + (t - self._times[i]) * (
-            self._values[i + 1] - self._values[i]
-        ) / (self._times[i + 1] - self._times[i])
-
     def __eq__(self, other):
         if self is other:
             return True
@@ -90,16 +63,43 @@ class TimeSeriesProtocol(object):
             'method': self._method,
         }
 
+    def __setstate__(self, values):
+        self._times = values['times']
+        self._values = values['values']
+        self._method = values['method']
+
     def clone(self) -> TimeSeriesProtocol:
         """
         Returns a clone of this protocol.
         """
         return TimeSeriesProtocol(self._times, self._values, self._method)
 
-    def __setstate__(self, values):
-        self._times = values['times']
-        self._values = values['values']
-        self._method = values['method']
+    def pace(self, t: float) -> float:
+        """
+        Returns the value of the pacing variable at time ``t``.
+        """
+        if t < self._times[0]:
+            return self._values[0]
+        if t > self._times[-1]:
+            return self._values[-1]
+        i = bisect_right(self._times, t) - 1
+        if i == len(self._times) - 1:
+            return self._values[i]
+        return self._values[i] + (t - self._times[i]) * (
+            self._values[i + 1] - self._values[i]
+        ) / (self._times[i + 1] - self._times[i])
+
+    def times(self) -> List[float]:
+        """
+        Returns a list of the times in this protocol.
+        """
+        return self._times
+
+    def values(self) -> List[float]:
+        """
+        Returns a list of the values in this protocol.
+        """
+        return self._values
 
 
 
