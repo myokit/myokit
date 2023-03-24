@@ -34,7 +34,9 @@ class CModelTest(unittest.TestCase):
         cls.model = m
         cls.sensitivities = (['ik1.gK1', 'ikp.IKp'], ['cell.K_o', 'ikp.gKp'])
         cls.pacing_labels = {}
-        cls.cmodel = myokit.CModel(cls.model, cls.pacing_labels, cls.sensitivities)
+        cls.cmodel = myokit.CModel(
+            cls.model, cls.pacing_labels, cls.sensitivities
+        )
 
     def test_sensitivities(self):
         # Test instantiation of cmodel with sensitivities
