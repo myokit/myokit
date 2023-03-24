@@ -122,12 +122,11 @@ class Simulation(myokit.CModule):
     ``model``
         The model to simulate
     ``protocols``
-        An optional dict mapping paced variable labels (str) to a
-        :class:`myokit.Protocol` or None. if None, the paced variable will be
-        set to 0, or the pacing protocol can be set later using
-        :meth:set_protocol. For backwards compatibility, a single protocol
-        of type :class:`myokit.Protocol` can be passed in instead of a dict,
-        the label in this case will be 'pace'.
+        If a single :class:`myokit.Protocol` is used, this protocol will be
+        bound to the model variable with binding `pace`. Alternativly, a dict
+        mapping binding labels with :class:`myokit.Protocol` objects can be used
+        to bind multiple protocols to the model. If None, then the `pace`
+        binding variable will be set to 0.
     ``sensitivities``
         An optional tuple ``(dependents, independents)`` where ``dependents``
         is a list of variables or expressions to take derivatives of (``y`` in
