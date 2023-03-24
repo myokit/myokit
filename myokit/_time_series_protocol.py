@@ -67,7 +67,7 @@ class TimeSeriesProtocol(object):
         self._values = values['values']
         self._method = values['method']
 
-    def clone(self) -> TimeSeriesProtocol:
+    def clone(self):
         """
         Returns a clone of this protocol.
         """
