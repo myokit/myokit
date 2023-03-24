@@ -11,7 +11,7 @@ from bisect import bisect_right
 from typing import List
 
 
-class FixedProtocol(object):
+class TimeSeriesProtocol(object):
     """
     Represents a pacing protocol as a sequence of time value pairs and an
     interpolation method (currently only linear interpolation is supported).
@@ -28,7 +28,7 @@ class FixedProtocol(object):
     """
 
     def __init__(self, times, values, method=None):
-        super(FixedProtocol, self).__init__()
+        super(TimeSeriesProtocol, self).__init__()
 
         if len(times) != len(values):
             raise ValueError('Times and values array must have same size.')
@@ -75,7 +75,7 @@ class FixedProtocol(object):
     def __eq__(self, other):
         if self is other:
             return True
-        if not isinstance(other, FixedProtocol):
+        if not isinstance(other, TimeSeriesProtocol):
             return False
         return (
             self._times == other._times
@@ -90,11 +90,11 @@ class FixedProtocol(object):
             'method': self._method,
         }
 
-    def clone(self) -> FixedProtocol:
+    def clone(self) -> TimeSeriesProtocol:
         """
         Returns a clone of this protocol.
         """
-        return FixedProtocol(self._times, self._values, self._method)
+        return TimeSeriesProtocol(self._times, self._values, self._method)
 
     def __setstate__(self, values):
         self._times = values['times']

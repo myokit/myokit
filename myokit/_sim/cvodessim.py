@@ -988,7 +988,7 @@ class Simulation(myokit.CModule):
         if values is None:
             raise ValueError('no values given.')
 
-        self.set_protocol(myokit.FixedProtocol(times, values))
+        self.set_protocol(myokit.TimeSeriesProtocol(times, values))
 
     def set_protocol(self, protocol, label=None):
         """

@@ -464,7 +464,7 @@ from ._protocol import (  # noqa
     ProtocolEvent,
 )
 from ._fixed_protocol import (  # noqa
-    FixedProtocol,
+    TimeSeriesProtocol,
 )
 from . import pacing  # noqa
 
