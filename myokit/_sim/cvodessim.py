@@ -980,6 +980,11 @@ class Simulation(myokit.CModule):
         This method is provided for backwards compatibility with older
         versions, please use :meth:`set_protocol` instead.
         """
+        import warnings
+        warnings.warn(
+            'The method `myokit.Simulation.set_fixed_form_protocol` is '
+            'deprecated. It will be removed in future versions of Myokit.'
+        )
         if times is None and values is None:
             self.set_protocol(None)
             return
