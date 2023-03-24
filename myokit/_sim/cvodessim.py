@@ -167,9 +167,6 @@ class Simulation(myokit.CModule):
             # TODO: this can be an empty dict once #320 is resolved
             protocols = {'pace': myokit.Protocol()}
 
-        for var in self._model.variables(deep=True, state=False, bound=False, const=False):
-            print(var)
-        print(self._model.code())
         self._protocols = []
         self._pacing_labels = []
         for label, protocol in protocols.items():
@@ -203,9 +200,6 @@ class Simulation(myokit.CModule):
             self._literals[var] = eq.rhs.eval()
         for var, eq in cmodel.parameters.items():
             self._parameters[var] = eq.rhs.eval()
-
-        print('literals', self._literals)
-        print('parameters', self._parameters)
 
         # Compile or load simulation
         if type(path) == tuple:
