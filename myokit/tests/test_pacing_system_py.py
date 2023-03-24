@@ -52,9 +52,9 @@ class FixedPacingPythonTest(unittest.TestCase):
             self.assertEqual(pacing.pace(value), index)
 
         test(-1, 0)
-        test(0, 0)
-        test(1, 2)
-        test(2, 5)
+        test(0, 1)
+        test(1, 4)
+        test(2, 7)
         test(3, 8)
         test(4, 9)
         test(5, 10)

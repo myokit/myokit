@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from __future__ import annotations
-from bisect import bisect_left
+from bisect import bisect_right
 from typing import List
 
 
@@ -65,7 +65,9 @@ class FixedProtocol(object):
             return self._values[0]
         if t > self._times[-1]:
             return self._values[-1]
-        i = bisect_left(self._times, t) - 1
+        i = bisect_right(self._times, t) - 1
+        if i == len(self._times) - 1:
+            return self._values[i]
         return self._values[i] + (t - self._times[i]) * (
             self._values[i + 1] - self._values[i]
         ) / (self._times[i + 1] - self._times[i])
