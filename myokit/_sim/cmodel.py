@@ -90,7 +90,7 @@ class CModel(object):
 
         # get mapping from variables to C variable names as used in model.h
         labels = {
-            label: f'pace_values[{i}]'
+            label: 'pace_values[{}]'.format(i)
             for i, label in enumerate(pacing_labels)
         }
         labels.update({

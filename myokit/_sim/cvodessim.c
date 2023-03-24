@@ -997,7 +997,7 @@ sim_init(PyObject *self, PyObject *args)
                 #ifdef MYOKIT_DEBUG_PROFILING
                 benchmarker_print("CP Created event-based pacing system.");
                 #endif
-            } else if (strcmp(protocol_type_name, "FixedProtocol") == 0) {
+            } else if (strcmp(protocol_type_name, "TimeSeriesProtocol") == 0) {
                 pacing_systems[i].fixed = FSys_Create(&flag_fpacing);
                 pacing_types[i] = FIXED;
                 FSys fpacing = pacing_systems[i].fixed;
@@ -1011,7 +1011,7 @@ sim_init(PyObject *self, PyObject *args)
                 #endif
             } else {
                 printf("protocol_type_name: %s", protocol_type_name);
-                return sim_cleanx(PyExc_TypeError, "Item %d in 'protocols' is not a myokit.Protocol or myokit.FixedProtocol object.", i);
+                return sim_cleanx(PyExc_TypeError, "Item %d in 'protocols' is not a myokit.Protocol or myokit.TimeSeriesProtocol object.", i);
             }
 
         }
