@@ -7,6 +7,8 @@ Pacing protocols
 .. currentmodule:: myokit
 .. autoclass:: Protocol
 
+.. autoclass:: TimeSeriesProtocol
+
 .. _api/myokit.ProtocolEvent:
 .. autoclass:: ProtocolEvent
 
