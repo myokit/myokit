@@ -17,6 +17,7 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) The only argument to `Variable.promote` has been renamed from `state_value` to `initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.import_component` now preserves the ordering of the imported states.
 - Deprecated
+  - [#534](https://github.com/myokit/myokit/pull/947) `Simulation.set_fixed_form_protocol` is deprecated in favor of `Simulation.set_protocol`
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favour of `Model.set_initial_values`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.inits` is deprecated.
