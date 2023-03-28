@@ -554,7 +554,7 @@ class SimulationTest(unittest.TestCase):
     def test_state_sensitivites(self):
         # Test :meth:`Simulation.default_state_sensitivies`,
         # :meth:`Simulation.state_sensitivies`,
-        # :meth:`Simulation.set_default_sensitivies`,
+        # :meth:`Simulation.set_default_state_sensitivies`,
         # and :meth:`Simulation.set_state_sensitivies`
 
         # Create bolus infusion model with linear clearance
@@ -602,7 +602,7 @@ class SimulationTest(unittest.TestCase):
         # Set sensitivities and check set values
         s_values = [[2], [3]]
         sim.set_state_sensitivities(s_values)
-        sim.set_default_sensitivities(s_values)
+        sim.set_default_state_sensitivities(s_values)
         sd = sim.default_state_sensitivities()
         s = sim.state_sensitivities()
         self.assertEqual(len(sd), 2)

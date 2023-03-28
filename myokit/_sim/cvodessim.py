@@ -419,23 +419,23 @@ class Simulation(myokit.CModule):
 
         The N x M list of lists 's_values', defines the sensitivities
         dz/dx for the N dependent variables and M independent variables.
-        Here we define z as a vector of dependent variables (state or 
-        state-derived) of length N, and x as a vector of independent 
-        variables (parameters or initial conditions) of length M. 
+        Here we define z as a vector of dependent variables (state or
+        state-derived) of length N, and x as a vector of independent
+        variables (parameters or initial conditions) of length M.
         """
         if self._sensitivities:
             if isinstance(s_values, list):
-                if [len(s_values),len(s_values[0])] == [len(
-                    self._s_state), len(self._s_state[0])]:
+                if [len(s_values), len(s_values[0])] == [len(
+                        self._s_state), len(self._s_state[0])]:
                     s_val_copy = copy.deepcopy(s_values)
                     self._s_state = s_val_copy
                 else:
                     raise Exception('Specified sensitivities must be of'
-                            ' shape N x M for N dependent variables'
-                            ' and M independent variables.')
+                                    ' shape N x M for N dependent variables'
+                                    ' and M independent variables.')
             else:
                 raise Exception('Specified sensitivities must be a'
-                            ' list.')
+                                ' list.')
         else:
             raise Exception('Sensitivities are not currently enabled')
 
@@ -446,23 +446,23 @@ class Simulation(myokit.CModule):
 
         The N x M list of lists 's_values', defines the sensitivities
         dz/dx for the N dependent variables and M independent variables.
-        Here we define z as a vector of dependent variables (state or 
-        state-derived) of length N, and x as a vector of independent 
+        Here we define z as a vector of dependent variables (state or
+        state-derived) of length N, and x as a vector of independent
         variables (parameters or initial conditions) of length M.
         """
         if self._sensitivities:
             if isinstance(s_values, list):
-                if [len(s_values),len(s_values[0])] == [len(
-                    self._s_default_state), len(self._s_default_state[0])]:
+                if [len(s_values), len(s_values[0])] == [len(
+                        self._s_default_state), len(self._s_default_state[0])]:
                     s_val_copy = copy.deepcopy(s_values)
                     self._s_default_state = s_val_copy
                 else:
                     raise Exception('Specified sensitivities must be of'
-                            ' shape N x M for N dependent variables'
-                            ' and M independent variables.')
+                                    ' shape N x M for N dependent variables'
+                                    ' and M independent variables.')
             else:
                 raise Exception('Specified sensitivities must be a'
-                            ' list.')
+                                ' list.')
         else:
             raise Exception('Sensitivities are not currently enabled')
 
