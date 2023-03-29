@@ -302,6 +302,12 @@ else:
 # Delete temporary variables
 del pyqt4, pyqt5, pyside
 
+# Load Gnome theme on Wayland (for icons)
+if platform == 'Linux':
+    icon = QtGui.QIcon.fromTheme('document-new')
+    if icon.isNull():
+        QtGui.QIcon.setThemeName('gnome')
+
 # Icons with fallback for apple and windows
 ICON_PATH = os.path.join(myokit.DIR_DATA, 'gui')
 ICONS = {
