@@ -703,8 +703,10 @@ Model_SetParametersFromIndependents(Model model, const realtype* independents)
 Model_Flag
 Model_SetBoundVariables(
     Model model,
-    const realtype time, const realtype *pace_values,
-    const realtype realtime, const realtype evaluations)
+    const realtype time,
+    const realtype *pace_values,
+    const realtype realtime,
+    const realtype evaluations)
 {
     int changed;
     if (model == NULL) return Model_INVALID_MODEL;
@@ -1177,6 +1179,10 @@ Model Model_Create(Model_Flag* flagp)
     model->n_parameter_derived = <?= len(parameter_derived) ?>;
     model->parameters = (realtype*)malloc(model->n_parameters * sizeof(realtype));
     model->parameter_derived = (realtype*)malloc(model->n_parameter_derived * sizeof(realtype));
+
+    /* Pacing */
+    model->n_pace = 0;
+    model->pace_values = NULL;
 
     /* Literals */
     model->n_literals = <?= len(literals) ?>;
