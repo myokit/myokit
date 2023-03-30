@@ -446,6 +446,9 @@ class SimulationTest(unittest.TestCase):
         d1 = sim.eval_derivatives()
         d2 = sim.eval_derivatives(pacing={'a': 0.0, 'b': 0.0})
         self.assertEqual(d1, d2)
+        d1 = sim.eval_derivatives(pacing={'a': 0.0, 'b': 0.5})
+        d2 = sim.eval_derivatives(pacing={'aaaaa': 1.0, 'b': 0.5})
+        self.assertEqual(d1, d2)
 
     def test_sensitivities_initial(self):
         # Test setting initial sensitivity values.
