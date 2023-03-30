@@ -408,6 +408,14 @@ class Simulation(myokit.CModule):
 
         The state to evaluate for can be given as ``y``. If no state is given
         the current simulation state is used.
+
+        **Arguments:**
+        y:
+            A list of state variables, or ``None`` to use the current state.
+        pacing:
+            A dict of pacing labels to values, or ``None`` to use 0 for all
+            If a lable is not present, that pacing variable will be set to 0.
+
         """
         # Get state
         if y is None:
@@ -415,10 +423,14 @@ class Simulation(myokit.CModule):
         else:
             y = self._model.map_to_state(y)
 
-        if pacing is None:
-            pacing = [0.0]
-        else:
-            pacing = list(pacing)
+        pacing_values = [0.0] * len(self._pacing_labels)
+        if pacing is not None:
+            for k, v in pacing.items():
+                try:
+                    ki = self._pacing_labels.index(k)
+                    pacing_values[ki] = float(v)
+                except ValueError:
+                    pass
 
         # Create space to store derivatives
         dy = list(self._state)
@@ -428,7 +440,7 @@ class Simulation(myokit.CModule):
             # 0. Time
             0,
             # 1. Pace
-            pacing,
+            pacing_values,
             # 2. State
             y,
             # 3. Space to store the state derivatives

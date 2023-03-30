@@ -409,6 +409,44 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_state(s1)
         self.assertEqual(d1, self.sim.eval_derivatives())
 
+    def test_eval_derivatives_with_pacing(self):
+        # Test :meth:`Simulation.eval_derivatives()`.
+
+        model = myokit.Model()
+        c = model.add_component('c')
+
+        a = c.add_variable('a')
+        a.set_binding('a')
+        a.set_rhs(0)
+        b = c.add_variable('b')
+        b.set_binding('b')
+        b.set_rhs(0)
+
+        y = c.add_variable('y')
+        t = c.add_variable('t')
+        t.set_binding('time')
+        t.set_rhs(0)
+        y.promote(1)
+        y.set_rhs('- a * y - b * y')
+
+        pa = myokit.Protocol()
+        pa.schedule(1, 0, 0.5)
+
+        pb = myokit.Protocol()
+        pb.schedule(2, 1.0, 0.5)
+
+        sim = myokit.Simulation(model, {'a': pa, 'b': pb})
+        sim.run(1)
+        d1 = sim.eval_derivatives(pacing={'a': 0.5, 'b': 0.5})
+        d2 = sim.eval_derivatives(pacing={'a': 1.5, 'b': 0.5})
+        self.assertNotEqual(d1, d2)
+        d1 = sim.eval_derivatives(pacing={'b': 0.5})
+        d2 = sim.eval_derivatives(pacing={'a': 0.0, 'b': 0.5})
+        self.assertEqual(d1, d2)
+        d1 = sim.eval_derivatives()
+        d2 = sim.eval_derivatives(pacing={'a': 0.0, 'b': 0.0})
+        self.assertEqual(d1, d2)
+
     def test_sensitivities_initial(self):
         # Test setting initial sensitivity values.
 
