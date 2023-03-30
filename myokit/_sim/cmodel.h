@@ -1133,6 +1133,10 @@ Model Model_Create(Model_Flag* flagp)
     model->parameters = (realtype*)malloc(model->n_parameters * sizeof(realtype));
     model->parameter_derived = (realtype*)malloc(model->n_parameter_derived * sizeof(realtype));
 
+    /* Pacing */
+    model->n_pace = 0;
+    model->pace_values = NULL;
+
     /* Literals */
     model->n_literals = <?= len(literals) ?>;
     model->n_literal_derived = <?= len(literal_derived) ?>;
