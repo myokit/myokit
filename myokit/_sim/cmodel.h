@@ -658,8 +658,10 @@ Model_SetParametersFromIndependents(Model model, const realtype* independents)
 Model_Flag
 Model_SetBoundVariables(
     Model model,
-    const realtype time, const realtype *pace_values,
-    const realtype realtime, const realtype evaluations)
+    const realtype time,
+    const realtype *pace_values,
+    const realtype realtime,
+    const realtype evaluations)
 {
     int changed;
     if (model == NULL) return Model_INVALID_MODEL;
