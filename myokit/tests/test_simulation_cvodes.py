@@ -79,6 +79,49 @@ class SimulationTest(unittest.TestCase):
         self.sim.reset()
         d2 = self.sim.run(5, log_interval=-5)
         self.assertEqual(d1.time(), d2.time())
+        
+    def test_multiple_protocols(self):
+        model = myokit.Model()
+        c = model.add_component('c')
+
+        a = c.add_variable('a')
+        a.set_binding('a')
+        a.set_rhs(0)
+        b = c.add_variable('b')
+        b.set_binding('b')
+        b.set_rhs(0)
+
+        y = c.add_variable('y')
+        t = c.add_variable('t')
+        t.set_binding('time')
+        t.set_rhs(0)
+        y.promote(1)
+        y.set_rhs('- a * y - b * y')
+        
+        pa = myokit.Protocol()
+        pa.schedule(1, 0, 0.5)
+
+        pb = myokit.Protocol()
+        pb.schedule(2, 1.0, 0.5)
+        
+        sim = myokit.Simulation(model, {'a': pa, 'b': pb})
+        sol = sim.run(2)
+        times = np.array(sol['c.t'])
+        a = np.array(sol['c.a'])
+        a_expect = np.where(times < 0.5, 1., 0.)
+        b = np.array(sol['c.b'])
+        b_expect = np.where((times >= 1.0) & (times < 1.5), 2., 0.)
+        y = np.array(sol['c.y'])
+        y_expect = np.where(times < 0.5, np.exp(-times), 0)
+        y_expect += np.where((times >= 0.5) & (times < 1.0), np.exp(-0.5), 0)
+        y_expect += np.where(
+            (times >= 1.0) & (times < 1.5), 
+            np.exp(-0.5) * np.exp(-2 * (times - 1.0)), 0
+        )
+        y_expect += np.where((times >= 1.5), np.exp(-0.5) * np.exp(-1.0), 0)
+        np.testing.assert_array_equal(a, a_expect)
+        np.testing.assert_array_equal(b, b_expect)
+        np.testing.assert_array_almost_equal(y, y_expect, decimal=3)
 
     def test_no_protocol(self):
         # Test running without a protocol.

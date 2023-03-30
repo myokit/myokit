@@ -759,7 +759,7 @@ class Simulation(myokit.CModule):
                 s_state = [list(x) for x in self._s_state]
 
             # List to store final bound variables in (for debugging)
-            bound = [0, 0, 0, 0]
+            bound = [0, 0, 0] + [0] * len(self._pacing_labels)
 
             # Initialize
             if myokit.DEBUG_SP:
@@ -836,9 +836,12 @@ class Simulation(myokit.CModule):
                             in self._model.format_state(state).splitlines()])
                 txt.append('Inputs for binding:')
                 txt.append('  time        = ' + myokit.float.str(bound[0]))
-                txt.append('  pace        = ' + myokit.float.str(bound[1]))
-                txt.append('  realtime    = ' + myokit.float.str(bound[2]))
-                txt.append('  evaluations = ' + myokit.float.str(bound[3]))
+                txt.append('  realtime    = ' + myokit.float.str(bound[1]))
+                txt.append('  evaluations = ' + myokit.float.str(bound[2]))
+                for i, label in enumerate(self._pacing_labels):
+                    txt.append(
+                        '  ' + label + ' = ' + myokit.float.str(bound[3 + i])
+                    )
                 txt.append(str(e))
 
                 # Check if state derivatives can be evaluated in Python, if

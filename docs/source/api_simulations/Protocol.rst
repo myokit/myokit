@@ -1,5 +1,4 @@
 .. _api/simulations/myokit.Protocol:
-.. _api/simulations/myokit.TimeSeriesProtocol:
 
 ****************
 Pacing protocols
@@ -8,6 +7,7 @@ Pacing protocols
 .. currentmodule:: myokit
 .. autoclass:: Protocol
 
+.. _api/myokit.TimeSeriesProtocol:
 .. autoclass:: TimeSeriesProtocol
 
 .. _api/myokit.ProtocolEvent:
