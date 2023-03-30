@@ -46,7 +46,8 @@ States:
 State derivatives:
     Calculated by the model.
 Bound variables:
-    External inputs to the model (e.g. time and pacing).
+    External inputs to the model (e.g. time and pacing). There are an arbitrary
+    number of these, and the model stores the current value of each
 Intermediary variables:
     The remaining variables that depend on state variables.
 Constants:
@@ -454,12 +455,10 @@ Model_ClearCache(Model model)
 }
 
 /*
- * Setup the pacing system.
+ * Sets up (i.e. allocates memory for) array of protocol-determined values
  *
  * Arguments
  *  n_pace: the number of pacing values to use.
- *  labels: an array of n_pace strings, each a label for the corresponding
- *          pacing value.
  *
  * Returns a model flag.
  *
@@ -547,6 +546,52 @@ for eq in parameter_derived.values():
  * Arguments
  *  model : The model whose variables to set
  *  literals : An array of size model->n_literals
+ *
+ * Returns a model flag.
+ */
+Model_Flag
+Model_SetLiteralVariables(Model model, const realtype* literals)
+{
+    int i;
+    if (model == NULL) return Model_INVALID_MODEL;
+
+    /* Scan for changes */
+    i = 0;
+    #ifdef Model_CACHING
+    if (Model__ValidCache(model)) {
+        for (i=0; i<model->n_literals; i++) {
+            if (model->literals[i] != literals[i]) {
+                break;
+            }
+        }
+    }
+    #endif
+
+    /* Update remaining */
+    if (i < model->n_literals) {
+        for (; i<model->n_literals; i++) {
+            model->literals[i] = literals[i];
+        }
+        #ifdef Model_CACHING
+        Model__InvalidateCache(model);
+        #endif
+        Model_EvaluateLiteralDerivedVariables(model);
+        Model_EvaluateParameterDerivedVariables(model);
+    }
+
+    return Model_OK;
+}
+
+/*
+ * Updates the parameter variables to the values given in `parameters`.
+ *
+ * If any of the values are changed
+ *  - the model caches are cleared.
+ *  - the parameter-derived variables are recalculated.
+ *
+ * Arguments
+ *  model : The model whose variables to set
+ *  parameters : An array of size model->n_parameters
  *
  * Returns a model flag.
  */
