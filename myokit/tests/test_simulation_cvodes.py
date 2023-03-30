@@ -79,7 +79,7 @@ class SimulationTest(unittest.TestCase):
         self.sim.reset()
         d2 = self.sim.run(5, log_interval=-5)
         self.assertEqual(d1.time(), d2.time())
-        
+
     def test_multiple_protocols(self):
         model = myokit.Model()
         c = model.add_component('c')
@@ -97,13 +97,13 @@ class SimulationTest(unittest.TestCase):
         t.set_rhs(0)
         y.promote(1)
         y.set_rhs('- a * y - b * y')
-        
+
         pa = myokit.Protocol()
         pa.schedule(1, 0, 0.5)
 
         pb = myokit.Protocol()
         pb.schedule(2, 1.0, 0.5)
-        
+
         sim = myokit.Simulation(model, {'a': pa, 'b': pb})
         sol = sim.run(2)
         times = np.array(sol['c.t'])
@@ -115,7 +115,7 @@ class SimulationTest(unittest.TestCase):
         y_expect = np.where(times < 0.5, np.exp(-times), 0)
         y_expect += np.where((times >= 0.5) & (times < 1.0), np.exp(-0.5), 0)
         y_expect += np.where(
-            (times >= 1.0) & (times < 1.5), 
+            (times >= 1.0) & (times < 1.5),
             np.exp(-0.5) * np.exp(-2 * (times - 1.0)), 0
         )
         y_expect += np.where((times >= 1.5), np.exp(-0.5) * np.exp(-1.0), 0)
