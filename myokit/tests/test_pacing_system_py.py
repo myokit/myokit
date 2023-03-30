@@ -37,6 +37,8 @@ class TimeSeriesPacingPythonTest(unittest.TestCase):
         p1 = myokit.TimeSeriesProtocol([1, 2], [2, 4])
         p2 = myokit.TimeSeriesProtocol([1, 2], [2, 4])
         self.assertEqual(p1, p2)
+        self.assertNotEqual(p1, 1)
+        self.assertEqual(p1, p1)
 
     def test_pickle(self):
         import pickle
