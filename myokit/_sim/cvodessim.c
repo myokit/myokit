@@ -956,7 +956,6 @@ sim_init(PyObject *self, PyObject *args)
         }
         n_pace = PyList_Size(protocols);
     }
-    model->n_pace = n_pace;
     pacing_systems = (union PSys*)malloc(sizeof(union PSys) * n_pace);
     if (pacing_systems == NULL) {
         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing systems.");
