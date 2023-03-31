@@ -155,7 +155,7 @@ myokit
 - :class:`myokit.Tan`
 - :meth:`myokit.time`
 - :class:`myokit.Timeout`
-- :class:`myokit.TimeSeriesPacing`
+- :class:`myokit.TimeSeriesProtocol`
 - :class:`myokit.Unit`
 - :class:`myokit.UnresolvedReferenceError`
 - :class:`myokit.UnusedVariableError`
