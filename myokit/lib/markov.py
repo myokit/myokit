@@ -13,6 +13,134 @@ import numpy as np
 import myokit
 
 
+class MarkovModel(object):
+    """
+    A graph-based representation of a Markov model of an ionic current.
+
+    The model is defined as:
+
+    - Set of parameters, as name-value pairs.
+    - A set of rate equations, which can reference any of the parameters, or
+      other rates that have already been defined.
+    - A set of states, each identified by a name.
+    - Bi-directional connections between those states, with a named rate
+      specified in each direction.
+
+    When constructing a Markov model, a :class:`myokit.Model` is created in the
+    background. This will contain a time variable with name and units specified
+    by ``time`` and ``time_units``, and a membrane potential variable with name
+    and units ``v`` and ``v_units``. All parameters, rates, and states will be
+    created in a component ``"markov"`` that contains aliases for time and
+    membrane potential with the names given by ``time`` and ``v``.
+
+    """
+
+
+    def __init__(self, time='time', time_units='ms', membrane_potential='V',
+                 membrane_potential_units='mV'):
+
+        # Create a shadow Myokit model
+        self._model = myokit.Model()
+
+        # Parse names and units
+        t, v = str(time), str(membrane_potential)
+        self._t_units = myokit.parse_units(str(time_units))
+        self._v_units = myokit.parse_units(str(membrane_potential_units))
+        del time, membrane_potential, time_units, membrane_potential_units
+
+        # Add an "engine" component with a time variable
+        self._c_engine = self._model.add_component('engine')
+        self._t = self._c_engine.add_variable(t)
+        self._t.set_units(self._t_units)
+        self._t.set_rhs(myokit.Number(0, self._t_units))
+        self._t.set_binding('time')
+
+        # Add a "membrane" component with a membrane potential variable
+        self._c_membrane = self._model.add_component('membrane')
+        self._v = self._c_membrane.add_variable(v)
+        self._v.set_units(self._v_units)
+        self._v.set_rhs(myokit.Number(0, self._v_units))
+        self._v.set_label('membrane_potential')
+
+        # Add a markov model component with aliases for time and voltage
+        self._c = self._model.add_component('markov')
+        self._c.add_alias(t, self._t)
+        self._c.add_alias(v, self._v)
+
+        # States, rates, parameters (map name to myokit.Variables)
+        self._states = collections.OrderedDict()
+        self._rates = collections.OrderedDict()
+        self._parameters = collections.OrderedDict()
+
+
+        # Validation status (True/False/None)
+        self._valid = None
+
+    def add_state(self, name, initial_value):
+        """
+        Adds a state to this model, identified by the string ``name`` and with
+        the initial value given by the float ``initial_value``.
+
+        Returns a :class:`myokit.Variable`.
+        """
+        # Create (raises error if already exists)
+        s = self._states[name] = self._c.add_variable(name)
+        s.promote(float(initial_value))
+
+        # Reset validation & return
+        self._valid = None
+        return s
+
+    def add_rate(self, name, rhs):
+        """
+        Adds a rate equation to this model, identified by the string ``name``
+        and with the right-hand side given by the string or
+        :class:`myokit.Expression` ``rhs``.
+
+        Returns a :class:`myokit.Variable`.
+        """
+
+    def add_parameter(self, name, value, units=Nones):
+        """
+        Adds a parameter to this model, identified by the string ``name`` and
+        with the given float ``value``.
+
+        Returns a :class:`myokit.Variable`.
+        """
+
+    def add_connection(self, state1, state2, k1to2, k2to1):
+        """
+        Adds a connection between ``state1`` and ``state2``, with a transition
+        rate ``k1to2`` from 1 to 2, and a ``k2to1`` for the reverse.
+
+        States and rates must be given as string names, and both must be known
+        to the model.
+        """
+
+
+
+
+    def validate(self):
+        """
+        Checks if this is a valid Markov model representation (see below).
+
+        Specifically, this method checks for the following properties:
+
+        - All states are connected to each other.
+        - All states have initial conditions, which sum to 1.
+
+
+        """
+        if self._valid is not None:
+            return self._valid
+
+        # Validate...
+
+
+
+
+
+
 class LinearModel(object):
     """
     Represents a linear Markov model of an ion channel extracted from a
@@ -1561,39 +1689,6 @@ class DiscreteSimulation(object):
         Returns the current simulation state.
         """
         return list(self._state)
-
-
-class MarkovModel(object):
-    """
-    **Deprecated**: This class has been replaced by the classes
-    :class:`LinearModel` and :class:`AnalyticalSimulation`. Please update your
-    code to use these classes instead. This class will be removed in
-    future versions of Myokit.
-    """
-
-    @staticmethod
-    def from_component(
-            component, states=None, parameters=None, current=None, vm=None):
-        """
-        Creates and returns an :class:`AnalyticalSimulation` using a
-        :class:`LinearModel` based on a Myokit model component.
-        """
-        # Deprecated since 2016-01-25
-        import warnings
-        warnings.warn(
-            'The method `MarkovModel.from_component` is deprecated.'
-            ' Please use `LinearModel.from_component` instead.')
-        return AnalyticalSimulation(LinearModel.from_component(
-            component, states, parameters, current, vm))
-
-    def __new__(self, model, states, parameters=None, current=None, vm=None):
-        # Deprecated since 2016-01-25
-        import warnings
-        warnings.warn(
-            'The `MarkovModel` class is deprecated.'
-            ' Please use the `LinearModel` class instead.')
-        return AnalyticalSimulation(LinearModel(
-            model, states, parameters, current, vm))
 
 
 class LinearModelError(myokit.MyokitError):
