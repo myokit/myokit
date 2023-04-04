@@ -409,13 +409,9 @@ class Simulation(myokit.CModule):
         The state to evaluate for can be given as ``y``. If no state is given
         the current simulation state is used.
 
-        **Arguments:**
-        y:
-            A list of state variables, or ``None`` to use the current state.
-        pacing:
-            A dict of pacing labels to values, or ``None`` to use 0 for all
-            If a lable is not present, that pacing variable will be set to 0.
-
+        An optional dict ``pacing`` can be passed in that maps labels to
+        numerical values. If a label is used but not provided in ``pacing``,
+        it's value will be set to 0.
         """
         # Get state
         if y is None:
