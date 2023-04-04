@@ -84,10 +84,16 @@ class MarkovModel(object):
         Returns a :class:`myokit.Variable`.
         """
         # Create (raises error if already exists)
-        s = self._states[name] = self._c.add_variable(name)
-        s.promote(float(initial_value))
+        s = self._c.add_variable(name)
+        try:
+            # Promote, but keep model OK if this goes wrong
+            s.promote(float(initial_value))
+        except:
+            self._c.remove_variable(s)
+            raise
 
-        # Reset validation & return
+        # Store, reset validation & return
+        self._states[name] = s
         self._valid = None
         return s
 
@@ -99,6 +105,16 @@ class MarkovModel(object):
 
         Returns a :class:`myokit.Variable`.
         """
+        # Create variable (raises error if already exists)
+        k =  self._c.add_variable(name)
+
+        # Set RHS from string (checking variable refs are correct)
+        k.set_rhs(str(rhs))
+
+        # Store, reset validation & return
+        self._rates[name] = k
+        self._valid = None
+        return s
 
     def add_parameter(self, name, value, units=Nones):
         """
@@ -119,6 +135,32 @@ class MarkovModel(object):
 
 
 
+
+    def _cycle_basis(self):
+        """
+
+
+        Paton, K. An algorithm for finding a fundamental set of cycles of a graph. Comm. ACM 12, 9 (Sept 1969), 514-518.
+        """
+
+    def _is_fully_connected(self):
+        """
+        Checks if the Markov model is a fully connected graph.
+
+        Returns ``False`` for an empty graph, ``True`` for a length 1 graph,
+        starts checking for length 2.
+        """
+        if len(self._states) == 0:
+            return False
+        if len(self._states) == 1:
+            return True
+
+        # Get first item
+        node = next(iter(self._states.keys()))
+        seen = set(node)
+        #todo = set(neighbours) - seen
+        #quit if no todo
+        #len should match
 
     def validate(self):
         """
