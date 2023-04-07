@@ -37,7 +37,7 @@ This page lists the main changes made to Myokit in each release.
 - Fixed
   - [#908](https://github.com/MichaelClerx/myokit/pull/908) Added new homebrew location used on M1 apple devices, potentially solving [#861](https://github.com/myokit/myokit/issues/861).
   - [#912](https://github.com/myokit/myokit/pull/912) Reporting of numerical errors in `Simulation` now catches more exception types arising from `evaluate_derivatives`.
-  - [#951](https://github.com/myokit/myokit/pull/951) Syntax highlighting in IDE recognises units containing `-` and `*`.
+  - [#951](https://github.com/myokit/myokit/pull/951) Made syntax highlighting in IDE recognise units containing `-` and `*`.
 
 ## [1.33.8] - 2022-10-21
 - Added
