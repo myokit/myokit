@@ -973,7 +973,7 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
         # Numbers
         pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
         self._rules.append((pattern, STYLE_LITERAL))
-        unit = r'\[[a-zA-Z0-9/^]+\]'
+        unit = r'\[[a-zA-Z0-9/^-*]+\]'
         self._rules.append((QtCore.QRegExp(unit), STYLE_INLINE_UNIT))
 
         # Keywords
