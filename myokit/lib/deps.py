@@ -493,8 +493,8 @@ class DiGraph(object):
                             x2 = None
                             for k in range(j + 1, n):
                                 if abs(layer[k].x - node.x) >= too_close:
-                                    x2 = layer[k].x
-                                    break
+                                    x2 = layer[k].x     # pragma: no cover
+                                    break               # pragma: no cover
                                 eq.append(layer[k])
                             if x2 is None:
                                 x2 = 1.0
