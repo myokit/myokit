@@ -95,11 +95,10 @@ class DataLog(OrderedDict):
     ``time``
         The log key to use for the time variable. When cloning a log, adding
         the ``time`` argument will overwrite the cloned value.
+
     """
+
     def __init__(self, other=None, time=None):
-        """
-        Creates a new DataLog.
-        """
         if other is None:
             # Create new
             super(DataLog, self).__init__()
@@ -119,7 +118,7 @@ class DataLog(OrderedDict):
         Calculates one or more Action Potential Durations (APDs) in a single
         cell's membrane potential.
 
-        *Note 1: More accuracte apd measurements can be created using the*
+        *Note 1: More accuracte APD measurements can be obtained using the*
         :class:`Simulation` *object's APD tracking functionality. See*
         :meth:`Simulation.run()` *for details.*
 
@@ -129,10 +128,6 @@ class DataLog(OrderedDict):
 
         The membrane potential data should be listed in the log under the key
         given by ``v``.
-
-        The APD is measured as the time that the membrane potential exceeds a
-        certain, fixed, threshold. It does *not* calculate dynamic thresholds
-        like "90% of max(V) - min(V)".
 
         The returned value is a list of tuples (AP_start, APD).
         """
@@ -240,9 +235,11 @@ class DataLog(OrderedDict):
                 'Cannot extend DataLog with data from an earlier time.')
         if set(self.keys()) != set(other.keys()):
             raise ValueError('Both logs must have the same keys.')
+
         # Create new log
         log = DataLog()
         log._time = self._time
+
         # Add data
         for k, v1 in self.items():
             v2 = other[k]
@@ -252,6 +249,7 @@ class DataLog(OrderedDict):
             else:
                 log[k] = list(v1)   # Copies v1 data
                 log[k].extend(v2)   # Copies v2 data
+
         # Return
         return log
 
