@@ -136,6 +136,12 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # Load any selected files
         for filename in filenames:
             self.load_file(filename)
+        tc = self._tabs.count()
+        if tc > 0:
+            if tc > 1:
+                self._tool_next_file.setEnabled(True)
+                self._tool_prev_file.setEnabled(True)
+            self._tabs.setCurrentIndex(0)
 
     def action_about(self):
         """
