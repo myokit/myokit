@@ -11,7 +11,6 @@
 # model                 A myokit model
 # equations             The ordered equations (grouped by component)
 # bound_variables       A dict mapping variables to local (model) names.
-# pacing_variables      An list of paced variables.
 # s_dependents          The dependent expressions y in dy/sx (as Name objects)
 # s_independents        The independent expressions x in dy/dx (as either Name
 #                       objects or InitialValue objects).
@@ -266,7 +265,6 @@ Model_SetPyErr(Model_Flag flag)
     case Model_INVALID_PACING:
         PyErr_SetString(PyExc_Exception, "CModel error: Invalid pacing provided.");
         break;
-
     /* Unknown */
     default:
         PyErr_Format(PyExc_Exception, "CModel error: Unlisted error %d", (int)flag);
@@ -284,7 +282,7 @@ struct Model_Memory {
     /* If this model has sensitivities this will be 1, otherwise 0. */
     int has_sensitivities;
 
-    /* pacing */
+    /* Pacing */
     realtype *pace_values;
     int n_pace;
 
@@ -686,7 +684,6 @@ Model_SetParametersFromIndependents(Model model, const realtype* independents)
 
 /*
  * Updates this model's bound variables to the given values.
- * Also updates the model's pacing system.
  *
  * Arguments
  *  model : The model to update
@@ -1246,7 +1243,7 @@ for i, expr in enumerate(s_independents):
      * Default values
      */
 
-    /* Bound variables */
+    /* Bound variables (except pacing) */
     model->time = 0;
     model->realtime = 0;
     model->evaluations = 0;

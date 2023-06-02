@@ -121,12 +121,12 @@ class Simulation(myokit.CModule):
 
     ``model``
         The model to simulate
-    ``protocols``
-        If a single :class:`myokit.Protocol` is used, this protocol will be
-        bound to the model variable with binding `pace`. Alternativly, a dict
-        mapping binding labels with :class:`myokit.Protocol` objects can be
-        used to bind multiple protocols to the model. Can pass None for no
-        protocols
+    ``protocol``
+        A :class:`myokit.Protocol` or :class:`myokit.TimeSeriesProtocol` to use
+        for the variable with binding ``pace``. Atlernatively, a dictionary
+        mapping binding labels to :class:`myokit.Protocol` objects can be used
+        to run with multiple protocols. Finally, can be ``None`` to run without
+        a protocol.
     ``sensitivities``
         An optional tuple ``(dependents, independents)`` where ``dependents``
         is a list of variables or expressions to take derivatives of (``y`` in
@@ -151,7 +151,7 @@ class Simulation(myokit.CModule):
     """
     _index = 0  # Simulation id
 
-    def __init__(self, model, protocols=None, sensitivities=None, path=None):
+    def __init__(self, model, protocol=None, sensitivities=None, path=None):
         super(Simulation, self).__init__()
 
         # Require a valid model
@@ -161,14 +161,11 @@ class Simulation(myokit.CModule):
         del model
 
         # Set protocol
-        if isinstance(protocols, myokit.Protocol):
-            protocols = {'pace': protocols}
-        if protocols is None:
-            # TODO: this can be an empty dict once #320 is resolved
-            protocols = {'pace': myokit.Protocol()}
-
         self._protocols = []
         self._pacing_labels = []
+        if isinstance(protocol, myokit.Protocol) or protocol is None:
+            protocols = {'pace': protocol}
+            # TODO: For None, this can be an empty dict once #320 is resolved
         for label, protocol in protocols.items():
             self._pacing_labels.append(label)
             self._protocols.append(myokit.Protocol())
@@ -992,11 +989,13 @@ class Simulation(myokit.CModule):
         This method is provided for backwards compatibility with older
         versions, please use :meth:`set_protocol` instead.
         """
+        # Deprecated on 2023-06-02
         import warnings
         warnings.warn(
             'The method `myokit.Simulation.set_fixed_form_protocol` is '
             'deprecated. It will be removed in future versions of Myokit.'
         )
+
         if times is None and values is None:
             self.set_protocol(None)
             return
@@ -1007,22 +1006,19 @@ class Simulation(myokit.CModule):
 
         self.set_protocol(myokit.TimeSeriesProtocol(times, values))
 
-    def set_protocol(self, protocol, label=None):
+    def set_protocol(self, protocol, label='pace'):
         """
         Binds the pacing :class:`Protocol` or :class:`FixedProtocol` to the
-        variable with given label `label`. The label must be one of the pacing
-        labels set in the constructor, and if None then 'pace' is used.
+        variable with given label ``label``.
+
+        The label must be one of the pacing labels set in the constructor.
 
         To remove a previously set binding call this method with ``protocol =
-        None``. In this case, the value of any variables bound to `label` will
+        None``. In this case, the value of any variables bound to ``label`` will
         be set to 0.
         """
-        if label is None:
-            label = 'pace'
-
         if label not in self._pacing_labels:
             raise ValueError('Unknown pacing label: ' + str(label))
-
         index = self._pacing_labels.index(label)
 
         # Set new protocol

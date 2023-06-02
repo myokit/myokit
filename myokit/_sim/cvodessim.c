@@ -203,11 +203,11 @@ enum PSysType {
     EVENT,
     FIXED
 };
-union PSys *pacing_systems;   /* array of pacing system (event or fixed) */
-enum PSysType *pacing_types; /* array of pacing system types */
-PyObject *protocols;         /* The protocols used to generate the pacing systems */
-double* pacing;         /* Pacing values, same size as pacing_systems and pacing_types*/
-int n_pace;              /* The number of pacing systems */
+union PSys *pacing_systems;   /* Array of pacing system (event or fixed) */
+enum PSysType *pacing_types;  /* Array of pacing system types */
+PyObject *protocols;          /* The protocols used to generate the pacing systems */
+double* pacing;               /* Pacing values, same size as pacing_systems and pacing_types */
+int n_pace;                   /* The number of pacing systems */
 
 /*
  * CVODE Memory
@@ -358,7 +358,7 @@ rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
     UserData fdata;
     int i;
 
-    /* Fixed-form pacing? Then look-up correct value of pacing variable! */
+    /* Fixed-form pacing? Then look-up correct value of pacing variable */
     for (int i = 0; i < n_pace; i++) {
         if (pacing_types[i] == FIXED) {
             pacing[i] = FSys_GetLevel(pacing_systems[i].fixed, t, &flag_fpacing);
@@ -605,7 +605,7 @@ sim_init(PyObject *self, PyObject *args)
     sundials_context = NULL;
     #endif
 
-    /* Check input arguments     012345678901234567 */
+    /* Check input arguments     01234567890123456 */
     if (!PyArg_ParseTuple(args, "ddOOOOOOOdOOidOOi",
             &tmin,              /*  0. Float: initial time */
             &tmax,              /*  1. Float: final time */
@@ -947,7 +947,7 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /*
-     * Set up pacing system
+     * Set up pacing systems
      */
     n_pace = 0;
     if (protocols != Py_None) {
@@ -971,11 +971,13 @@ sim_init(PyObject *self, PyObject *args)
     Model_SetupPacing(model, n_pace);
 
     /*
-     *  unless set by pacing, tnext is set to tmax
+     *  Unless set by pacing, tnext is set to tmax
      */
     tnext = tmax;
 
-    /* Set up event-based or fixed pacing */
+    /* 
+     * Set up event-based and/or fixed pacing.
+     */
     if (protocols != Py_None) {
         for (int i = 0; i < PyList_Size(protocols); i++) {
             PyObject *protocol = PyList_GetItem(protocols, i);
@@ -1012,7 +1014,6 @@ sim_init(PyObject *self, PyObject *args)
                 printf("protocol_type_name: %s", protocol_type_name);
                 return sim_cleanx(PyExc_TypeError, "Item %d in 'protocols' is not a myokit.Protocol or myokit.TimeSeriesProtocol object.", i);
             }
-
         }
     }
 
@@ -1285,8 +1286,8 @@ sim_step(PyObject *self, PyObject *args)
     /* Number of integration steps taken in this call */
     int steps_taken = 0;
 
-    /* Proposed next logging point */
-    double proposed_tlog;
+    /* Proposed next logging or pacing point */
+    double t_proposed;
 
     /* Multi-purpose Python objects */
     PyObject *val;
@@ -1480,7 +1481,7 @@ sim_step(PyObject *self, PyObject *args)
                         if (ilog < PySequence_Size(log_times)) {
                             val = PySequence_GetItem(log_times, ilog); /* New reference */
                             if (PyFloat_Check(val)) {
-                                proposed_tlog = PyFloat_AsDouble(val);
+                                t_proposed = PyFloat_AsDouble(val);
                                 Py_DECREF(val);
                             } else if (PyNumber_Check(val)) {
                                 ret = PyNumber_Float(val);  /* New reference */
@@ -1488,17 +1489,17 @@ sim_step(PyObject *self, PyObject *args)
                                 if (ret == NULL) {
                                     return sim_cleanx(PyExc_ValueError, "Unable to cast entry in 'log_times' to float.");
                                 } else {
-                                    proposed_tlog = PyFloat_AsDouble(ret);
+                                    t_proposed = PyFloat_AsDouble(ret);
                                     Py_DECREF(ret);
                                 }
                             } else {
                                 Py_DECREF(val);
                                 return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
                             }
-                            if (proposed_tlog < tlog) {
+                            if (t_proposed < tlog) {
                                 return sim_cleanx(PyExc_ValueError, "Values in log_times must be non-decreasing.");
                             }
-                            tlog = proposed_tlog;
+                            tlog = t_proposed;
                             ilog++;
                             val = NULL;
                         } else {
@@ -1516,15 +1517,16 @@ sim_step(PyObject *self, PyObject *args)
              */
             tnext = tmax;
             for (int i = 0; i < n_pace; i++) {
-                if (pacing_types[i] != EVENT) continue;
-                ESys epacing = pacing_systems[i].event;
-                flag_epacing = ESys_AdvanceTime(epacing, t);
-                if (flag_epacing != ESys_OK) {
-                    ESys_SetPyErr(flag_epacing); return sim_clean();
+                if (pacing_types[i] == EVENT) {
+                    ESys epacing = pacing_systems[i].event;
+                    flag_epacing = ESys_AdvanceTime(epacing, t);
+                    if (flag_epacing != ESys_OK) {
+                        ESys_SetPyErr(flag_epacing); return sim_clean();
+                    }
+                    t_proposed = ESys_GetNextTime(epacing, NULL);
+                    tnext = fmin(tnext, t_proposed);
+                    pacing[i] = ESys_GetLevel(epacing, NULL);
                 }
-                const double ptnext = ESys_GetNextTime(epacing, NULL);
-                tnext = fmin(tnext, ptnext);
-                pacing[i] = ESys_GetLevel(epacing, NULL);
             }
 
             /* Dynamic logging: Log every visited point */
