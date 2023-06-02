@@ -164,9 +164,9 @@ class Simulation(myokit.CModule):
         self._protocols = []
         self._pacing_labels = []
         if isinstance(protocol, myokit.Protocol) or protocol is None:
-            protocols = {'pace': protocol}
+            protocol = {'pace': protocol}
             # TODO: For None, this can be an empty dict once #320 is resolved
-        for label, protocol in protocols.items():
+        for label, protocol in protocol.items():
             self._pacing_labels.append(label)
             self._protocols.append(myokit.Protocol())
             self.set_protocol(protocol, label)
