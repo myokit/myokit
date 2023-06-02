@@ -270,29 +270,26 @@ class VarProvider(object):
         """
         raise NotImplementedError
 
-    def count_equations(
-            self, const=None, inter=None, state=None, bound=None, deep=False):
+    def count_equations(self, const=None, inter=None, state=None, deep=False):
         """
         Returns the number of equations matching the given criteria. See
         :meth:`equations` for an explanation of the arguments.
         """
-        return len(list(self.equations(const, inter, state, bound, deep)))
+        return len(list(self.equations(const, inter, state, deep)))
 
-    def count_variables(
-            self, const=None, inter=None, state=None, bound=None, deep=False):
+    def count_variables(self, const=None, inter=None, state=None, deep=False):
         """
         Returns the number of variables matching the given criteria. See
         :meth:`variables` for an explanation of the arguments.
         """
-        return len(list(self.variables(const, inter, state, bound, deep)))
+        return len(list(self.variables(const, inter, state, deep)))
 
-    def has_equations(
-            self, const=None, inter=None, state=None, bound=None, deep=False):
+    def has_equations(self, const=None, inter=None, state=None, deep=False):
         """
         Returns True if there are any equations that can be returned by calling
         :meth:``equations`` with the same arguments.
         """
-        for x in self.equations(const, inter, state, bound, deep):
+        for x in self.equations(const, inter, state, deep):
             return True
         return False
 
@@ -312,18 +309,16 @@ class VarProvider(object):
             return False
         return True
 
-    def has_variables(
-            self, const=None, inter=None, state=None, bound=None, deep=False):
+    def has_variables(self, const=None, inter=None, state=None, deep=False):
         """
         Returns True if there are any variables that can be returned by calling
         :meth:``variables`` with the same arguments.
         """
-        for x in self.variables(const, inter, state, bound, deep):
+        for x in self.variables(const, inter, state, deep):
             return True
         return False
 
-    def equations(
-            self, const=None, inter=None, state=None, bound=None, deep=False):
+    def equations(self, const=None, inter=None, state=None, deep=False):
         """
         Creates and returns a filtered iterator over the equations of this
         object's variables.
@@ -350,9 +345,6 @@ class VarProvider(object):
             ``False`` to exclude all state variables and any other value to
             ignore this check.
 
-        ``bound=None``
-            Deprecated keyword argument: Must be ``None``.
-
         ``deep=True|False`` (default: ``False``)
              Set to ``True`` to include the equations of nested variables
              meeting all other criteria.
@@ -360,7 +352,7 @@ class VarProvider(object):
         def viter(stream):
             for x in stream:
                 yield x.eq()
-        return viter(self.variables(const, inter, state, bound, deep))
+        return viter(self.variables(const, inter, state, deep))
 
     def _resolve(self, name):
         """
@@ -372,8 +364,7 @@ class VarProvider(object):
         raise NotImplementedError
 
     def variables(
-            self, const=None, inter=None, state=None, bound=None, deep=False,
-            sort=False):
+            self, const=None, inter=None, state=None, deep=False, sort=False):
         """
         Creates and returns a filtered iterator over the contained variables.
 
@@ -402,9 +393,6 @@ class VarProvider(object):
             Set to True to return only state variables, False to exclude all
             state variables and any other value to ignore this check.
 
-        ``bound=None``
-            Deprecated keyword argument: Must be ``None``.
-
         ``deep=True|False`` (by default it's ``False``)
              Set to True to return nested variables meeting all other criteria.
 
@@ -413,13 +401,6 @@ class VarProvider(object):
             that this does _not_ mean alphabetical sorting of all variables,
             just that the order is consistent between calls!)
         """
-        # Deprecated since 2023-06-01
-        if bound is not None:
-            import warnings
-            warnings.warn(
-                'The keyword argument `bound` is deprecated and will be'
-                ' removed in future versions of Myokit.')
-
         def viter(stream, const, inter, state, deep):
             for var in stream:
                 # Filter constants
@@ -2681,45 +2662,6 @@ class Model(ObjectWithMeta, VarProvider):
             return self.meta['name']
         except KeyError:
             return None
-
-    def prepare_bindings(self, labels):
-        """
-        Takes a mapping of binding labels to internal references as input and
-        returns a mapping of variables to internal references. All variables
-        appearing in the map will have their right hand side set to zero. All
-        bindings not mapped to any internal reference will be deleted.
-
-        The argument ``mapping`` should take the form::
-
-            labels = {
-                'binding_label_1' : internal_name_1,
-                'binding_label_2' : internal_name_2,
-                ...
-                }
-
-        The returned dictionary will have the form::
-
-            variables = {
-                variable_x : internal_name_1,
-                variable_y : internal_name_2,
-                ...
-                }
-
-        Unsupported bindings (i.e. bindings not appearing in ``labels``) will
-        be ignored.
-        """
-        unused = []
-        variables = {}
-        for label, var in self._bindings.items():
-            try:
-                variables[var] = labels[label]
-            except KeyError:
-                unused.append(var)
-                continue
-            var.set_rhs(0)
-        for var in unused:
-            var.set_binding(None)
-        return variables
 
     def __reduce__(self):
         """

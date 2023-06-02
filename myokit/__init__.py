@@ -397,6 +397,7 @@ from ._model_api import ( # noqa
     EquationList,
     Model,
     ModelPart,
+    _prepare_bindings,
     UserFunction,
     Variable,
 )
@@ -504,6 +505,7 @@ from . import units  # noqa, also loads all common unit names
 
 # Auxillary functions
 from ._aux import (  # noqa
+    _prepare_bindings,
     default_protocol,
     default_script,
     ModelComparison,

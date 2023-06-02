@@ -1,0 +1,3340 @@
+Reading model from example
+File loaded in 0.010609856999508338 seconds
+Model read successfully
+0 validation warning(s) given
+Using embedded script
+------------------------------------------------------------
+  1 import myokit
+  2 
+  3 # Load model and protocol
+  4 print('Loading model and protocol...')
+  5 m = get_model()
+  6 p = get_protocol()
+  7 print('Creating simulation object...')
+  8 s = myokit.Simulation(m, p)
+  9 print('Running simulation...')
+ 10 s.pre(1000)
+ 11 d = s.run(1000)
+ 12 
+ 13 # Show results
+ 14 print('Loading matplotlib...')
+ 15 import matplotlib.pyplot as plt
+ 16 plt.figure()
+ 17 plt.plot(d['engine.time'], d['membrane.V'])
+ 18 plt.show()
+ 19 
+------------------------------------------------------------
+Loading model and protocol...
+Creating simulation object...
+   1 
+   2 #define PY_SSIZE_T_CLEAN
+   3 #include <Python.h>
+   4 #include <stdio.h>
+   5 
+   6 #include <cvodes/cvodes.h>
+   7 #include <nvector/nvector_serial.h>
+   8 #include <sundials/sundials_types.h>
+   9 #include <sundials/sundials_config.h>
+  10 #ifndef SUNDIALS_VERSION_MAJOR
+  11     #define SUNDIALS_VERSION_MAJOR 2
+  12 #endif
+  13 #if SUNDIALS_VERSION_MAJOR >= 3
+  14     #include <sunmatrix/sunmatrix_dense.h>
+  15     #include <sunlinsol/sunlinsol_dense.h>
+  16     #include <cvodes/cvodes_direct.h>
+  17 #else
+  18     #include <cvodes/cvodes_dense.h>
+  19 #endif
+  20 
+  21 
+  22 
+  23 #include "pacing.h"
+  24 
+  25 /*
+  26 This file defines a plain C Model object and interface.
+  27 
+  28 All information about a model is stored in a `Model`, which is a pointer to a
+  29 Model_Memory struct.
+  30 
+  31 Variables
+  32 =========
+  33 Model variables are divided into several (non-overlapping) groups:
+  34 
+  35 States:
+  36     Independent variables, varied during integration.
+  37 State derivatives:
+  38     Calculated by the model.
+  39 Bound variables:
+  40     External inputs to the model (e.g. time and pacing). There are an arbitrary
+  41     number of these, and the model stores the current value of each
+  42 Intermediary variables:
+  43     The remaining variables that depend on state variables.
+  44 Constants:
+  45     The remaining variables that don't.
+  46 
+  47 Constants are further divided into four (non-overlapping) groups:
+  48 
+  49 Parameters:
+  50     Any constant used as p in a sensitivity ds/dp. Variables selected as
+  51     parameters may not depend on other variables.
+  52 Parameter-derived variables:
+  53     Any constant that depends on a parameter.
+  54 Literals:
+  55     The remaining constants without dependencies. (Note they don't need to be
+  56     literal numbers, so `x = 1 + 2` counts as a literal).
+  57 Literal-derived variables:
+  58     The remaining constants (which depend on literals, but on on parameters).
+  59 
+  60 Sensitivities
+  61 =============
+  62 Sensitivities `dy/dx` can be calculated for variables `y` that are either
+  63 states or intermediary variables, and with respect to any `x` that's either a
+  64 parameter (see above) or a state's initial condition.
+  65 
+  66 A model maintains a list of `parameters` (see above), and a list of pointers to
+  67 independent variables, which point either at the parameter values or at the
+  68 (current!) state values.
+  69 
+  70 Evaluating derivatives and sensitivities
+  71 ========================================
+  72 To use a model, start by creating a model instance:
+  73 
+  74     model = Model_Create()
+  75 
+  76 This allocates memory, sets default values for all constants and sets the model
+  77 to its initial state. Derivatives and sensitivity outputs are not set at this
+  78 point, but can be set by calling the Model_EvaluateX() methods.
+  79 
+  80 To avoid unnecessary evaluations, a model maintains an internal cache of recent
+  81 evaluations. Changing variables through the model functions described below
+  82 will clear this cache if required. If model variables are changed manually, the
+  83 function Model_ClearCache() should be called.
+  84 
+  85 Methods:
+  86 
+  87 Model_ClearCache(model)
+  88     Clears any stored caches.
+  89 
+  90 Model_SetLiteralVariables(model, *literals)
+  91     Sets the values of all literals. If these are different from the previous
+  92     values, the caches are cleared and the literal-derived and
+  93     parameter-derived variables are recalculated.
+  94 
+  95 Model_EvaluateLiteralDerivedVariables(model)
+  96     Recalculates all literal-derived variables. Should be called after any
+  97     manual change to the literals (in addition to calling Model_ClearCache).
+  98     This method has no effect on the caches.
+  99 
+ 100 Model_SetParameters(model, *parameters)
+ 101     Sets the values of all parameters. If these are different from the previous
+ 102     values, the caches are cleared and the parameter-derived variables are
+ 103     recalculated.
+ 104 
+ 105 Model_SetParametersFromIndependents(model, *independents)
+ 106     Sets the values of all parameters, using an array of independent variable
+ 107     values - any initial states are ignored. If any new parameter values are
+ 108     different from the previous values, the caches are cleared and the
+ 109     parameter-derived variables are recalculated.
+ 110 
+ 111 Model_EvaluateParameterDerivedVariables(model)
+ 112     Recalculates all parameter-derived variables. Should be called after any
+ 113     manual change to the parameters (in addition to calling Model_ClearCache).
+ 114     This method has no effect on the caches.
+ 115 
+ 116 Model_SetBoundVariables(model, time, pace, ...)
+ 117     Updates the model's bound variables. If the time or pacing variable are
+ 118     changed from their previous value the model caches will be cleared.
+ 119 
+ 120 Model_SetStates(model, *states)
+ 121     Sets the values of all state variables. If these are different from the
+ 122     previous values, the caches are cleared.
+ 123 
+ 124 Model_EvaluateDerivatives(model)
+ 125     If the derivatives cache is set, does nothing. Otherwise calculates the new
+ 126     derivatives and sets the cache.
+ 127 
+ 128 Model_SetStateSensitivities(model, i, *s_states)
+ 129     Sets the values of the state sensitivities w.r.t. the i-th independent
+ 130     variable. If these are different from the previous values, the sensitivity
+ 131     output cache is cleared.
+ 132 
+ 133 Model_EvaluateSensitivityOutputs(model)
+ 134     If the sensitivity outputs cache is set, does nothing. Otherwise
+ 135     calculates the new sensitivity outputs and sets the cache.
+ 136 
+ 137 Finally, to free the memory used by a model, call
+ 138 
+ 139     Model_Destroy(model)
+ 140 
+ 141 Logging
+ 142 =======
+ 143 A model can log the value of its variables to a Python dict that maps (fully
+ 144 qualified) variable names to sequence types (e.g. lists). Typically, this dict
+ 145 will be a myokit.DataLog.
+ 146 
+ 147 Methods:
+ 148 
+ 149 Model_InitialiseLogging(Model model, PyObject* log_dict)
+ 150     Sets up logging for all variables used as keys in log_dict (assuming fully
+ 151     qualified names). Will raise an error if the dict contains keys that do not
+ 152     correspond to model variables. The values in the dict should implement the
+ 153     sequence interface (and in particular, have an "append" method).
+ 154 
+ 155 Model_Log(model)
+ 156     If logging has been set up, this will log the current values of variables
+ 157     to the sequences in the log dict.
+ 158 
+ 159 Model_DeInitialiseLogging(model)
+ 160     De-initialises logging. This only needs to be called if logging needs to be
+ 161     set up differently, i.e. before a new call to Model_InitialiseLogging.
+ 162 
+ 163 Logging sensitivities
+ 164 =====================
+ 165 Logging of sensitivity outputs is slightly more primitive than variable
+ 166 logging, and consists of a single method - no initialisation is needed.
+ 167 
+ 168 Model_LogSensitivityMatrix(Model model, PyObject* list)
+ 169     Creates a matrix (an n-tuple where each entry is an n-tuple of floats)
+ 170     containing the current values of the sensitivity outputs, and adds it to
+ 171     the given list, which must be a list (PyList).
+ 172 
+ 173 Error handling
+ 174 ==============
+ 175 Most methods return a Model_Flag that can be compared to any of the known error
+ 176 codes to check the return type. E.g.
+ 177 
+ 178     if (model_flag != Model_OK) {
+ 179         ...
+ 180     }
+ 181 
+ 182 An error message can be set for the Python user by calling Model_SetPyErr:
+ 183 
+ 184     if (model_flag != Model_OK) {
+ 185         Model_SetPyErr(model_flag);
+ 186         clean_up_and_return()
+ 187     }
+ 188 
+ 189 */
+ 190 
+ 191 #include <math.h>
+ 192 #include <stdio.h>
+ 193 
+ 194 /*
+ 195  * Model error flags
+ 196  */
+ 197 typedef int Model_Flag;
+ 198 #define Model_OK                             0
+ 199 #define Model_OUT_OF_MEMORY                 -1
+ 200 /* General */
+ 201 #define Model_INVALID_MODEL                 -100
+ 202 /* Logging */
+ 203 #define Model_LOGGING_ALREADY_INITIALISED   -200
+ 204 #define Model_LOGGING_NOT_INITIALISED       -201
+ 205 #define Model_UNKNOWN_VARIABLES_IN_LOG      -202
+ 206 #define Model_LOG_APPEND_FAILED             -203
+ 207 /* Logging sensitivities */
+ 208 #define Model_NO_SENSITIVITIES_TO_LOG       -300
+ 209 #define Model_SENSITIVITY_LOG_APPEND_FAILED -303
+ 210 /* Pacing */
+ 211 #define Model_INVALID_PACING                -400
+ 212 
+ 213 /* Caching doesn't help much when running without jacobians etc., so disabled
+ 214    for now
+ 215 #define Model_CACHING
+ 216 */
+ 217 
+ 218 /*
+ 219  * Sets a Python exception based on a model flag.
+ 220  *
+ 221  * Arguments
+ 222  *  flag : The model flag to base the message on.
+ 223  */
+ 224 void
+ 225 Model_SetPyErr(Model_Flag flag)
+ 226 {
+ 227     switch(flag) {
+ 228     case Model_OK:
+ 229         break;
+ 230     /* General */
+ 231     case Model_OUT_OF_MEMORY:
+ 232         PyErr_SetString(PyExc_Exception, "CModel error: Memory allocation failed.");
+ 233         break;
+ 234     case Model_INVALID_MODEL:
+ 235         PyErr_SetString(PyExc_Exception, "CModel error: Invalid model pointer provided.");
+ 236         break;
+ 237     /* Logging */
+ 238     case Model_LOGGING_ALREADY_INITIALISED:
+ 239         PyErr_SetString(PyExc_Exception, "CModel error: Logging initialised twice.");
+ 240         break;
+ 241     case Model_LOGGING_NOT_INITIALISED:
+ 242         PyErr_SetString(PyExc_Exception, "CModel error: Logging not initialised.");
+ 243         break;
+ 244     case Model_UNKNOWN_VARIABLES_IN_LOG:
+ 245         PyErr_SetString(PyExc_Exception, "CModel error: Unknown variables found in logging dictionary.");
+ 246         break;
+ 247     case Model_LOG_APPEND_FAILED:
+ 248         PyErr_SetString(PyExc_Exception, "CModel error: Call to append() failed on logging list.");
+ 249         break;
+ 250     /* Logging sensitivities */
+ 251     case Model_NO_SENSITIVITIES_TO_LOG:
+ 252         PyErr_SetString(PyExc_Exception, "CModel error: Sensivity logging called, but sensitivity calculations were not enabled.");
+ 253         break;
+ 254     case Model_SENSITIVITY_LOG_APPEND_FAILED:
+ 255         PyErr_SetString(PyExc_Exception, "CModel error: Call to append() failed on sensitivity matrix logging list.");
+ 256         break;
+ 257     case Model_INVALID_PACING:
+ 258         PyErr_SetString(PyExc_Exception, "CModel error: Invalid pacing provided.");
+ 259         break;
+ 260 
+ 261     /* Unknown */
+ 262     default:
+ 263         PyErr_Format(PyExc_Exception, "CModel error: Unlisted error %d", (int)flag);
+ 264         break;
+ 265     };
+ 266 }
+ 267 
+ 268 /*
+ 269  * Memory for model object.
+ 270  */
+ 271 struct Model_Memory {
+ 272     /* If this is an ODE model this will be 1, otherwise 0. */
+ 273     int is_ode;
+ 274 
+ 275     /* If this model has sensitivities this will be 1, otherwise 0. */
+ 276     int has_sensitivities;
+ 277 
+ 278     /* pacing */
+ 279     realtype *pace_values;
+ 280     int n_pace;
+ 281 
+ 282     /* Bound variables */
+ 283     realtype time;
+ 284     realtype realtime;
+ 285     realtype evaluations;
+ 286 
+ 287     /* State variables and derivatives */
+ 288     int n_states;
+ 289     realtype* states;
+ 290     realtype* derivatives;
+ 291 
+ 292     /* Intermediary variables */
+ 293     int n_intermediary;
+ 294     realtype* intermediary;
+ 295 
+ 296     /* Parameters (can be changed during simulation) */
+ 297     int n_parameters;
+ 298     int n_parameter_derived;
+ 299     realtype* parameters;
+ 300     realtype* parameter_derived;
+ 301 
+ 302     /* Literals (should be fixed before a simulation) */
+ 303     int n_literals;
+ 304     int n_literal_derived;
+ 305     realtype* literals;
+ 306     realtype* literal_derived;
+ 307 
+ 308     /* Number of outputs (y in dy/dx) to calculate sensitivities of */
+ 309     int ns_dependents;
+ 310 
+ 311     /* Number of parameters and initial states (x in dy/dx) to calculate
+ 312        sensitivities w.r.t. */
+ 313     int ns_independents;
+ 314 
+ 315     /* Pointers to the independent variables */
+ 316     realtype** s_independents;
+ 317 
+ 318     /* s_is_parameter[i] is 1 if the i-th independent is a parameter, 0
+ 319        otherwise */
+ 320     int* s_is_parameter;
+ 321 
+ 322     /* Sensitivity of state variables w.r.t. independents. */
+ 323     realtype* s_states;
+ 324 
+ 325     /* Sensitivity of intermediary variables needed to calculate remaining
+ 326        sensitivities. */
+ 327     int ns_intermediary;
+ 328     realtype* s_intermediary;
+ 329 
+ 330     /* Logging initialised? */
+ 331     int logging_initialised;
+ 332 
+ 333     /* Which variables are we logging? */
+ 334     int logging_states;
+ 335     int logging_derivatives;
+ 336     int logging_intermediary;
+ 337     int logging_bound;
+ 338 
+ 339     /* How many variables are we logging? */
+ 340     int n_logged_variables;
+ 341 
+ 342     /* String used to call "append" method on sequence types */
+ 343     PyObject* _list_update_string;
+ 344 
+ 345     /* Array of *PyObjects, each a sequence to log to. */
+ 346     PyObject** _log_lists;
+ 347 
+ 348     /* Array of pointers to realtype, each a variable to log */
+ 349     realtype** _log_vars;
+ 350 
+ 351     /* Caching */
+ 352     #ifdef Model_CACHING
+ 353     int valid_cache_derivatives;
+ 354     int valid_cache_sensitivity_outputs;
+ 355     #endif
+ 356 };
+ 357 typedef struct Model_Memory *Model;
+ 358 
+ 359 /*
+ 360  * Variable aliases
+ 361  */
+ 362 
+ 363 /* Bound variables */
+ 364 #define B_time model->time
+ 365 #define B_pace model->pace_values[0]
+ 366 /* States */
+ 367 #define Y_V model->states[0]
+ 368 #define Y_m model->states[1]
+ 369 #define Y_h model->states[2]
+ 370 #define Y_j model->states[3]
+ 371 #define Y_d model->states[4]
+ 372 #define Y_f model->states[5]
+ 373 #define Y_x model->states[6]
+ 374 #define Y_Ca_i model->states[7]
+ 375 
+ 376 /* Derivatives */
+ 377 #define D_V model->derivatives[0]
+ 378 #define D_m model->derivatives[1]
+ 379 #define D_h model->derivatives[2]
+ 380 #define D_j model->derivatives[3]
+ 381 #define D_d model->derivatives[4]
+ 382 #define D_f model->derivatives[5]
+ 383 #define D_x model->derivatives[6]
+ 384 #define D_Ca_i model->derivatives[7]
+ 385 
+ 386 /* Intermediary variables */
+ 387 #define V_i_ion model->intermediary[0]
+ 388 #define V_i_stim model->intermediary[1]
+ 389 #define V_ik_x_alpha model->intermediary[2]
+ 390 #define V_ik_x_beta model->intermediary[3]
+ 391 #define V_xi model->intermediary[4]
+ 392 #define V_IK model->intermediary[5]
+ 393 #define V_a model->intermediary[6]
+ 394 #define V_ina_m_alpha model->intermediary[7]
+ 395 #define V_ina_m_beta model->intermediary[8]
+ 396 #define V_ina_h_alpha model->intermediary[9]
+ 397 #define V_ina_h_beta model->intermediary[10]
+ 398 #define V_ina_j_alpha model->intermediary[11]
+ 399 #define V_ina_j_beta model->intermediary[12]
+ 400 #define V_INa model->intermediary[13]
+ 401 #define V_Kp model->intermediary[14]
+ 402 #define V_IKp model->intermediary[15]
+ 403 #define V_ica_E model->intermediary[16]
+ 404 #define V_ica_d_alpha model->intermediary[17]
+ 405 #define V_ica_d_beta model->intermediary[18]
+ 406 #define V_ica_f_alpha model->intermediary[19]
+ 407 #define V_ica_f_beta model->intermediary[20]
+ 408 #define V_ICa model->intermediary[21]
+ 409 #define V_g model->intermediary[22]
+ 410 #define V_ik1_g_alpha model->intermediary[23]
+ 411 #define V_ik1_g_beta model->intermediary[24]
+ 412 #define V_IK1 model->intermediary[25]
+ 413 #define V_Ib model->intermediary[26]
+ 414 
+ 415 /* Parameters */
+ 416 
+ 417 /* Parameter-derived */
+ 418 
+ 419 /* Literal */
+ 420 #define C_Ca_o model->literals[0]
+ 421 #define C_K_i model->literals[1]
+ 422 #define C_K_o model->literals[2]
+ 423 #define C_Na_i model->literals[3]
+ 424 #define C_Na_o model->literals[4]
+ 425 #define C_F model->literals[5]
+ 426 #define C_R model->literals[6]
+ 427 #define C_T model->literals[7]
+ 428 #define C_Eb model->literals[8]
+ 429 #define C_gb model->literals[9]
+ 430 #define C_gCa model->literals[10]
+ 431 #define C_PNa_K model->literals[11]
+ 432 #define C_gNa model->literals[12]
+ 433 #define C_gKp model->literals[13]
+ 434 #define C_C model->literals[14]
+ 435 #define C_i_diff model->literals[15]
+ 436 #define C_stim_amplitude model->literals[16]
+ 437 
+ 438 /* Literal-derived */
+ 439 #define C_RTF model->literal_derived[0]
+ 440 #define C_gK model->literal_derived[1]
+ 441 #define C_ik_IK_E model->literal_derived[2]
+ 442 #define C_ik1_E model->literal_derived[3]
+ 443 #define C_gK1 model->literal_derived[4]
+ 444 #define C_ENa model->literal_derived[5]
+ 445 
+ 446 /* Sensitivities of the state vectors */
+ 447 
+ 448 /* Sensitivities of variables needed to calculate remaining sensitivities */
+ 449 
+ 450 
+ 451 #ifdef Model_CACHING
+ 452 /*
+ 453  * Cache checking and clearing for internal use
+ 454  */
+ 455 inline int Model__ValidCache(Model model)
+ 456 {
+ 457     return (model->valid_cache_derivatives && model->valid_cache_sensitivity_outputs);
+ 458 }
+ 459 inline void Model__InvalidateCache(Model model)
+ 460 {
+ 461     model->valid_cache_derivatives = 0;
+ 462     model->valid_cache_sensitivity_outputs = 0;
+ 463 }
+ 464 #endif
+ 465 
+ 466 /*
+ 467  * Clears any cached evaluations from a model.
+ 468  *
+ 469  * Arguments
+ 470  *  model : The model whos cache to clear.
+ 471  *
+ 472  * Returns a model flag.
+ 473  *
+ 474  */
+ 475 Model_Flag
+ 476 Model_ClearCache(Model model)
+ 477 {
+ 478     #ifdef Model_CACHING
+ 479     if (model == NULL) return Model_INVALID_MODEL;
+ 480     Model__InvalidateCache(model);
+ 481     #endif
+ 482     return Model_OK;
+ 483 }
+ 484 
+ 485 /*
+ 486  * Sets up (i.e. allocates memory for) array of protocol-determined values
+ 487  *
+ 488  * Arguments
+ 489  *  n_pace: the number of pacing values to use.
+ 490  *
+ 491  * Returns a model flag.
+ 492  *
+ 493  */
+ 494 Model_Flag
+ 495 Model_SetupPacing(Model model, int n_pace)
+ 496 {
+ 497     if (model == NULL) return Model_INVALID_MODEL;
+ 498     if (n_pace < 0) return Model_INVALID_PACING;
+ 499 
+ 500     /* Free any existing pacing */
+ 501     if (model->n_pace > 0) {
+ 502         free(model->pace_values);
+ 503     }
+ 504 
+ 505     /* Allocate new pacing */
+ 506     model->n_pace = n_pace;
+ 507     model->pace_values = (realtype*)malloc(n_pace * sizeof(realtype));
+ 508     if (model->pace_values == NULL) {
+ 509         return Model_OUT_OF_MEMORY;
+ 510     }
+ 511 
+ 512     /* Clear values */
+ 513     for (int i = 0; i < n_pace; i++) {
+ 514         model->pace_values[i] = 0;
+ 515     }
+ 516 
+ 517     return Model_OK;
+ 518 }
+ 519 
+ 520 /*
+ 521  * (Re)calculates the values of all constants that are derived from other
+ 522  * constants.
+ 523  *
+ 524  * Calling this method does not affect the model cache.
+ 525  *
+ 526  * Arguments
+ 527  *  model : The model to update.
+ 528  *
+ 529  * Returns a model flag.
+ 530  */
+ 531 Model_Flag
+ 532 Model_EvaluateLiteralDerivedVariables(Model model)
+ 533 {
+ 534     if (model == NULL) return Model_INVALID_MODEL;
+ 535 
+ 536     C_RTF = C_R * C_T / C_F;
+ 537     C_gK = 0.282 * sqrt(C_K_o / 5.4);
+ 538     C_ik_IK_E = C_RTF * log((C_K_o + C_PNa_K * C_Na_o) / (C_K_i + C_PNa_K * C_Na_i));
+ 539     C_ik1_E = C_RTF * log(C_K_o / C_K_i);
+ 540     C_gK1 = 0.6047 * sqrt(C_K_o / 5.4);
+ 541     C_ENa = C_RTF * log(C_Na_o / C_Na_i);
+ 542 
+ 543     return Model_OK;
+ 544 }
+ 545 
+ 546 /*
+ 547  * (Re)calculates the values of all constants that are derived from variables
+ 548  * marked as "parameters" in sensitivity calculations.
+ 549  *
+ 550  * Calling this method does not affect the model cache.
+ 551  *
+ 552  * Arguments
+ 553  *  model : The model to update.
+ 554  *
+ 555  * Returns a model flag.
+ 556  */
+ 557 Model_Flag
+ 558 Model_EvaluateParameterDerivedVariables(Model model)
+ 559 {
+ 560     if (model == NULL) return Model_INVALID_MODEL;
+ 561 
+ 562 
+ 563     return Model_OK;
+ 564 }
+ 565 
+ 566 /*
+ 567  * Updates the literal variables to the values given in `literals`.
+ 568  *
+ 569  * If any of the values are changed
+ 570  *  - the model caches are cleared.
+ 571  *  - the literal-derived variables are recalculated.
+ 572  *  - the parameter-derived variables are recalculated.
+ 573  *
+ 574  * Arguments
+ 575  *  model : The model whose variables to set
+ 576  *  literals : An array of size model->n_literals
+ 577  *
+ 578  * Returns a model flag.
+ 579  */
+ 580 Model_Flag
+ 581 Model_SetLiteralVariables(Model model, const realtype* literals)
+ 582 {
+ 583     int i;
+ 584     if (model == NULL) return Model_INVALID_MODEL;
+ 585 
+ 586     /* Scan for changes */
+ 587     i = 0;
+ 588     #ifdef Model_CACHING
+ 589     if (Model__ValidCache(model)) {
+ 590         for (i=0; i<model->n_literals; i++) {
+ 591             if (model->literals[i] != literals[i]) {
+ 592                 break;
+ 593             }
+ 594         }
+ 595     }
+ 596     #endif
+ 597 
+ 598     /* Update remaining */
+ 599     if (i < model->n_literals) {
+ 600         for (; i<model->n_literals; i++) {
+ 601             model->literals[i] = literals[i];
+ 602         }
+ 603         #ifdef Model_CACHING
+ 604         Model__InvalidateCache(model);
+ 605         #endif
+ 606         Model_EvaluateLiteralDerivedVariables(model);
+ 607         Model_EvaluateParameterDerivedVariables(model);
+ 608     }
+ 609 
+ 610     return Model_OK;
+ 611 }
+ 612 
+ 613 /*
+ 614  * Updates the parameter variables to the values given in `parameters`.
+ 615  *
+ 616  * If any of the values are changed
+ 617  *  - the model caches are cleared.
+ 618  *  - the parameter-derived variables are recalculated.
+ 619  *
+ 620  * Arguments
+ 621  *  model : The model whose variables to set
+ 622  *  parameters : An array of size model->n_parameters
+ 623  *
+ 624  * Returns a model flag.
+ 625  */
+ 626 Model_Flag
+ 627 Model_SetParameters(Model model, const realtype* parameters)
+ 628 {
+ 629     int i;
+ 630     if (model == NULL) return Model_INVALID_MODEL;
+ 631 
+ 632     /* Scan for changes */
+ 633     i = 0;
+ 634     #ifdef Model_CACHING
+ 635     if (Model__ValidCache(model)) {
+ 636         for (; i<model->n_parameters; i++) {
+ 637             if (model->parameters[i] != parameters[i]) {
+ 638                 break;
+ 639             }
+ 640         }
+ 641     }
+ 642     #endif
+ 643 
+ 644     /* Update remaining */
+ 645     if (i < model->n_parameters) {
+ 646         for (; i<model->n_parameters; i++) {
+ 647             model->parameters[i] = parameters[i];
+ 648         }
+ 649         #ifdef Model_CACHING
+ 650         Model__InvalidateCache(model);
+ 651         #endif
+ 652         Model_EvaluateParameterDerivedVariables(model);
+ 653     }
+ 654 
+ 655     return Model_OK;
+ 656 }
+ 657 
+ 658 
+ 659 /*
+ 660  * Updates the parameter variables to the values given in the vector of
+ 661  * `independents`, ignoring the initial values.
+ 662  *
+ 663  * If any of the parameter values are changed
+ 664  *  - the model caches are cleared.
+ 665  *  - the parameter-derived variables are recalculated.
+ 666  *
+ 667  * Arguments
+ 668  *  model : The model whose variables to set
+ 669  *  independents : An array of size model->ns_independents
+ 670  *
+ 671  * Returns a model flag.
+ 672  */
+ 673 Model_Flag
+ 674 Model_SetParametersFromIndependents(Model model, const realtype* independents)
+ 675 {
+ 676     int i, j;
+ 677     if (model == NULL) return Model_INVALID_MODEL;
+ 678 
+ 679     /* Note: this method assumes that parameters are ordered in the same way
+ 680              as independents. */
+ 681 
+ 682     /* Scan for changes */
+ 683     i = 0;
+ 684     j = 0;
+ 685     #ifdef Model_CACHING
+ 686     if (Model__ValidCache(model)) {
+ 687         for (; i<model->ns_independents; i++) {
+ 688             if (model->s_is_parameter[i]) {
+ 689                 if (model->parameters[j] != independents[i]) {
+ 690                     break;
+ 691                 }
+ 692                 j++;
+ 693             }
+ 694         }
+ 695     }
+ 696     #endif
+ 697 
+ 698     /* Update remaining */
+ 699     if (j < model->n_parameters) {
+ 700         for (; i<model->ns_independents; i++) {
+ 701             if (model->s_is_parameter[i]) {
+ 702                 model->parameters[j] = independents[i];
+ 703                 j++;
+ 704             }
+ 705         }
+ 706         #ifdef Model_CACHING
+ 707         Model__InvalidateCache(model);
+ 708         #endif
+ 709         Model_EvaluateParameterDerivedVariables(model);
+ 710     }
+ 711 
+ 712     return Model_OK;
+ 713 }
+ 714 
+ 715 /*
+ 716  * Updates this model's bound variables to the given values.
+ 717  * Also updates the model's pacing system.
+ 718  *
+ 719  * Arguments
+ 720  *  model : The model to update
+ 721  *  time
+ 722  *  pace
+ 723  *  realtime
+ 724  *  evaluations
+ 725  *
+ 726  * The model caches are cleared if either the `time` or `pace` variables are
+ 727  * changed.
+ 728  *
+ 729  * Returns a model flag.
+ 730  */
+ 731 Model_Flag
+ 732 Model_SetBoundVariables(
+ 733     Model model,
+ 734     const realtype time,
+ 735     const realtype *pace_values,
+ 736     const realtype realtime,
+ 737     const realtype evaluations)
+ 738 {
+ 739     int changed;
+ 740     if (model == NULL) return Model_INVALID_MODEL;
+ 741 
+ 742     changed = 0;
+ 743     if (time != model->time) {
+ 744         model->time = time;
+ 745         changed = 1;
+ 746     }
+ 747 
+ 748     for (int i = 0; i < model->n_pace; i++) {
+ 749         if (pace_values[i] != model->pace_values[i]) {
+ 750             model->pace_values[i] = pace_values[i];
+ 751             changed = 1;
+ 752         }
+ 753     }
+ 754 
+ 755     #ifdef Model_CACHING
+ 756     if (changed) {
+ 757         Model__InvalidateCache(model);
+ 758     }
+ 759     #endif
+ 760 
+ 761     /* Update unchecked variables */
+ 762     model->realtime = realtime;
+ 763     model->evaluations = evaluations;
+ 764 
+ 765     return Model_OK;
+ 766 }
+ 767 
+ 768 /*
+ 769  * Updates the state variables to the float values given in `states`.
+ 770  *
+ 771  * If any of the values are changed, the model caches are cleared.
+ 772  *
+ 773  * Arguments
+ 774  *  model : The model whose variables to set
+ 775  *  states : An array of size model->n_states
+ 776  *
+ 777  * Returns a model flag.
+ 778  */
+ 779 Model_Flag
+ 780 Model_SetStates(Model model, const realtype* states)
+ 781 {
+ 782     int i;
+ 783     if (model == NULL) return Model_INVALID_MODEL;
+ 784 
+ 785     /* Scan for changes */
+ 786     i = 0;
+ 787     #ifdef Model_CACHING
+ 788     if (Model__ValidCache(model)) {
+ 789         for (; i<model->n_states; i++) {
+ 790             if (model->states[i] != states[i]) {
+ 791                  break;
+ 792             }
+ 793         }
+ 794     }
+ 795     #endif
+ 796 
+ 797     /* Update remaining */
+ 798     if (i < model->n_states) {
+ 799         for (; i<model->n_states; i++) {
+ 800             model->states[i] = states[i];
+ 801         }
+ 802         #ifdef Model_CACHING
+ 803         Model__InvalidateCache(model);
+ 804         #endif
+ 805     }
+ 806 
+ 807     return Model_OK;
+ 808 }
+ 809 
+ 810 /*
+ 811  * (Re)calculates the values of all intermediary variables and state
+ 812  * derivatives.
+ 813  *
+ 814  * Arguments
+ 815  *  model : The model to update
+ 816  *
+ 817  * If the model's derivatives cache is set, the method will exit without
+ 818  * recalculating. If not, the method will recalculate and the model's
+ 819  * derivative cache will be set.
+ 820  *
+ 821  * Returns a model flag.
+ 822  */
+ 823 Model_Flag
+ 824 Model_EvaluateDerivatives(Model model)
+ 825 {
+ 826     if (model == NULL) return Model_INVALID_MODEL;
+ 827 
+ 828     /*TODO: Skip if cached! */
+ 829     /*if (model->valid_cache_derivatives) { */
+ 830 
+ 831     /* engine */
+ 832     B_pace = 0.0;
+ 833     B_time = 0.0;
+ 834     
+ 835     /* ib */
+ 836     V_Ib = C_gb * (Y_V - C_Eb);
+ 837     
+ 838     /* ica */
+ 839     V_ica_E = 7.7 - 13.0287 * log(Y_Ca_i / C_Ca_o);
+ 840     V_ica_d_alpha = 0.095 * exp((-0.01) * (Y_V - 5.0)) / (1.0 + exp((-0.072) * (Y_V - 5.0)));
+ 841     V_ica_d_beta = 0.07 * exp((-0.017) * (Y_V + 44.0)) / (1.0 + exp(0.05 * (Y_V + 44.0)));
+ 842     D_d = V_ica_d_alpha * (1.0 - Y_d) - V_ica_d_beta * Y_d;
+ 843     V_ica_f_alpha = 0.012 * exp((-0.008) * (Y_V + 28.0)) / (1.0 + exp(0.15 * (Y_V + 28.0)));
+ 844     V_ica_f_beta = 0.0065 * exp((-0.02) * (Y_V + 30.0)) / (1.0 + exp((-0.2) * (Y_V + 30.0)));
+ 845     D_f = V_ica_f_alpha * (1.0 - Y_f) - V_ica_f_beta * Y_f;
+ 846     V_ICa = C_gCa * Y_d * Y_f * (Y_V - V_ica_E);
+ 847     D_Ca_i = (-0.0001) * V_ICa + 0.07 * (0.0001 - Y_Ca_i);
+ 848     
+ 849     /* ik */
+ 850     V_xi = ((Y_V < (-100.0)) ? 1.0 : ((Y_V == (-77.0)) ? 2.837 * 0.04 / exp(0.04 * (Y_V + 35.0)) : 2.837 * (exp(0.04 * (Y_V + 77.0)) - 1.0) / ((Y_V + 77.0) * exp(0.04 * (Y_V + 35.0)))));
+ 851     V_ik_x_alpha = 0.0005 * exp(0.083 * (Y_V + 50.0)) / (1.0 + exp(0.057 * (Y_V + 50.0)));
+ 852     V_ik_x_beta = 0.0013 * exp((-0.06) * (Y_V + 20.0)) / (1.0 + exp((-0.04) * (Y_V + 20.0)));
+ 853     D_x = V_ik_x_alpha * (1.0 - Y_x) - V_ik_x_beta * Y_x;
+ 854     V_IK = C_gK * V_xi * Y_x * (Y_V - C_ik_IK_E);
+ 855     
+ 856     /* ik1 */
+ 857     V_ik1_g_alpha = 1.02 / (1.0 + exp(0.2385 * (Y_V - C_ik1_E - 59.215)));
+ 858     V_ik1_g_beta = (0.49124 * exp(0.08032 * (Y_V - C_ik1_E + 5.476)) + 1.0 * exp(0.06175 * (Y_V - C_ik1_E - 594.31))) / (1.0 + exp((-0.5143) * (Y_V - C_ik1_E + 4.753)));
+ 859     V_g = V_ik1_g_alpha / (V_ik1_g_alpha + V_ik1_g_beta);
+ 860     V_IK1 = C_gK1 * V_g * (Y_V - C_ik1_E);
+ 861     
+ 862     /* ina */
+ 863     V_a = 1.0 - 1.0 / (1.0 + exp((-(Y_V + 40.0)) / 0.24));
+ 864     V_ina_m_alpha = 0.32 * (Y_V + 47.13) / (1.0 - exp((-0.1) * (Y_V + 47.13)));
+ 865     V_ina_m_beta = 0.08 * exp((-Y_V) / 11.0);
+ 866     D_m = V_ina_m_alpha * (1.0 - Y_m) - V_ina_m_beta * Y_m;
+ 867     V_INa = C_gNa * pow(Y_m, 3.0) * Y_h * Y_j * (Y_V - C_ENa);
+ 868     V_ina_h_alpha = V_a * 0.135 * exp((80.0 + Y_V) / (-6.8));
+ 869     V_ina_h_beta = V_a * (3.56 * exp(0.079 * Y_V) + 310000.0 * exp(0.35 * Y_V)) + (1.0 - V_a) / (0.13 * (1.0 + exp((Y_V + 10.66) / (-11.1))));
+ 870     D_h = V_ina_h_alpha * (1.0 - Y_h) - V_ina_h_beta * Y_h;
+ 871     V_ina_j_alpha = V_a * ((-127140.0) * exp(0.2444 * Y_V) - 3.474e-05 * exp((-0.04391) * Y_V)) * (Y_V + 37.78) / (1.0 + exp(0.311 * (Y_V + 79.23)));
+ 872     V_ina_j_beta = V_a * (0.1212 * exp((-0.01052) * Y_V) / (1.0 + exp((-0.1378) * (Y_V + 40.14)))) + (1.0 - V_a) * (0.3 * exp((-2.535e-07) * Y_V) / (1.0 + exp((-0.1) * (Y_V + 32.0))));
+ 873     D_j = V_ina_j_alpha * (1.0 - Y_j) - V_ina_j_beta * Y_j;
+ 874     
+ 875     /* ikp */
+ 876     V_Kp = 1.0 / (1.0 + exp((7.488 - Y_V) / 5.98));
+ 877     V_IKp = C_gKp * V_Kp * (Y_V - C_ik1_E);
+ 878     
+ 879     /* membrane */
+ 880     V_i_ion = V_INa + V_IK + V_Ib + V_IKp + V_IK1 + V_ICa;
+ 881     V_i_stim = B_pace * C_stim_amplitude;
+ 882     D_V = (-(1.0 / C_C)) * (V_i_ion + C_i_diff + V_i_stim);
+ 883     
+ 884 
+ 885     #ifdef Model_CACHING
+ 886     /* Indicate derivatives values can be trusted. */
+ 887     model->valid_cache_derivatives = 1;
+ 888     #endif
+ 889 
+ 890     return Model_OK;
+ 891 }
+ 892 
+ 893 /*
+ 894  * Updates the state variable sensitivities w.r.t. the i-th independent to the
+ 895  * values given in `s_states`.
+ 896  *
+ 897  * If any of the values are changed, the model sensitivity cache is cleared.
+ 898  *
+ 899  * Arguments
+ 900  *  model : The model whose variables to set
+ 901  *  i : The integer index of the independent whose sensitivities to set
+ 902  *  s_states : An array of size model->n_states
+ 903  *
+ 904  * Returns a model flag.
+ 905  */
+ 906 Model_Flag
+ 907 Model_SetStateSensitivities(Model model, int i, const realtype* s_states)
+ 908 {
+ 909     int j;
+ 910     if (model == NULL) return Model_INVALID_MODEL;
+ 911 
+ 912     /* Calculate offset */
+ 913     i *= model->n_states;
+ 914 
+ 915     /* Scan for changes */
+ 916     j = 0;
+ 917     #ifdef Model_CACHING
+ 918     if (Model__ValidCache(model)) {
+ 919         for (; j<model->n_states; j++) {
+ 920             if (model->s_states[i + j] != s_states[j]) {
+ 921                  break;
+ 922             }
+ 923         }
+ 924     }
+ 925     #endif
+ 926 
+ 927     /* Update remaining */
+ 928     if (j < model->n_states) {
+ 929         for (; j<model->n_states; j++) {
+ 930             model->s_states[i + j] = s_states[j];
+ 931         }
+ 932         #ifdef Model_CACHING
+ 933         model->valid_cache_sensitivity_outputs = 0;
+ 934         #endif
+ 935     }
+ 936 
+ 937     return Model_OK;
+ 938 }
+ 939 
+ 940 /*
+ 941  * (Re)calculates all sensitivities where the dependent variable is an
+ 942  * intermediary variable (assuming the sensitivities where the dependent
+ 943  * variable is a state are already known).
+ 944  *
+ 945  * If the model's sensitivity output cache is set, the method will exit without
+ 946  * recalculating. If not, the method will recalculate and the model's
+ 947  * sensitivity output cache will be set.
+ 948 
+ 949  * Arguments
+ 950  *  model : The model to update
+ 951  *
+ 952  * Returns a model flag.
+ 953  */
+ 954 Model_Flag
+ 955 Model_EvaluateSensitivityOutputs(Model model)
+ 956 {
+ 957     if (model == NULL) return Model_INVALID_MODEL;
+ 958 
+ 959     /*TODO: Skip if cached! */
+ 960 
+ 961 
+ 962     #ifdef Model_CACHING
+ 963     /* Indicate sensitivity outputs can be trusted. */
+ 964     model->valid_cache_sensitivity_outputs = 1;
+ 965     #endif
+ 966 
+ 967     return Model_OK;
+ 968 }
+ 969 
+ 970 /*
+ 971  * Private method: Add a variable to the logging lists. Returns 1 if
+ 972  * successful.
+ 973  *
+ 974  * Note: The variable names are all ascii compatible. In Python2, the strings
+ 975  * inside log_dict are either unicode or bytes, but they can be matched
+ 976  * without conversion.
+ 977  *
+ 978  * Arguments
+ 979  *  log_dict : A dictionary mapping variable names to sequences.
+ 980  *  i : The next indice to add logs and vars.
+ 981  *  name : The name to check.
+ 982  *  var : A pointer to the variable.
+ 983  *
+ 984  * Returns 1 if added, 0 if not.
+ 985  */
+ 986 int
+ 987 Model__AddVariableToLog(
+ 988     Model model,
+ 989     PyObject* log_dict, int i, int n, const char* name, const realtype* variable)
+ 990 {
+ 991     PyObject* key = PyUnicode_FromString(name);     /* New reference */
+ 992     PyObject* val = PyDict_GetItem(log_dict, key);  /* Borrowed reference, or NULL */
+ 993     Py_DECREF(key);
+ 994     if (val == NULL) { return 0; }
+ 995 
+ 996     if (i < n) { // Only write in allocated space: if i >= n this will trigger an error later
+ 997         model->_log_lists[i] = val;
+ 998         model->_log_vars[i] = (realtype*)variable;
+ 999     }
+1000     return 1;
+1001 }
+1002 
+1003 /*
+1004  * Initialises logging, using the given dict. An error is returned if logging
+1005  * is already initialised.
+1006  *
+1007  * Arguments
+1008  *  model : The model whose logging system to initialise.
+1009  *  log_dict : A Python dict mapping fully qualified variable names to sequence
+1010  *             objects to log in.
+1011  *
+1012  * Returns a model flag
+1013  */
+1014 Model_Flag
+1015 Model_InitialiseLogging(Model model, PyObject* log_dict)
+1016 {
+1017     int i, j;
+1018 
+1019     if (model == NULL) return Model_INVALID_MODEL;
+1020     if (model->logging_initialised) return Model_LOGGING_ALREADY_INITIALISED;
+1021 
+1022     /* Number of variables to log */
+1023     model->n_logged_variables = PyDict_Size(log_dict);
+1024 
+1025     /* Allocate pointer lists */
+1026     model->_log_lists = (PyObject**)malloc(sizeof(PyObject*) * model->n_logged_variables);
+1027     model->_log_vars = (realtype**)malloc(sizeof(realtype*) * model->n_logged_variables);
+1028 
+1029     /* Check states */
+1030     i = 0;
+1031     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "membrane.V", &Y_V);
+1032     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.m", &Y_m);
+1033     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.h", &Y_h);
+1034     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.j", &Y_j);
+1035     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ica.d", &Y_d);
+1036     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ica.f", &Y_f);
+1037     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ik.x", &Y_x);
+1038     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ica.Ca_i", &Y_Ca_i);
+1039 
+1040     model->logging_states = (i > 0);
+1041 
+1042     /* Check derivatives */
+1043     j = i;
+1044     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "dot(membrane.V)", &D_V);
+1045     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "dot(ina.m)", &D_m);
+1046     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "dot(ina.h)", &D_h);
+1047     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "dot(ina.j)", &D_j);
+1048     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "dot(ica.d)", &D_d);
+1049     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "dot(ica.f)", &D_f);
+1050     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "dot(ik.x)", &D_x);
+1051     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "dot(ica.Ca_i)", &D_Ca_i);
+1052 
+1053     model->logging_derivatives = (i != j);
+1054 
+1055     /* Check bound variables */
+1056     j = i;
+1057     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "engine.time", &B_time);
+1058     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "engine.pace", &B_pace);
+1059 
+1060     model->logging_bound = (i != j);
+1061 
+1062     /* Check intermediary variables */
+1063     j = i;
+1064     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "membrane.i_ion", &V_i_ion);
+1065     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "membrane.i_stim", &V_i_stim);
+1066     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ik.x.alpha", &V_ik_x_alpha);
+1067     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ik.x.beta", &V_ik_x_beta);
+1068     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ik.xi", &V_xi);
+1069     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ik.IK", &V_IK);
+1070     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.a", &V_a);
+1071     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.m.alpha", &V_ina_m_alpha);
+1072     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.m.beta", &V_ina_m_beta);
+1073     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.h.alpha", &V_ina_h_alpha);
+1074     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.h.beta", &V_ina_h_beta);
+1075     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.j.alpha", &V_ina_j_alpha);
+1076     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.j.beta", &V_ina_j_beta);
+1077     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ina.INa", &V_INa);
+1078     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ikp.Kp", &V_Kp);
+1079     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ikp.IKp", &V_IKp);
+1080     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ica.E", &V_ica_E);
+1081     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ica.d.alpha", &V_ica_d_alpha);
+1082     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ica.d.beta", &V_ica_d_beta);
+1083     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ica.f.alpha", &V_ica_f_alpha);
+1084     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ica.f.beta", &V_ica_f_beta);
+1085     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ica.ICa", &V_ICa);
+1086     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ik1.g", &V_g);
+1087     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ik1.g.alpha", &V_ik1_g_alpha);
+1088     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ik1.g.beta", &V_ik1_g_beta);
+1089     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ik1.IK1", &V_IK1);
+1090     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "ib.Ib", &V_Ib);
+1091     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "engine.time", &B_time);
+1092     i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "engine.pace", &B_pace);
+1093 
+1094     model->logging_intermediary = (i != j);
+1095 
+1096     /* Check if log contained extra variables */
+1097     if (i != model->n_logged_variables) return Model_UNKNOWN_VARIABLES_IN_LOG;
+1098 
+1099     /* Create "append" string. */
+1100     if (model->_list_update_string == NULL) {
+1101         model->_list_update_string = PyUnicode_FromString("append");
+1102     }
+1103 
+1104     /* All done! */
+1105     model->logging_initialised = 1;
+1106     return Model_OK;
+1107 }
+1108 
+1109 /*
+1110  * De-initialises logging, undoing the effects of Model_InitialiseLogging() and
+1111  * allowing logging to be initialised again.
+1112  *
+1113  * Arguments
+1114  *  model : The model whos logging to deinitialise.
+1115  *
+1116  * Returns a model flag.
+1117  */
+1118 Model_Flag
+1119 Model_DeInitialiseLogging(Model model)
+1120 {
+1121     if (model == NULL) return Model_INVALID_MODEL;
+1122     if (!model->logging_initialised) return Model_LOGGING_NOT_INITIALISED;
+1123 
+1124     /* Free memory */
+1125     if (model->_log_vars != NULL) {
+1126         free(model->_log_vars);
+1127         model->_log_vars = NULL;
+1128     }
+1129     if (model->_log_lists != NULL) {
+1130         free(model->_log_lists);
+1131         model->_log_lists = NULL;
+1132     }
+1133 
+1134     /* Reset */
+1135     model->logging_initialised = 0;
+1136     model->n_logged_variables = 0;
+1137     model->logging_states = 0;
+1138     model->logging_derivatives = 0;
+1139     model->logging_intermediary = 0;
+1140     model->logging_bound = 0;
+1141 
+1142     return Model_OK;
+1143 }
+1144 
+1145 /*
+1146  * Logs the current state of the model to the logging dict passed in to
+1147  * Model_InitialiseLogging.
+1148  *
+1149  * Note: This method does not update the state in any way, e.g. to make sure
+1150  * that what is logged is sensible.
+1151  *
+1152  * Arguments
+1153  *  model : The model whose state to log
+1154  *
+1155  * Returns a model flag.
+1156  */
+1157 Model_Flag
+1158 Model_Log(Model model)
+1159 {
+1160     int i;
+1161     PyObject *val, *ret;
+1162 
+1163     if (model == NULL) return Model_INVALID_MODEL;
+1164     if (!model->logging_initialised) return Model_LOGGING_NOT_INITIALISED;
+1165 
+1166     for (i=0; i<model->n_logged_variables; i++) {
+1167         val = PyFloat_FromDouble(*(model->_log_vars[i]));
+1168         ret = PyObject_CallMethodObjArgs(model->_log_lists[i], model->_list_update_string, val, NULL);
+1169         Py_DECREF(val);
+1170         Py_XDECREF(ret);
+1171         if (ret == NULL) {
+1172             return Model_LOG_APPEND_FAILED;
+1173         }
+1174     }
+1175 
+1176     return Model_OK;
+1177 }
+1178 
+1179 /*
+1180  * Creates a matrix of sensitivities and adds it to a Python sequence.
+1181  *
+1182  * The created matrix is a (Python) tuple of tuples, where the first (outer)
+1183  * indice is for the dependent variable (y in dy/dx) and the second (inner)
+1184  * indice is for the independent variable (x in dy/dx).
+1185  *
+1186  * model : The model whose sensitivities to log (must have sensitivity
+1187  *         calculations enabled).
+1188  * list : A PyList to add the newly created matrix of sensitivities to.
+1189  *
+1190  * Returns a model flag.
+1191  */
+1192 Model_Flag
+1193 Model_LogSensitivityMatrix(Model model, PyObject* list)
+1194 {
+1195     PyObject *l1, *l2;
+1196     PyObject *val;
+1197     int flag;
+1198 
+1199     if (model == NULL) return Model_INVALID_MODEL;
+1200 
+1201     /* Create outer tuple */
+1202     l1 = PyTuple_New(model->ns_dependents);
+1203     if (l1 == NULL) goto nomem;
+1204 
+1205     /* Note that PyTuple_SetItem steals a reference */
+1206 
+1207 
+1208     /* Add matrix to list (must be a PyList, no advantage here to using a
+1209        buffer). */
+1210     flag = PyList_Append(list, l1);
+1211     Py_DECREF(l1);
+1212     if (flag < 0) return Model_SENSITIVITY_LOG_APPEND_FAILED;
+1213 
+1214     return Model_OK;
+1215 
+1216 nomem:
+1217     /* Assuming val is NULL or has had its reference stolen. */
+1218     Py_XDECREF(l1);
+1219     Py_XDECREF(l2);
+1220     return Model_OUT_OF_MEMORY;
+1221 }
+1222 
+1223 /*
+1224  * Creates and returns a model struct.
+1225  *
+1226  * Arguments
+1227  *  flag : The address of a model flag or NULL.
+1228  *
+1229  * Returns a Model pointer.
+1230  */
+1231 Model Model_Create(Model_Flag* flagp)
+1232 {
+1233     Model_Flag flag;
+1234 
+1235     /* Allocate model memory (not including arrays) */
+1236     Model model = (Model)malloc(sizeof(struct Model_Memory));
+1237     if (model == NULL) {
+1238         if (flagp != NULL) { *flagp = Model_OUT_OF_MEMORY; }
+1239         return NULL;
+1240     }
+1241 
+1242     /* Model info */
+1243     model->is_ode = 1;
+1244     model->has_sensitivities = 0;
+1245 
+1246     /*
+1247      * Variables
+1248      */
+1249 
+1250     /* States and derivatives */
+1251     model->n_states = 8;
+1252     model->states = (realtype*)malloc(model->n_states * sizeof(realtype));
+1253     model->derivatives = (realtype*)malloc(model->n_states * sizeof(realtype));
+1254 
+1255     /* Intermediary variables */
+1256     model->n_intermediary = 27;
+1257     model->intermediary = (realtype*)malloc(model->n_intermediary * sizeof(realtype));
+1258 
+1259     /* Parameters */
+1260     model->n_parameters = 0;
+1261     model->n_parameter_derived = 0;
+1262     model->parameters = (realtype*)malloc(model->n_parameters * sizeof(realtype));
+1263     model->parameter_derived = (realtype*)malloc(model->n_parameter_derived * sizeof(realtype));
+1264 
+1265     /* Pacing */
+1266     model->n_pace = 0;
+1267     model->pace_values = NULL;
+1268 
+1269     /* Literals */
+1270     model->n_literals = 17;
+1271     model->n_literal_derived = 6;
+1272     model->literals = (realtype*)malloc(model->n_literals * sizeof(realtype));
+1273     model->literal_derived = (realtype*)malloc(model->n_literal_derived * sizeof(realtype));
+1274 
+1275     /*
+1276      * Sensitivities
+1277      */
+1278 
+1279     /* Total number of dependents to output sensitivities of */
+1280     model->ns_dependents = 0;
+1281 
+1282     /* Total number of independent to calculate sensitivities w.r.t. */
+1283     model->ns_independents = 0;
+1284 
+1285     /* Pointers to independent variables */
+1286     /* Note that, for sensitivities w.r.t. initial values, the entry in this
+1287        list points to the _current_, not the initial value. */
+1288     model->s_independents = (realtype**)malloc(model->ns_independents * sizeof(realtype));
+1289 
+1290     /* Type of independents (1 for parameter, 0 for initial) */
+1291     model->s_is_parameter = (int*)malloc(model->ns_independents * sizeof(int));
+1292 
+1293     /* Sensitivities of state variables */
+1294     model->s_states = (realtype*)malloc(model->n_states * model->ns_independents * sizeof(realtype));
+1295 
+1296     /* Sensitivities of intermediary variables needed in calculations */
+1297     model->ns_intermediary = 0;
+1298     model->s_intermediary = (realtype*)malloc(model->ns_intermediary * sizeof(realtype));
+1299 
+1300     /*
+1301      * Logging
+1302      */
+1303 
+1304     /* Logging configured? */
+1305     model->logging_initialised = 0;
+1306     model->n_logged_variables = 0;
+1307 
+1308     /* Logged variables and logged types */
+1309     model->logging_states = 0;
+1310     model->logging_derivatives = 0;
+1311     model->logging_intermediary = 0;
+1312     model->logging_bound = 0;
+1313 
+1314     /* Logging list update string */
+1315     model->_list_update_string = NULL;
+1316 
+1317     /* Logging pointer lists */
+1318     model->_log_lists = NULL;
+1319     model->_log_vars = NULL;
+1320 
+1321     /*
+1322      * Default values
+1323      */
+1324 
+1325     /* Bound variables */
+1326     model->time = 0;
+1327     model->realtime = 0;
+1328     model->evaluations = 0;
+1329 
+1330     /* Literal values */
+1331     C_Ca_o = 1.8;
+1332     C_K_i = 145.0;
+1333     C_K_o = 5.4;
+1334     C_Na_i = 10.0;
+1335     C_Na_o = 140.0;
+1336     C_F = 96500.0;
+1337     C_R = 8314.0;
+1338     C_T = 310.0;
+1339     C_Eb = (-59.87);
+1340     C_gb = 0.03921;
+1341     C_gCa = 0.09;
+1342     C_PNa_K = 0.01833;
+1343     C_gNa = 16.0;
+1344     C_gKp = 0.0183;
+1345     C_C = 1.0;
+1346     C_i_diff = 0.0;
+1347     C_stim_amplitude = (-80.0);
+1348 
+1349     flag = Model_EvaluateLiteralDerivedVariables(model);
+1350     if (flag != Model_OK) {
+1351         if (flagp != NULL) { *flagp = flag; }
+1352         return NULL;
+1353     }
+1354 
+1355     /* Parameter values */
+1356 
+1357     flag = Model_EvaluateParameterDerivedVariables(model);
+1358     if (flag != Model_OK) {
+1359         if (flagp != NULL) { *flagp = flag; }
+1360         return NULL;
+1361     }
+1362 
+1363     /* State values */
+1364     Y_V = -84.5286;
+1365     Y_m = 0.0017;
+1366     Y_h = 0.9832;
+1367     Y_j = 0.995484;
+1368     Y_d = 3e-06;
+1369     Y_f = 1.0;
+1370     Y_x = 0.0057;
+1371     Y_Ca_i = 0.0002;
+1372 
+1373     /*
+1374      * Caching.
+1375      * At this point, we don't have derivatives or sensitivity outputs, so
+1376      * both cache flags are set to invalid.
+1377      */
+1378     #ifdef Model_CACHING
+1379     model->valid_cache_derivatives = 0;
+1380     model->valid_cache_sensitivity_outputs = 0;
+1381     #endif
+1382 
+1383     /*
+1384      * Finalise
+1385      */
+1386 
+1387     /* Set flag to indicate success */
+1388     if (flagp != NULL) { *flagp = Model_OK; }
+1389 
+1390     /* Return newly created model */
+1391     return model;
+1392 }
+1393 
+1394 /*
+1395  *
+1396  *
+1397  * Arguments
+1398  *  model : The model to destroy.
+1399  *
+1400  * Returns a model flag.
+1401  */
+1402 Model_Flag
+1403 Model_Destroy(Model model)
+1404 {
+1405     if (model == NULL) return Model_INVALID_MODEL;
+1406 
+1407     /* Variables */
+1408     free(model->states); model->states = NULL;
+1409     free(model->derivatives); model->derivatives = NULL;
+1410     free(model->intermediary); model->intermediary = NULL;
+1411     free(model->parameters); model->parameters = NULL;
+1412     free(model->parameter_derived); model->parameter_derived = NULL;
+1413     free(model->literals); model->literals = NULL;
+1414     free(model->literal_derived); model->literal_derived = NULL;
+1415 
+1416     /* Sensitivities */
+1417     free(model->s_independents); model->s_independents = NULL;
+1418     free(model->s_is_parameter); model->s_is_parameter = NULL;
+1419     free(model->s_states); model->s_states = NULL;
+1420     free(model->s_intermediary); model->s_intermediary = NULL;
+1421 
+1422     /* Logging */
+1423     free(model->_log_vars); model->_log_vars = NULL;
+1424     free(model->_log_lists); model->_log_lists = NULL;
+1425     Py_XDECREF(model->_list_update_string); model->_list_update_string = NULL;
+1426 
+1427     /* Model itself */
+1428     free(model);
+1429     return Model_OK;
+1430 }
+1431 
+1432 
+1433 
+1434 /*
+1435  * Define type for "user data" that will hold parameter values if doing
+1436  * sensitivity analysis.
+1437  */
+1438 typedef struct {
+1439     realtype *p;
+1440 } *UserData;
+1441 
+1442 /*
+1443  * Check sundials flags, set python error.
+1444  *  flagvalue : The value to check
+1445  *  funcname : The name of the function that returned the flag
+1446  *  opt : Mode selector
+1447  *         0 : Error if the flag is null
+1448  *         1 : Error if the flag is < 0
+1449  *         2 : Errir
+1450  */
+1451 int
+1452 check_cvode_flag(void *flagvalue, char *funcname, int opt)
+1453 {
+1454     if (opt == 0 && flagvalue == NULL) {
+1455         /* Check if sundials function returned null pointer */
+1456         PyErr_Format(PyExc_Exception, "%s() failed - returned NULL pointer", funcname);
+1457         return 1;
+1458     } else if (opt == 1) {
+1459         /* Check if flag < 0 */
+1460         int flag = *((int*)flagvalue);
+1461         if (flag < 0) {
+1462             if (strcmp(funcname, "CVode") == 0) {
+1463                 switch (flag) {
+1464                 case -1:
+1465                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -1 CV_TOO_MUCH_WORK: The solver took mxstep internal steps but could not reach tout.");
+1466                     break;
+1467                 case -2:
+1468                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -2 CV_TOO_MUCH_ACC: The solver could not satisfy the accuracy demanded by the user for some internal step.");
+1469                     break;
+1470                 case -3:
+1471                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -3 CV_ERR_FAILURE: Error test failures occurred too many times during one internal time step or minimum step size was reached.");
+1472                     break;
+1473                 case -4:
+1474                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -4 CV_CONV_FAILURE: Convergence test failures occurred too many times during one internal time step or minimum step size was reached.");
+1475                     break;
+1476                 case -5:
+1477                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -5 CV_LINIT_FAIL: The linear solver's initialization function failed.");
+1478                     break;
+1479                 case -6:
+1480                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -6 CV_LSETUP_FAIL: The linear solver's setup function failed in an unrecoverable manner.");
+1481                     break;
+1482                 case -7:
+1483                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -7 CV_LSOLVE_FAIL: The linear solver's solve function failed in an unrecoverable manner.");
+1484                     break;
+1485                 case -8:
+1486                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -8 CV_RHSFUNC_FAIL: The right-hand side function failed in an unrecoverable manner.");
+1487                     break;
+1488                 case -9:
+1489                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -9 CV_FIRST_RHSFUNC_ERR: The right-hand side function failed at the first call.");
+1490                     break;
+1491                 case -10:
+1492                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -10 CV_REPTD_RHSFUNC_ERR: The right-hand side function had repeated recoverable errors.");
+1493                     break;
+1494                 case -11:
+1495                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -11 CV_UNREC_RHSFUNC_ERR: The right-hand side function had a recoverable error, but no recovery is possible.");
+1496                     break;
+1497                 case -12:
+1498                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -12 CV_RTFUNC_FAIL: The root finding function failed in an unrecoverable manner.");
+1499                     break;
+1500                 case -20:
+1501                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -20 CV_MEM_FAIL: A memory allocation failed.");
+1502                     break;
+1503                 case -21:
+1504                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -21 CV_MEM_NULL: The cvode mem argument was NULL.");
+1505                     break;
+1506                 case -22:
+1507                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -22 CV_ILL_INPUT: One of the function inputs is illegal.");
+1508                     break;
+1509                 case -23:
+1510                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -23 CV_NO_MALLOC: The cvode memory block was not allocated by a call to CVodeMalloc.");
+1511                     break;
+1512                 case -24:
+1513                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -24 CV_BAD_K: The derivative order k is larger than the order used.");
+1514                     break;
+1515                 case -25:
+1516                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -25 CV_BAD_T: The time t is outside the last step taken.");
+1517                     break;
+1518                 case -26:
+1519                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -26 CV_BAD_DKY: The output derivative vector is NULL.");
+1520                     break;
+1521                 case -27:
+1522                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -27 CV_TOO_CLOSE: The output and initial times are too close to each other.");
+1523                     break;
+1524                 default:
+1525                     PyErr_Format(PyExc_Exception, "Function CVode() failed with unknown flag = %d", flag);
+1526                 }
+1527             } else {
+1528                 PyErr_Format(PyExc_Exception, "%s() failed with flag = %d", funcname, flag);
+1529             }
+1530             return 1;
+1531         }
+1532     }
+1533     return 0;
+1534 }
+1535 
+1536 /*
+1537  * Error and warning message handler for CVODES.
+1538  * Error messages are already set via check_cvode_flag, so this method
+1539  * suppresses error messages.
+1540  * Warnings are passed to Python's warning system, where they can be
+1541  * caught or suppressed using the warnings module.
+1542  */
+1543 void
+1544 ErrorHandler(int error_code, const char *module, const char *function,
+1545              char *msg, void *eh_data)
+1546 {
+1547     char errstr[1024];
+1548     if (error_code > 0) {
+1549         sprintf(errstr, "CVODES: %s", msg);
+1550         PyErr_WarnEx(PyExc_RuntimeWarning, errstr, 1);
+1551         /* Python 3.2+: PyErr_WarnFormat(PyExc_RuntimeWarning, 1, "CVODES: %s", msg); */
+1552     }
+1553 }
+1554 
+1555 /*
+1556  * Initialisation status.
+1557  * Proper sequence is init(), repeated step() calls till finished, then clean.
+1558  */
+1559 int initialised = 0; /* Has the simulation been initialised */
+1560 
+1561 /*
+1562  * Model
+1563  */
+1564 Model model;        /* A model object */
+1565 
+1566 /*
+1567  * Pacing
+1568  */
+1569 union PSys {
+1570     ESys event;
+1571     FSys fixed;
+1572 };
+1573 enum PSysType {
+1574     EVENT,
+1575     FIXED
+1576 };
+1577 union PSys *pacing_systems;   /* array of pacing system (event or fixed) */
+1578 enum PSysType *pacing_types; /* array of pacing system types */
+1579 PyObject *protocols;         /* The protocols used to generate the pacing systems */
+1580 double* pacing;         /* Pacing values, same size as pacing_systems and pacing_types*/
+1581 int n_pace;              /* The number of pacing systems */
+1582 
+1583 /*
+1584  * CVODE Memory
+1585  */
+1586 void *cvode_mem;     /* The memory used by the solver */
+1587 #if SUNDIALS_VERSION_MAJOR >= 3
+1588 SUNMatrix sundense_matrix;          /* Dense matrix for linear solves */
+1589 SUNLinearSolver sundense_solver;    /* Linear solver object */
+1590 #endif
+1591 #if SUNDIALS_VERSION_MAJOR >= 6
+1592 SUNContext sundials_context; /* A sundials context to run in (for profiling etc.) */
+1593 #endif
+1594 
+1595 UserData udata;      /* UserData struct, used to pass in parameters */
+1596 realtype* pbar;      /* Vector of independents in user data */
+1597 
+1598 /*
+1599  * Solver settings
+1600  */
+1601 double abs_tol = 1e-6;  /* The absolute tolerance */
+1602 double rel_tol = 1e-4;  /* The relative tolerance */
+1603 double dt_max = 0;      /* The maximum step size (0.0 for none) */
+1604 double dt_min = 0;      /* The minimum step size (0.0 for none) */
+1605 
+1606 /*
+1607  * Solver stats
+1608  */
+1609 double realtime = 0;        /* Time since start */
+1610 long evaluations = 0;       /* Number of evaluations since sim init */
+1611 long steps = 0;             /* Number of steps since sim init */
+1612 
+1613 /*
+1614  * Checking for repeated size-zero steps
+1615  */
+1616 int zero_step_count;
+1617 const int max_zero_step_count = 500;
+1618 
+1619 /*
+1620  * State vectors
+1621  */
+1622 N_Vector y;     /* The current position y */
+1623 N_Vector* sy;   /* Current state sensitivities, 1 vector per independent */
+1624 
+1625 /* Intermediary positions for logging: these will only be created if using
+1626    interpolation to log. Otherwise they will simply point to y and sy */
+1627 N_Vector z;
+1628 N_Vector* sz;
+1629 
+1630 /* Previous position, used for error output, always created */
+1631 N_Vector ylast;
+1632 
+1633 /*
+1634  * Customisable constants, passed in from Python
+1635  */
+1636 PyObject* literals;     /* A list of literal constant values */
+1637 PyObject* parameters;   /* A list of parameter values */
+1638 
+1639 /*
+1640  * State and bound variable communication
+1641  */
+1642 PyObject* state_py;     /* List: The state passed from and to Python */
+1643 PyObject* s_state_py;   /* List: The state sensitivities passed from and to Python */
+1644 PyObject* bound_py;     /* List: The bound variables, passed to Python */
+1645 
+1646 /*
+1647  * Timing
+1648  */
+1649 double t;       /* Current simulation time */
+1650 double tlast;   /* Previous simulation time, for error and progress tracking */
+1651 double tnext;   /* Next simulation halting point */
+1652 double tmin;    /* The initial simulation time */
+1653 double tmax;    /* The final simulation time */
+1654 
+1655 /*
+1656  * Logging
+1657  */
+1658 int dynamic_logging;    /* True if logging every point. */
+1659 PyObject* log_dict;     /* The log dict (DataLog) */
+1660 PyObject* sens_list;    /* Sensitivity logging list */
+1661 
+1662 /* Periodic and point-list logging */
+1663 double tlog;            /* Next time to log */
+1664 double log_interval;    /* The periodic logging interval */
+1665 Py_ssize_t ilog;        /* Index of next point in the point list */
+1666 PyObject* log_times;    /* The point list (or None if disabled) */
+1667 
+1668 /*
+1669  * Root finding
+1670  */
+1671 int rf_indice;          /* Indice of state variable to use in root finding (ignored if not enabled) */
+1672 double rf_threshold;    /* Threshold to use for root finding (ignored if not enabled) */
+1673 PyObject* rf_list;      /* List to store found roots in (or None if not enabled) */
+1674 int* rf_direction;      /* Direction of root crossings: 1 for up, -1 for down, 0 for no crossing. */
+1675 
+1676 /*
+1677  * Logging realtime and profiling
+1678  */
+1679 PyObject* benchmarker;      /* myokit.tools.Benchmarker object */
+1680 PyObject* benchmarker_time_str;
+1681 int log_realtime;           /* 1 iff we're logging real simulation time */
+1682 double realtime_start;      /* time when sim run started */
+1683 
+1684 /*
+1685  * Returns the current time as given by the benchmarker.
+1686  */
+1687 double
+1688 benchmarker_realtime()
+1689 {
+1690     double val;
+1691     PyObject* ret = PyObject_CallMethodObjArgs(benchmarker, benchmarker_time_str, NULL);
+1692     if (!PyFloat_Check(ret)) {
+1693         Py_XDECREF(ret);
+1694         return -1.0;
+1695     }
+1696     val = PyFloat_AsDouble(ret);
+1697     Py_DECREF(ret);
+1698     return val - realtime_start;
+1699 }
+1700 
+1701 #ifdef MYOKIT_DEBUG_PROFILING
+1702 PyObject* benchmarker_print_str;
+1703 
+1704 /*
+1705  * Prints a message to screen, preceded by the time in ms as given by the benchmarker.
+1706  */
+1707 void
+1708 benchmarker_print(char* message)
+1709 {
+1710     PyObject* pymsg = PyUnicode_FromString(message);
+1711     PyObject_CallMethodObjArgs(benchmarker, benchmarker_print_str, pymsg, NULL);
+1712     Py_DECREF(pymsg);
+1713 }
+1714 #endif
+1715 
+1716 /*
+1717  * Right-hand-side function of the model ODE
+1718  *
+1719  *  realtype t      Current time
+1720  *  N_Vector y      The current state values
+1721  *  N_Vector ydot   Space to store the calculated derivatives in
+1722  *  void* user_data Extra data (contains the sensitivity parameter values)
+1723  *
+1724  */
+1725 int
+1726 rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
+1727 {
+1728     FSys_Flag flag_fpacing;
+1729     UserData fdata;
+1730     int i;
+1731 
+1732     /* Fixed-form pacing? Then look-up correct value of pacing variable! */
+1733     for (int i = 0; i < n_pace; i++) {
+1734         if (pacing_types[i] == FIXED) {
+1735             pacing[i] = FSys_GetLevel(pacing_systems[i].fixed, t, &flag_fpacing);
+1736             if (flag_fpacing != FSys_OK) { /* This should never happen */
+1737                 FSys_SetPyErr(flag_fpacing);
+1738                 return -1;  /* Negative value signals irrecoverable error to CVODE */
+1739             }
+1740         }
+1741     }
+1742 
+1743     /* Update model state */
+1744 
+1745     /* Set time, pace, evaluations and realtime */
+1746     evaluations++;
+1747     Model_SetBoundVariables(model, t, pacing, realtime, evaluations);
+1748 
+1749     /* Set sensitivity parameters */
+1750     if (model->has_sensitivities) {
+1751         fdata = (UserData) user_data;
+1752         Model_SetParametersFromIndependents(model, fdata->p);
+1753     }
+1754 
+1755     /* Set states */
+1756     Model_SetStates(model, N_VGetArrayPointer(y));
+1757 
+1758     /* Calculate state derivatives */
+1759     Model_EvaluateDerivatives(model);
+1760 
+1761     /* Fill ydot and return */
+1762     if (ydot != NULL) {
+1763         for (i=0; i<model->n_states; i++) {
+1764             NV_Ith_S(ydot, i) = model->derivatives[i];
+1765         }
+1766     }
+1767 
+1768     return 0;
+1769 }
+1770 
+1771 /*
+1772  * Utility function to set the state sensitivities and evaluate the sensitivity
+1773  * outputs.
+1774  *
+1775  * Assumes the RHS has been evaluated.
+1776  */
+1777 void
+1778 shs(N_Vector* sy)
+1779 {
+1780     int i, j;
+1781 
+1782     /* Unpack state sensitivities */
+1783     for (i=0; i<model->ns_independents; i++) {
+1784         for (j=0; j<model->n_states; j++) {
+1785             model->s_states[i * model->n_states + j] = NV_Ith_S(sy[i], j);
+1786         }
+1787     }
+1788 
+1789     /* Calculate intermediary variable sensitivities */
+1790     Model_EvaluateSensitivityOutputs(model);
+1791 }
+1792 
+1793 /*
+1794  * Root finding function. Can contain several functions for which a root is to
+1795  * be found, but we only use one.
+1796  */
+1797 int
+1798 rf_function(realtype t, N_Vector y, realtype *gout, void *user_data)
+1799 {
+1800     gout[0] = NV_Ith_S(y, rf_indice) - rf_threshold;
+1801     return 0;
+1802 }
+1803 
+1804 /*
+1805  * Cleans up after a simulation
+1806  */
+1807 PyObject*
+1808 sim_clean()
+1809 {
+1810     if (initialised) {
+1811         #ifdef MYOKIT_DEBUG_PROFILING
+1812         benchmarker_print("CP Entered sim_clean.");
+1813         #elif defined MYOKIT_DEBUG_MESSAGES
+1814         printf("CM Cleaning up.\n");
+1815         #endif
+1816 
+1817         /* CVode arrays */
+1818         #if defined MYOKIT_DEBUG_MESSAGES
+1819         printf("CM   CVODE vectors and vector arrays.\n");
+1820         #endif
+1821         if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
+1822         if (ylast != NULL) { N_VDestroy_Serial(ylast); ylast = NULL; }
+1823         if (sy != NULL) { N_VDestroyVectorArray(sy, model->ns_independents); sy = NULL; }
+1824         if (model != NULL && model->is_ode && !dynamic_logging) {
+1825             if (z != NULL) { N_VDestroy_Serial(z); z = NULL; }
+1826             if (sz != NULL) { N_VDestroyVectorArray(sz, model->ns_independents); sz = NULL; }
+1827         }
+1828 
+1829         /* Root finding results */
+1830         #if defined MYOKIT_DEBUG_MESSAGES
+1831         printf("CM   Root finding.\n");
+1832         #endif
+1833         free(rf_direction); rf_direction = NULL;
+1834 
+1835         /* Sundials objects */
+1836         #if defined MYOKIT_DEBUG_MESSAGES
+1837         printf("CM   Sundials objects.\n");
+1838         #endif
+1839         CVodeFree(&cvode_mem); cvode_mem = NULL;
+1840         #if SUNDIALS_VERSION_MAJOR >= 3
+1841         SUNLinSolFree(sundense_solver); sundense_solver = NULL;
+1842         SUNMatDestroy(sundense_matrix); sundense_matrix = NULL;
+1843         #endif
+1844         #if SUNDIALS_VERSION_MAJOR >= 6
+1845         SUNContext_Free(&sundials_context); sundials_context = NULL;
+1846         #endif
+1847 
+1848         /* User data and parameter scale array*/
+1849         #if defined MYOKIT_DEBUG_MESSAGES
+1850         printf("CM   User data and parameter scale.\n");
+1851         #endif
+1852         free(pbar);
+1853         if (udata != NULL) {
+1854             free(udata->p);
+1855             free(udata); udata = NULL;
+1856         }
+1857 
+1858         /* Pacing systems */
+1859         #if defined MYOKIT_DEBUG_MESSAGES
+1860         printf("CM   Pacing systems.\n");
+1861         #endif
+1862         for (int i = 0; i < n_pace; i++) {
+1863             if (pacing_types[i] == FIXED) {
+1864                 FSys_Destroy(pacing_systems[i].fixed);
+1865             } else if (pacing_types[i] == EVENT) {
+1866                 ESys_Destroy(pacing_systems[i].event);
+1867             }
+1868         }
+1869         free(pacing_systems); pacing_systems = NULL;
+1870         free(pacing_types); pacing_types = NULL;
+1871         free(pacing); pacing = NULL;
+1872 
+1873         /* CModel */
+1874         #if defined MYOKIT_DEBUG_MESSAGES
+1875         printf("CM   CModel.\n");
+1876         #endif
+1877         Model_Destroy(model); model = NULL;
+1878 
+1879         /* Benchmarking and profiling */
+1880         Py_XDECREF(benchmarker_time_str); benchmarker_time_str = NULL;
+1881         #ifdef MYOKIT_DEBUG_PROFILING
+1882         Py_XDECREF(benchmarker_print_str); benchmarker_print_str = NULL;
+1883         #endif
+1884 
+1885         /* Deinitialisation complete */
+1886         initialised = 0;
+1887 
+1888         #ifdef MYOKIT_DEBUG_PROFILING
+1889         benchmarker_print("CP Completed sim_clean.");
+1890         #elif defined MYOKIT_DEBUG_MESSAGES
+1891         printf("CM   Done.\n");
+1892         #endif
+1893     }
+1894 
+1895     /* Return 0, allowing the construct
+1896         PyErr_SetString(PyExc_Exception, "Oh noes!");
+1897         return sim_clean()
+1898        to terminate a python function. */
+1899     return 0;
+1900 }
+1901 
+1902 /*
+1903  * Version of sim_clean that sets a python exception.
+1904  */
+1905 PyObject*
+1906 sim_cleanx(PyObject* ex_type, const char* msg, ...)
+1907 {
+1908     va_list argptr;
+1909     char errstr[1024];
+1910 
+1911     va_start(argptr, msg);
+1912     vsprintf(errstr, msg, argptr);
+1913     va_end(argptr);
+1914 
+1915     PyErr_SetString(ex_type, errstr);
+1916     return sim_clean();
+1917 }
+1918 
+1919 /*
+1920  * Version of sim_clean to be called from Python
+1921  */
+1922 PyObject*
+1923 py_sim_clean(PyObject *self, PyObject *args)
+1924 {
+1925     sim_clean();
+1926     Py_RETURN_NONE;
+1927 }
+1928 
+1929 /*
+1930  * Initialise a run.
+1931  * Called by the Python code's run(), followed by several calls to sim_step().
+1932  */
+1933 PyObject*
+1934 sim_init(PyObject *self, PyObject *args)
+1935 {
+1936     #ifdef MYOKIT_DEBUG_MESSAGES
+1937     printf("CM Entering sim_init.\n");
+1938     #endif
+1939 
+1940     /* Error checking flags */
+1941     int flag_cvode;
+1942     Model_Flag flag_model;
+1943     ESys_Flag flag_epacing;
+1944     FSys_Flag flag_fpacing;
+1945 
+1946     /* General purpose ints for iterating */
+1947     int i, j;
+1948 
+1949     /* Log the first point? Only happens if not continuing from a log */
+1950     int log_first_point;
+1951 
+1952     /* Python objects, and a python list index variable */
+1953     Py_ssize_t pos;
+1954     PyObject *val;
+1955     PyObject *ret;
+1956 
+1957     /* Check if already initialised */
+1958     if (initialised) {
+1959         PyErr_SetString(PyExc_Exception, "Simulation already initialised.");
+1960         return 0;
+1961     }
+1962 
+1963     /* Check for double precision */
+1964     #ifndef SUNDIALS_DOUBLE_PRECISION
+1965     PyErr_SetString(PyExc_Exception, "Sundials must be compiled with double precision.");
+1966     return 0;
+1967     #endif
+1968 
+1969     /* Set all global pointers to null */
+1970     /* Model and pacing */
+1971     model = NULL;
+1972     pacing_types = NULL;
+1973     pacing_systems = NULL;
+1974     pacing = NULL;
+1975     /* User data and parameter scaling */
+1976     udata = NULL;
+1977     pbar = NULL;
+1978     /* State vectors */
+1979     y = NULL;
+1980     sy = NULL;
+1981     z = NULL;
+1982     sz = NULL;
+1983     ylast = NULL;
+1984     /* Logging */
+1985     log_times = NULL;
+1986     /* Benchmarking and profiling */
+1987     benchmarker_time_str = NULL;
+1988     #ifdef MYOKIT_DEBUG_PROFILING
+1989     benchmarker_print_str = NULL;
+1990     #endif
+1991 
+1992     /* CVode objects */
+1993     cvode_mem = NULL;
+1994     #if SUNDIALS_VERSION_MAJOR >= 3
+1995     sundense_matrix = NULL;
+1996     sundense_solver = NULL;
+1997     #endif
+1998     #if SUNDIALS_VERSION_MAJOR >= 6
+1999     sundials_context = NULL;
+2000     #endif
+2001 
+2002     /* Check input arguments     012345678901234567 */
+2003     if (!PyArg_ParseTuple(args, "ddOOOOOOOdOOidOOi",
+2004             &tmin,              /*  0. Float: initial time */
+2005             &tmax,              /*  1. Float: final time */
+2006             &state_py,          /*  2. List: initial and final state */
+2007             &s_state_py,        /*  3. List of lists: state sensitivities */
+2008             &bound_py,          /*  4. List: store final bound variables here */
+2009             &literals,          /*  5. List: literal constant values */
+2010             &parameters,        /*  6. List: parameter values */
+2011             &protocols,        /*   7. Event-based or fixed protocols */
+2012             &log_dict,          /*  8. DataLog */
+2013             &log_interval,      /*  9. Float: log interval, or 0 */
+2014             &log_times,         /* 10. List of logging times, or None */
+2015             &sens_list,         /* 11. List to store sensitivities in */
+2016             &rf_indice,         /* 12. Int: root-finding state variable */
+2017             &rf_threshold,      /* 13. Float: root-finding threshold */
+2018             &rf_list,           /* 14. List to store roots in or None */
+2019             &benchmarker,       /* 15. myokit.tools.Benchmarker object */
+2020             &log_realtime       /* 16. Int: 1 if logging real time */
+2021     )) {
+2022         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
+2023         return 0;
+2024     }
+2025 
+2026     /* Now officialy initialised */
+2027     initialised = 1;
+2028 
+2029     /*************************************************************************
+2030     From this point on, no more direct returning! Use sim_clean()
+2031 
+2032     To check if this list is still up to date manually search for cvode
+2033     and python stuff. To find what to free() search for "alloc("
+2034     Initialize all to NULL so that free() will work without errors.
+2035 
+2036     Notes:
+2037     1. Functions like PyList_New and PyDict_New create a new object with a
+2038        refcount of 1. They pass on the ownership of this reference to the
+2039        caller, IE they return the reference and it becomes the caller's
+2040        responsibility to call PyDECREF
+2041     2. Functions like PyList_Append and PyDict_SetItem create a new reference
+2042        to the items you pass them, IE they increase the ref count and will
+2043        decrease it when they're done with it. This means that you retain
+2044        ownership of your own reference to this items and will also need to
+2045        call decref when you're done with them.
+2046     3. PyList_SetItem and PyTuple_SetItem are exceptions to the rule: they
+2047        "steal" a reference to the item you pass into them. This means they do
+2048        not increase the refcount of the item, but _do_ decrease it when they
+2049        themselves are destructed.
+2050        This _only_ holds for the SetItem functions, and _only_ for list and
+2051        tuple.
+2052        The reasonining behind this is that it's a very common scenario for
+2053        populating lists and tuples.
+2054     4. PyList_GetItem and PyTuple_GetItem are exceptions to the rule: they
+2055        return a "borrowed" reference to an item. This means you should never
+2056        decref them!
+2057        This _only_ holds for list and tuple.
+2058     5. When you return a newly created reference from a function, you pass on
+2059        the ownership of that reference to the calling function. This means you
+2060        don't have to call DECREF on the return value of a function.
+2061     6. References passed _into_ your function as arguments are _borrowed_:
+2062        Their refcount doesn't change and you don't have to increase or decrease
+2063        it. The object they point to is guaranteed to exist for as long as your
+2064        function runs.
+2065 
+2066     Result:
+2067     A. The log and protocol objects passed to this function are borrowed
+2068        references: no need to change the reference count.
+2069     B. The PyFloat objects that are created have refcount 1. They're added to
+2070        the lists using append, which increases their refcount. So they should
+2071        be decref'd after appending.
+2072     C. The time float that is created has refcount 1. It's ownership is passed
+2073        on to the calling function. No need to decref.
+2074     D. The PyFloat objects in this list are added using PyList_SetItem which
+2075        steals ownership: No need to decref.
+2076     */
+2077 
+2078     /* Set simulation starting time */
+2079     t = tmin;
+2080 
+2081     /* Reset solver stats */
+2082     steps = 0;
+2083     zero_step_count = 0;
+2084     evaluations = 0;
+2085     realtime = 0;
+2086     if (log_realtime) {
+2087         realtime_start = 0; /* Updated after init, in first call to run */
+2088         benchmarker_time_str = PyUnicode_FromString("time");
+2089     }
+2090 
+2091     /* Set up profiling */
+2092     #ifdef MYOKIT_DEBUG_PROFILING
+2093     benchmarker_print_str = PyUnicode_FromString("print");
+2094     benchmarker_print("CP Initialisation started (entered sim_init()).");
+2095     #endif
+2096 
+2097     /* Print info about simulation to undertake */
+2098     #ifdef MYOKIT_DEBUG_MESSAGES
+2099     printf("CM Preparing to simulate from %g to %g.\n", tmin, tmax);
+2100     #endif
+2101 
+2102     /*
+2103      * Create model
+2104      */
+2105     model = Model_Create(&flag_model);
+2106     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+2107     #ifdef MYOKIT_DEBUG_PROFILING
+2108     benchmarker_print("CP Created C model struct.");
+2109     #endif
+2110 
+2111     /*
+2112      * Create sundials context
+2113      */
+2114     #if SUNDIALS_VERSION_MAJOR >= 6
+2115     flag_cvode = SUNContext_Create(NULL, &sundials_context);
+2116     if (check_cvode_flag(&flag_cvode, "SUNContext_Create", 1)) {
+2117         return sim_cleanx(PyExc_Exception, "Failed to create Sundials context.");
+2118     }
+2119     #ifdef MYOKIT_DEBUG_PROFILING
+2120     benchmarker_print("CP Created sundials context.");
+2121     #endif
+2122     #endif
+2123 
+2124     /*
+2125      * Create state vectors
+2126      */
+2127 
+2128     /* Create state vector */
+2129     #if SUNDIALS_VERSION_MAJOR >= 6
+2130     y = N_VNew_Serial(model->n_states, sundials_context);
+2131     #else
+2132     y = N_VNew_Serial(model->n_states);
+2133     #endif
+2134     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
+2135         return sim_cleanx(PyExc_Exception, "Failed to create state vector.");
+2136     }
+2137 
+2138     /* Create state vector copy for error handling */
+2139     #if SUNDIALS_VERSION_MAJOR >= 6
+2140     ylast = N_VNew_Serial(model->n_states, sundials_context);
+2141     #else
+2142     ylast = N_VNew_Serial(model->n_states);
+2143     #endif
+2144     if (check_cvode_flag((void*)ylast, "N_VNew_Serial", 0)) {
+2145         return sim_cleanx(PyExc_Exception, "Failed to create last-state vector.");
+2146     }
+2147 
+2148     /* Create sensitivity vector array */
+2149     if (model->has_sensitivities) {
+2150         sy = N_VCloneVectorArray(model->ns_independents, y);
+2151         if (check_cvode_flag((void*)sy, "N_VCloneVectorArray", 0)) {
+2152             return sim_cleanx(PyExc_Exception, "Failed to allocate space to store sensitivities.");
+2153         }
+2154     }
+2155 
+2156     /*
+2157      * Create state vectors for logging
+2158      */
+2159 
+2160     /* Determine if dynamic logging is being used (or if it's periodic/point-list logging) */
+2161     dynamic_logging = (log_interval <= 0 && log_times == Py_None);
+2162 
+2163     /* When using interpolation logging (periodic or point-list), we need a
+2164        state and s_state vector to pass to CVODE's interpolation function.
+2165        When using dynamic logging (or running in CVODE-free mode) we can simply
+2166        log the current state, so z and sz can point to y and sy. */
+2167     if (dynamic_logging || !model->is_ode) {
+2168         z = y;
+2169         sz = sy;
+2170     } else {
+2171         #if SUNDIALS_VERSION_MAJOR >= 6
+2172         z = N_VNew_Serial(model->n_states, sundials_context);
+2173         #else
+2174         z = N_VNew_Serial(model->n_states);
+2175         #endif
+2176         if (check_cvode_flag((void*)z, "N_VNew_Serial", 0)) {
+2177             return sim_cleanx(PyExc_Exception, "Failed to create state vector for logging.");
+2178         }
+2179         if (model->has_sensitivities) {
+2180             sz = N_VCloneVectorArray(model->ns_independents, y);
+2181             if (check_cvode_flag((void*)sz, "N_VCloneVectorArray", 0)) {
+2182                 return sim_cleanx(PyExc_Exception, "Failed to create state sensitivity vector array for logging.");
+2183             }
+2184         }
+2185     }
+2186 
+2187     #ifdef MYOKIT_DEBUG_PROFILING
+2188     benchmarker_print("CP Created sundials state vectors.");
+2189     #endif
+2190 
+2191     /*
+2192      * Set initial state in model and vectors
+2193      */
+2194 
+2195     /* Set initial state values */
+2196     if (!PyList_Check(state_py)) {
+2197         return sim_cleanx(PyExc_TypeError, "'state_py' must be a list.");
+2198     }
+2199     for (i=0; i<model->n_states; i++) {
+2200         val = PyList_GetItem(state_py, i);    /* Don't decref! */
+2201         if (!PyFloat_Check(val)) {
+2202             return sim_cleanx(PyExc_ValueError, "Item %d in state vector is not a float.", i);
+2203         }
+2204         model->states[i] = PyFloat_AsDouble(val);
+2205         NV_Ith_S(y, i) = model->states[i];
+2206     }
+2207 
+2208     /* Print initial state */
+2209     #ifdef MYOKIT_DEBUG_MESSAGES
+2210     printf("CM Initial state vector (CVODES):\n");
+2211     for (i=0; i<model->n_states; i++) {
+2212         printf("CM   %g\n", NV_Ith_S(y, i));
+2213     }
+2214     #endif
+2215 
+2216     /* Set initial sensitivity state values */
+2217     if (model->has_sensitivities) {
+2218         if (!PyList_Check(s_state_py)) {
+2219             return sim_cleanx(PyExc_TypeError, "'s_state_py' must be a list.");
+2220         }
+2221         for (i=0; i<model->ns_independents; i++) {
+2222             val = PyList_GetItem(s_state_py, i); /* Don't decref */
+2223             if (!PyList_Check(val)) {
+2224                 return sim_cleanx(PyExc_ValueError, "Item %d in state sensitivity matrix is not a list.", i);
+2225             }
+2226             for (j=0; j<model->n_states; j++) {
+2227                 ret = PyList_GetItem(val, j);    /* Don't decref! */
+2228                 if (!PyFloat_Check(ret)) {
+2229                     return sim_cleanx(PyExc_ValueError, "Item %d, %d in state sensitivity matrix is not a float.", i, j);
+2230                 }
+2231                 NV_Ith_S(sy[i], j) = PyFloat_AsDouble(ret);
+2232                 model->s_states[i * model->n_states + j] = NV_Ith_S(sy[i], j);
+2233             }
+2234         }
+2235     }
+2236 
+2237     /* Print initial sensitivities */
+2238     #ifdef MYOKIT_DEBUG_MESSAGES
+2239     if (model->has_sensitivities) {
+2240         printf("CM Initial state sensitivities (CVODES):\n");
+2241         for (i=0; i<model->ns_independents; i++) {
+2242             printf("CM   %d.\n", i);
+2243             for (j=0; j<model->n_states; j++) {
+2244                 printf("CM     %g\n", NV_Ith_S(sy[i], j));
+2245             }
+2246         }
+2247     }
+2248     #endif
+2249 
+2250     #ifdef MYOKIT_DEBUG_PROFILING
+2251     benchmarker_print("CP Set initial state.");
+2252     #endif
+2253 
+2254     /*
+2255      * Set values of constants (literals and parameters)
+2256      */
+2257     if (!PyList_Check(literals)) {
+2258         return sim_cleanx(PyExc_TypeError, "'literals' must be a list.");
+2259     }
+2260     for (i=0; i<model->n_literals; i++) {
+2261         val = PyList_GetItem(literals, i);    /* Don't decref */
+2262         if (!PyFloat_Check(val)) {
+2263             return sim_cleanx(PyExc_ValueError, "Item %d in literal vector is not a float.", i);
+2264         }
+2265         model->literals[i] = PyFloat_AsDouble(val);
+2266     }
+2267 
+2268     /* Print initial sensitivities */
+2269     #ifdef MYOKIT_DEBUG_MESSAGES
+2270     printf("CM Literals:\n");
+2271     for (i=0; i<model->n_literals; i++) {
+2272         printf("CM   %g\n", model->literals[i]);
+2273     }
+2274     #endif
+2275 
+2276     #ifdef MYOKIT_DEBUG_PROFILING
+2277     benchmarker_print("CP Set values of literal variables.");
+2278     #endif
+2279 
+2280     /* Evaluate calculated constants */
+2281     Model_EvaluateLiteralDerivedVariables(model);
+2282 
+2283     #ifdef MYOKIT_DEBUG_PROFILING
+2284     benchmarker_print("CP Set values of calculated constants.");
+2285     #endif
+2286 
+2287     /* Set model parameters */
+2288     if (model->has_sensitivities) {
+2289         if (!PyList_Check(parameters)) {
+2290             return sim_cleanx(PyExc_TypeError, "'parameters' must be a list.");
+2291         }
+2292         for (i=0; i<model->n_parameters; i++) {
+2293             val = PyList_GetItem(parameters, i);    /* Don't decref */
+2294             if (!PyFloat_Check(val)) {
+2295                 return sim_cleanx(PyExc_ValueError, "Item %d in parameter vector is not a float.", i);
+2296             }
+2297             model->parameters[i] = PyFloat_AsDouble(val);
+2298         }
+2299 
+2300         /* Evaluate calculated constants */
+2301         Model_EvaluateParameterDerivedVariables(model);
+2302 
+2303         #ifdef MYOKIT_DEBUG_PROFILING
+2304         benchmarker_print("CP Setting model sensitivity parameters and calculated derived quantities.");
+2305         #endif
+2306     }
+2307 
+2308     /* Create UserData with sensitivity vector */
+2309     if (model->has_sensitivities) {
+2310         udata = (UserData)malloc(sizeof *udata);
+2311         if (udata == 0) {
+2312             return sim_cleanx(PyExc_Exception, "Unable to create user data object to store parameter values.");
+2313         }
+2314         udata->p = (realtype*)malloc(sizeof(realtype) * model->ns_independents);
+2315         if (udata->p == 0) {
+2316             return sim_cleanx(PyExc_Exception, "Unable to allocate space to store parameter values.");
+2317         }
+2318 
+2319         /*
+2320          * Add in values for parameters and initial values
+2321          * Note that the initial values in the user data don't have any effect,
+2322          * so their value isn't important (outside of the scaling set below).
+2323          */
+2324         for (i=0; i<model->ns_independents; i++) {
+2325             udata->p[i] = *model->s_independents[i];
+2326         }
+2327 
+2328         /* Create parameter scaling vector, for error control */
+2329         /* TODO: Get this from the Python code ? */
+2330         pbar = (realtype*)malloc(sizeof(realtype) * model->ns_independents);
+2331         if (pbar == NULL) {
+2332             return sim_cleanx(PyExc_Exception, "Unable to allocate space to store parameter scales.");
+2333         }
+2334         for (i=0; i<model->ns_independents; i++) {
+2335             pbar[i] = (udata->p[i] == 0.0 ? 1.0 : fabs(udata->p[i]));
+2336         }
+2337 
+2338         #ifdef MYOKIT_DEBUG_PROFILING
+2339         benchmarker_print("CP Created UserData for sensitivities.");
+2340         #endif
+2341     }
+2342 
+2343     /*
+2344      * Set up pacing system
+2345      */
+2346     n_pace = 0;
+2347     if (protocols != Py_None) {
+2348         if (!PyList_Check(protocols)) {
+2349             return sim_cleanx(PyExc_TypeError, "'protocols' must be a list.");
+2350         }
+2351         n_pace = PyList_Size(protocols);
+2352     }
+2353     pacing_systems = (union PSys*)malloc(sizeof(union PSys) * n_pace);
+2354     if (pacing_systems == NULL) {
+2355         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing systems.");
+2356     }
+2357     pacing_types = (enum PSysType *)malloc(sizeof(enum PSysType) * n_pace);
+2358     if (pacing_types == NULL) {
+2359         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing types.");
+2360     }
+2361     pacing = (realtype*)malloc(sizeof(realtype) * n_pace);
+2362     if (pacing == NULL) {
+2363         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing values.");
+2364     }
+2365     Model_SetupPacing(model, n_pace);
+2366 
+2367     /*
+2368      *  unless set by pacing, tnext is set to tmax
+2369      */
+2370     tnext = tmax;
+2371 
+2372     /* Set up event-based or fixed pacing */
+2373     if (protocols != Py_None) {
+2374         for (int i = 0; i < PyList_Size(protocols); i++) {
+2375             PyObject *protocol = PyList_GetItem(protocols, i);
+2376             const char* protocol_type_name = Py_TYPE(protocol)->tp_name;
+2377             if (strcmp(protocol_type_name, "Protocol") == 0) {
+2378                 pacing_systems[i].event = ESys_Create(&flag_epacing);
+2379                 pacing_types[i] = EVENT;
+2380                 ESys epacing = pacing_systems[i].event;
+2381                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+2382                 flag_epacing = ESys_Populate(epacing, protocol);
+2383                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+2384                 flag_epacing = ESys_AdvanceTime(epacing, tmin);
+2385                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+2386                 const double ptnext = ESys_GetNextTime(epacing, &flag_epacing);
+2387                 pacing[i] = ESys_GetLevel(epacing, &flag_epacing);
+2388                 tnext = fmin(ptnext, tnext);
+2389 
+2390                 #ifdef MYOKIT_DEBUG_PROFILING
+2391                 benchmarker_print("CP Created event-based pacing system.");
+2392                 #endif
+2393             } else if (strcmp(protocol_type_name, "TimeSeriesProtocol") == 0) {
+2394                 pacing_systems[i].fixed = FSys_Create(&flag_fpacing);
+2395                 pacing_types[i] = FIXED;
+2396                 FSys fpacing = pacing_systems[i].fixed;
+2397                 if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
+2398                 flag_fpacing = FSys_Populate(fpacing, protocol);
+2399                 if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
+2400 
+2401 
+2402                 #ifdef MYOKIT_DEBUG_PROFILING
+2403                 benchmarker_print("CP Created fixed-form pacing system.");
+2404                 #endif
+2405             } else {
+2406                 printf("protocol_type_name: %s", protocol_type_name);
+2407                 return sim_cleanx(PyExc_TypeError, "Item %d in 'protocols' is not a myokit.Protocol or myokit.TimeSeriesProtocol object.", i);
+2408             }
+2409 
+2410         }
+2411     }
+2412 
+2413     /*
+2414      * Create solver
+2415      */
+2416     if (model->is_ode) {
+2417 
+2418         /* Create, using backwards differentiation and newton iterations */
+2419         #if SUNDIALS_VERSION_MAJOR >= 6
+2420         cvode_mem = CVodeCreate(CV_BDF, sundials_context);
+2421         #elif SUNDIALS_VERSION_MAJOR >= 4
+2422         cvode_mem = CVodeCreate(CV_BDF);  /* Newton is still default */
+2423         #else
+2424         cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+2425         #endif
+2426         if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+2427 
+2428         /* Set error and warning-message handler */
+2429         flag_cvode = CVodeSetErrHandlerFn(cvode_mem, ErrorHandler, NULL);
+2430         if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+2431 
+2432         /* Initialise solver memory, specify the rhs */
+2433         flag_cvode = CVodeInit(cvode_mem, rhs, t, y);
+2434         if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+2435 
+2436         /* Set absolute and relative tolerances */
+2437         flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
+2438         if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
+2439 
+2440         /* Set a maximum step size (or 0.0 for none) */
+2441         flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max < 0 ? 0.0 : dt_max);
+2442         if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
+2443 
+2444         /* Set a minimum step size (or 0.0 for none) */
+2445         flag_cvode = CVodeSetMinStep(cvode_mem, dt_min < 0 ? 0.0 : dt_min);
+2446         if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
+2447 
+2448         #if SUNDIALS_VERSION_MAJOR >= 6
+2449             /* Create dense matrix for use in linear solves */
+2450             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states, sundials_context);
+2451             if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+2452 
+2453             /* Create dense linear solver object with matrix */
+2454             sundense_solver = SUNLinSol_Dense(y, sundense_matrix, sundials_context);
+2455             if (check_cvode_flag((void *)sundense_solver, "SUNLinSol_Dense", 0)) return sim_clean();
+2456 
+2457             /* Attach the matrix and solver to cvode */
+2458             flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+2459             if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
+2460         #elif SUNDIALS_VERSION_MAJOR >= 4
+2461             /* Create dense matrix for use in linear solves */
+2462             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
+2463             if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+2464 
+2465             /* Create dense linear solver object with matrix */
+2466             sundense_solver = SUNLinSol_Dense(y, sundense_matrix);
+2467             if (check_cvode_flag((void *)sundense_solver, "SUNLinSol_Dense", 0)) return sim_clean();
+2468 
+2469             /* Attach the matrix and solver to cvode */
+2470             flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+2471             if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
+2472         #elif SUNDIALS_VERSION_MAJOR >= 3
+2473             /* Create dense matrix for use in linear solves */
+2474             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
+2475             if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+2476 
+2477             /* Create dense linear solver object with matrix */
+2478             sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
+2479             if (check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+2480 
+2481             /* Attach the matrix and solver to cvode */
+2482             flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+2483             if (check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
+2484         #else
+2485             /* Create dense matrix for use in linear solves */
+2486             flag_cvode = CVDense(cvode_mem, model->n_states);
+2487             if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+2488         #endif
+2489 
+2490         #ifdef MYOKIT_DEBUG_PROFILING
+2491         benchmarker_print("CP CVODES solver initialised.");
+2492         #endif
+2493 
+2494         /* Activate forward sensitivity computations */
+2495         if (model->has_sensitivities) {
+2496             /* TODO: NULL here is the place to insert a user function to calculate the
+2497                RHS of the sensitivity ODE */
+2498             /*flag_cvode = CVodeSensInit(cvode_mem, model->ns_independents, CV_SIMULTANEOUS, rhs1, sy);*/
+2499             flag_cvode = CVodeSensInit(cvode_mem, model->ns_independents, CV_SIMULTANEOUS, NULL, sy);
+2500             if (check_cvode_flag(&flag_cvode, "CVodeSensInit", 1)) return sim_clean();
+2501 
+2502             /* Attach user data */
+2503             flag_cvode = CVodeSetUserData(cvode_mem, udata);
+2504             if (check_cvode_flag(&flag_cvode, "CVodeSetUserData", 1)) return sim_clean();
+2505 
+2506             /* Set parameter scales used in tolerances */
+2507             flag_cvode = CVodeSetSensParams(cvode_mem, udata->p, pbar, NULL);
+2508             if (check_cvode_flag(&flag_cvode, "CVodeSetSensParams", 1)) return sim_clean();
+2509 
+2510             /* Set sensitivity tolerances calculating method (using pbar) */
+2511             flag_cvode = CVodeSensEEtolerances(cvode_mem);
+2512             if (check_cvode_flag(&flag_cvode, "CVodeSensEEtolerances", 1)) return sim_clean();
+2513 
+2514             #ifdef MYOKIT_DEBUG_PROFILING
+2515             benchmarker_print("CP CVODES sensitivity methods initialised.");
+2516             #endif
+2517         }
+2518     }
+2519 
+2520     /*
+2521      * Root finding
+2522      * Enabled if rf_list is a PyList
+2523      */
+2524     rf_direction = NULL;
+2525 
+2526     if (model->is_ode && PyList_Check(rf_list)) {
+2527         /* Initialize root function with 1 component */
+2528         flag_cvode = CVodeRootInit(cvode_mem, 1, rf_function);
+2529         if (check_cvode_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
+2530 
+2531         /* Direction of root crossings, one entry per root function, but we only use 1. */
+2532         rf_direction = (int*)malloc(sizeof(int)*1);
+2533 
+2534         #ifdef MYOKIT_DEBUG_PROFILING
+2535         benchmarker_print("CP CVODES root-finding initialised.");
+2536         #endif
+2537     }
+2538 
+2539     /*
+2540      * Set up logging, and log first step if needed.
+2541      */
+2542 
+2543     /* Check for loss-of-precision issue in periodic logging */
+2544     if (log_interval > 0) {
+2545         if (tmax + log_interval == tmax) {
+2546             return sim_cleanx(PyExc_ValueError, "Log interval is too small compared to tmax; issue with numerical precision: float(tmax + log_interval) = float(tmax).");
+2547         }
+2548     }
+2549 
+2550     /* Set up logging */
+2551     flag_model = Model_InitialiseLogging(model, log_dict);
+2552     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+2553     #ifdef MYOKIT_DEBUG_PROFILING
+2554     benchmarker_print("CP Logging initialised.");
+2555     #endif
+2556 
+2557     /* Check logging list for sensitivities */
+2558     if (model->has_sensitivities) {
+2559         if (!PyList_Check(sens_list)) {
+2560             return sim_cleanx(PyExc_TypeError, "'sens_list' must be a list.");
+2561         }
+2562     }
+2563 
+2564     /* Set logging points */
+2565     if (log_interval > 0) {
+2566 
+2567         /* Periodic logging */
+2568         ilog = 0;
+2569         tlog = tmin;
+2570 
+2571     } else if (log_times != Py_None) {
+2572 
+2573         /* Point-list logging */
+2574 
+2575         /* Check the log_times sequence */
+2576         if (!PySequence_Check(log_times)) {
+2577             return sim_cleanx(PyExc_TypeError, "'log_times' must be a sequence type.");
+2578         }
+2579 
+2580         /* Read next log point off the sequence */
+2581         ilog = 0;
+2582         tlog = t - 1;
+2583         while(ilog < PySequence_Size(log_times) && tlog < t) {
+2584             val = PySequence_GetItem(log_times, ilog); /* New reference */
+2585             if (PyFloat_Check(val)) {
+2586                 tlog = PyFloat_AsDouble(val);
+2587                 Py_DECREF(val);
+2588             } else if (PyNumber_Check(val)) {
+2589                 ret = PyNumber_Float(val); /* New reference */
+2590                 Py_DECREF(val);            /* Done with val */
+2591                 if (ret == NULL) {
+2592                     return sim_cleanx(PyExc_ValueError, "Unable to cast entry in 'log_times' to float.");
+2593                 } else {
+2594                     tlog = PyFloat_AsDouble(ret);
+2595                     Py_DECREF(ret);
+2596                 }
+2597             } else {
+2598                 Py_DECREF(val);
+2599                 return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
+2600             }
+2601             val = NULL;
+2602             ilog++;
+2603         }
+2604 
+2605         /* No points beyond time? Then don't log any future points. */
+2606         if (tlog < t) {
+2607             tlog = tmax + 1;
+2608         }
+2609 
+2610     } else {
+2611 
+2612         /*
+2613          * Dynamic logging
+2614          *
+2615          * Log the first entry, but only if not appending to an existing log.
+2616          * This prevents points from appearing twice when a simulation with
+2617          * dynamic logging is stopped and started.
+2618          */
+2619 
+2620         /* Check if the log is empty */
+2621         log_first_point = 1;
+2622         pos = 0;
+2623         if (PyDict_Next(log_dict, &pos, &ret, &val)) {
+2624             /* Items found in dict, randomly selected list now in "val" */
+2625             /* Both key (ret) and value (val) are borrowed references, no need to decref */
+2626             log_first_point = (PyObject_Size(val) <= 0);
+2627         }
+2628 
+2629         /* If so, log the first point! */
+2630         if (log_first_point) {
+2631             rhs(t, y, NULL, udata);
+2632             /* At this point, we have y(t), inter(t) and dy(t) */
+2633             /* We've also loaded time(t) and pace(t) */
+2634 
+2635             flag_model = Model_Log(model);
+2636             if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+2637 
+2638             if (model->has_sensitivities) {
+2639                 /* Calculate intermediary variable sensitivities, using
+2640                    initial state sensitivities */
+2641                 shs(sy);
+2642 
+2643                 /* Write sensitivity matrix to list */
+2644                 flag_model = Model_LogSensitivityMatrix(model, sens_list);
+2645                 if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+2646             }
+2647         }
+2648     }
+2649 
+2650     #ifdef MYOKIT_DEBUG_PROFILING
+2651     benchmarker_print("CP Logging times and strategy initialised.");
+2652     #endif
+2653 
+2654     /*
+2655      * Done!
+2656      */
+2657     #ifdef MYOKIT_DEBUG_PROFILING
+2658     benchmarker_print("CP Initialisation complete (returning from sim_init).");
+2659     #endif
+2660     Py_RETURN_NONE;
+2661 }
+2662 
+2663 /*
+2664  * Takes the next steps in a simulation run
+2665  */
+2666 PyObject*
+2667 sim_step(PyObject *self, PyObject *args)
+2668 {
+2669     /* Error flags */
+2670     Model_Flag flag_model;
+2671     ESys_Flag flag_epacing;
+2672     int flag_cvode;         /* CVode flag */
+2673     int flag_root;          /* Root finding flag */
+2674     int flag_reinit = 0;    /* Set if CVODE needs to be reset during a simulation step */
+2675 
+2676     /* Multi-purpose ints for iterating */
+2677     int i, j;
+2678 
+2679     /* Number of integration steps taken in this call */
+2680     int steps_taken = 0;
+2681 
+2682     /* Proposed next logging point */
+2683     double proposed_tlog;
+2684 
+2685     /* Multi-purpose Python objects */
+2686     PyObject *val;
+2687     PyObject* ret;
+2688 
+2689     /*
+2690      * Set start time for logging of realtime.
+2691      * This is handled here instead of in sim_init so it only includes time
+2692      * taken performing steps, not time initialising memory etc.
+2693      */
+2694     if (log_realtime && realtime_start == 0) {
+2695         realtime_start = benchmarker_realtime();
+2696         if (realtime_start <= 0) {
+2697             return sim_cleanx(PyExc_Exception, "Failed to set realtime_start.");
+2698         }
+2699     }
+2700 
+2701     /* Go! */
+2702     while(1) {
+2703 
+2704         /* Back-up current y */
+2705         for (i=0; i<model->n_states; i++) {
+2706             NV_Ith_S(ylast, i) = NV_Ith_S(y, i);
+2707         }
+2708 
+2709         /* Store engine time before step */
+2710         tlast = t;
+2711 
+2712         if (model->is_ode) {
+2713 
+2714             /* Take a single ODE step */
+2715             #ifdef MYOKIT_DEBUG_MESSAGES
+2716             printf("\nCM Taking CVODE step from time %g to %g.\n", t, tnext);
+2717             #endif
+2718             flag_cvode = CVode(cvode_mem, tnext, y, &t, CV_ONE_STEP);
+2719 
+2720             /* Check for errors */
+2721             if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+2722                 /* Something went wrong... Set outputs and return */
+2723                 for (i=0; i<model->n_states; i++) {
+2724                     PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(ylast, i)));
+2725                     /* PyList_SetItem steals a reference: no need to decref the double! */
+2726                 }
+2727                 PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));
+2728                 PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
+2729                 PyList_SetItem(bound_py, 2, PyFloat_FromDouble(evaluations));
+2730                 for (int i = 0; i < n_pace; i++) {
+2731                     PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
+2732                 }
+2733                 return sim_clean();
+2734             }
+2735 
+2736         } else {
+2737 
+2738             /* Just jump to next event */
+2739             /* Note 1: To stay compatible with cvode-mode, don't jump to the
+2740                next log time (if tlog < tnext) */
+2741             /* Note 2: tnext can be infinity, so don't always jump there. */
+2742             t = (tmax > tnext) ? tnext : tmax;
+2743             flag_cvode = CV_SUCCESS;
+2744         }
+2745 
+2746         /* Check if progress is being made */
+2747         if (t == tlast) {
+2748             if (++zero_step_count >= max_zero_step_count) {
+2749                 return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken at t=%g", t);
+2750             }
+2751         } else {
+2752             /* Only count consecutive zero steps */
+2753             zero_step_count = 0;
+2754         }
+2755 
+2756         /* Update step count */
+2757         steps++;
+2758 
+2759         /* If we got to this point without errors... */
+2760         if ((flag_cvode == CV_SUCCESS) || (flag_cvode == CV_ROOT_RETURN)) {
+2761 
+2762             /*
+2763              * Rewinding to tnext, and root finding
+2764              */
+2765             if (model->is_ode) {
+2766 
+2767                 /* Next event time exceeded? */
+2768                 if (t > tnext) {
+2769                     #ifdef MYOKIT_DEBUG_MESSAGES
+2770                     printf("CM Event time exceeded, rewinding to %g.\n", tnext);
+2771                     #endif
+2772 
+2773                     /* Go back to time=tnext */
+2774                     flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
+2775                     if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+2776                     if (model->has_sensitivities) {
+2777                         flag_cvode = CVodeGetSensDky(cvode_mem, tnext, 0, sy);
+2778                         if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+2779                     }
+2780                     t = tnext;
+2781                     /* Require reinit (after logging) */
+2782                     flag_reinit = 1;
+2783 
+2784                 } else {
+2785 
+2786                     /* Get current sensitivity vector */
+2787                     if (model->has_sensitivities) {
+2788                         flag_cvode = CVodeGetSens(cvode_mem, &t, sy);
+2789                         if (check_cvode_flag(&flag_cvode, "CVodeGetSens", 1)) return sim_clean();
+2790                     }
+2791 
+2792                     /* Root found */
+2793                     if (flag_cvode == CV_ROOT_RETURN) {
+2794 
+2795                         /* Get directions of root crossings (1 per root function) */
+2796                         flag_root = CVodeGetRootInfo(cvode_mem, rf_direction);
+2797                         if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
+2798                         /* We only have one root function, so we know that rf_direction[0] is non-zero at this point. */
+2799 
+2800                         /* Store tuple (time, direction) for the found root */
+2801                         val = PyTuple_New(2);
+2802                         PyTuple_SetItem(val, 0, PyFloat_FromDouble(t)); /* Steals reference, so this is ok */
+2803                         PyTuple_SetItem(val, 1, PyLong_FromLong(rf_direction[0]));
+2804                         if (PyList_Append(rf_list, val)) {    /* Doesn't steal, need to decref */
+2805                             Py_DECREF(val);
+2806                             return sim_cleanx(PyExc_Exception, "Call to append() failed on root finding list.");
+2807                         }
+2808                         Py_DECREF(val); val = NULL;
+2809                     }
+2810                 }
+2811             }
+2812 
+2813             /*
+2814              * Logging interpolated points (periodic logging or point-list logging)
+2815              */
+2816             if (!dynamic_logging && t > tlog) {
+2817                 /* Note: For periodic logging, the condition should be `t > tlog`
+2818                  * so that we log half-open intervals (i.e. the final point should
+2819                  * never be included).
+2820                  */
+2821 
+2822                 /* Log points */
+2823                 while (t > tlog) {
+2824                     #ifdef MYOKIT_DEBUG_MESSAGES
+2825                     printf("CM Interpolation-logging for t=%g.\n", t);
+2826                     #endif
+2827 
+2828                     /* Benchmarking? Then set realtime */
+2829                     if (log_realtime) {
+2830                         realtime = benchmarker_realtime();
+2831                         if (realtime < 0) return sim_cleanx(PyExc_Exception, "Failed to set realtime during interpolation logging.");
+2832                     }
+2833 
+2834                     /* Get interpolated y(tlog) */
+2835                     if (model->is_ode) {
+2836                         flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, z);
+2837                         if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+2838                         if (model->has_sensitivities) {
+2839                             flag_cvode = CVodeGetSensDky(cvode_mem, tlog, 0, sz);
+2840                             if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+2841                         }
+2842                     }
+2843                     /* If cvode-free mode, the states can't change so we don't
+2844                        need to do anything here */
+2845 
+2846                     /* Calculate intermediate variables & derivatives */
+2847                     rhs(tlog, z, NULL, udata);
+2848 
+2849                     /* Write to log */
+2850                     flag_model = Model_Log(model);
+2851                     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+2852 
+2853                     if (model->has_sensitivities) {
+2854                         /* Calculate sensitivities to output */
+2855                         shs(sz);
+2856 
+2857                         /* Write sensitivity matrix to list */
+2858                         flag_model = Model_LogSensitivityMatrix(model, sens_list);
+2859                         if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+2860                     }
+2861 
+2862                     /* Get next logging point */
+2863                     if (log_interval > 0) {
+2864                         /* Periodic logging */
+2865                         ilog++;
+2866                         tlog = tmin + (double)ilog * log_interval;
+2867                         if (ilog == 0) {
+2868                             /* Unsigned int wraps around instead of overflowing, becomes zero again */
+2869                             return sim_cleanx(PyExc_OverflowError, "Overflow in logged step count: Simulation too long!");
+2870                         }
+2871                     } else {
+2872                         /* Point-list logging */
+2873                         /* Read next log point off the sequence */
+2874                         if (ilog < PySequence_Size(log_times)) {
+2875                             val = PySequence_GetItem(log_times, ilog); /* New reference */
+2876                             if (PyFloat_Check(val)) {
+2877                                 proposed_tlog = PyFloat_AsDouble(val);
+2878                                 Py_DECREF(val);
+2879                             } else if (PyNumber_Check(val)) {
+2880                                 ret = PyNumber_Float(val);  /* New reference */
+2881                                 Py_DECREF(val);
+2882                                 if (ret == NULL) {
+2883                                     return sim_cleanx(PyExc_ValueError, "Unable to cast entry in 'log_times' to float.");
+2884                                 } else {
+2885                                     proposed_tlog = PyFloat_AsDouble(ret);
+2886                                     Py_DECREF(ret);
+2887                                 }
+2888                             } else {
+2889                                 Py_DECREF(val);
+2890                                 return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
+2891                             }
+2892                             if (proposed_tlog < tlog) {
+2893                                 return sim_cleanx(PyExc_ValueError, "Values in log_times must be non-decreasing.");
+2894                             }
+2895                             tlog = proposed_tlog;
+2896                             ilog++;
+2897                             val = NULL;
+2898                         } else {
+2899                             tlog = tmax + 1;
+2900                         }
+2901                     }
+2902                 }
+2903             }
+2904 
+2905             /*
+2906              * Event-based pacing
+2907              *
+2908              * At this point we have logged everything _before_ time t, so it
+2909              * is safe to update the pacing mechanism to time t.
+2910              */
+2911             tnext = tmax;
+2912             for (int i = 0; i < n_pace; i++) {
+2913                 if (pacing_types[i] != EVENT) continue;
+2914                 ESys epacing = pacing_systems[i].event;
+2915                 flag_epacing = ESys_AdvanceTime(epacing, t);
+2916                 if (flag_epacing != ESys_OK) {
+2917                     ESys_SetPyErr(flag_epacing); return sim_clean();
+2918                 }
+2919                 const double ptnext = ESys_GetNextTime(epacing, NULL);
+2920                 tnext = fmin(tnext, ptnext);
+2921                 pacing[i] = ESys_GetLevel(epacing, NULL);
+2922             }
+2923 
+2924             /* Dynamic logging: Log every visited point */
+2925             if (dynamic_logging) {
+2926 
+2927                 /* Benchmarking? Then set realtime */
+2928                 if (log_realtime) {
+2929                     realtime = benchmarker_realtime();
+2930                     if (realtime < 0) return sim_cleanx(PyExc_Exception, "Failed to set realtime during dynamic logging.");
+2931                 }
+2932 
+2933                 /* Ensure the logged values are correct for the new time t */
+2934                 if (model->logging_derivatives || model->logging_intermediary || model->has_sensitivities) {
+2935                     /* If logging derivatives or intermediaries, calculate the
+2936                        values for the current time. Similarly, if calculating
+2937                        sensitivities this is needed. */
+2938                     #ifdef MYOKIT_DEBUG_MESSAGES
+2939                     printf("CM Calling RHS to log derivs/inter/sens at time %g.\n", t);
+2940                     #endif
+2941                     rhs(t, y, NULL, udata);
+2942                 } else if (model->logging_bound) {
+2943                     /* Logging bounds but not derivs or inters: No need to run
+2944                        full rhs, just update bound variables */
+2945                     Model_SetBoundVariables(model, t, pacing, realtime, evaluations);
+2946                 }
+2947 
+2948                 /* Write to log */
+2949                 flag_model = Model_Log(model);
+2950                 if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+2951 
+2952                 if (model->has_sensitivities) {
+2953                     /* Calculate sensitivities to output */
+2954                     shs(sy);
+2955 
+2956                     /* Write sensitivity matrix to list */
+2957                     flag_model = Model_LogSensitivityMatrix(model, sens_list);
+2958                     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+2959                 }
+2960             }
+2961 
+2962             /*
+2963              * Reinitialize CVODE if needed
+2964              */
+2965             if (model->is_ode && flag_reinit) {
+2966                 flag_cvode = CVodeReInit(cvode_mem, t, y);
+2967                 if (check_cvode_flag(&flag_cvode, "CVodeReInit", 1)) return sim_clean();
+2968                 if (model->has_sensitivities) {
+2969                     flag_cvode = CVodeSensReInit(cvode_mem, CV_SIMULTANEOUS, sy);
+2970                     if (check_cvode_flag(&flag_cvode, "CVodeSensReInit", 1)) return sim_clean();
+2971                 }
+2972                 flag_reinit = 0;
+2973             }
+2974         }
+2975 
+2976         /*
+2977          * Check if we're finished
+2978          */
+2979         if (ESys_eq(t, tmax)) t = tmax;
+2980         if (t >= tmax) break;
+2981 
+2982         /*
+2983          * Perform any Python signal handling
+2984          */
+2985         if (PyErr_CheckSignals() != 0) {
+2986             /* Exception (e.g. timeout or keyboard interrupt) occurred?
+2987                Then cancel everything! */
+2988             return sim_clean();
+2989         }
+2990 
+2991         /*
+2992          * Report back to python after every x steps
+2993          */
+2994         steps_taken++;
+2995         if (steps_taken >= 100) {
+2996             #ifdef MYOKIT_DEBUG_PROFILING
+2997             benchmarker_print("CP Completed 100 steps, passing control back to Python.");
+2998             #endif
+2999             // Return new reference
+3000             return PyFloat_FromDouble(t);
+3001         }
+3002     }
+3003     #ifdef MYOKIT_DEBUG_PROFILING
+3004     benchmarker_print("CP Completed remaining simulation steps.");
+3005     #endif
+3006 
+3007     /*
+3008      * Finished! Set final state
+3009      */
+3010 
+3011     /* Set final state */
+3012     for (i=0; i<model->n_states; i++) {
+3013         PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(y, i)));
+3014         /* PyList_SetItem steals a reference: no need to decref the PyFloat */
+3015     }
+3016 
+3017     /* Set final sensitivities */
+3018     if (model->has_sensitivities) {
+3019         for (i=0; i<model->ns_independents; i++) {
+3020             val = PyList_GetItem(s_state_py, i); /* Borrowed */
+3021             for (j=0; j<model->n_states; j++) {
+3022                 PyList_SetItem(val, j, PyFloat_FromDouble(NV_Ith_S(sy[i], j)));
+3023             }
+3024         }
+3025     }
+3026 
+3027     /* Set bound variable values */
+3028     PyList_SetItem(bound_py, 0, PyFloat_FromDouble(t));
+3029     PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
+3030     PyList_SetItem(bound_py, 2, PyFloat_FromDouble(evaluations));
+3031     for (int i = 0; i < n_pace; i++) {
+3032         PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
+3033     }
+3034 
+3035     #ifdef MYOKIT_DEBUG_PROFILING
+3036     benchmarker_print("CP Set final state and bound variable values.");
+3037     #endif
+3038 
+3039     sim_clean();    /* Ignore return value */
+3040     return PyFloat_FromDouble(t);  // Return new reference
+3041 }
+3042 
+3043 /*
+3044  * Evaluates the state derivatives at the given state
+3045  */
+3046 PyObject*
+3047 sim_eval_derivatives(PyObject *self, PyObject *args)
+3048 {
+3049     /* Declare variables here for C89 compatibility */
+3050     int i;
+3051     int success;
+3052     double time_in;
+3053     PyObject *pace_in;
+3054     double *pacing_in;
+3055     Model model;
+3056     Model_Flag flag_model;
+3057     PyObject *state;
+3058     PyObject *deriv;
+3059     PyObject *literals;
+3060     PyObject *parameters;
+3061     PyObject *val;
+3062 
+3063     /* Start */
+3064     success = 0;
+3065 
+3066     /* Check input arguments */
+3067     /* Check input arguments     0123456789ABCDEF*/
+3068     if (!PyArg_ParseTuple(args, "dOOOOO",
+3069             &time_in,           /* 0. Float: time */
+3070             &pace_in,           /* 1. List: pace */
+3071             &state,             /* 2. List: state */
+3072             &deriv,             /* 3. List: store derivatives here */
+3073             &literals,          /* 4. List: literal constant values */
+3074             &parameters         /* 5. List: parameter values */
+3075             )) {
+3076         PyErr_SetString(PyExc_Exception, "Incorrect input arguments in sim_eval_derivatives.");
+3077         /* Nothing allocated yet, no pyobjects _created_, return directly */
+3078         return 0;
+3079     }
+3080 
+3081     /* Check lists are sequences */
+3082     if (!PyList_Check(pace_in)) {
+3083         PyErr_SetString(PyExc_Exception, "Pace argument must be a list.");
+3084         return 0;
+3085     }
+3086     if (!PyList_Check(state)) {
+3087         PyErr_SetString(PyExc_Exception, "State argument must be a list.");
+3088         return 0;
+3089     }
+3090     if (!PyList_Check(deriv)) {
+3091         PyErr_SetString(PyExc_Exception, "Derivatives argument must be a list.");
+3092         return 0;
+3093     }
+3094     if (!PyList_Check(literals)) {
+3095         PyErr_SetString(PyExc_Exception, "Literals argument must be a list.");
+3096         return 0;
+3097     }
+3098     if (!PyList_Check(parameters)) {
+3099         PyErr_SetString(PyExc_Exception, "Parameters argument must be a list.");
+3100         return 0;
+3101     }
+3102 
+3103     /* From this point on, no more direct returning: use goto error */
+3104     model = NULL;
+3105 
+3106     /* Temporary object: decref before re-using for another var :) */
+3107     /* (Unless you get them using PyList_GetItem...) */
+3108     val = NULL;
+3109 
+3110     /* Create model */
+3111     model = Model_Create(&flag_model);
+3112     if (flag_model != Model_OK) {
+3113         Model_SetPyErr(flag_model);
+3114         goto error;
+3115     }
+3116 
+3117     flag_model = Model_SetupPacing(model, n_pace);
+3118     if (flag_model != Model_OK) {
+3119         Model_SetPyErr(flag_model);
+3120         goto error;
+3121     }
+3122 
+3123     /* Set pacing values */
+3124     pacing_in = (double*)malloc(sizeof(double) * n_pace);
+3125     for (int i = 0; i < n_pace; i++) {
+3126         val = PyList_GetItem(pace_in, i); /* Don't decref */
+3127         if (!PyFloat_Check(val)) {
+3128             PyErr_Format(PyExc_Exception, "Item %d in pace vector is not a float.", i);
+3129             goto error;
+3130         }
+3131         pacing_in[i] = PyFloat_AsDouble(val);
+3132     }
+3133 
+3134     /* Set bound variables */
+3135     Model_SetBoundVariables(model, time_in, pacing_in, 0, 0);
+3136 
+3137     /* Set literal values */
+3138     for (i=0; i<model->n_literals; i++) {
+3139         val = PyList_GetItem(literals, i);    /* Don't decref */
+3140         if (!PyFloat_Check(val)) {
+3141             PyErr_Format(PyExc_Exception, "Item %d in literal vector is not a float.", i);
+3142             goto error;
+3143         }
+3144         model->literals[i] = PyFloat_AsDouble(val);
+3145     }
+3146 
+3147     /* Evaluate literal-derived variables */
+3148     Model_EvaluateLiteralDerivedVariables(model);
+3149 
+3150     /* Set parameter values */
+3151     for (i=0; i<model->n_parameters; i++) {
+3152         val = PyList_GetItem(parameters, i);    /* Don't decref */
+3153         if (!PyFloat_Check(val)) {
+3154             PyErr_Format(PyExc_Exception, "Item %d in parameter vector is not a float.", i);
+3155             goto error;
+3156         }
+3157         model->parameters[i] = PyFloat_AsDouble(val);
+3158     }
+3159 
+3160     /* Evaluate parameter-derived variables */
+3161     Model_EvaluateParameterDerivedVariables(model);
+3162 
+3163     /* Set initial values */
+3164     for (i=0; i < model->n_states; i++) {
+3165         val = PyList_GetItem(state, i); /* Don't decref */
+3166         if (!PyFloat_Check(val)) {
+3167             PyErr_Format(PyExc_Exception, "Item %d in state vector is not a float.", i);
+3168             goto error;
+3169         }
+3170         model->states[i] = PyFloat_AsDouble(val);
+3171     }
+3172 
+3173     /* Evaluate derivatives */
+3174     Model_EvaluateDerivatives(model);
+3175 
+3176     /* Set output values */
+3177     for (i=0; i<model->n_states; i++) {
+3178         val = PyFloat_FromDouble(model->derivatives[i]);
+3179         if (val == NULL) {
+3180             PyErr_SetString(PyExc_Exception, "Unable to create float.");
+3181             goto error;
+3182         }
+3183         PyList_SetItem(deriv, i, val);
+3184         /* PyList_SetItem steals a reference: no need to decref the double! */
+3185     }
+3186 
+3187     /* Finished succesfully, free memory and return */
+3188     success = 1;
+3189 error:
+3190     /* Free model space */
+3191     Model_Destroy(model);
+3192 
+3193     /* Return */
+3194     if (success) {
+3195         Py_RETURN_NONE;
+3196     } else {
+3197         return 0;
+3198     }
+3199 }
+3200 
+3201 /*
+3202  * Change the tolerance settings
+3203  */
+3204 PyObject*
+3205 sim_set_tolerance(PyObject *self, PyObject *args)
+3206 {
+3207     /* Check input arguments */
+3208     double tabs, trel;
+3209     if (!PyArg_ParseTuple(args, "dd", &tabs, &trel)) {
+3210         PyErr_SetString(PyExc_Exception, "Expected input arguments: abs_tol(float), rel_tol(float).");
+3211         return 0;
+3212     }
+3213     abs_tol = tabs;
+3214     rel_tol = trel;
+3215     Py_RETURN_NONE;
+3216 }
+3217 
+3218 /*
+3219  * Change the maximum step size (0 for none)
+3220  */
+3221 PyObject*
+3222 sim_set_max_step_size(PyObject *self, PyObject *args)
+3223 {
+3224     /* Check input arguments */
+3225     double tmax;
+3226     if (!PyArg_ParseTuple(args, "d", &tmax)) {
+3227         PyErr_SetString(PyExc_Exception, "Expected input argument: tmax(float).");
+3228         return 0;
+3229     }
+3230     dt_max = tmax;
+3231     Py_RETURN_NONE;
+3232 }
+3233 
+3234 /*
+3235  * Change the minimum step size (0 for none)
+3236  */
+3237 PyObject*
+3238 sim_set_min_step_size(PyObject *self, PyObject *args)
+3239 {
+3240     /* Check input arguments */
+3241     double tmin;
+3242     if (!PyArg_ParseTuple(args, "d", &tmin)) {
+3243         PyErr_SetString(PyExc_Exception, "Expected input argument: tmin(float).");
+3244         return 0;
+3245     }
+3246     dt_min = tmin;
+3247     Py_RETURN_NONE;
+3248 }
+3249 
+3250 /*
+3251  * Returns the number of steps taken in the last simulation
+3252  */
+3253 PyObject*
+3254 sim_steps(PyObject *self, PyObject *args)
+3255 {
+3256     return PyLong_FromLong(steps);
+3257 }
+3258 
+3259 /*
+3260  * Returns the number of rhs evaluations performed during the last simulation
+3261  */
+3262 PyObject*
+3263 sim_evals(PyObject *self, PyObject *args)
+3264 {
+3265     return PyLong_FromLong(evaluations);
+3266 }
+3267 
+3268 /*
+3269  * Methods in this module
+3270  */
+3271 PyMethodDef SimMethods[] = {
+3272     {"sim_init", sim_init, METH_VARARGS, "Initialize the simulation."},
+3273     {"sim_step", sim_step, METH_VARARGS, "Perform the next step in the simulation."},
+3274     {"sim_clean", py_sim_clean, METH_VARARGS, "Clean up after an aborted simulation."},
+3275     {"eval_derivatives", sim_eval_derivatives, METH_VARARGS, "Evaluate the state derivatives."},
+3276     {"set_tolerance", sim_set_tolerance, METH_VARARGS, "Set the absolute and relative solver tolerance."},
+3277     {"set_max_step_size", sim_set_max_step_size, METH_VARARGS, "Set the maximum solver step size (0 for none)."},
+3278     {"set_min_step_size", sim_set_min_step_size, METH_VARARGS, "Set the minimum solver step size (0 for none)."},
+3279     {"number_of_steps", sim_steps, METH_VARARGS, "Returns the number of steps taken in the last simulation."},
+3280     {"number_of_evaluations", sim_evals, METH_VARARGS, "Returns the number of rhs evaluations performed during the last simulation."},
+3281     {NULL},
+3282 };
+3283 
+3284 /*
+3285  * Module definition
+3286  */
+3287 #if PY_MAJOR_VERSION >= 3
+3288 
+3289 struct PyModuleDef moduledef = {
+3290     PyModuleDef_HEAD_INIT,
+3291     "myokit_sim_1_8012955699010987634",       /* m_name */
+3292     "Generated CVODESim module",/* m_doc */
+3293     -1,                         /* m_size */
+3294     SimMethods,                 /* m_methods */
+3295     NULL,                       /* m_reload */
+3296     NULL,                       /* m_traverse */
+3297     NULL,                       /* m_clear */
+3298     NULL,                       /* m_free */
+3299 };
+3300 
+3301 PyMODINIT_FUNC PyInit_myokit_sim_1_8012955699010987634(void) {
+3302     return PyModule_Create(&moduledef);
+3303 }
+3304 
+3305 #else
+3306 
+3307 PyMODINIT_FUNC
+3308 initmyokit_sim_1_8012955699010987634(void) {
+3309     (void) Py_InitModule("myokit_sim_1_8012955699010987634", SimMethods);
+3310 }
+3311 
+3312 #endif

@@ -444,6 +444,9 @@ sim_clean()
         #endif
 
         /* CVode arrays */
+        #if defined MYOKIT_DEBUG_MESSAGES
+        printf("CM   CVODE vectors and vector arrays.\n");
+        #endif
         if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
         if (ylast != NULL) { N_VDestroy_Serial(ylast); ylast = NULL; }
         if (sy != NULL) { N_VDestroyVectorArray(sy, model->ns_independents); sy = NULL; }
@@ -453,9 +456,15 @@ sim_clean()
         }
 
         /* Root finding results */
+        #if defined MYOKIT_DEBUG_MESSAGES
+        printf("CM   Root finding.\n");
+        #endif
         free(rf_direction); rf_direction = NULL;
 
         /* Sundials objects */
+        #if defined MYOKIT_DEBUG_MESSAGES
+        printf("CM   Sundials objects.\n");
+        #endif
         CVodeFree(&cvode_mem); cvode_mem = NULL;
         #if SUNDIALS_VERSION_MAJOR >= 3
         SUNLinSolFree(sundense_solver); sundense_solver = NULL;
@@ -466,6 +475,9 @@ sim_clean()
         #endif
 
         /* User data and parameter scale array*/
+        #if defined MYOKIT_DEBUG_MESSAGES
+        printf("CM   User data and parameter scale.\n");
+        #endif
         free(pbar);
         if (udata != NULL) {
             free(udata->p);
@@ -473,6 +485,9 @@ sim_clean()
         }
 
         /* Pacing systems */
+        #if defined MYOKIT_DEBUG_MESSAGES
+        printf("CM   Pacing systems.\n");
+        #endif
         for (int i = 0; i < n_pace; i++) {
             if (pacing_types[i] == FIXED) {
                 FSys_Destroy(pacing_systems[i].fixed);
@@ -485,17 +500,25 @@ sim_clean()
         free(pacing); pacing = NULL;
 
         /* CModel */
+        #if defined MYOKIT_DEBUG_MESSAGES
+        printf("CM   CModel.\n");
+        #endif
         Model_Destroy(model); model = NULL;
 
         /* Benchmarking and profiling */
+        Py_XDECREF(benchmarker_time_str); benchmarker_time_str = NULL;
         #ifdef MYOKIT_DEBUG_PROFILING
-        benchmarker_print("CP Completed sim_clean.");
         Py_XDECREF(benchmarker_print_str); benchmarker_print_str = NULL;
         #endif
-        Py_XDECREF(benchmarker_time_str); benchmarker_time_str = NULL;
 
         /* Deinitialisation complete */
         initialised = 0;
+
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Completed sim_clean.");
+        #elif defined MYOKIT_DEBUG_MESSAGES
+        printf("CM   Done.\n");
+        #endif
     }
 
     /* Return 0, allowing the construct

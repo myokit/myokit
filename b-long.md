@@ -1,0 +1,1145 @@
+- iterators
+- [x] `./myokit/_model_api.py:            self, const=None, inter=None, state=None, bound=None, deep=False):`
+- [x] `./myokit/_model_api.py:        return len(list(self.equations(const, inter, state, bound, deep)))`
+- [x] `./myokit/_model_api.py:            self, const=None, inter=None, state=None, bound=None, deep=False):`
+- [x] `./myokit/_model_api.py:        return len(list(self.variables(const, inter, state, bound, deep)))`
+- [x] `./myokit/_model_api.py:            self, const=None, inter=None, state=None, bound=None, deep=False):`
+- [x] `./myokit/_model_api.py:        for x in self.equations(const, inter, state, bound, deep):`
+- [x] `./myokit/_model_api.py:            self, const=None, inter=None, state=None, bound=None, deep=False):`
+- [x] `./myokit/_model_api.py:        for x in self.variables(const, inter, state, bound, deep):`
+- [x] `./myokit/_model_api.py:            self, const=None, inter=None, state=None, bound=None, deep=False):`
+- [x] `./myokit/_model_api.py:        ``bound=None```
+- [x] `./myokit/_model_api.py:        return viter(self.variables(const, inter, state, bound, deep))`
+- [x] `./myokit/_model_api.py:            self, const=None, inter=None, state=None, bound=None, deep=False,`
+- [x] `./myokit/_model_api.py:        ``bound=None```
+- [x] `./myokit/_model_api.py:        if bound is not None:`
+- [x] `./myokit/_model_api.py:                'The keyword argument `bound` is deprecated and will be'`
+- expressions_for
+- [x] `./myokit/_model_api.py:        the state variables and bound variables these expressions require as`
+- set_binding
+- [x] `./myokit/_model_api.py:            if var.is_bound() or (var.is_state() and not lhs.is_derivative()):`
+- map_shallow_dependencies
+- [ ] `./myokit/_model_api.py:            if eq.lhs.var().is_bound():`
+- [ ] `./myokit/_model_api.py:                    + '> is already bound to "' + str(label) + '".')`
+- validate
+- [ ] `./myokit/_model_api.py:                'Invalid time variable set. Time variable must be bound to'`
+- [ ] `./myokit/_model_api.py:        # Follow all state variables (unless already visited), all bound`
+- [ ] `./myokit/_model_api.py:        self._is_bound = False`
+- [ ] `./myokit/_model_api.py:        # they were unbound.`
+- [ ] `./myokit/_model_api.py:    def is_bound(self):`
+- [ ] `./myokit/_model_api.py:        return self._is_bound`
+- [ ] `./myokit/_model_api.py:        termed a constant. Note that this specifically excludes variables bound`
+- [ ] `./myokit/_model_api.py:        a constant or a state variable (and not bound to an external variable).`
+- [ ] `./myokit/_model_api.py:                'State variables cannot be bound to an external value.')`
+- [ ] `./myokit/_model_api.py:            s_old = (self._is_bound, self._is_state, self._is_intermediary,`
+- [ ] `./myokit/_model_api.py:        self._is_bound = self._binding is not None`
+- [ ] `./myokit/_model_api.py:        if self._is_state or self._is_bound or self._rhs is None:`
+- [ ] `./myokit/_model_api.py:            if s_old != (self._is_bound, self._is_state, self._is_intermediary,`
+- [ ] `./myokit/_model_api.py:                    ' is already bound to "' + self._binding + '".')`
+- [ ] `./myokit/_model_api.py:                    'State variables cannot be bound to an external value.')`
+
+- [ ] `./myokit/_parsing.py:                    # Get token, token bounds, first character, move pointer`
+- [ ] `./myokit/_parsing.py:    previous expression bound to it.`
+- [ ] `./myokit/_parsing.py:    expression. The term led stands for 'left denotation' as it is bound to`
+
+- [ ] `./myokit/_expressions.py:            if ref.is_state_value() or var.is_bound():`
+- [ ] `./myokit/_expressions.py:                # State values and bound variables have no rhs`
+- [ ] `./myokit/_expressions.py:            if not var.is_bound():`
+- [ ] `./myokit/_expressions.py:        - The partial derivative of a :class:`Name` referencing a bound`
+- [ ] `./myokit/_expressions.py:          :class:`Piecewise`), the discontinuities at the condition boundaries`
+
+- [ ] `./myokit/_err.py:    Raised when no variable was bound to time.`
+- [ ] `./myokit/_err.py:        msg = 'No variable bound to time. At least one of the model\'s' \`
+- [ ] `./myokit/_err.py:              ' variables must be bound to "time".'`
+
+- [ ] `./myokit/_time_series_protocol.py:    nearest points in the series. If the simulation time is outside the bounds`
+
+- [ ] `./myokit/_datalog.py:            Log all variables bound to an external value. The method will`
+- [ ] `./myokit/_datalog.py:            assume any bound variables still present in the model will be`
+- [ ] `./myokit/_datalog.py:        ``log=myokit.LOG_STATE+myokit.LOG_BOUND`` will log all bound variables`
+- [ ] `./myokit/_datalog.py:        elif var.is_bound():`
+- [ ] `./myokit/_datalog.py:                    'This log does not support bound variables, got <'`
+- [ ] `./myokit/_datalog.py:                raise ValueError('This log does not support bound variables.')`
+- [ ] `./myokit/_datalog.py:            # Add bound variables`
+
+
+
+- [ ] `./myokit/_sim/cable.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/_sim/cable.c:for var in model.variables(bound=True, deep=True):`
+- [ ] `./myokit/_sim/cable.c:for var in model.variables(inter=True, bound=False, deep=True):`
+- [ ] `./myokit/_sim/cable.c:for var in model.variables(const=True, bound=False, deep=True):`
+- [ ] `./myokit/_sim/cable.c:    for eq in eqs.equations(const=False, bound=False):`
+- [ ] `./myokit/_sim/fiber_tissue.c:# vmf             The fiber model variable bound to membrane potential (must be`
+- [ ] `./myokit/_sim/fiber_tissue.c:# vmt             The tissue model variable bound to membrane potential (must`
+- [ ] `./myokit/_sim/fiber_tissue.c:# boundf          A dict of the bound variables for the fiber model`
+- [ ] `./myokit/_sim/fiber_tissue.c:# boundt          A dict of the bound variables for the tissue model`
+- [ ] `./myokit/_sim/jacobian.cpp:for var in model.variables(state=False, const=False, bound=False, deep=True):`
+- [ ] `./myokit/_sim/jacobian.cpp:    if eqs.has_equations(const=False, bound=False):`
+- [ ] `./myokit/_sim/jacobian.cpp:        for eq in eqs.equations(const=False, bound=False):`
+- [ ] `./myokit/_sim/openclsim.cl:# bound_variables   A dict of bound variables`
+- [ ] `./myokit/_sim/openclsim.cl:        for var in bound_variables:`
+- [ ] `./myokit/_sim/openclsim.cl:# Components that use one of the bound variables should get it as an input`
+- [ ] `./myokit/_sim/openclsim.cl:    for bound in bound_variables:`
+- [ ] `./myokit/_sim/openclsim.cl:        lhs = bound.lhs()`
+- [ ] `./myokit/_sim/openclsim.cl:    if var in bound_variables:`
+- [ ] `./myokit/_sim/openclsim.cl:        return bound_variables[var]`
+- [ ] `./myokit/_sim/openclsim.cl:        if var not in bound_variables:`
+- [ ] `./myokit/_sim/rhs.c:# Process bindings, remove unsupported bindings, get map of bound variables to`
+- [ ] `./myokit/_sim/rhs.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/_sim/rhs.c:            if var in bound_variables:`
+- [ ] `./myokit/_sim/rhs.c:                print(tab + v(var) + ' = ' + bound_variables[var] + ';')`
+- [ ] `./myokit/_sim/rhs.c: * Sets all state and bound variables to the values found in the provided log.`
+- [ ] `./myokit/_sim/rhs.c:set_state_and_bound(PyObject* data, const int position)`
+- [ ] `./myokit/_sim/rhs.c:for var in bound_variables:`
+- [ ] `./myokit/_sim/rhs.c:    if (set_state_and_bound(data, start) == 0) goto error;`
+- [ ] `./myokit/_sim/rhs.c:        // Update state and bound variables to given log position`
+- [ ] `./myokit/_sim/rhs.c:        if (set_state_and_bound(data, start + i) == 0) goto error;`
+- [ ] `./myokit/_sim/rhs.py:    by using :meth:`bench_part()`. Only non-constant, non-bound variables can`
+- [ ] `./myokit/_sim/rhs.py:        similar containing the values of all state variables and any bound`
+- [ ] `./myokit/_sim/rhs.py:        similar containing the values of all state variables and any bound`
+- [ ] `./myokit/_sim/rhs.py:                if var.is_bound():`
+- [ ] `./myokit/_sim/rhs.py:                    raise ValueError('Given variables can\'t be bound.')`
+- [ ] `./myokit/_sim/cable.py:                'This simulation requires a variable to be bound to'`
+- [ ] `./myokit/_sim/cable.py:        Any variables bound to "time" will be logged globally, all others will`
+- [ ] `./myokit/_sim/cable.py:        where <engine.time> is bound to "time" and <membrane.V> is the membrane`
+- [ ] `./myokit/_sim/fiber_tissue.py:    At the boundaries, where either ``V_ilast`` or ``V_inext`` is unavailable,`
+- [ ] `./myokit/_sim/fiber_tissue.py:                ' bound to "diffusion_current" to pass current from one cell'`
+- [ ] `./myokit/_sim/fiber_tissue.py:                ' bound to "diffusion_current" to pass current from one cell'`
+- [ ] `./myokit/_sim/fiber_tissue.py:        # Process bindings, remove unsupported bindings, get map of bound`
+- [ ] `./myokit/_sim/fiber_tissue.py:        self._bound_variablesf = self._modelf.prepare_bindings({`
+- [ ] `./myokit/_sim/fiber_tissue.py:        self._bound_variablest = self._modelt.prepare_bindings({`
+- [ ] `./myokit/_sim/fiber_tissue.py:            'boundf': self._bound_variablesf,`
+- [ ] `./myokit/_sim/fiber_tissue.py:            'boundt': self._bound_variablest,`
+- [ ] `./myokit/_sim/fiber_tissue.py:        The logs must contain the state of each cell and all bound variables.`
+- [ ] `./myokit/_sim/fiber_tissue.py:        Returns a tuple ``(part, time, icell, variable, value, states, bound)```
+- [ ] `./myokit/_sim/fiber_tissue.py:        and so on. Similarly the values of the error causing model's bound`
+- [ ] `./myokit/_sim/fiber_tissue.py:        variables is given in ``bound``.`
+- [ ] `./myokit/_sim/fiber_tissue.py:        # Check if logs contain all states and bound variables`
+- [ ] `./myokit/_sim/fiber_tissue.py:                    ' containing all states and bound variables. Missing'`
+- [ ] `./myokit/_sim/fiber_tissue.py:                    ' containing all states and bound variables. Missing at'`
+- [ ] `./myokit/_sim/fiber_tissue.py:        # Get state & bound before, during and after error`
+- [ ] `./myokit/_sim/fiber_tissue.py:            for var in model.variables(bound=True):`
+- [ ] `./myokit/_sim/fiber_tissue.py:        bound = []`
+- [ ] `./myokit/_sim/fiber_tissue.py:            bound.append(b)`
+- [ ] `./myokit/_sim/fiber_tissue.py:            value = bound[1 if ifirst > 0 else 0][var.qname()]`
+- [ ] `./myokit/_sim/fiber_tissue.py:        # Return part, time, icell, variable, value, states, bound`
+- [ ] `./myokit/_sim/fiber_tissue.py:        return part, time, icell, var, value, states, bound`
+- [ ] `./myokit/_sim/fiber_tissue.py:        Any variables bound to "time" or "pace" will be logged globally, all`
+- [ ] `./myokit/_sim/fiber_tissue.py:        performance reasons the logged values of states and bound variables`
+- [ ] `./myokit/_sim/fiber_tissue.py:        and bound variables and re-calculate the intermediary variables from`
+- [ ] `./myokit/_sim/fiber_tissue.py:            if var.is_intermediary() and not var.is_bound():`
+- [ ] `./myokit/_sim/fiber_tissue.py:            if var.is_intermediary() and not var.is_bound():`
+- [ ] `./myokit/_sim/fiber_tissue.py:        args['bound_variables'] = self._bound_variablesf`
+- [ ] `./myokit/_sim/fiber_tissue.py:        args['bound_variables'] = self._bound_variablest`
+- [ ] `./myokit/_sim/fiber_tissue.py:                part, time, icell, var, value, states, bounds = self.find_nan(`
+- [ ] `./myokit/_sim/fiber_tissue.py:                # Show final state and bound variables`
+- [ ] `./myokit/_sim/fiber_tissue.py:                    bounds[0][vtime], precision=self._precision))`
+- [ ] `./myokit/_sim/fiber_tissue.py:                        bounds[0][vpace], precision=self._precision))`
+- [ ] `./myokit/_sim/fiber_tissue.py:                    bounds[0][vdiff], precision=self._precision))`
+- [ ] `./myokit/_sim/fiber_tissue.py:                    # Get state and bounds at previous state`
+- [ ] `./myokit/_sim/fiber_tissue.py:                    bound = {`
+- [ ] `./myokit/_sim/fiber_tissue.py:                        'time': bounds[1][vtime],`
+- [ ] `./myokit/_sim/fiber_tissue.py:                        'pace': 0 if vpace is None else bounds[1][vpace],`
+- [ ] `./myokit/_sim/fiber_tissue.py:                        'diffusion_current': bounds[1][vdiff],`
+- [ ] `./myokit/_sim/fiber_tissue.py:                            state, bound, self._precision, ignore_errors=False)`
+- [ ] `./myokit/_sim/fiber_tissue.py:                            state, bound, self._precision, ignore_errors=True)`
+- [ ] `./myokit/_sim/fiber_tissue.py:                    # Show bound variables`
+- [ ] `./myokit/_sim/fiber_tissue.py:                        bounds[1][vtime], precision=self._precision))`
+- [ ] `./myokit/_sim/fiber_tissue.py:                            bounds[0][vpace], precision=self._precision))`
+- [ ] `./myokit/_sim/fiber_tissue.py:                        bounds[1][vdiff], precision=self._precision))`
+- [ ] `./myokit/_sim/jacobian.py:        states in the model and any bound variables used by the model. Bound`
+- [ ] `./myokit/_sim/jacobian.py:        variables whose value does not appear in the log must be unbound before`
+- [ ] `./myokit/_sim/jacobian.py:                    ' the model. Missing: <' + v.qname() + '>  which is bound'`
+- [ ] `./myokit/_sim/jacobian.py:        time = log[tvar]    # Already checked that all bound variables exist!`
+- [ ] `./myokit/_sim/jacobian.py:            bound = [next(x) for x in iinputs]`
+- [ ] `./myokit/_sim/jacobian.py:            self._ext.calculate(state, bound, deriv, partial)`
+- [ ] `./myokit/_sim/openclsim.py:    The input ``time`` is set globally: Any variable bound to ``time`` will`
+- [ ] `./myokit/_sim/openclsim.py:    instead of ``1.2.engine.time``. Variables bound to ``pace`` or`
+- [ ] `./myokit/_sim/openclsim.py:    variables bound to it will be logged or not according to their default`
+- [ ] `./myokit/_sim/openclsim.py:    cells ``i - 1`` and ``i + 1`` (except at the boundaries).`
+- [ ] `./myokit/_sim/openclsim.py:        # Process bindings: remove unsupported bindings, get map of bound`
+- [ ] `./myokit/_sim/openclsim.py:        self._bound_variables = self._model.prepare_bindings(inputs)`
+- [ ] `./myokit/_sim/openclsim.py:            contain the state of each cell and all bound variables. The bad`
+- [ ] `./myokit/_sim/openclsim.py:            should be specified as ``(lower, upper)`` where both bounds are`
+- [ ] `./myokit/_sim/openclsim.py:        ``bounds```
+- [ ] `./myokit/_sim/openclsim.py:            The bound variables corresponding to the returned ``states``. For`
+- [ ] `./myokit/_sim/openclsim.py:            Each entry in ``bounds`` is a dictionary from variable names to`
+- [ ] `./myokit/_sim/openclsim.py:            ``states`` and ``bounds``. This will only be included if`
+- [ ] `./myokit/_sim/openclsim.py:        # Test if log contains all states and bound variables`
+- [ ] `./myokit/_sim/openclsim.py:                    ' and bound variables. Missing variable <' + key + '>.')`
+- [ ] `./myokit/_sim/openclsim.py:            # Variable out of bounds detection`
+- [ ] `./myokit/_sim/openclsim.py:                    'The safe range must have a lower bound that is lower than'`
+- [ ] `./myokit/_sim/openclsim.py:                    ' the upper bound.')`
+- [ ] `./myokit/_sim/openclsim.py:                # Find first occurence of out-of-bounds error`
+- [ ] `./myokit/_sim/openclsim.py:        # Get state & bound before, during and after error`
+- [ ] `./myokit/_sim/openclsim.py:            for var in self._model.variables(bound=True):`
+- [ ] `./myokit/_sim/openclsim.py:        bounds = []`
+- [ ] `./myokit/_sim/openclsim.py:            bounds.append(b)`
+- [ ] `./myokit/_sim/openclsim.py:            value = bounds[1 if ifirst > 0 else 0][var.qname()]`
+- [ ] `./myokit/_sim/openclsim.py:            # Get earliest state in states/bounds`
+- [ ] `./myokit/_sim/openclsim.py:            return time, icell, var, value, states, bounds, log`
+- [ ] `./myokit/_sim/openclsim.py:        return time, icell, var, value, states, bounds`
+- [x] `./myokit/_sim/openclsim.py:        assume **zero-flux boundary conditions**, a **regularly spaced grid**,`
+- [ ] `./myokit/_sim/openclsim.py:        where ``engine.time`` is bound to ``time`` and ``membrane.V`` is the`
+- [ ] `./myokit/_sim/openclsim.py:            if var.is_intermediary() and not var.is_bound():`
+- [ ] `./myokit/_sim/openclsim.py:            'bound_variables': self._bound_variables,`
+- [ ] `./myokit/_sim/openclsim.py:                time, icell, var, value, states, bounds, d = self.find_nan(`
+- [ ] `./myokit/_sim/openclsim.py:                # Show bound variables`
+- [ ] `./myokit/_sim/openclsim.py:                    bounds[0][vtime], precision=self._precision))`
+- [ ] `./myokit/_sim/openclsim.py:                            bounds[0][vpace], precision=self._precision)`
+- [ ] `./myokit/_sim/openclsim.py:                            bounds[0][vdiff], precision=self._precision))`
+- [ ] `./myokit/_sim/openclsim.py:                    bound = {`
+- [ ] `./myokit/_sim/openclsim.py:                        'time': bounds[1][vtime],`
+- [ ] `./myokit/_sim/openclsim.py:                        bound['pace'] = bounds[1][vpace]`
+- [ ] `./myokit/_sim/openclsim.py:                        bound['diffusion_current'] = bounds[1][vdiff]`
+- [ ] `./myokit/_sim/openclsim.py:                            state, bound, self._precision, ignore_errors=False)`
+- [ ] `./myokit/_sim/openclsim.py:                            state, bound, self._precision, ignore_errors=True)`
+- [ ] `./myokit/_sim/openclsim.py:                    # Show bound variables`
+- [ ] `./myokit/_sim/openclsim.py:                        bounds[1][vtime], precision=self._precision))`
+- [ ] `./myokit/_sim/openclsim.py:                                bounds[1][vpace], precision=self._precision)`
+- [ ] `./myokit/_sim/openclsim.py:                                bounds[1][vdiff], precision=self._precision))`
+- [ ] `./myokit/_sim/openclsim.py:        the boundaries, where either ``V_ilast`` or ``V_inext`` is unavailable,`
+- [ ] `./myokit/_sim/openclsim.py:        if var.is_bound():`
+- [ ] `./myokit/_sim/cmodel.h:# bound_variables       A dict mapping variables to local (model) names.`
+- [ ] `./myokit/_sim/cmodel.h:    Updates the model's bound variables. If the time or pacing variable are`
+- [ ] `./myokit/_sim/cmodel.h:    int logging_bound;`
+- [ ] `./myokit/_sim/cmodel.h:for var, local in bound_variables.items():`
+- [ ] `./myokit/_sim/cmodel.h: * Updates this model's bound variables to the given values.`
+- [ ] `./myokit/_sim/cmodel.h:    for eq in eqs.equations(const=False, bound=False):`
+- [ ] `./myokit/_sim/cmodel.h:    /* Check bound variables */`
+- [ ] `./myokit/_sim/cmodel.h:for var in bound_variables:`
+- [ ] `./myokit/_sim/cmodel.h:    model->logging_bound = (i != j);`
+- [ ] `./myokit/_sim/cmodel.h:for var in model.variables(deep=True, state=False, bound=False, const=False):`
+- [ ] `./myokit/_sim/cmodel.h:    model->logging_bound = 0;`
+- [ ] `./myokit/_sim/cmodel.h:    model->logging_bound = 0;`
+- [ ] `./myokit/_sim/cmodel.py:        bound_variables = self._prepare_bindings(model, labels)`
+- [ ] `./myokit/_sim/cmodel.py:            model, equations, bound_variables, dependents, independents,`
+- [ ] `./myokit/_sim/cmodel.py:            elif var.is_bound():`
+- [ ] `./myokit/_sim/cmodel.py:                    'Sensitivities cannot be calculated for bound'`
+- [ ] `./myokit/_sim/cmodel.py:            if var.is_bound():`
+- [ ] `./myokit/_sim/cmodel.py:            self, model, equations, bound_variables, dependents, independents,`
+- [ ] `./myokit/_sim/cmodel.py:            'bound_variables': bound_variables,`
+- [ ] `./myokit/_sim/cvodessim.c: * State and bound variable communication`
+- [ ] `./myokit/_sim/cvodessim.c:PyObject* bound_py;     /* List: The bound variables, passed to Python */`
+- [ ] `./myokit/_sim/cvodessim.c:            &bound_py,          /*  4. List: store final bound variables here */`
+- [ ] `./myokit/_sim/cvodessim.c:                PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));`
+- [ ] `./myokit/_sim/cvodessim.c:                PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));`
+- [ ] `./myokit/_sim/cvodessim.c:                PyList_SetItem(bound_py, 2, PyFloat_FromDouble(evaluations));`
+- [ ] `./myokit/_sim/cvodessim.c:                    PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));`
+- [ ] `./myokit/_sim/cvodessim.c:                } else if (model->logging_bound) {`
+- [ ] `./myokit/_sim/cvodessim.c:                    /* Logging bounds but not derivs or inters: No need to run`
+- [ ] `./myokit/_sim/cvodessim.c:                       full rhs, just update bound variables */`
+- [ ] `./myokit/_sim/cvodessim.c:    /* Set bound variable values */`
+- [ ] `./myokit/_sim/cvodessim.c:    PyList_SetItem(bound_py, 0, PyFloat_FromDouble(t));`
+- [ ] `./myokit/_sim/cvodessim.c:    PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));`
+- [ ] `./myokit/_sim/cvodessim.c:    PyList_SetItem(bound_py, 2, PyFloat_FromDouble(evaluations));`
+- [ ] `./myokit/_sim/cvodessim.c:        PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));`
+- [ ] `./myokit/_sim/cvodessim.c:    benchmarker_print("CP Set final state and bound variable values.");`
+- [ ] `./myokit/_sim/cvodessim.c:    /* Set bound variables */`
+- [ ] `./myokit/_sim/cvodessim.py:    Sensitivities of model variables with respect to parameters (any unbound`
+- [ ] `./myokit/_sim/cvodessim.py:    The simulation provides four inputs a model variable can be bound to:`
+- [ ] `./myokit/_sim/cvodessim.py:        bound to the model variable with binding `pace`. Alternativly, a dict`
+- [ ] `./myokit/_sim/cvodessim.py:            # List to store final bound variables in (for debugging)`
+- [ ] `./myokit/_sim/cvodessim.py:            bound = [0, 0, 0] + [0] * len(self._pacing_labels)`
+- [ ] `./myokit/_sim/cvodessim.py:                # 4. Space to store the bound variable values`
+- [ ] `./myokit/_sim/cvodessim.py:                bound,`
+- [ ] `./myokit/_sim/cvodessim.py:                txt.append('  time        = ' + myokit.float.str(bound[0]))`
+- [ ] `./myokit/_sim/cvodessim.py:                txt.append('  realtime    = ' + myokit.float.str(bound[1]))`
+- [ ] `./myokit/_sim/cvodessim.py:                txt.append('  evaluations = ' + myokit.float.str(bound[2]))`
+- [ ] `./myokit/_sim/cvodessim.py:                        '  ' + label + ' = ' + myokit.float.str(bound[3 + i])`
+- [ ] `./myokit/_sim/cvodessim.py:        None``. In this case, the value of any variables bound to `label` will`
+- [ ] `./myokit/_sim/pacing.h:        // Out-of-bounds on the left, return left-most value`
+- [ ] `./myokit/_sim/pacing.h:        // Out-of-bounds on the right, return right-most value`
+- [ ] `./myokit/_sim/pacing.h:    // Have a quick guess at better boundaries, using last`
+- [ ] `./myokit/formats/ansic/_exporter.py:    At the boundaries, V is substituted for V_last or V_next.`
+- [ ] `./myokit/formats/ansic/template/cable.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/ansic/template/cable.c:    raise Exception('This exporter requires a variable to be bound to'`
+- [ ] `./myokit/formats/ansic/template/cable.c:for var in model.variables(bound=True, deep=True):`
+- [ ] `./myokit/formats/ansic/template/cable.c:for var in model.variables(inter=True, bound=False, deep=True):`
+- [ ] `./myokit/formats/ansic/template/cable.c:for var in model.variables(const=True, bound=False, deep=True):`
+- [ ] `./myokit/formats/ansic/template/cable.c: * Initializes all bound variables in a cell (sets them to 0)`
+- [ ] `./myokit/formats/ansic/template/cable.c:Cell_initialize_bound_variables(Cell *cell)`
+- [ ] `./myokit/formats/ansic/template/cable.c:for var in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/cable.c:    for eq in eqs.equations(const=False, bound=False):`
+- [ ] `./myokit/formats/ansic/template/cable.c:        Cell_initialize_bound_variables(cell);`
+- [ ] `./myokit/formats/ansic/template/cable.c:for var in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/cable.c:for var in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/cable.c:for var in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/cable.c:for var in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/cable.c:for var in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/euler.c:# Process bindings, remove unsupported bindings, get map of bound variables to`
+- [ ] `./myokit/formats/ansic/template/euler.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/ansic/template/euler.c:# Time and pace will be passed in to every function, so any variable bound to`
+- [ ] `./myokit/formats/ansic/template/euler.c:        for var in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/euler.c:    if var in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/euler.c:        return bound_variables[var]`
+- [ ] `./myokit/formats/ansic/template/euler.c:        if var not in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/sim.c:# Process bindings, remove unsupported bindings, get map of bound variables to`
+- [ ] `./myokit/formats/ansic/template/sim.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/ansic/template/sim.c:            if var in bound_variables:`
+- [ ] `./myokit/formats/ansic/template/sim.c:                print(tab + v(var) + ' = ' + bound_variables[var] + ';')`
+- [ ] `./myokit/formats/cuda/_exporter.py:    A value must be bound to ``diffusion_current`` which represents the`
+- [ ] `./myokit/formats/cuda/_exporter.py:    labelled as ``membrane_potential``, and a value must be bound to`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:# Process bindings, remove unsupported bindings, get map of bound variables to`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:        for var in bound_variables:`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:# Components that use one of the bound variables should get it as an input`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:    for bound in bound_variables:`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:        lhs = bound.lhs()`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:    if var in bound_variables:`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:        return bound_variables[var]`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:        if var not in bound_variables:`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:        if var not in bound_variables:`
+- [ ] `./myokit/formats/matlab/_exporter.py:        # Process bound variables`
+- [ ] `./myokit/formats/matlab/_exporter.py:        bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/matlab/_exporter.py:            'bound_variables': bound_variables,`
+- [ ] `./myokit/formats/matlab/template/model.m:        if var.is_bound():
+`
+- [ ] `./myokit/formats/matlab/template/model.m:            print(v(var) + ' = ' + bound_variables[var] + ';')
+`
+- [ ] `./myokit/formats/opencl/template/kernel.cl:# bound_variables`
+- [ ] `./myokit/formats/opencl/template/kernel.cl:        for var in bound_variables:`
+- [ ] `./myokit/formats/opencl/template/kernel.cl:# Components that use one of the bound variables should get it as an input`
+- [ ] `./myokit/formats/opencl/template/kernel.cl:    for bound in bound_variables:`
+- [ ] `./myokit/formats/opencl/template/kernel.cl:        lhs = bound.lhs()`
+- [ ] `./myokit/formats/opencl/template/kernel.cl:    if var in bound_variables:`
+- [ ] `./myokit/formats/opencl/template/kernel.cl:        return bound_variables[var]`
+- [ ] `./myokit/formats/opencl/template/kernel.cl:        if var not in bound_variables:`
+- [ ] `./myokit/formats/opencl/template/kernel.cl:        if var not in bound_variables:`
+- [ ] `./myokit/formats/opencl/_exporter.py:    A value must be bound to ``diffusion_current`` which represents the current`
+- [ ] `./myokit/formats/opencl/_exporter.py:            raise ValueError('No variable bound to `diffusion_current`.')`
+- [ ] `./myokit/formats/opencl/_exporter.py:        # Process bindings, remove unsupported bindings, get map of bound`
+- [ ] `./myokit/formats/opencl/_exporter.py:        bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/opencl/_exporter.py:            'bound_variables': bound_variables,`
+- [ ] `./myokit/formats/python/template/sim.py:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/python/template/sim.py:        if var.is_bound():`
+- [ ] `./myokit/formats/python/template/sim.py:            print(tab2 + v(var) + ' = ' + bound_variables[var])`
+- [ ] `./myokit/formats/sbml/_parser.py:                if not var.is_boundary():`
+- [ ] `./myokit/formats/sbml/_parser.py:        # The attributes 'hasOnlySubstaneUnits', 'boundaryCondition', and`
+- [ ] `./myokit/formats/sbml/_parser.py:        # Check if constant, and if at a reaction boundary`
+- [ ] `./myokit/formats/sbml/_parser.py:        is_boundary = element.get('boundaryCondition', 'false') == 'true'`
+- [ ] `./myokit/formats/sbml/_parser.py:                is_boundary)`
+- [ ] `./myokit/formats/sbml/_api.py:            is_boundary=False):`
+- [ ] `./myokit/formats/sbml/_api.py:        s = Species(compartment, sid, is_amount, is_constant, is_boundary)`
+- [ ] `./myokit/formats/sbml/_api.py:    ``is_boundary```
+- [ ] `./myokit/formats/sbml/_api.py:        Whether or not this species is at the boundary of a reaction.`
+- [ ] `./myokit/formats/sbml/_api.py:    def __init__(self, compartment, sid, is_amount, is_constant, is_boundary):`
+- [ ] `./myokit/formats/sbml/_api.py:        if not isinstance(is_boundary, bool):`
+- [ ] `./myokit/formats/sbml/_api.py:                'Is_boundary <' + str(is_boundary) + '> needs to be a boolean.'`
+- [ ] `./myokit/formats/sbml/_api.py:        self._is_boundary = bool(is_boundary)`
+- [ ] `./myokit/formats/sbml/_api.py:    def is_boundary(self):`
+- [ ] `./myokit/formats/sbml/_api.py:        """Returns ``True`` only if this species is at a reaction boundary."""`
+- [ ] `./myokit/formats/sbml/_api.py:        return self._is_boundary`
+- [ ] `./myokit/formats/sbml/_api.py:        Adds time bound variable to the myokit compartment.`
+- [ ] `./myokit/formats/sbml/_api.py:            if species.is_constant() or species.is_boundary():`
+- [ ] `./myokit/formats/sbml/_api.py:            if species.is_constant() or species.is_boundary():`
+- [ ] `./myokit/formats/stan/_exporter.py:            # Only bound variable names and variables (not functions!) listed`
+- [ ] `./myokit/formats/stan/_exporter.py:            if var.is_bound():`
+- [ ] `./myokit/formats/stan/_exporter.py:        # Process bound variables`
+- [ ] `./myokit/formats/stan/_exporter.py:        bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/stan/_exporter.py:            'bound_variables': bound_variables,`
+- [ ] `./myokit/formats/stan/template/cell.stan:    for eq in eq_list.equations(const=True, bound=False):`
+- [ ] `./myokit/formats/stan/template/cell.stan:    for eq in eq_list.equations(const=False, bound=False):`
+- [ ] `./myokit/formats/stan/template/cell.stan:  //TODO: Add boundaries!`
+- [ ] `./myokit/gui/ide.py:                    '              bound: '`
+- [ ] `./myokit/gui/ide.py:                    + str(model.count_variables(bound=True, deep=True)))`
+- [ ] `./myokit/gui/ide.py:            elif var.is_bound():`
+- [ ] `./myokit/gui/ide.py:                self._console.write('Cannot graph bound variables.')`
+- [ ] `./myokit/gui/vargrapher.py:        self._bounds = {}`
+- [ ] `./myokit/gui/vargrapher.py:            # Guess appropriate bounds`
+- [ ] `./myokit/gui/vargrapher.py:            # Add lower and upper bound or single value`
+- [ ] `./myokit/gui/vargrapher.py:                self._bounds[lhs] = (editlo, edithi)`
+- [ ] `./myokit/gui/vargrapher.py:                self._bounds[lhs] = (edit, edit)`
+- [ ] `./myokit/gui/vargrapher.py:        # Get boundaries`
+- [ ] `./myokit/gui/vargrapher.py:            lohi = self._bounds[arg]`
+- [ ] `./myokit/lib/common.py:        be set as ``pace * amplitude`` where pace is a variable bound to the`
+- [ ] `./myokit/lib/guess.py:def _distance_to_bound(variable):`
+- [ ] `./myokit/lib/guess.py:    Finds all variables that depend on a bound ``variable``, but are otherwise`
+- [ ] `./myokit/lib/guess.py:        raise ValueError('Argument `variable` must be a bound variable.')`
+- [ ] `./myokit/lib/guess.py:        # Nothing bound to pace: Might be able to add protocol, but there'd be`
+- [ ] `./myokit/lib/guess.py:    # Gather list of candidates and initial scores (based on distance to bound`
+- [ ] `./myokit/lib/guess.py:        for var, distance in _distance_to_bound(pace).items():`
+- [ ] `./myokit/lib/guess.py:        for var, distance in _distance_to_bound(time).items():`
+- [ ] `./myokit/_datablock.py:            cable to avoid boundary effects. If not given, 1/3 of the number of`
+- [ ] `./myokit/_datablock.py:            An optional lower bound on the data (anything below this will`
+- [ ] `./myokit/_datablock.py:            An optional upper bound on the data (anything above this will`
+- [ ] `./myokit/_datablock.py:        # Get lower and upper bounds for colormap scaling`
+- [ ] `./myokit/_datablock.py:        # Get lower and upper bounds for colormap scaling`
+- [ ] `./myokit/_datablock.py:        A lower bound for the floats in the input. The ``lower`` and ``upper```
+- [ ] `./myokit/_datablock.py:        this bound is omitted the lowest value in the input data is used.`
+- [ ] `./myokit/_datablock.py:        An upper bound for the floats in the input. The ``lower`` and ``upper```
+- [ ] `./myokit/_datablock.py:        this bound is omitted the highest value in the input data is used.`
+- [ ] `./myokit/_datablock.py:        bounds.`
+- [ ] `./myokit/_datablock.py:        # Enforce lower and upper bounds`
+- [ ] `./myokit/tests/data/decker-2009.mmt:    boundaries but is included in the model because it is a region of the`
+- [ ] `./myokit/tests/data/formats/cellml/br-1977-dot.cellml:The breakdown of the model into components and the definition of encapsulation and containment relationships between them is somewhat arbitrary. When considering how a model should be broken into components, modellers are encouraged to consider which parts of a model might be re-used and how the physiological elements of the system being modelled are naturally bounded. Containment relationships should be used to provide simple rendering information for processing software (ideally, this will correspond to the layout of the physical system), and encapsulation should be used to group sets of components into sub-models.`
+- [ ] `./myokit/tests/data/formats/cellml/br-1977-dot.cellml:    <ns7:boundIntervals rdf:resource="rdf:#$orjp43"/>`
+- [ ] `./myokit/tests/data/formats/cellml/br-1977.cellml:The breakdown of the model into components and the definition of encapsulation and containment relationships between them is somewhat arbitrary. When considering how a model should be broken into components, modellers are encouraged to consider which parts of a model might be re-used and how the physiological elements of the system being modelled are naturally bounded. Containment relationships should be used to provide simple rendering information for processing software (ideally, this will correspond to the layout of the physical system), and encapsulation should be used to group sets of components into sub-models.`
+- [ ] `./myokit/tests/data/formats/cellml/br-1977.cellml:    <ns7:boundIntervals rdf:resource="rdf:#$orjp43"/>`
+- [ ] `./myokit/tests/data/formats/sbml/00004-sbml-l3v2-modified.xml:      <species id="S1" name="S1" compartment="compartment" initialAmount="0.15" substanceUnits="substance" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>`
+- [ ] `./myokit/tests/data/formats/sbml/00004-sbml-l3v2-modified.xml:      <species id="S2" name="S2" compartment="compartment" initialAmount="0" substanceUnits="substance" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>`
+- [ ] `./myokit/tests/data/formats/sbml/model/00001-sbml-l3v2.xml:      <species id="S1" name="S1" compartment="compartment" initialAmount="0.00015" substanceUnits="substance" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>`
+- [ ] `./myokit/tests/data/formats/sbml/model/00001-sbml-l3v2.xml:      <species id="S2" name="S2" compartment="compartment" initialAmount="0" substanceUnits="substance" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>`
+- [ ] `./myokit/tests/data/formats/sbml/model/00004-sbml-l3v2.xml:      <species id="S1" name="S1" compartment="compartment" initialAmount="0.15" substanceUnits="substance" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>`
+- [ ] `./myokit/tests/data/formats/sbml/model/00004-sbml-l3v2.xml:      <species id="S2" name="S2" compartment="compartment" initialAmount="0" substanceUnits="substance" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>`
+- [ ] `./myokit/tests/data/formats/sbml/model/01103-sbml-l3v2.xml:      <species id="X" compartment="default_compartment" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>`
+- [ ] `./myokit/tests/test_datalog.py:            ValueError, 'support bound', prepare_log, ['engine.pace'], m,`
+- [ ] `./myokit/tests/test_datalog.py:            ValueError, 'support bound', prepare_log, myokit.LOG_BOUND, m,`
+- [ ] `./myokit/tests/test_formats_cellml.py:        # 2. Export with protocol, but without variable bound to pacing`
+- [ ] `./myokit/tests/test_formats_cellml.py:        # 3. Export with protocol and variable bound to pacing`
+- [ ] `./myokit/tests/test_formats_easyml.py:            # Test with extra bound variables`
+- [ ] `./myokit/tests/test_jacobian_tracer.py:        # Run a simulation, save all states & bound values`
+- [ ] `./myokit/tests/test_jacobian_tracer.py:        self.assertRaisesRegex(ValueError, 'bound', g.jacobians, d2)`
+- [ ] `./myokit/tests/test_lib_guess.py:        # 1. Should work for variable bound to pace, and with protocol`
+- [ ] `./myokit/tests/test_lib_guess.py:        # 2. Should fail if nothing bound to pace`
+- [ ] `./myokit/tests/test_lib_guess.py:        # 1. Should work for variable bound to pace, and with protocol`
+- [ ] `./myokit/tests/test_lib_guess.py:    def test_distance_to_bound(self):`
+- [ ] `./myokit/tests/test_lib_guess.py:        # Tests the (hidden) method to calculate the distance to a bound`
+- [ ] `./myokit/tests/test_lib_guess.py:        d = guess._distance_to_bound(m.get('env.time'))`
+- [ ] `./myokit/tests/test_lib_guess.py:        d = guess._distance_to_bound(m.get('env.time'))`
+- [ ] `./myokit/tests/test_lib_guess.py:        # Can only be called on bound variable`
+- [ ] `./myokit/tests/test_lib_guess.py:            ValueError, 'must be a bound variable',`
+- [ ] `./myokit/tests/test_lib_guess.py:            guess._distance_to_bound, m.get('c.a'))`
+- [ ] `./myokit/tests/test_lib_guess.py:            ValueError, 'must be a bound variable',`
+- [ ] `./myokit/tests/test_lib_guess.py:            guess._distance_to_bound, m.get('c.c'))`
+- [ ] `./myokit/tests/test_lib_multi.py:        # Test the binding() method that returns a bound variable.`
+- [ ] `./myokit/tests/test_rhs_benchmarker.py:        # Cannot create with bound variables`
+- [ ] `./myokit/tests/test_rhs_benchmarker.py:            ValueError, 'bound', myokit.RhsBenchmarker, m, [t])`
+- [ ] `./myokit/tests/test_sbml_parser.py:            ' boundaryCondition="true" />'`
+- [ ] `./myokit/tests/test_sbml_parser.py:            ' boundaryCondition="true" />'`
+- [ ] `./myokit/tests/test_sbml_parser.py:            'compartment="someComp" constant="false" boundaryCondition="false"'`
+- [ ] `./myokit/tests/test_sbml_parser.py:            'compartment="someComp" constant="false" boundaryCondition="false"'`
+- [ ] `./myokit/tests/test_sbml_parser.py:             '    boundaryCondition="true"/>'`
+- [ ] `./myokit/tests/test_sbml_parser.py:             '    boundaryCondition="true"/>'`
+- [ ] `./myokit/tests/test_sbml_parser.py:        # Non-boundary species`
+- [ ] `./myokit/tests/test_sbml_parser.py:        self.assertFalse(s0.is_boundary())`
+- [ ] `./myokit/tests/test_sbml_parser.py:        x = '<species compartment="c" id="s" boundaryCondition="false" />'`
+- [ ] `./myokit/tests/test_sbml_parser.py:        self.assertFalse(s.is_boundary())`
+- [ ] `./myokit/tests/test_sbml_parser.py:        x = '<species compartment="c" id="s" boundaryCondition="true" />'`
+- [ ] `./myokit/tests/test_sbml_parser.py:        self.assertTrue(s.is_boundary())`
+- [ ] `./myokit/tests/test_expressions.py:    bound.dot_pace_direct = 0`
+- [ ] `./myokit/tests/test_expressions.py:    bound.dot_pace_indirect = 0`
+- [ ] `./myokit/tests/test_expressions.py:    [bound]`
+- [ ] `./myokit/tests/test_expressions.py:        # Derivative of a bound variable is one or zero`
+- [ ] `./myokit/tests/test_expressions.py:        # Derivative of something depending only on a bound variable is one or`
+- [ ] `./myokit/tests/test_expressions.py:        p = myokit.Name(m.get('bound.pace'))`
+- [ ] `./myokit/tests/test_expressions.py:        pd = myokit.Name(m.get('bound.pace_direct'))`
+- [ ] `./myokit/tests/test_expressions.py:        pi = myokit.Name(m.get('bound.pace_indirect'))`
+- [ ] `./myokit/tests/test_expressions.py:        td = myokit.Name(m.get('bound.time_direct'))`
+- [ ] `./myokit/tests/test_expressions.py:        ti = myokit.Name(m.get('bound.time_indirect'))`
+- [ ] `./myokit/tests/test_expressions.py:        # Derivative of something depending only on a bound variable is one or`
+- [ ] `./myokit/tests/test_expressions.py:        dpd = m.get('bound.dot_pace_direct').lhs()`
+- [ ] `./myokit/tests/test_expressions.py:        dpi = m.get('bound.dot_pace_indirect').lhs()`
+- [ ] `./myokit/tests/test_simulation_log_interval.py:        # Test bound variable`
+- [ ] `./myokit/tests/test_simulation_log_interval.py:        # Test variable dependent on bound variable`
+- [ ] `./myokit/tests/test_model.py:            myokit.InvalidBindingError, 'already bound to', t.set_binding,`
+- [ ] `./myokit/tests/test_model.py:        # State variables can't be bound`
+- [ ] `./myokit/tests/test_model.py:        self.assertFalse(m.has_variables(bound=True))`
+- [ ] `./myokit/tests/test_model.py:        self.assertTrue(m.has_variables(bound=True))`
+- [ ] `./myokit/tests/test_model.py:            m.has_variables(const=False, state=False, bound=False))`
+- [ ] `./myokit/tests/test_model.py:        # Test an exception is raised if nothing is bound to time.`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:    def test_is_boundary(self):`
+- [ ] `./myokit/tests/test_sbml_api.py:        # Test is boundary`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=True)`
+- [ ] `./myokit/tests/test_sbml_api.py:        self.assertTrue(species.is_boundary())`
+- [ ] `./myokit/tests/test_sbml_api.py:        # Test is not boundary`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:        self.assertFalse(species.is_boundary())`
+- [ ] `./myokit/tests/test_sbml_api.py:        # Test bad boundary`
+- [ ] `./myokit/tests/test_sbml_api.py:            sbml.SBMLError, 'Is_boundary <', sbml.Species, self.c,`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:        self.assertFalse(species.is_boundary())`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:            is_boundary=False)`
+- [ ] `./myokit/tests/test_sbml_api.py:    def test_reaction_boundary_species(self):`
+- [ ] `./myokit/tests/test_sbml_api.py:        # Tests whether rate of boundary species remains unaltered.`
+- [ ] `./myokit/tests/test_sbml_api.py:        s2 = m.add_species(compartment=c, sid='s2', is_boundary=True)`
+- [ ] `./myokit/tests/test_sbml_api.py:        s3 = m.add_species(compartment=c, sid='s3', is_boundary=True)`
+- [ ] `./myokit/tests/test_sbml_api.py:        # Chet that variable is time bound`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:            ValueError, 'fiber model to be bound to "diffusion_current"',`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:            ValueError, 'tissue model to be bound to "diffusion_current"',`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:            # res = part, time, icell, var, value, states, bound`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:            # Missing state and bound var in fiber log`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:            # Missing state and bound var in tissue log`
+- [ ] `./myokit/tests/test_simulation_opencl.py:            # Set paced cells out of bounds`
+- [ ] `./myokit/tests/test_simulation_opencl.py:            # Is-paced called out of bounds`
+- [ ] `./myokit/tests/test_simulation_opencl.py:            # Set paced cells out of bounds`
+- [ ] `./myokit/tests/test_simulation_opencl.py:            # Is-paced called out of bounds`
+- [ ] `./myokit/tests/test_simulation_opencl.py:            time, icell, variable, value, states, bounds = self.s2.find_nan(d)`
+- [ ] `./myokit/tests/test_simulation_opencl.py:            time, icell, variable, value, states, bounds = self.s2.find_nan(`
+- [ ] `./myokit/tests/test_simulation_opencl.py:            time, icell, variable, value, states, bounds = self.s2.find_nan(`
+- [ ] `./myokit/tests/test_variable.py:        self.assertRaisesRegex(Exception, 'cannot be bound', v.promote, 4)`
+- [ ] `./myokit/tests/test_cmodel.py:        # Sensitivity of bound variable`
+
+
+
+- [ ] `./myokit/_err.py:    Raised when an invalid binding is made.`
+- [ ] `./myokit/_expressions.py:    binding power* (myokit uses a top-down operator precedence parsing scheme)`
+- [ ] `./myokit/_expressions.py:    _rbp = None     # Right-binding power (see parser).`
+- [ ] `./myokit/_parsing.py:    # Parse definition, quick unit, bind, label and description syntax`
+- [ ] `./myokit/_parsing.py:        # Parse bind`
+- [ ] `./myokit/_parsing.py:        parse_binding(stream, info, var)`
+- [ ] `./myokit/_parsing.py:                parse_binding(stream, info, var)`
+- [ ] `./myokit/_parsing.py:def parse_binding(stream, info, var):`
+- [ ] `./myokit/_parsing.py:    Parses the "bind" part of a variable definition.`
+- [ ] `./myokit/_parsing.py:    # Get binding label`
+- [ ] `./myokit/_parsing.py:        var.set_binding(label)`
+- [ ] `./myokit/_parsing.py:        raise ParseError('Illegal binding', line, char, str(e), cause=e)`
+- [ ] `./myokit/_parsing.py:add_token('BIND', 'bind')       # External value`
+- [ ] `./myokit/_parsing.py:    'bind': BIND,`
+- [ ] `./myokit/_parsing.py:    current right-binding-power.`
+- [ ] `./myokit/_parsing.py:    binding power is encountered.`
+- [ ] `./myokit/_parsing.py:        This parser's right binding power. A ``LedParser`` will absorb tokens`
+- [ ] `./myokit/_parsing.py:        on its right as long as it has more binding power than the token`
+- [ ] `./myokit/_datalog.py:            for label, var in model.bindings():`
+- [ ] `./myokit/_model_api.py:        # A dict mapping binding names to variables`
+- [ ] `./myokit/_model_api.py:        self._bindings = {}`
+- [ ] `./myokit/_model_api.py:    def binding(self, binding):`
+- [ ] `./myokit/_model_api.py:        Returns the variable with the binding label ``binding``. If no such`
+- [ ] `./myokit/_model_api.py:        return self._bindings.get(binding, None)`
+- [ ] `./myokit/_model_api.py:    def bindings(self):`
+- [ ] `./myokit/_model_api.py:        Returns an iterator over all (binding label : variable) mappings in`
+- [ ] `./myokit/_model_api.py:        return dict(self._bindings).items()`
+- [ ] `./myokit/_model_api.py:    def bindingx(self, binding):`
+- [ ] `./myokit/_model_api.py:        Returns the variable with the binding label ``binding``, raising a`
+- [ ] `./myokit/_model_api.py:        See :meth:`Model.binding()`.`
+- [ ] `./myokit/_model_api.py:            return self._bindings[binding]`
+- [ ] `./myokit/_model_api.py:                'No variable found with binding "' + str(binding) + '".')`
+- [ ] `./myokit/_model_api.py:            To set the values of external inputs, a dictionary mapping binding`
+- [ ] `./myokit/_model_api.py:                var = self._bindings.get(label)`
+- [ ] `./myokit/_model_api.py:        2. By assuming variables with the same label/binding map onto each`
+- [ ] `./myokit/_model_api.py:        # Check for bindings or labels that are already in use`
+- [ ] `./myokit/_model_api.py:                if self.binding(var.binding()) is not None:`
+- [ ] `./myokit/_model_api.py:                        'This model already has a variable with the binding "'`
+- [ ] `./myokit/_model_api.py:                        + str(var.binding()) + '".')`
+- [ ] `./myokit/_model_api.py:                # Match variables by binding, label, or name (if enabled)`
+- [ ] `./myokit/_model_api.py:                self_bind_var = self.binding(ext_var.binding())`
+- [ ] `./myokit/_model_api.py:                if self_bind_var is not None:`
+- [ ] `./myokit/_model_api.py:                    var_map[ext_var] = self_bind_var`
+- [ ] `./myokit/_model_api.py:    def prepare_bindings(self, labels):`
+- [ ] `./myokit/_model_api.py:        Takes a mapping of binding labels to internal references as input and`
+- [ ] `./myokit/_model_api.py:        bindings not mapped to any internal reference will be deleted.`
+- [ ] `./myokit/_model_api.py:                'binding_label_1' : internal_name_1,`
+- [ ] `./myokit/_model_api.py:                'binding_label_2' : internal_name_2,`
+- [ ] `./myokit/_model_api.py:        Unsupported bindings (i.e. bindings not appearing in ``labels``) will`
+- [ ] `./myokit/_model_api.py:        for label, var in self._bindings.items():`
+- [ ] `./myokit/_model_api.py:            var.set_binding(None)`
+- [ ] `./myokit/_model_api.py:    def _register_binding(self, label, variable=None):`
+- [ ] `./myokit/_model_api.py:        binding label to/from a variable.`
+- [ ] `./myokit/_model_api.py:            # Remove binding`
+- [ ] `./myokit/_model_api.py:            del self._bindings[label]`
+- [ ] `./myokit/_model_api.py:            # Check for existing binding`
+- [ ] `./myokit/_model_api.py:            if label in self._bindings:`
+- [ ] `./myokit/_model_api.py:                    'Duplicate binding: <'`
+- [ ] `./myokit/_model_api.py:                    + str(self._bindings[label].qname())`
+- [ ] `./myokit/_model_api.py:                    'Duplicate binding: Binding "' + str(label)`
+- [ ] `./myokit/_model_api.py:            # Add binding`
+- [ ] `./myokit/_model_api.py:            self._bindings[label] = variable`
+- [ ] `./myokit/_model_api.py:            # Check for existing binding`
+- [ ] `./myokit/_model_api.py:            if label in self._bindings:`
+- [ ] `./myokit/_model_api.py:                    + '" is already in use as a binding for <'`
+- [ ] `./myokit/_model_api.py:                    + str(self._bindings[label].qname()) + '>.')`
+- [ ] `./myokit/_model_api.py:        The time variable is identified by it's binding to the external source`
+- [ ] `./myokit/_model_api.py:            return self._bindings['time']`
+- [ ] `./myokit/_model_api.py:            time = self._bindings['time']`
+- [ ] `./myokit/_model_api.py:        if time.binding() != 'time':    # pragma: no cover`
+- [ ] `./myokit/_model_api.py:        used += [x for x in self._bindings.values()]`
+- [ ] `./myokit/_model_api.py:    :meth:`Variable.set_binding()`. In this case, the right hand side set for`
+- [ ] `./myokit/_model_api.py:        # This variable's binding label, if given`
+- [ ] `./myokit/_model_api.py:        self._binding = None`
+- [ ] `./myokit/_model_api.py:    def binding(self):`
+- [ ] `./myokit/_model_api.py:        Returns this variable's binding label or ``None`` if no binding is set.`
+- [ ] `./myokit/_model_api.py:        return self._binding`
+- [ ] `./myokit/_model_api.py:        bindings, unit etc.`
+- [ ] `./myokit/_model_api.py:        # _binding`
+- [ ] `./myokit/_model_api.py:        if self._binding:`
+- [ ] `./myokit/_model_api.py:            v.set_binding(self._binding)`
+- [ ] `./myokit/_model_api.py:        # Add bind and description shortcuts`
+- [ ] `./myokit/_model_api.py:        bind = self._binding`
+- [ ] `./myokit/_model_api.py:                # Append bind`
+- [ ] `./myokit/_model_api.py:                if bind:`
+- [ ] `./myokit/_model_api.py:                    text = head + ' bind ' + bind`
+- [ ] `./myokit/_model_api.py:                        bind = None`
+- [ ] `./myokit/_model_api.py:        # Append binding`
+- [ ] `./myokit/_model_api.py:        if bind:`
+- [ ] `./myokit/_model_api.py:            b.write(pre + 'bind ' + bind + eol)`
+- [ ] `./myokit/_model_api.py:            # Remove any bindings or labels`
+- [ ] `./myokit/_model_api.py:            self.set_binding(None)`
+- [ ] `./myokit/_model_api.py:        Returns ``True`` if a binding label has been added to this variable.`
+- [ ] `./myokit/_model_api.py:        if self._binding is not None:`
+- [ ] `./myokit/_model_api.py:        self._is_bound = self._binding is not None`
+- [ ] `./myokit/_model_api.py:    def set_binding(self, binding):`
+- [ ] `./myokit/_model_api.py:        Adds a unique binding label to this variable, indicating it can be used`
+- [ ] `./myokit/_model_api.py:        To remove a binding, call ``set_binding(None)``.`
+- [ ] `./myokit/_model_api.py:        Adding or removing binding labels resets the model's validation status.`
+- [ ] `./myokit/_model_api.py:        if binding is not None:`
+- [ ] `./myokit/_model_api.py:            binding = check_name(binding)`
+- [ ] `./myokit/_model_api.py:            # Check for existing binding`
+- [ ] `./myokit/_model_api.py:            if self._binding is not None:`
+- [ ] `./myokit/_model_api.py:                    ' is already bound to "' + self._binding + '".')`
+- [ ] `./myokit/_model_api.py:        # Set binding (model checks uniqueness)`
+- [ ] `./myokit/_model_api.py:            if binding is None:`
+- [ ] `./myokit/_model_api.py:                if self._binding is not None:`
+- [ ] `./myokit/_model_api.py:                    model._register_binding(self._binding, None)`
+- [ ] `./myokit/_model_api.py:                model._register_binding(binding, self)`
+- [ ] `./myokit/_model_api.py:            self._binding = binding`
+- [ ] `./myokit/_model_api.py:        # Check for existing label or binding`
+
+
+
+- [ ] `./myokit/tests/test_model.py:    def test_binding(self):`
+- [ ] `./myokit/tests/test_model.py:        # Tests setting and getting of bindings`
+- [ ] `./myokit/tests/test_model.py:        # Note that set_binding() is part of Variable, so not tested here`
+- [ ] `./myokit/tests/test_model.py:        x.set_binding('hello')`
+- [ ] `./myokit/tests/test_model.py:        y.set_binding('goodbye')`
+- [ ] `./myokit/tests/test_model.py:        z.set_binding('x')`
+- [ ] `./myokit/tests/test_model.py:        # Test binding()`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(m.binding('goodbye'), y)`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(m.binding('hello'), x)`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(m.binding('x'), z)`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(m.binding('y'), None)`
+- [ ] `./myokit/tests/test_model.py:        # Test bindings()`
+- [ ] `./myokit/tests/test_model.py:        bindings = dict(m.bindings())`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(bindings['goodbye'], y)`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(bindings['hello'], x)`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(bindings['x'], z)`
+- [ ] `./myokit/tests/test_model.py:        self.assertFalse('y' in bindings)`
+- [ ] `./myokit/tests/test_model.py:        # Test bindingx()`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(m.bindingx('goodbye'), y)`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(m.bindingx('hello'), x)`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(m.bindingx('x'), z)`
+- [ ] `./myokit/tests/test_model.py:            'No variable found with binding "y"',`
+- [ ] `./myokit/tests/test_model.py:            m.bindingx, 'y')`
+- [ ] `./myokit/tests/test_model.py:    def test_bindings(self):`
+- [ ] `./myokit/tests/test_model.py:        # Test setting bindings and :meth:`Model.bindings()`.`
+- [ ] `./myokit/tests/test_model.py:        # Test set_binding() and bindings()`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        bindings = list(m.bindings())`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(len(bindings), 1)`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(bindings[0][0], 'time')`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(bindings[0][1], t)`
+- [ ] `./myokit/tests/test_model.py:            myokit.InvalidBindingError, 'already bound to', t.set_binding,`
+- [ ] `./myokit/tests/test_model.py:            myokit.InvalidBindingError, 'Duplicate binding', v.set_binding,`
+- [ ] `./myokit/tests/test_model.py:            myokit.InvalidBindingError, 'in use as a label', w.set_binding,`
+- [ ] `./myokit/tests/test_model.py:            myokit.InvalidBindingError, 'State variables', v.set_binding, 'x')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:            't = 0 [ms] bind time',`
+- [ ] `./myokit/tests/test_model.py:            'x = 1 [cm^3] bind time',`
+- [ ] `./myokit/tests/test_model.py:        b.set_binding('bbb')`
+- [ ] `./myokit/tests/test_model.py:            'b = 2 [m] bind bbb\n'`
+- [ ] `./myokit/tests/test_model.py:            ' 8     bind bbb\n'`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_model.py:        # Import independent component with labels and bindings`
+- [ ] `./myokit/tests/test_model.py:        self.assertEqual(m1.binding('time'), m1.get('e.t'))`
+- [ ] `./myokit/tests/test_model.py:        # Re-importing e is not allowed, as it leads to double bindings and/or`
+- [ ] `./myokit/tests/test_model.py:        ms.time().set_binding(None)`
+- [ ] `./myokit/tests/test_model.py:        ms.get('e.t').set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:            myokit.InvalidBindingError, 'binding "time"',`
+- [ ] `./myokit/tests/test_model.py:        # Import r, using a binding for e.h`
+- [ ] `./myokit/tests/test_model.py:        ms.get('e.h').set_binding('this_is_h')`
+- [ ] `./myokit/tests/test_model.py:        m1.get('e.h').set_binding('this_is_h')`
+- [ ] `./myokit/tests/test_model.py:        ms.get('e.h').set_binding(None)`
+- [ ] `./myokit/tests/test_model.py:        m1.get('e.h').set_binding(None)`
+- [ ] `./myokit/tests/test_model.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_model.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_model.py:            t = 0 [ms] bind time`
+- [ ] `./myokit/tests/test_model.py:            time = 0 [s] bind time`
+- [ ] `./myokit/tests/test_model.py:            time = 0 [ms] bind time`
+- [ ] `./myokit/tests/test_model.py:            time = 0 [A] bind time`
+- [ ] `./myokit/tests/test_model.py:            time = 0 [A] bind time`
+- [ ] `./myokit/tests/test_model.py:            time = 0 [s] bind time`
+- [ ] `./myokit/tests/test_model.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_model.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_model.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        # Labels can't overlap with bindings`
+- [ ] `./myokit/tests/test_model.py:            myokit.InvalidLabelError, 'in use as a binding', w.set_label,`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_model.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model_building.py:        self.assertIsNone(time.binding())`
+- [ ] `./myokit/tests/test_model_building.py:        time.set_binding('time')`
+- [ ] `./myokit/tests/test_model_building.py:        self.assertIsNotNone(time.binding())`
+- [ ] `./myokit/tests/test_model_building.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_model_building.py:        self.assertRaises(myokit.InvalidNameError, m.add_component, 'bind')`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time\n',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time\n',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time\n',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time\n',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time\n',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            '    bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            '    bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            '    bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            '    bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            '    bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            '    bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            '    bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:        self.assertEqual(t.binding(), 'time')`
+- [ ] `./myokit/tests/test_parsing.py:            '    bind time',`
+- [ ] `./myokit/tests/test_parsing.py:        self.assertEqual(t.binding(), 'time')`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_parsing.py:            t = 0 bind time`
+
+- [ ] `./myokit/_sim/cable.c:# Process bindings, remove unsupported bindings.`
+- [ ] `./myokit/_sim/cable.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/_sim/cable.c:var = model.binding('diffusion_current')`
+- [ ] `./myokit/_sim/cable.c:var = model.binding('pace')`
+- [ ] `./myokit/_sim/cable.c:var_pace = model.binding('pace')`
+- [ ] `./myokit/_sim/cable.c:var = model.binding('pace')`
+- [ ] `./myokit/_sim/cable.c:var = model.binding('diffusion_current')`
+- [ ] `./myokit/_sim/fiber_tissue.c:var = modelf.binding('pace')`
+- [ ] `./myokit/_sim/fiber_tissue.c:var = modelf.binding('diffusion_current')`
+- [ ] `./myokit/_sim/fiber_tissue.c:var = modelt.binding('pace')`
+- [ ] `./myokit/_sim/fiber_tissue.c:var = modelt.binding('diffusion_current')`
+- [ ] `./myokit/_sim/jacobian.cpp:    print('#define ' + v(model.binding(label)) + ' inputs[' + str(k) + ']')`
+- [ ] `./myokit/_sim/jacobian.cpp:    print('#undef ' + v(model.binding(label)))`
+- [ ] `./myokit/_sim/openclsim.c:var = model.binding('time')`
+- [ ] `./myokit/_sim/openclsim.c:var = model.binding('pace')`
+- [ ] `./myokit/_sim/openclsim.c:var = model.binding('diffusion_current')`
+- [ ] `./myokit/_sim/rhs.c:# Process bindings, remove unsupported bindings, get map of bound variables to`
+- [ ] `./myokit/_sim/rhs.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/_sim/cable.py:    This simulation provides the following inputs variables can bind to:`
+- [ ] `./myokit/_sim/cable.py:        # Check for binding to diffusion_current`
+- [ ] `./myokit/_sim/cable.py:        if self._model.binding('diffusion_current') is None:`
+- [ ] `./myokit/_sim/cable.py:        pace = self._model.binding('pace')`
+- [ ] `./myokit/_sim/fiber_tissue.py:    The simulation provides the following inputs variables can bind to:`
+- [ ] `./myokit/_sim/fiber_tissue.py:        # Check for binding to diffusion_current`
+- [ ] `./myokit/_sim/fiber_tissue.py:        if self._modelf.binding('diffusion_current') is None:`
+- [ ] `./myokit/_sim/fiber_tissue.py:        if self._modelt.binding('diffusion_current') is None:`
+- [ ] `./myokit/_sim/fiber_tissue.py:        ucf = self._modelf.binding('diffusion_current').unit()`
+- [ ] `./myokit/_sim/fiber_tissue.py:        uct = self._modelt.binding('diffusion_current').unit()`
+- [ ] `./myokit/_sim/fiber_tissue.py:        # Process bindings, remove unsupported bindings, get map of bound`
+- [ ] `./myokit/_sim/fiber_tissue.py:        self._bound_variablesf = self._modelf.prepare_bindings({`
+- [ ] `./myokit/_sim/fiber_tissue.py:        self._bound_variablest = self._modelt.prepare_bindings({`
+- [ ] `./myokit/_sim/fiber_tissue.py:            v = self._modelf.binding(label)`
+- [ ] `./myokit/_sim/fiber_tissue.py:            v = self._modelt.binding(label)`
+- [ ] `./myokit/_sim/fiber_tissue.py:                if var.binding() in self._global:`
+- [ ] `./myokit/_sim/fiber_tissue.py:            v = self._modelf.binding(label)`
+- [ ] `./myokit/_sim/fiber_tissue.py:            v = self._modelt.binding(label)`
+- [ ] `./myokit/_sim/fiber_tissue.py:                # Get names of vars used in bindings`
+- [ ] `./myokit/_sim/fiber_tissue.py:                vdiff = model.binding('diffusion_current').qname()`
+- [ ] `./myokit/_sim/fiber_tissue.py:                vpace = model.binding('pace')`
+- [ ] `./myokit/_sim/jacobian.py:        self._inputs = [label for label, var in self._model.bindings()]`
+- [ ] `./myokit/_sim/jacobian.py:            v = self._model.binding(label)`
+- [ ] `./myokit/_sim/jacobian.py:        # Store the initial values (won't be able to access once time binding`
+- [ ] `./myokit/_sim/jacobian.py:        # Unbind all inputs`
+- [ ] `./myokit/_sim/jacobian.py:        for label, var in self._model.bindings():`
+- [ ] `./myokit/_sim/jacobian.py:            var.set_binding(None)`
+- [ ] `./myokit/_sim/openclsim.py:    The simulation provides the following inputs variables can bind to:`
+- [ ] `./myokit/_sim/openclsim.py:        # Process bindings: remove unsupported bindings, get map of bound`
+- [ ] `./myokit/_sim/openclsim.py:        self._bound_variables = self._model.prepare_bindings(inputs)`
+- [ ] `./myokit/_sim/openclsim.py:            var = self._model.binding(label)`
+- [ ] `./myokit/_sim/openclsim.py:                if var.binding() in self._global:`
+- [ ] `./myokit/_sim/openclsim.py:            v = self._model.binding(label)`
+- [ ] `./myokit/_sim/openclsim.py:                # Get the names of the variables used in bindings, to use when`
+- [ ] `./myokit/_sim/openclsim.py:                vpace = self._model.binding('pace')`
+- [ ] `./myokit/_sim/openclsim.py:                    vdiff = self._model.binding('diffusion_current')`
+- [ ] `./myokit/_sim/cmodel.py:        bound_variables = self._prepare_bindings(model, labels)`
+- [ ] `./myokit/_sim/cmodel.py:    def _prepare_bindings(self, model, labels):`
+- [ ] `./myokit/_sim/cmodel.py:        Takes a mapping of binding labels to internal references as input and`
+- [ ] `./myokit/_sim/cmodel.py:        bindings not mapped to any internal reference will be deleted.`
+- [ ] `./myokit/_sim/cmodel.py:                'binding_label_1' : internal_name_1,`
+- [ ] `./myokit/_sim/cmodel.py:                'binding_label_2' : internal_name_2,`
+- [ ] `./myokit/_sim/cmodel.py:        Unsupported bindings (i.e. bindings not appearing in ``labels``) will`
+- [ ] `./myokit/_sim/cmodel.py:        for label, var in model._bindings.items():`
+- [ ] `./myokit/_sim/cmodel.py:            var.set_binding(None)`
+- [ ] `./myokit/_sim/cmodel.py:                return 'B_' + var.binding()`
+- [ ] `./myokit/_sim/cvodessim.py:        bound to the model variable with binding `pace`. Alternativly, a dict`
+- [ ] `./myokit/_sim/cvodessim.py:        mapping binding labels with :class:`myokit.Protocol` objects can be`
+- [ ] `./myokit/_sim/cvodessim.py:        used to bind multiple protocols to the model. Can pass None for no`
+- [ ] `./myokit/_sim/cvodessim.py:        if myokit.DEBUG_SP or self._model.binding('realtime') is not None:`
+- [ ] `./myokit/_sim/cvodessim.py:                int(self._model.binding('realtime') is not None),`
+- [ ] `./myokit/_sim/cvodessim.py:                txt.append('Inputs for binding:')`
+- [ ] `./myokit/_sim/cvodessim.py:        To remove a previously set binding call this method with ``protocol =`
+- [ ] `./myokit/formats/ansic/template/cable.c:# Process bindings, remove unsupported bindings`
+- [ ] `./myokit/formats/ansic/template/cable.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/ansic/template/cable.c:if model.binding('diffusion_current') is None:`
+- [ ] `./myokit/formats/ansic/template/cable.c:    if var.binding() == 'diffusion_current':`
+- [ ] `./myokit/formats/ansic/template/cable.c:    if var.binding() == 'diffusion_current':`
+- [ ] `./myokit/formats/ansic/template/cable.c:    if var.binding() == 'diffusion_current':`
+- [ ] `./myokit/formats/ansic/template/cable.c:    if var.binding() == 'pace':`
+- [ ] `./myokit/formats/ansic/template/cable.c:    if var.binding() == 'time':`
+- [ ] `./myokit/formats/ansic/template/euler.c:# Process bindings, remove unsupported bindings, get map of bound variables to`
+- [ ] `./myokit/formats/ansic/template/euler.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/ansic/template/sim.c:# Process bindings, remove unsupported bindings, get map of bound variables to`
+- [ ] `./myokit/formats/ansic/template/sim.c:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/cellml/v1/_api.py:                            v.set_binding('time')`
+- [ ] `./myokit/formats/cellml/v1/_api.py:        # Check that a binding to time has been made`
+- [ ] `./myokit/formats/cellml/v1/_api.py:        if m.binding('time') is None:`
+- [ ] `./myokit/formats/cellml/v1/_api.py:                undefined_variables[0].set_binding('time')`
+- [ ] `./myokit/formats/cellml/v2/_api.py:                        v.set_binding('time')`
+- [ ] `./myokit/formats/channelml/_importer.py:        v.set_binding('time')`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:# Check if model has diffusion_current binding`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:if model.binding('diffusion_current') is None:`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:    raise ValueError('Model should have a variable with binding `diffusion_current`.')`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:# Get initial values (before time binding is removed and model becomes invalid)`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:# Process bindings, remove unsupported bindings, get map of bound variables to`
+- [ ] `./myokit/formats/cuda/template/kernel.cu:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/easyml/_exporter.py:        pace = model.binding('pace')`
+- [ ] `./myokit/formats/easyml/_exporter.py:        i_diff = model.binding('diffusion_current')`
+- [ ] `./myokit/formats/easyml/_exporter.py:        # Remove all bindings and labels (so they register as unused)`
+- [ ] `./myokit/formats/easyml/_exporter.py:        for b, var in model.bindings():`
+- [ ] `./myokit/formats/easyml/_exporter.py:            var.set_binding(None)`
+- [ ] `./myokit/formats/easyml/_exporter.py:        time.set_binding('time')`
+- [ ] `./myokit/formats/matlab/_exporter.py:        bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/opencl/_exporter.py:        # Check if model has binding to diffusion_current`
+- [ ] `./myokit/formats/opencl/_exporter.py:        if model.binding('diffusion_current') is None:`
+- [ ] `./myokit/formats/opencl/_exporter.py:        # Process bindings, remove unsupported bindings, get map of bound`
+- [ ] `./myokit/formats/opencl/_exporter.py:        bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/python/template/sim.py:# Process bindings`
+- [ ] `./myokit/formats/python/template/sim.py:bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/formats/sbml/_api.py:        var.set_binding('time')`
+- [ ] `./myokit/formats/stan/_exporter.py:                return 'time' if var.binding() == ' time' else 'pace'`
+- [ ] `./myokit/formats/stan/_exporter.py:        bound_variables = model.prepare_bindings({`
+- [ ] `./myokit/gui/source.py:    ANNOT_KEYS = ['in', 'bind', 'label']`
+- [ ] `./myokit/gui/source.py:            QtCore.QRegExp(r'(\s*)(bind)\s+(' + name + ')'),`
+- [ ] `./myokit/lib/common.py:        vvar.set_binding(None)`
+- [ ] `./myokit/lib/common.py:        self._vvar.set_binding(None)`
+- [ ] `./myokit/lib/common.py:        # Unbind any existing pace variable`
+- [ ] `./myokit/lib/common.py:        var = self._model.binding('pace')`
+- [ ] `./myokit/lib/common.py:            var.set_binding(None)`
+- [ ] `./myokit/lib/common.py:        self._pvar.set_binding('pace')`
+- [ ] `./myokit/lib/guess.py:    # 1. Remove binding`
+- [ ] `./myokit/lib/guess.py:    # 3. Reinstate binding`
+- [ ] `./myokit/lib/guess.py:    # Remove binding`
+- [ ] `./myokit/lib/guess.py:    binding = variable.binding()`
+- [ ] `./myokit/lib/guess.py:    if binding is None:`
+- [ ] `./myokit/lib/guess.py:    variable.set_binding(None)`
+- [ ] `./myokit/lib/guess.py:        # Reinstate binding`
+- [ ] `./myokit/lib/guess.py:        variable.set_binding(binding)`
+- [ ] `./myokit/lib/guess.py:    v_pace = model.binding('pace')`
+- [ ] `./myokit/lib/guess.py:        # Unbind pacing variable and remove if unused`
+- [ ] `./myokit/lib/guess.py:        v_pace.set_binding(None)`
+- [ ] `./myokit/lib/guess.py:        # Unbind pacing variable`
+- [ ] `./myokit/lib/guess.py:        v_pace.set_binding(None)`
+- [ ] `./myokit/lib/guess.py:            if v.binding() == 'time':`
+- [ ] `./myokit/lib/guess.py:    v_pace = model.binding('pace')`
+- [ ] `./myokit/lib/guess.py:        v_pace.set_binding('pace')`
+- [ ] `./myokit/lib/guess.py:    pace = model.binding('pace')`
+- [ ] `./myokit/lib/guess.py:        if v not in used and v.binding() is None:`
+- [ ] `./myokit/lib/multi.py:def binding(model, binding):`
+- [ ] `./myokit/lib/multi.py:    Deprecated alias of :meth:`Model.bindingx()`.`
+- [ ] `./myokit/lib/multi.py:        'The method `myokit.lib.multi.binding()` is deprecated and will be'`
+- [ ] `./myokit/lib/multi.py:        ' removed in future versions of Myokit. Please use `Model.bindingx()`'`
+- [ ] `./myokit/lib/multi.py:    return model.bindingx(binding)`
+- [ ] `./myokit/lib/hh.py:        # Demote unnecessary states and remove bindings`
+- [ ] `./myokit/lib/hh.py:        # Unbind everything except time`
+- [ ] `./myokit/lib/hh.py:        for label, var in self._model.bindings():`
+- [ ] `./myokit/lib/hh.py:                var.set_binding(None)`
+- [ ] `./myokit/lib/markov.py:        # Demote unnecessary states, remove bindings and validate model.`
+- [ ] `./myokit/lib/markov.py:        # Unbind everything except time`
+- [ ] `./myokit/lib/markov.py:        for label, var in self._model.bindings():`
+- [ ] `./myokit/lib/markov.py:                var.set_binding(None)`
+- [ ] `./myokit/_bin/install-lin/myokit.lang:          <keyword>bind</keyword>`
+- [ ] `./myokit/_bin/example.mmt:    bind diffusion_current`
+- [ ] `./myokit/_bin/example.mmt:    bind time`
+- [ ] `./myokit/_bin/example.mmt:    bind pace`
+- [ ] `./myokit/tests/data/beeler-1977-model.mmt:time = 0 in [ms] bind time`
+- [ ] `./myokit/tests/data/beeler-1977-model.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/beeler-1977-model.mmt:i_diff = 0 bind diffusion_current`
+- [ ] `./myokit/tests/data/beeler-1977-units.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/beeler-1977-units.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/conditional.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/conditional.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/cv1d.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/cv1d.mmt:pace = 1 bind pace  # Set to 1 to test if it becomes 0 without a protocol`
+- [ ] `./myokit/tests/data/cv1d.mmt:i_diff = 0 bind diffusion_current`
+- [ ] `./myokit/tests/data/decker-2009.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/decker-2009.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/decker-2009.mmt:i_diff = 0 bind diffusion_current`
+- [ ] `./myokit/tests/data/dn-1985-normalised.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/dn-1985-normalised.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/dn-1985-normalised.mmt:step = 0 bind time_step`
+- [ ] `./myokit/tests/data/dn-1985-normalised.mmt:i_diff = 0 bind diffusion_current`
+- [ ] `./myokit/tests/data/dom-markov.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/dom-markov.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/io/bad1d-4-not-a-zip.zip:time = 0 in [ms] bind time`
+- [ ] `./myokit/tests/data/io/bad1d-4-not-a-zip.zip:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/io/bad2d-4-not-a-zip.zip:time = 0 in [ms] bind time`
+- [ ] `./myokit/tests/data/io/bad2d-4-not-a-zip.zip:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/io/block2d.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/io/block2d.mmt:pace = 1 bind pace  # Set to 1 to test if it becomes 0 without a protocol`
+- [ ] `./myokit/tests/data/io/block2d.mmt:i_diff = 0 bind diffusion_current`
+- [ ] `./myokit/tests/data/lr-1991-dep.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/lr-1991-dep.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/lr-1991-fitting.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/lr-1991-testing.mmt:time = 0 [ms] bind time`
+- [ ] `./myokit/tests/data/lr-1991-testing.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/lr-1991-testing.mmt:i_diff = 0 bind diffusion_current`
+- [ ] `./myokit/tests/data/lr-1991.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/lr-1991.mmt:pace = 1 bind pace  # Set to 1 to test if it becomes 0 without a protocol`
+- [ ] `./myokit/tests/data/lr-1991.mmt:realtime = 0 bind realtime`
+- [ ] `./myokit/tests/data/lr-1991.mmt:evaluations = 0 bind evaluations`
+- [ ] `./myokit/tests/data/lr-1991.mmt:i_diff = 0 bind diffusion_current`
+- [ ] `./myokit/tests/data/multi/beeler-no-name.mmt:time = 0 in [ms] bind time`
+- [ ] `./myokit/tests/data/multi/beeler-no-name.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/multi/lr-1991.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/multi/lr-1991.mmt:pace = 1 bind pace  # Set to 1 to test if it becomes 0 without a protocol`
+- [ ] `./myokit/tests/data/multi/lr-1991.mmt:i_diff = 0 bind diffusion_current`
+- [ ] `./myokit/tests/data/multi/subdir/beeler-no-name.mmt:time = 0 in [ms] bind time`
+- [ ] `./myokit/tests/data/multi/subdir/beeler-no-name.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/noble-1962.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/beeler-1977-model-compare-a.mmt:time = 0 in [ms] bind time`
+- [ ] `./myokit/tests/data/beeler-1977-model-compare-a.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/beeler-1977-model-compare-b.mmt:toim = 0 in [ms] bind time`
+- [ ] `./myokit/tests/data/beeler-1977-model-compare-b.mmt:pace = 0 bind pace`
+- [ ] `./myokit/tests/data/clancy-1999-fitting.mmt:time = 0 bind time`
+- [ ] `./myokit/tests/data/clancy-1999-fitting.mmt:V = -40 bind pace`
+- [ ] `./myokit/tests/data/clancy-1999-fitting.mmt:vm.set_binding(None)`
+- [ ] `./myokit/tests/data/clancy-1999-fitting.mmt:vm.set_binding('pace')`
+- [ ] `./myokit/tests/test_formats_cellml.py:        m1.get('engine.pace').set_binding(None)`
+- [ ] `./myokit/tests/test_formats_cellml.py:        m1.get('engine.pace').set_binding('pace')`
+- [ ] `./myokit/tests/test_formats_cellml.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_formats_cellml.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_formats_cellml.py:        cls.avar.set_binding('time')`
+- [ ] `./myokit/tests/test_formats_easyml.py:    bind time`
+- [ ] `./myokit/tests/test_formats_easyml.py:            model.get('membrane.C').set_binding('hello')`
+- [ ] `./myokit/tests/test_formats_easyml.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_formats_exporters.py:        m.binding('diffusion_current').set_binding(None)`
+- [ ] `./myokit/tests/test_formats_expression_writers.py:        avar.set_binding('time')`
+- [ ] `./myokit/tests/test_jacobian_tracer.py:        v = m.binding('diffusion_current')`
+- [ ] `./myokit/tests/test_jacobian_tracer.py:            v.set_binding(None)`
+- [ ] `./myokit/tests/test_lib_guess.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_lib_guess.py:        x.set_binding('pace')`
+- [ ] `./myokit/tests/test_lib_guess.py:        self.assertIsNone(model.get('c.x').binding())`
+- [ ] `./myokit/tests/test_lib_guess.py:        x.set_binding(None)`
+- [ ] `./myokit/tests/test_lib_guess.py:        x.set_binding('pace')`
+- [ ] `./myokit/tests/test_lib_guess.py:        t.set_binding(None)`
+- [ ] `./myokit/tests/test_lib_guess.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_lib_guess.py:            bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            bind pace`
+- [ ] `./myokit/tests/test_lib_guess.py:        self.assertIsNone(model.binding('pace'))`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:        self.assertEqual(m.get('env.time').binding(), 'time')`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:        self.assertEqual(m.get('env.time').binding(), 'time')`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:                bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:                bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            pace = 0 bind pace`
+- [ ] `./myokit/tests/test_lib_guess.py:            pace = 0 bind pace`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:        m.get('t.pace').set_binding(None)`
+- [ ] `./myokit/tests/test_lib_guess.py:        m.get('t.time').set_binding(None)`
+- [ ] `./myokit/tests/test_lib_guess.py:        m.get('t.time').set_binding('pace')`
+- [ ] `./myokit/tests/test_lib_guess.py:        # But not with other bindings`
+- [ ] `./myokit/tests/test_lib_guess.py:        m.get('t.time').set_binding(None)`
+- [ ] `./myokit/tests/test_lib_guess.py:        m.get('t.time').set_binding('plaice')`
+- [ ] `./myokit/tests/test_lib_guess.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            a = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_lib_guess.py:            t = 0 [s] bind time`
+- [ ] `./myokit/tests/test_lib_multi.py:            x.set_binding('time')`
+- [ ] `./myokit/tests/test_lib_multi.py:    def test_binding(self):`
+- [ ] `./myokit/tests/test_lib_multi.py:        # Test the binding() method that returns a bound variable.`
+- [ ] `./myokit/tests/test_lib_multi.py:                myokit.IncompatibleModelError, multi.binding, m, 'x')`
+- [ ] `./myokit/tests/test_lib_multi.py:            x.set_binding('x')`
+- [ ] `./myokit/tests/test_lib_multi.py:            self.assertEqual(x, multi.binding(m, 'x'))`
+- [ ] `./myokit/tests/test_meta.py:            't = 0 bind time',`
+- [ ] `./myokit/tests/test_protocol_floating_point.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_protocol_floating_point.py:        v.set_binding('pace')`
+- [ ] `./myokit/tests/test_protocol_floating_point.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_protocol_floating_point.py:        v.set_binding('pace')`
+- [ ] `./myokit/tests/test_protocol_floating_point.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_protocol_floating_point.py:        v.set_binding('pace')`
+- [ ] `./myokit/tests/test_protocol_floating_point.py:        m.binding('pace').set_binding(None)`
+- [ ] `./myokit/tests/test_protocol_floating_point.py:        v.set_binding('pace')`
+- [ ] `./myokit/tests/test_rhs_benchmarker.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_rhs_benchmarker.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_rhs_benchmarker.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_expressions.py:        bind time`
+- [ ] `./myokit/tests/test_expressions.py:    pace = 0 bind pace`
+- [ ] `./myokit/tests/test_expressions.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_expressions.py:            '    bind time',`
+- [ ] `./myokit/tests/test_simulation_log_interval.py:        # Voltage-clamp V (but don't bind it directly)`
+- [ ] `./myokit/tests/test_simulation_log_interval.py:        m.binding('pace').set_binding(None)`
+- [ ] `./myokit/tests/test_simulation_log_interval.py:        v.set_binding('pace')`
+- [ ] `./myokit/tests/test_simulation_log_interval.py:        #m.get('membrane.V').demote().set_rhs(0).set_binding('pace')`
+- [ ] `./myokit/tests/test_aux.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_aux.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_aux.py:        m3.binding('time').set_binding(None)`
+- [ ] `./myokit/tests/test_aux.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_cellml_v1_api.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_cellml_v1_api.py:        # Check binding`
+- [ ] `./myokit/tests/test_cellml_v1_api.py:        self.assertEqual(mt.binding(), 'time')`
+- [ ] `./myokit/tests/test_cellml_v2_api.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_cellml_v2_api.py:        # Check binding`
+- [ ] `./myokit/tests/test_cellml_v2_api.py:        self.assertEqual(mt.binding(), 'time')`
+- [ ] `./myokit/tests/test_component.py:        time.set_binding('time')`
+- [ ] `./myokit/tests/test_component.py:        # Test if removed from model's label and binding lists`
+- [ ] `./myokit/tests/test_component.py:        x.set_binding('time')`
+- [ ] `./myokit/tests/test_component.py:        self.assertIs(m.binding('time'), x)`
+- [ ] `./myokit/tests/test_component.py:        self.assertIs(m.binding('time'), None)`
+- [ ] `./myokit/tests/test_component.py:        self.assertIs(m.binding('time'), None)`
+- [ ] `./myokit/tests/test_component.py:        p.set_binding('time')`
+- [ ] `./myokit/tests/test_io.py:        v.set_binding('time')`
+- [ ] `./myokit/tests/test_io.py:        v.set_binding('time')`
+- [ ] `./myokit/tests/test_io.py:        v.set_binding('time')`
+- [ ] `./myokit/tests/test_lib_hh.py:binding.act = 1e-4`
+- [ ] `./myokit/tests/test_lib_hh.py:binding.rec = 0.56`
+- [ ] `./myokit/tests/test_lib_hh.py:binding.b = 1e-4`
+- [ ] `./myokit/tests/test_lib_hh.py:time = 0 bind time`
+- [ ] `./myokit/tests/test_lib_hh.py:pace = 0 bind pace`
+- [ ] `./myokit/tests/test_lib_hh.py:[binding]`
+- [ ] `./myokit/tests/test_lib_hh.py:        # All bindings other than time are removed`
+- [ ] `./myokit/tests/test_lib_hh.py:        i.set_binding('hello')`
+- [ ] `./myokit/tests/test_lib_hh.py:        states = ['binding.act', 'binding.rec', 'binding.b']`
+- [ ] `./myokit/tests/test_lib_hh.py:        parameters = ['binding.kon', 'binding.koff']`
+- [ ] `./myokit/tests/test_lib_hh.py:        current = 'binding.I'`
+- [ ] `./myokit/tests/test_lib_hh.py:        m = hh.HHModel.from_component(model.get('binding'))`
+- [ ] `./myokit/tests/test_lib_hh.py:        model.get('ikr.r').set_initial_value('log(binding.koff, 10)')`
+- [ ] `./myokit/tests/test_lib_hh.py:        model.get('membrane.V').set_binding('pace')`
+- [ ] `./myokit/tests/test_lib_hh.py:        model.binding('pace').set_binding(None)`
+- [ ] `./myokit/tests/test_lib_hh.py:        model.get('membrane.V').set_binding('pace')`
+- [ ] `./myokit/tests/test_lib_hh.py:        m = hh.HHModel.from_component(model.get('binding'))`
+- [ ] `./myokit/tests/test_lib_hh.py:        e = np.abs(d1['binding.I'] - d2['binding.I'])`
+- [ ] `./myokit/tests/test_lib_markov.py:        t.set_binding('time')`
+
+- [ ] `./myokit/tests/test_sbml_api.py:        self.assertTrue(var.binding(), 'time')`
+- [ ] `./myokit/tests/test_simulation_1d.py:        d = m.binding('diffusion_current')`
+- [ ] `./myokit/tests/test_simulation_1d.py:        d.set_binding(None)`
+- [ ] `./myokit/tests/test_simulation_1d.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_simulation_1d.py:            q = 0 bind diffusion_current`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:        m2.binding('diffusion_current').set_binding(None)`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:        m2.binding('diffusion_current').set_unit(None)`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:        m2.binding('diffusion_current').set_unit(myokit.units.pF)`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_simulation_fiber_tissue.py:            q = 0 bind diffusion_current`
+- [ ] `./myokit/tests/test_simulation_opencl.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_simulation_opencl.py:            q = 0 bind diffusion_current`
+- [ ] `./myokit/tests/test_simulation_opencl.py:        p = cls.m2.binding('pace')`
+- [ ] `./myokit/tests/test_simulation_opencl.py:        p.set_binding(None)`
+- [ ] `./myokit/tests/test_simulation_opencl.py:        v.set_binding('pace')`
+- [ ] `./myokit/tests/test_variable.py:                bind time`
+- [ ] `./myokit/tests/test_variable.py:            t = 0 [ms] bind time`
+- [ ] `./myokit/tests/test_variable.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_variable.py:        v.set_binding('time')`
+- [ ] `./myokit/tests/test_variable.py:        v.set_binding(None)`
+- [ ] `./myokit/tests/test_variable.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_variable.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_variable.py:                bind time`
+- [ ] `./myokit/tests/test_variable.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_variable.py:        q.set_binding('hello')`
+- [ ] `./myokit/tests/test_variable.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        a.set_binding('a')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        b.set_binding('b')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        v.set_binding('pace')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        time.set_binding('time')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        dose_rate.set_binding('pace')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        a.set_binding('a')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        b.set_binding('b')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:            dose_rate = 0 bind pace`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:            time = 0 bind time`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        time.set_binding('time')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        dose_rate.set_binding('pace')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:            t = 0 bind time`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        t.set_binding('time')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        v.set_binding('pace')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        rt.set_binding('realtime')`
+- [ ] `./myokit/tests/test_simulation_cvodes.py:        ev.set_binding('evaluations')`
+- [ ] `./myokit/tests/test_dependency_checking.py:        time = 0 bind time`
+- [ ] `./myokit/tests/test_dependency_checking.py:        time = 0 bind time`
+

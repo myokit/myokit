@@ -374,7 +374,7 @@ print('/* Bound variables */')
 for var, local in bound_variables.items():
     print('#define ' + v(var) + ' model->' + local)
 
-print('/* States */')
+print('\n/* States */')
 for i, var in enumerate(model.states()):
     print('#define ' + v(var) + ' model->states[' + str(i) + ']')
 
@@ -928,15 +928,17 @@ for eqs in s_output_equations:
 int
 Model__AddVariableToLog(
     Model model,
-    PyObject* log_dict, int i, const char* name, const realtype* variable)
+    PyObject* log_dict, int i, int n, const char* name, const realtype* variable)
 {
     PyObject* key = PyUnicode_FromString(name);     /* New reference */
     PyObject* val = PyDict_GetItem(log_dict, key);  /* Borrowed reference, or NULL */
     Py_DECREF(key);
     if (val == NULL) { return 0; }
 
-    model->_log_lists[i] = val;
-    model->_log_vars[i] = (realtype*)variable;
+    if (i < n) { // Only write in allocated space: if i >= n this will trigger an error later
+        model->_log_lists[i] = val;
+        model->_log_vars[i] = (realtype*)variable;
+    }
     return 1;
 }
 
@@ -970,7 +972,7 @@ Model_InitialiseLogging(Model model, PyObject* log_dict)
     i = 0;
 <?
 for var in model.states():
-    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, "' + var.qname() + '", &' + v(var)  + ');')
+    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "' + var.qname() + '", &' + v(var)  + ');')
 ?>
     model->logging_states = (i > 0);
 
@@ -978,7 +980,7 @@ for var in model.states():
     j = i;
 <?
 for var in model.states():
-    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, "dot(' + var.qname() + ')", &' + v(var.lhs())  + ');')
+    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "dot(' + var.qname() + ')", &' + v(var.lhs())  + ');')
 ?>
     model->logging_derivatives = (i != j);
 
@@ -986,7 +988,7 @@ for var in model.states():
     j = i;
 <?
 for var in bound_variables:
-    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, "' + var.qname() + '", &' + v(var)  + ');')
+    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "' + var.qname() + '", &' + v(var)  + ');')
 ?>
     model->logging_bound = (i != j);
 
@@ -994,7 +996,7 @@ for var in bound_variables:
     j = i;
 <?
 for var in model.variables(deep=True, state=False, bound=False, const=False):
-    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, "' + var.qname() + '", &' + v(var)  + ');')
+    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, model->n_logged_variables, "' + var.qname() + '", &' + v(var)  + ');')
 ?>
     model->logging_intermediary = (i != j);
 

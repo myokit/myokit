@@ -2090,9 +2090,12 @@ class DataLogTest(unittest.TestCase):
         s = myokit.Simulation(m, p)
         s.set_tolerance(1e-8, 1e-8)
         d, apds1 = s.run(
-            2000, log=['engine.time', 'membrane.V'],
+            2000,
+            log=['engine.time', 'membrane.V'],
             log_interval=0.005,
-            apd_variable='membrane.V', apd_threshold=-70)
+            apd_variable='membrane.V',
+            apd_threshold=-70,
+        )
         apds2 = d.apd(threshold=-70)
         self.assertEqual(len(apds1['start']), 2)
         self.assertEqual(len(apds2['start']), 2)
