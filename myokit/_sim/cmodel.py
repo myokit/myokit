@@ -36,7 +36,8 @@ class CModel(object):
     ``model``
         A :class:`myokit.Model`.
     ``pacing_labels``
-        A list of ``str`` variable labels, each corresponding to a paced variable.
+        A list of ``str`` variable labels, each corresponding to a paced
+        variable.
     ``sensitivities``
         Either ``None`` or a tuple ``(dependents, independents)``. See
         :class:`myokit.Simulation` for details.

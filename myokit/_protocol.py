@@ -885,7 +885,8 @@ class TimeSeriesProtocol(object):
         else:
             self._method = str(method).lower()
             if self._method not in ('linear', ):
-                raise ValueError('Unknown interpolation method: ' + self._method)
+                raise ValueError(
+                    'Unknown interpolation method: ' + self._method)
 
     def __eq__(self, other):
         if self is other:

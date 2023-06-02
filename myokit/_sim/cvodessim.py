@@ -1014,8 +1014,8 @@ class Simulation(myokit.CModule):
         The label must be one of the pacing labels set in the constructor.
 
         To remove a previously set binding call this method with ``protocol =
-        None``. In this case, the value of any variables bound to ``label`` will
-        be set to 0.
+        None``. In this case, the value of any variables bound to ``label``
+        will be set to 0.
         """
         if label not in self._pacing_labels:
             raise ValueError('Unknown pacing label: ' + str(label))
