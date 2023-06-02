@@ -846,8 +846,10 @@ class ComponentDepTest(DepTest):
         head = self.head
 
         def has(comp, *deps):
+            """ Test that comp has dependencies deps """
             return self.has_comp(depmap, comp, *deps)
-        # Start testing
+
+        # Don't omit states or constants
         head('omit_states=False, omit_constants=False')
         has('membrane', 'ina', 'ik', 'ib', 'ikp', 'ik1', 'ica', 'engine')
         has('ina', 'membrane', 'cell')
@@ -859,7 +861,9 @@ class ComponentDepTest(DepTest):
         has('cell')
         has('engine')
         has('test', 'membrane')
-        # Next
+        has('test2', 'membrane', 'engine')
+
+        # Omit states
         head('omit_states=True, omit_constants=False')
         depmap = self.m.map_component_dependencies(
             omit_states=True, omit_constants=False)
@@ -872,8 +876,10 @@ class ComponentDepTest(DepTest):
         has('ib')
         has('cell')
         has('engine')
-        has('test', 'membrane')  # dot(v) is a derivative, not a state value :)
-        # Next
+        has('test', 'membrane')  # dot(v) is a derivative!
+        has('test2', 'engine')
+
+        # Omit constants
         head('omit_states=False, omit_constants=True')
         depmap = self.m.map_component_dependencies(
             omit_states=False, omit_constants=True)
@@ -887,7 +893,9 @@ class ComponentDepTest(DepTest):
         has('cell')
         has('engine')
         has('test', 'membrane')
-        # Next
+        has('test2', 'membrane', 'engine')  # Time is not a constant
+
+        # Omit both
         head('omit_states=True, omit_constants=True')
         depmap = self.m.map_component_dependencies(
             omit_states=True, omit_constants=True)
@@ -901,6 +909,7 @@ class ComponentDepTest(DepTest):
         has('cell')
         has('engine')
         has('test', 'membrane')
+        has('test2', 'engine')
 
     def test_map_component_io(self):
         # Test the method ``map_component_io
@@ -911,11 +920,13 @@ class ComponentDepTest(DepTest):
         head = self.head
 
         def inn(comp, *deps):
+            """ Component comp requires deps as input. """
             if debug:
                 print('Input:')
             return self.has_lhs(d1, comp, *deps)
 
         def out(comp, *deps):
+            """ Component comp outputs deps. """
             if debug:
                 print('Output:')
             return self.has_lhs(d2, comp, *deps)
@@ -951,9 +962,11 @@ class ComponentDepTest(DepTest):
         out('cell', 'cell.RTF', 'cell.Na_o', 'cell.Na_i', 'cell.K_o',
             'cell.K_i', 'cell.Ca_o')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test', d('membrane.V'))
         out('test', d('test.t1'), d('test.t2'))
+        inn('test2', 'membrane.V', 'engine.time')
+        out('test2')
 
         # 2 FFT: States, Derivatives, No constants
         d1, d2 = self.m.map_component_io(
@@ -980,9 +993,11 @@ class ComponentDepTest(DepTest):
         inn('cell')
         out('cell')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test', d('membrane.V'))
         out('test', d('test.t1'), d('test.t2'))
+        inn('test2', 'membrane.V', 'engine.time')
+        out('test2')
 
         # 3 FTF: States, No derivatives, Constants
         d1, d2 = self.m.map_component_io(
@@ -1012,9 +1027,11 @@ class ComponentDepTest(DepTest):
         out('cell', 'cell.RTF', 'cell.Na_o', 'cell.Na_i', 'cell.K_o',
             'cell.K_i', 'cell.Ca_o')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test')
         out('test')
+        inn('test2', 'membrane.V', 'engine.time')
+        out('test2')
 
         # 4 FTT: States, No derivatives, No constants
         d1, d2 = self.m.map_component_io(
@@ -1041,9 +1058,11 @@ class ComponentDepTest(DepTest):
         inn('cell')
         out('cell')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test')
         out('test')
+        inn('test2', 'membrane.V', 'engine.time')
+        out('test2')
 
         # 5 TFF: No states, Derivatives, Constants
         d1, d2 = self.m.map_component_io(
@@ -1072,9 +1091,11 @@ class ComponentDepTest(DepTest):
         out('cell', 'cell.RTF', 'cell.Na_o', 'cell.Na_i', 'cell.K_o',
             'cell.K_i', 'cell.Ca_o')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test', d('membrane.V'))
         out('test', d('test.t1'), d('test.t2'))
+        inn('test2', 'engine.time')
+        out('test2')
 
         # 6 TFT: No states, Derivatives, No constants
         # This is the realistic use-case!
@@ -1102,9 +1123,11 @@ class ComponentDepTest(DepTest):
         inn('cell')
         out('cell')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test', d('membrane.V'))
         out('test', d('test.t1'), d('test.t2'))
+        inn('test2', 'engine.time')
+        out('test2')
 
         # 7 TTF: No states, No derivatives, Constants
         d1, d2 = self.m.map_component_io(
@@ -1132,9 +1155,11 @@ class ComponentDepTest(DepTest):
         out('cell', 'cell.RTF', 'cell.Na_o', 'cell.Na_i', 'cell.K_o',
             'cell.K_i', 'cell.Ca_o')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test')
         out('test')
+        inn('test2', 'engine.time')
+        out('test2')
 
         # 8 TTT: No states, No derivatives, No constants
         d1, d2 = self.m.map_component_io(
@@ -1161,9 +1186,11 @@ class ComponentDepTest(DepTest):
         inn('cell')
         out('cell')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test')
         out('test')
+        inn('test2', 'engine.time')
+        out('test2')
 
         # A TFF-RL: No states, Derivatives, Constants, in RL mode
         rl_states = {}
@@ -1199,9 +1226,11 @@ class ComponentDepTest(DepTest):
         out('cell', 'cell.RTF', 'cell.Na_o', 'cell.Na_i', 'cell.K_o',
             'cell.K_i', 'cell.Ca_o')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test', d('membrane.V'))
         out('test', d('test.t1'), d('test.t2'))
+        inn('test2', 'engine.time')
+        out('test2')
 
         # B TFT-RL: No states, Derivatives, No Constants, in RL mode
         # This is the practical use case
@@ -1235,9 +1264,11 @@ class ComponentDepTest(DepTest):
         inn('cell')
         out('cell')
         inn('engine')
-        out('engine', 'engine.pace')
+        out('engine', 'engine.pace', 'engine.time')
         inn('test', d('membrane.V'))
         out('test', d('test.t1'), d('test.t2'))
+        inn('test2', 'engine.time')
+        out('test2')
 
     def test_component_cycles(self):
         # Test Model.component_cycles().
@@ -1531,6 +1562,8 @@ class SolvableOrderTest(DepTest):
                         i2 = i
                         if i1:
                             break
+                assert i1 is not None, 'No dependency on ' + lhs1.var().qname()
+                assert i2 is not None, 'No dependency on ' + lhs2.var().qname()
                 if debug:
                     if i1 < i2:
                         print(lhs1, 'occurs before', lhs2)
@@ -1539,11 +1572,11 @@ class SolvableOrderTest(DepTest):
                 self.assertGreater(i1, i2)
 
         # Simple test
-        self.eqs, self.vrs = self.m.expressions_for('ina.m')
-        self.assertEqual(len(self.eqs), 5)
+        self.eqs, self.vrs = self.m.expressions_for(['ina.m'])
         self.assertEqual(len(self.vrs), 2)
         self.assertIn(myokit.Name(self.m.get('ina.m')), self.vrs)
         self.assertIn(myokit.Name(self.m.get('membrane.V')), self.vrs)
+        self.assertEqual(len(self.eqs), 5)
         before('dot(ina.m)', 'ina.m.tau', 'ina.m.inf')
         before('ina.m.inf', 'ina.m.alpha', 'ina.m.tau')
         before('ina.m.tau', 'ina.m.alpha', 'ina.m.beta')
@@ -1551,7 +1584,7 @@ class SolvableOrderTest(DepTest):
 
         # Larger test (and try with LhsExpression instead of string)
         self.eqs, self.vrs = self.m.expressions_for(
-            self.m.get('membrane.V').lhs())
+            [self.m.get('membrane.V').lhs()], ['engine.pace'])
         self.assertEqual(len(self.vrs), 9)
         self.assertIn(myokit.Name(self.m.get('engine.pace')), self.vrs)
         self.assertIn(myokit.Name(self.m.get('membrane.V')), self.vrs)
@@ -1586,12 +1619,12 @@ class SolvableOrderTest(DepTest):
         del self.eqs, self.vrs
 
         # Multiple variables
-        self.eqs, self.vrs = self.m.expressions_for('ina.m', 'ina.h')
-        self.assertEqual(len(self.eqs), 11)
+        self.eqs, self.vrs = self.m.expressions_for(['ina.m', 'ina.h'])
         self.assertEqual(len(self.vrs), 3)
         self.assertIn(myokit.Name(self.m.get('membrane.V')), self.vrs)
         self.assertIn(myokit.Name(self.m.get('ina.m')), self.vrs)
         self.assertIn(myokit.Name(self.m.get('ina.h')), self.vrs)
+        self.assertEqual(len(self.eqs), 11)
         before('dot(ina.m)', 'ina.m.tau', 'ina.m.inf')
         before('ina.m.inf', 'ina.m.alpha', 'ina.m.tau')
         before('ina.m.tau', 'ina.m.alpha', 'ina.m.beta')
@@ -1603,11 +1636,45 @@ class SolvableOrderTest(DepTest):
         del self.eqs, self.vrs
 
         # Variables that depend on dot() expressions
-        self.eqs, self.vrs = self.m.expressions_for('test.t1', 'test.t2')
+        self.eqs, self.vrs = self.m.expressions_for(
+            ['test.t1', 'test.t2'], ['engine.pace'])
         self.assertEqual(len(self.eqs), 34 + 3)
         before('dot(test.t2)', 'test.inter')
         before('test.inter', 'dot(test.t1)')
         before('dot(test.t1)', 'dot(membrane.V)')
+        del self.eqs, self.vrs
+
+        # User-defined input arguments
+        self.eqs, self.vrs = self.m.expressions_for(
+            ['ina.m', 'ina.h'],
+            ['membrane.V',
+             self.m.get('ina.h.tau'),
+             self.m.get('ina.m.inf').lhs()])
+        self.assertEqual(len(self.vrs), 5)
+        self.assertIn(myokit.Name(self.m.get('membrane.V')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ina.m')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ina.h')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ina.m.inf')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ina.h.tau')), self.vrs)
+        self.assertEqual(len(self.eqs), 8)
+        before('dot(ina.m)', 'ina.m.tau')
+        before('ina.m.tau', 'ina.m.alpha', 'ina.m.beta')
+        before('ina.m.alpha')
+        before('ina.m.beta')
+        before('dot(ina.h)', 'ina.h.inf')
+        before('ina.h.inf', 'ina.h.alpha')
+        before('ina.h.alpha', 'ina.a')
+        before('ina.a')
+        del self.eqs, self.vrs
+
+        # Explicit time dependency
+        # Variables that depend on dot() expressions
+        self.eqs, self.vrs = self.m.expressions_for(['test2.t3'])
+        self.assertEqual(len(self.vrs), 2)
+        self.assertIn(myokit.Name(self.m.get('membrane.V')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('engine.time')), self.vrs)
+        self.assertEqual(len(self.eqs), 1)
+        before('test2.t3')
         del self.eqs, self.vrs
 
         # Unsolvable system
@@ -1618,10 +1685,19 @@ class SolvableOrderTest(DepTest):
         x.set_rhs('y')
         y.set_rhs('x')
         self.assertRaisesRegex(
-            Exception, 'Failed to solve', m.expressions_for, 'c.x')
+            Exception, 'Failed to solve', m.expressions_for, ['c.x'])
+
+        # Test single arg no longer allowed (since 1.34.0)
+        self.assertRaisesRegex(
+            ValueError, 'must be a list', m.expressions_for, 'c.x')
+        self.assertRaisesRegex(
+            ValueError, 'must be a list', m.expressions_for, m.get('c.x'))
+        self.assertRaisesRegex(
+            ValueError, 'must be a list', m.expressions_for,
+            m.get('c.x').lhs())
 
         # Test without arguments
-        eqs, vrs = self.m.expressions_for()
+        eqs, vrs = self.m.expressions_for([])
         self.assertEqual(len(eqs), 0)
         self.assertEqual(len(vrs), 0)
 

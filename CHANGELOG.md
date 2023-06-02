@@ -11,13 +11,13 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.set_initial_value`, which sets a state variable's initial value using an expression, string expression, or float.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `IllegalReferenceInInitialValueError` for illegal references made in initial value expressions.
   - [#947](https://github.com/myokit/myokit/pull/947) The `Simulation` class can now handle multiple protocols during a single simulation.
-
 - Changed
   - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `initial_value`.
   - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is now tested on Python 3.11.
   - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is no longer tested on Python 3.6.
   - [#918](https://github.com/myokit/myokit/pull/918) The only argument to `Variable.promote` has been renamed from `state_value` to `initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.import_component` now preserves the ordering of the imported states.
+  - [#956](https://github.com/myokit/myokit/pull/956) `Model.expressions_for` now takes a list (or other sequence) as its first argument, and has an additional argument specifying which variables to treat as inputs.
 - Deprecated
   - [#534](https://github.com/myokit/myokit/pull/947) `Simulation.set_fixed_form_protocol` is deprecated in favor of `Simulation.set_protocol`
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.

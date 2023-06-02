@@ -350,12 +350,10 @@ class VarProvider(object):
             ``False`` to exclude all state variables and any other value to
             ignore this check.
 
-        ``bound=True|False|None``
-            Set to ``True`` to return only bound variables' equations,
-            ``False`` to exclude all bound variables and any other value to
-            ignore this check.
+        ``bound=None``
+            Deprecated keyword argument: Must be ``None``.
 
-        ``deep=True|False`` (by default it's ``False``)
+        ``deep=True|False`` (default: ``False``)
              Set to ``True`` to include the equations of nested variables
              meeting all other criteria.
         """
@@ -404,10 +402,8 @@ class VarProvider(object):
             Set to True to return only state variables, False to exclude all
             state variables and any other value to ignore this check.
 
-        ``bound=True|False|None``
-            Set to True to return only variables bound to an external value,
-            False to exclude all bound variables and any other value to forgo
-            this check.
+        ``bound=None``
+            Deprecated keyword argument: Must be ``None``.
 
         ``deep=True|False`` (by default it's ``False``)
              Set to True to return nested variables meeting all other criteria.
@@ -417,7 +413,14 @@ class VarProvider(object):
             that this does _not_ mean alphabetical sorting of all variables,
             just that the order is consistent between calls!)
         """
-        def viter(stream, const, inter, state, bound, deep):
+        # Deprecated since 2023-06-01
+        if bound is not None:
+            import warnings
+            warnings.warn(
+                'The keyword argument `bound` is deprecated and will be'
+                ' removed in future versions of Myokit.')
+
+        def viter(stream, const, inter, state, deep):
             for var in stream:
                 # Filter constants
                 if const is not None:
@@ -431,14 +434,11 @@ class VarProvider(object):
                 if state is not None:
                     if state != var._is_state:
                         continue
-                # Filter bound variables
-                if bound is not None:
-                    if bound != var._is_bound:
-                        continue
                 # Yield this variable
                 yield var
+
         stream = self._create_variable_stream(deep, sort)
-        return viter(stream, const, inter, state, bound, deep)
+        return viter(stream, const, inter, state, deep)
 
     def var(self, name):
         """
@@ -1409,54 +1409,102 @@ class Model(ObjectWithMeta, VarProvider):
         return self.evaluate_derivatives(
             state, inputs, precision, ignore_errors)
 
-    def expressions_for(self, *variables):
+    def expressions_for(self, variables, extra_inputs=None):
         """
-        Determines the expressions needed to evaluate one or more variables.
+        Determines the expressions needed to evaluate one or more variables'
+        defining expressions.
 
-        If state variables are included in the list, "evaluating" the variable
-        is interpreted as evaluating its derivative.
+        The returned outut will be an ordered list of equations, containing all
+        equations needed to calculate the variables defining expressions from
+        the state values, time variable, and any variables listed in
+        ``extra_inputs``.
 
-        Returns a tuple ``(eqs, args)`` where ``eqs`` is a list of Equation
-        objects in solvable order containing the minimal set of equations
-        needed to evaluate the given ``variable`` and ``args`` is a list of
-        the state variables and bound variables these expressions require as
-        input.
+        Arguments:
+
+        ``variables``
+            A list of :class:`Variable` objects, their string names, or
+            :class:`Name` expressions specifying the variables to obtain the
+            equations for.
+        ``extra_inputs``
+            An optional list of variables that can be assumed known. Variable
+            objects can be passed in (in which case the LHS of their defining
+            equation is added), but :class:`Name` and :class:`Derivative`
+            expressions are also accepted, as well as their string
+            representations.
+
+        Returns a tuple ``(eqs, args)`` where ``eqs`` is a list of
+        :class:`Equation` objects in solvable order, containing the minimal set
+        of equations needed to evaluate the given ``outputs``, and where
+        ``args`` is a list of expressions that are required as input.
         """
-        # Make sure all variables are (locally owned) Variable objects
-        temp = []
-        for variable in variables:
-            if isinstance(variable, myokit.Variable):
-                temp.append(self.get(variable.qname()))
-            elif isinstance(variable, myokit.LhsExpression):
-                temp.append(self.get(variable.var().qname()))
-            else:
-                temp.append(self.get(variable))
-        variables = temp
-        del temp
+        # Changed in Myokit 1.34.0, on 2023-06-01
+        if isinstance(variables, (myokit.Variable, myokit.LhsExpression, str)):
+            raise ValueError(
+                'Since Myokit 1.34.0, the argument ``variables`` must be a'
+                ' list (or sequence) of variables.')
+
+        if len(variables) < 1:
+            return ([], [])
+
+        # Check list of variables
+        vrs = []
+        for ref in variables:
+            if isinstance(ref, myokit.Variable):
+                ref = ref.qname()
+            elif isinstance(ref, (myokit.Name, myokit.Derivative)):
+                ref = ref.var().qname()
+            vrs.append(self.get(ref))
+        variables = vrs
+        del vrs
+
+        # Create list of inputs
+        # These will become arguments, but only if used!
+        inputs = [myokit.Name(v) for v in self._state_vars]
+        time = self.time()
+        if time is not None:
+            inputs += [myokit.Name(time)]
+        inputs = set(inputs)
+
+        # Add extra inputs
+        if extra_inputs:
+            for ref in extra_inputs:
+                if isinstance(ref, (myokit.Name, myokit.Derivative)):
+                    inputs.add(ref)
+                elif isinstance(ref, myokit.Variable):
+                    inputs.add(ref.lhs())
+                else:
+                    inputs.add(self.get(ref).lhs())
 
         # Get shallow dependencies of all required equations
-        # Use ordered dict to get consistent output
-        shallow = OrderedDict()
-        arguments = []
+        shallow = OrderedDict()     # Lhs: Referenced LhsExpressions
+        arguments = []              # Required input LhsExpressions
+
+        # Equations: Ordered for reproducibility, not in solvable order yet
         equations = OrderedDict()
 
-        def add_dep(lhs):
+        def add_dependencies_of(lhs):
+            """ Add shallow dependencies for an LhsExpression. """
+            # Already seen
             if lhs in shallow or lhs in arguments:
                 return
-            var = lhs.var()
-            if var.is_bound() or (var.is_state() and not lhs.is_derivative()):
+
+            # On list of allowed inputs
+            if lhs in inputs:
                 arguments.append(lhs)
                 return
-            rhs = var.rhs()
-            dps = sorted(rhs.references(), key=str)
-            shallow[lhs] = dps
-            equations[lhs] = rhs
-            for dep in dps:
-                add_dep(dep)
 
-        for variable in variables:
-            for lhs in sorted(variable.rhs().references(), key=str):
-                add_dep(lhs)
+            # Add equation
+            rhs = lhs.var().rhs()
+            deps = sorted(rhs.references(), key=str)  # For reproducible output
+            shallow[lhs] = deps
+            equations[lhs] = rhs
+
+            # Recurse
+            for dep in deps:
+                add_dependencies_of(dep)
+
+        for var in variables:
+            add_dependencies_of(var.lhs())
 
         # Filter out dependencies on arguments
         for dps in shallow.values():
@@ -1464,7 +1512,7 @@ class Model(ObjectWithMeta, VarProvider):
                 if arg in dps:
                     dps.remove(arg)
 
-        # Order expressions list of expressions
+        # Create ordered list of expressions
         eq_list = []
         while len(shallow):
             done = []
@@ -4565,17 +4613,16 @@ class Variable(VarOwner):
         the state variables it depends on.
 
         The argument names used by the returned function will be the variables'
-        unames, ordered alphabetically.
+        ``unames``, ordered alphabetically.
 
-        If the function runs in "numpy-mode", which is enabled by default, the
-        vector ready versions of ``log``, ``exp`` etc are used and piecewise
-        statements are evaluated using an array ready piecewise function. To
-        disable this functionality, set ``use_numpy=False``.
+        If ``use_numpy`` is ``True`` (the default), then numpy versions of
+        of ``log``, ``exp``, and other operators are used. To disable this
+        functionality, set ``use_numpy=False``.
 
         To obtain more information about the arguments in the created function
-        handle, set the optional argument ``arguments`` to ``True``. With this
-        setting, the function will return a tuple ``(handle, vars)`` where
-        ``handle`` is  the function handle and ``vars`` is a list of
+        handle, set the optional argument ``arguments=True``. With this setting
+        the function will return a tuple ``(handle, vars)`` where ``handle`` is
+        the function object and ``vars`` is a list of
         :class:`myokit.LhsExpression` objects in the same order as the function
         arguments.
         """

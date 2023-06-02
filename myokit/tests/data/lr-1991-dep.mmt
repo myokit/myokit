@@ -25,6 +25,10 @@ dot(t1) = dot(membrane.V)
 inter = dot(t1)
 dot(t2) = 2 * inter
 
+# Test for time dependence
+[test2]
+t3 = membrane.V + sin(engine.time)
+
 # Simulation engine variables
 [engine]
 time = 0 bind time
