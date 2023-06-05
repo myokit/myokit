@@ -8,12 +8,11 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import pickle
 import unittest
+import pickle
 
 import myokit
 
-from myokit.tests import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -37,7 +36,6 @@ class TimeSeriesProtocolTest(unittest.TestCase):
 
     def test_pickle(self):
         # Pickling and unpickling
-        import pickle
         p1 = myokit.TimeSeriesProtocol([1, 2], [2, 4])
         p2 = pickle.loads(pickle.dumps(p1))
         self.assertEqual(p1, p2)
