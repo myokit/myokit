@@ -141,50 +141,56 @@ class SimulationTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Unknown pacing label'):
             self.sim.set_protocol(None, label='does not exist')
 
-    def test_fixed_form_protocol(self):
-        # Test running with a fixed form protocol.
+    def test_time_series_protocol(self):
+        # Test running with a time series protocol
 
         n = 10
-        time = list(range(n))
-        pace = [0] * n
-        pace[2:4] = [0.5, 0.5]
+        times = list(range(n))
+        values = [0] * n
+        values[2:4] = [0.5, 0.5]
+        p = myokit.TimeSeriesProtocol(times, values)
 
-        self.sim.set_fixed_form_protocol(time, pace)
+        self.sim.set_protocol(p)
         self.sim.reset()
         d = self.sim.run(n, log_interval=1)
-        self.assertEqual(list(d.time()), time)
-        self.assertEqual(list(d['engine.pace']), pace)
+        self.assertEqual(list(d.time()), times)
+        self.assertEqual(list(d['engine.pace']), values)
 
         # Unset
-        self.sim.set_fixed_form_protocol(None)
+        self.sim.set_protocol(None)
         self.sim.reset()
         d = self.sim.run(n, log_interval=1)
         self.assertEqual(list(d['engine.pace']), [0] * n)
 
         # Reset
-        self.sim.set_fixed_form_protocol(time, pace)
+        self.sim.set_protocol(p)
         self.sim.reset()
         d = self.sim.run(n, log_interval=1)
-        self.assertEqual(list(d.time()), time)
-        self.assertEqual(list(d['engine.pace']), pace)
+        self.assertEqual(list(d.time()), times)
+        self.assertEqual(list(d['engine.pace']), values)
 
         # Unset, replace with original protocol
         self.sim.set_protocol(self.protocol)
         self.sim.reset()
         d = self.sim.run(n, log_interval=1)
-        self.assertNotEqual(list(d['engine.pace']), pace)
+        self.assertNotEqual(list(d['engine.pace']), values)
         self.assertNotEqual(list(d['engine.pace']), [0] * n)
 
-        # Invalid protocols
-        self.assertRaisesRegex(
-            ValueError, 'No times', self.sim.set_fixed_form_protocol,
-            values=pace)
-        self.assertRaisesRegex(
-            ValueError, 'No values', self.sim.set_fixed_form_protocol,
-            times=time)
-        self.assertRaisesRegex(
-            ValueError, 'same size', self.sim.set_fixed_form_protocol,
-            time, pace[:-1])
+        # Deprecated version
+        with WarningCollector() as w:
+            self.sim.set_fixed_form_protocol(times, values)
+        self.assertIn('eprecated', w.text())
+        self.sim.reset()
+        d = self.sim.run(n, log_interval=1)
+        self.assertEqual(list(d.time()), times)
+        self.assertEqual(list(d['engine.pace']), values)
+
+        # Unset, replace with original protocol
+        self.sim.set_protocol(self.protocol)
+        self.sim.reset()
+        d = self.sim.run(n, log_interval=1)
+        self.assertNotEqual(list(d['engine.pace']), values)
+        self.assertNotEqual(list(d['engine.pace']), [0] * n)
 
     def test_in_parts(self):
         # Test running the simulation in parts.
