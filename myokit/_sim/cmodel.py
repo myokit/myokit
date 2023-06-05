@@ -89,17 +89,15 @@ class CModel(object):
         # bother with keywords.
         model.create_unique_names()
 
-        # get mapping from variables to C variable names as used in model.h
+        # Get mapping from variables to C variable names as used in model.h
         labels = {
-            label: 'pace_values[{}]'.format(i)
-            for i, label in enumerate(pacing_labels)
-        }
-        labels.update({
             'time': 'time',
             'realtime': 'realtime',
             'evaluations': 'evaluations',
-        })
-        bound_variables = self._prepare_bindings(model, labels)
+        }
+        for i, label in enumerate(pacing_labels):
+            labels[label] = 'pace_values[' + str(i) + ']'
+        bound_variables = myokit._prepare_bindings(model, labels)
 
         # Get equations in solvable order (grouped by component)
         equations = model.solvable_order()
@@ -139,45 +137,6 @@ class CModel(object):
         self.literal_derived = literal_derived
         self.parameters = parameters
         self.parameter_derived = parameter_derived
-
-    def _prepare_bindings(self, model, labels):
-        """
-        Takes a mapping of binding labels to internal references as input and
-        returns a mapping of variables to internal references. All variables
-        appearing in the map will have their right hand side set to zero. All
-        bindings not mapped to any internal reference will be deleted.
-
-        The argument ``mapping`` should take the form::
-
-            labels = {
-                'binding_label_1' : internal_name_1,
-                'binding_label_2' : internal_name_2,
-                ...
-                }
-
-        The returned dictionary will have the form::
-
-            variables = {
-                variable_x : internal_name_1,
-                variable_y : internal_name_2,
-                ...
-                }
-
-        Unsupported bindings (i.e. bindings not appearing in ``labels``) will
-        be ignored.
-        """
-        variables = {}
-        unused = []
-        for label, var in model._bindings.items():
-            try:
-                variables[var] = labels[label]
-            except KeyError:
-                unused.append(var)
-                continue
-            var.set_rhs(0)
-        for var in unused:
-            var.set_binding(None)
-        return variables
 
     def _parse_sensitivities(self, model, sensitivities):
         """

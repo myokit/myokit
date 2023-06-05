@@ -81,7 +81,7 @@ class MatlabExporter(myokit.formats.TemplatedRunnableExporter):
         ew.set_condition_function('ifthenelse')
 
         # Process bound variables
-        bound_variables = model.prepare_bindings({
+        bound_variables = myokit._prepare_bindings(model, {
             'time': 't',
             'pace': 'pace',
         })

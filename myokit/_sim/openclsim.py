@@ -283,7 +283,7 @@ class SimulationOpenCL(myokit.CModule):
         inputs = {'time': 'time', 'pace': 'pace'}
         if self._diffusion_enabled:
             inputs['diffusion_current'] = 'idiff'
-        self._bound_variables = self._model.prepare_bindings(inputs)
+        self._bound_variables = myokit._prepare_bindings(self._model, inputs)
 
         # Create unique names
         self._model.create_unique_names()

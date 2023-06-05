@@ -109,7 +109,7 @@ class StanExporter(myokit.formats.TemplatedRunnableExporter):
         ew.set_lhs_function(v)
 
         # Process bound variables
-        bound_variables = model.prepare_bindings({
+        bound_variables = myokit._prepare_bindings(model, {
             'time': 'time',
             'pace': 'pace',
         })

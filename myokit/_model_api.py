@@ -2634,45 +2634,6 @@ class Model(ObjectWithMeta, VarProvider):
         except KeyError:
             return None
 
-    def prepare_bindings(self, labels):
-        """
-        Takes a mapping of binding labels to internal references as input and
-        returns a mapping of variables to internal references. All variables
-        appearing in the map will have their right hand side set to zero. All
-        bindings not mapped to any internal reference will be deleted.
-
-        The argument ``mapping`` should take the form::
-
-            labels = {
-                'binding_label_1' : internal_name_1,
-                'binding_label_2' : internal_name_2,
-                ...
-                }
-
-        The returned dictionary will have the form::
-
-            variables = {
-                variable_x : internal_name_1,
-                variable_y : internal_name_2,
-                ...
-                }
-
-        Unsupported bindings (i.e. bindings not appearing in ``labels``) will
-        be ignored.
-        """
-        unused = []
-        variables = {}
-        for label, var in self._bindings.items():
-            try:
-                variables[var] = labels[label]
-            except KeyError:
-                unused.append(var)
-                continue
-            var.set_rhs(0)
-        for var in unused:
-            var.set_binding(None)
-        return variables
-
     def __reduce__(self):
         """
         Pickles the model.
@@ -3461,7 +3422,7 @@ class Model(ObjectWithMeta, VarProvider):
 
     def validate(self, remove_unused_variables=False):
         """
-        Attempts to check model validity, raises errors if it isn't.
+        Validates this model and raises errors if any issues are found.
 
         Small issues (e.g. unused variables) will generate warnings, which
         can be retrieved using :meth:`Model.warnings()` or

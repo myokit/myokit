@@ -26,11 +26,11 @@ model.create_unique_names()
 w = ansic.AnsiCExpressionWriter()
 
 # Process bindings, remove unsupported bindings.
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time'         : 'engine_time',
     'pace'         : 'engine_pace',
     'diffusion_current' : 'diffusion_current',
-    })
+})
 
 # Define var/lhs function
 def v(var, pre='cell->'):
