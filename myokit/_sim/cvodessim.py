@@ -163,9 +163,11 @@ class Simulation(myokit.CModule):
         # Set protocol
         self._protocols = []
         self._pacing_labels = []
-        if isinstance(protocol, myokit.Protocol) or protocol is None:
+        if isinstance(protocol, (myokit.Protocol, myokit.TimeSeriesProtocol)):
             protocol = {'pace': protocol}
-            # TODO: For None, this can be an empty dict once #320 is resolved
+        elif protocol is None:
+            # TODO: This can be an empty dict once #320 is resolved
+            protocol = {'pace': None}
         for label, protocol in protocol.items():
             self._pacing_labels.append(label)
             self._protocols.append(myokit.Protocol())
@@ -983,11 +985,12 @@ class Simulation(myokit.CModule):
 
     def set_fixed_form_protocol(self, times=None, values=None):
         """
-        Sets a fixed-form protocol to the label ``pace`` using
-        :meth:`set_protocol`.
+        Sets a :class:`TimeSeriesProtocol` specified by ``times`` and
+        ``values`` for the label ``pace``.
 
         This method is provided for backwards compatibility with older
-        versions, please use :meth:`set_protocol` instead.
+        versions, please use :meth:`set_protocol` and the
+        :class:`TimeSeriesProtocol` class instead.
         """
         # Deprecated on 2023-06-02
         import warnings
@@ -1000,26 +1003,27 @@ class Simulation(myokit.CModule):
             self.set_protocol(None)
             return
         if times is None:
-            raise ValueError('no times given.')
+            raise ValueError('No times given.')
         if values is None:
-            raise ValueError('no values given.')
+            raise ValueError('No values given.')
 
         self.set_protocol(myokit.TimeSeriesProtocol(times, values))
 
     def set_protocol(self, protocol, label='pace'):
         """
-        Binds the pacing :class:`Protocol` or :class:`FixedProtocol` to the
-        variable with given label ``label``.
-
-        The label must be one of the pacing labels set in the constructor.
+        Set an event-based pacing :class:`Protocol` or a :class:`FixedProtocol`
+        for the given ``label``.
 
         To remove a previously set binding call this method with ``protocol =
         None``. In this case, the value of any variables bound to ``label``
         will be set to 0.
+
+        The label must be one of the pacing labels set in the constructor.
         """
-        if label not in self._pacing_labels:
+        try:
+            index = self._pacing_labels.index(label)
+        except ValueError:
             raise ValueError('Unknown pacing label: ' + str(label))
-        index = self._pacing_labels.index(label)
 
         # Set new protocol
         if protocol is None:

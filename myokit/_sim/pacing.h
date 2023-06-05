@@ -773,19 +773,16 @@ FSys_Populate(FSys sys, PyObject* protocol)
         Py_DECREF(times_list);
         return FSys_POPULATE_INVALID_TIMES;
     }
-    n = PyList_Size(times_list);
-    PyObject* values_list = PyObject_CallMethod(protocol, (char*)"values", NULL); // Returns a new reference
-    if(values_list == NULL) {
-        Py_DECREF(values_list);
-        return FSys_POPULATE_INVALID_VALUES;
-    }
 
-    // Convert and check times list
+    // Check and convert times list
+    n = PyList_Size(times_list);
     sys->times = (double*)malloc((size_t)n*sizeof(double));
     for(i=0; i<n; i++) {
         // GetItem and convert --> Borrowed reference so ok not to decref!
         sys->times[i] = PyFloat_AsDouble(PyList_GetItem(times_list, i));
     }
+    Py_DECREF(times_list);  // Finished with the times_list
+
     if (PyErr_Occurred()) {
         free(sys->times); sys->times = NULL;
         return FSys_POPULATE_INVALID_TIMES_DATA;
@@ -797,12 +794,24 @@ FSys_Populate(FSys sys, PyObject* protocol)
         }
     }
 
-    // Convert values list
+    // Check and convert values list
+    PyObject* values_list = PyObject_CallMethod(protocol, (char*)"values", NULL); // Returns a new reference
+    if(values_list == NULL) {
+        free(sys->times); sys->times = NULL;
+        return FSys_POPULATE_INVALID_PROTOCOL;
+    }
+    if(!PyList_Check(values_list) || PyList_Size(values_list) != n) {
+        free(sys->times); sys->times = NULL;
+        Py_DECREF(values_list);
+        return FSys_POPULATE_INVALID_VALUES;
+    }
     sys->values = (double*)malloc((size_t)n*sizeof(double));
     for(i=0; i<n; i++) {
         // GetItem and convert --> Borrowed reference so ok not to decref!
         sys->values[i] = PyFloat_AsDouble(PyList_GetItem(values_list, i));
     }
+    Py_DECREF(values_list); // Finished with the values list
+
     if (PyErr_Occurred()) {
         free(sys->times); sys->times = NULL;
         free(sys->values); sys->values = NULL;
