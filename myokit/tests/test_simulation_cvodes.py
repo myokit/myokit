@@ -177,10 +177,10 @@ class SimulationTest(unittest.TestCase):
 
         # Invalid protocols
         self.assertRaisesRegex(
-            ValueError, 'no times', self.sim.set_fixed_form_protocol,
+            ValueError, 'No times', self.sim.set_fixed_form_protocol,
             values=pace)
         self.assertRaisesRegex(
-            ValueError, 'no values', self.sim.set_fixed_form_protocol,
+            ValueError, 'No values', self.sim.set_fixed_form_protocol,
             times=time)
         self.assertRaisesRegex(
             ValueError, 'same size', self.sim.set_fixed_form_protocol,
