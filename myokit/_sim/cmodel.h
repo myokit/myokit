@@ -546,14 +546,14 @@ for eq in parameter_derived.values():
  *  literals : An array of size model->n_literals
  *
  * Returns a model flag.
- */
+ *
 Model_Flag
 Model_SetLiteralVariables(Model model, const realtype* literals)
 {
     int i;
     if (model == NULL) return Model_INVALID_MODEL;
 
-    /* Scan for changes */
+    /* Scan for changes *
     i = 0;
     #ifdef Model_CACHING
     if (Model__ValidCache(model)) {
@@ -565,7 +565,7 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
     }
     #endif
 
-    /* Update remaining */
+    /* Update remaining *
     if (i < model->n_literals) {
         for (; i<model->n_literals; i++) {
             model->literals[i] = literals[i];
@@ -578,7 +578,7 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
     }
 
     return Model_OK;
-}
+}*/
 
 /*
  * Updates the parameter variables to the values given in `parameters`.
