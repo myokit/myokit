@@ -45,7 +45,7 @@ w.set_lhs_function(v)
 e = w.eq
 
 # Process bindings
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time' : 'engine.time',
     'pace' : 'engine.pace',
     })

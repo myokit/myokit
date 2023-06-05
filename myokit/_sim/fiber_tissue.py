@@ -310,12 +310,12 @@ class FiberTissueSimulation(myokit.CModule):
 
         # Process bindings, remove unsupported bindings, get map of bound
         # variables to internal names.
-        self._bound_variablesf = self._modelf.prepare_bindings({
+        self._bound_variablesf = myokit._prepare_bindings(self._modelf, {
             'time': 'time',
             'pace': 'pace',
             'diffusion_current': 'idiff',
         })
-        self._bound_variablest = self._modelt.prepare_bindings({
+        self._bound_variablest = myokit._prepare_bindings(self._modelt, {
             'time': 'time',
             'pace': 'pace',
             'diffusion_current': 'idiff',

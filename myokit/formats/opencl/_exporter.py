@@ -80,7 +80,7 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
 
         # Process bindings, remove unsupported bindings, get map of bound
         # variables to internal names.
-        bound_variables = model.prepare_bindings({
+        bound_variables = myokit._prepare_bindings(model, {
             'time': 'time',
             'pace': 'pace',
             'diffusion_current': 'idiff',

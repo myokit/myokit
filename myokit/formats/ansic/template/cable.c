@@ -23,11 +23,11 @@ model.create_unique_names()
 w = ansic.AnsiCExpressionWriter()
 
 # Process bindings, remove unsupported bindings
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time'         : 't',
     'pace'         : 'pace',
     'diffusion_current' : 'current'
-    }).keys()
+}).keys()
 
 if model.binding('diffusion_current') is None:
     raise Exception('This exporter requires a variable to be bound to'
