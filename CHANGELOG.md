@@ -10,6 +10,8 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.initial_value`, which returns a state variable's initial value as an expression or float.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.set_initial_value`, which sets a state variable's initial value using an expression, string expression, or float.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `IllegalReferenceInInitialValueError` for illegal references made in initial value expressions.
+  - [#947](https://github.com/myokit/myokit/pull/947) The `Simulation` class can now handle multiple protocols during a single simulation.
+  - [#947](https://github.com/myokit/myokit/pull/947) Fixed-form protocols are now implemented in a `TimeSeriesProtocol`.
 - Changed
   - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `initial_value`.
   - [#909](https://github.com/MichaelClerx/myokit/pull/909) Myokit is now tested on Python 3.11.
@@ -25,14 +27,17 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.save_state` and `Model.load_state` are deprecated.
   - [#918](https://github.com/myokit/myokit/pull/918) The `Variable.promote` keyword argument `state_value` is deprecated in favour of `initial_value`.
+  - [#947](https://github.com/myokit/myokit/pull/947) `Simulation.set_fixed_form_protocol` is deprecated in favour of using `Simulation.set_protocol` with a `TimeSeriesProtocol`
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `LegacySimulation` class.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `PSimulation` class.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `ICSimulation` class.
+  - [#957](https://github.com/myokit/myokit/pull/957) Removed the method `Model.prepare_bindings`.
 - Fixed
   - [#918](https://github.com/myokit/myokit/pull/918) Fixed error when `var()` was called on a `PartialDerivative` with a `Derivative` as first argument.
   - [#933](https://github.com/myokit/myokit/pull/933) Made `myokit.step` base its error classification (large/small/none) on numerics, not representation.
+  - [#947](https://github.com/myokit/myokit/pull/947) Fixed minor memory leak (reference counting issue) when using fixed form protocols.
 
 ## [1.33.9] - 2022-11-08
 - Fixed

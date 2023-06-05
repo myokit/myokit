@@ -434,6 +434,50 @@ def python_writer():
     return _pywriter_
 
 
+def _prepare_bindings(model, labels):
+    """
+    Takes a mapping of binding labels to internal references and returns a map
+    from variable instances to the same internal references.
+
+    This method also modifies ``model``: All bindings that are not mapped to
+    an internal reference will be removed.
+
+    The argument ``mapping`` should take the form::
+
+        labels = {
+            binding_label_1 : internal_name_1,
+            binding_label_2 : internal_name_2,
+            ...
+            }
+
+    The returned dictionary will have the form::
+
+        variables = {
+            variable_x : internal_name_1,
+            variable_y : internal_name_2,
+            ...
+            }
+
+    Unsupported bindings (i.e. bindings not appearing in ``labels``) will
+    be ignored.
+    """
+    unused = []
+    variables = {}
+    for label, var in model.bindings():
+        try:
+            variables[var] = labels[label]
+        except KeyError:
+            unused.append(var)
+            continue
+        # TODO: Remove this line; https://github.com/myokit/myokit/issues/320
+        var.set_rhs(0)
+
+    for var in unused:
+        var.set_binding(None)
+
+    return variables
+
+
 def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     """
     Runs a python ``script`` using the given ``model`` and ``protocol``.

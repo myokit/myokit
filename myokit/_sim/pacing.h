@@ -620,6 +620,7 @@ typedef int FSys_Flag;
 #define FSys_POPULATE_INVALID_TIMES_DATA    -24
 #define FSys_POPULATE_INVALID_VALUES_DATA   -25
 #define FSys_POPULATE_DECREASING_TIMES_DATA -26
+#define FSys_POPULATE_INVALID_PROTOCOL      -27
 
 /*
  * Sets a python exception based on a fixed-form pacing error flag.
@@ -647,6 +648,9 @@ FSys_SetPyErr(FSys_Flag flag)
         PyErr_SetString(PyExc_Exception, "F-Pacing error: Pacing system not populated.");
         break;
     // Populate
+    case FSys_POPULATE_INVALID_PROTOCOL:
+        PyErr_SetString(PyExc_Exception, "F-Pacing error: Invalid protocol python object passed.");
+        break;
     case FSys_POPULATE_INVALID_TIMES:
         PyErr_SetString(PyExc_Exception, "F-Pacing error: Invalid times array passed.");
         break;
@@ -750,7 +754,7 @@ FSys_Destroy(FSys sys)
  * Returns a fixed-form pacing error flag.
  */
 FSys_Flag
-FSys_Populate(FSys sys, PyObject* times_list, PyObject* values_list)
+FSys_Populate(FSys sys, PyObject* protocol)
 {
     int i;
     Py_ssize_t n;
@@ -758,20 +762,27 @@ FSys_Populate(FSys sys, PyObject* times_list, PyObject* values_list)
     // Check ESys
     if(sys == 0) return FSys_INVALID_SYSTEM;
     if (sys->n_points != -1) return FSys_POPULATED_SYSTEM;
+    if (protocol == Py_None) return FSys_POPULATE_INVALID_PROTOCOL;
 
-    // Check input lists
-    if(!PyList_Check(times_list)) return FSys_POPULATE_INVALID_TIMES;
-    if(!PyList_Check(values_list)) return FSys_POPULATE_INVALID_VALUES;
+    // Get PyList from protocol (will need to decref!)
+    // Cast to (char*) happens because CallMethod accepts a mutable char*
+    // This should have been const char* and has been fixed in python 3
+    PyObject* times_list = PyObject_CallMethod(protocol, (char*)"times", NULL); // Returns a new reference
+    if(times_list == NULL) return FSys_POPULATE_INVALID_PROTOCOL;
+    if(!PyList_Check(times_list)) {
+        Py_DECREF(times_list);
+        return FSys_POPULATE_INVALID_TIMES;
+    }
+
+    // Check and convert times list
     n = PyList_Size(times_list);
-    if (n != PyList_Size(values_list)) return FSys_POPULATE_SIZE_MISMATCH;
-    if (n < 2) return FSys_POPULATE_NOT_ENOUGH_DATA;
-
-    // Convert and check times list
     sys->times = (double*)malloc((size_t)n*sizeof(double));
     for(i=0; i<n; i++) {
         // GetItem and convert --> Borrowed reference so ok not to decref!
         sys->times[i] = PyFloat_AsDouble(PyList_GetItem(times_list, i));
     }
+    Py_DECREF(times_list);  // Finished with the times_list
+
     if (PyErr_Occurred()) {
         free(sys->times); sys->times = NULL;
         return FSys_POPULATE_INVALID_TIMES_DATA;
@@ -783,12 +794,24 @@ FSys_Populate(FSys sys, PyObject* times_list, PyObject* values_list)
         }
     }
 
-    // Convert values list
+    // Check and convert values list
+    PyObject* values_list = PyObject_CallMethod(protocol, (char*)"values", NULL); // Returns a new reference
+    if(values_list == NULL) {
+        free(sys->times); sys->times = NULL;
+        return FSys_POPULATE_INVALID_PROTOCOL;
+    }
+    if(!PyList_Check(values_list) || PyList_Size(values_list) != n) {
+        free(sys->times); sys->times = NULL;
+        Py_DECREF(values_list);
+        return FSys_POPULATE_INVALID_VALUES;
+    }
     sys->values = (double*)malloc((size_t)n*sizeof(double));
     for(i=0; i<n; i++) {
         // GetItem and convert --> Borrowed reference so ok not to decref!
         sys->values[i] = PyFloat_AsDouble(PyList_GetItem(values_list, i));
     }
+    Py_DECREF(values_list); // Finished with the values list
+
     if (PyErr_Occurred()) {
         free(sys->times); sys->times = NULL;
         free(sys->values); sys->values = NULL;

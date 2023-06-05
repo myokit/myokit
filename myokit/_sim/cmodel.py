@@ -35,6 +35,9 @@ class CModel(object):
 
     ``model``
         A :class:`myokit.Model`.
+    ``pacing_labels``
+        A list of ``str`` variable labels, each corresponding to a paced
+        variable.
     ``sensitivities``
         Either ``None`` or a tuple ``(dependents, independents)``. See
         :class:`myokit.Simulation` for details.
@@ -76,7 +79,7 @@ class CModel(object):
         Constants that depend on literals, but not on parameters.
 
     """
-    def __init__(self, model, sensitivities):
+    def __init__(self, model, pacing_labels, sensitivities):
 
         # Parse sensitivity arguments
         has_sensitivities, dependents, independents = \
@@ -86,17 +89,15 @@ class CModel(object):
         # bother with keywords.
         model.create_unique_names()
 
-        # Remove any unused bindings, and get mapping from variables to C
-        # variable names as used in model.h
-        #TODO: Think about best way to do this for model re-use with different
-        # sets of bound variables... Presumably the model would simply support
-        # all bindings used by any of the simulations based on model.h ?
-        bound_variables = model.prepare_bindings({
+        # Get mapping from variables to C variable names as used in model.h
+        labels = {
             'time': 'time',
-            'pace': 'pace',
             'realtime': 'realtime',
             'evaluations': 'evaluations',
-        })
+        }
+        for i, label in enumerate(pacing_labels):
+            labels[label] = 'pace_values[' + str(i) + ']'
+        bound_variables = myokit._prepare_bindings(model, labels)
 
         # Get equations in solvable order (grouped by component)
         equations = model.solvable_order()

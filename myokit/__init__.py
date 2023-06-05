@@ -462,6 +462,7 @@ from ._protocol import (  # noqa
     PacingSystem,
     Protocol,
     ProtocolEvent,
+    TimeSeriesProtocol,
 )
 from . import pacing  # noqa
 
@@ -505,6 +506,7 @@ from ._aux import (  # noqa
     default_script,
     ModelComparison,
     numpy_writer,
+    _prepare_bindings,
     python_writer,
     run,
     step,

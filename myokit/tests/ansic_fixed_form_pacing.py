@@ -24,7 +24,7 @@ class AnsicFixedFormPacing(myokit.CModule):
     """
     _index = 0
 
-    def __init__(self, times=None, values=None):
+    def __init__(self, protocol):
         super(AnsicFixedFormPacing, self).__init__()
 
         # Unique id
@@ -43,7 +43,7 @@ class AnsicFixedFormPacing(myokit.CModule):
         self._sys = self._compile(module_name, fname, args, libs, libd, incd)
 
         # Initialize
-        self._sys.init(times, values)
+        self._sys.init(protocol)
 
     def pace(self, time):
         return self._sys.pace(time)

@@ -56,8 +56,7 @@ static PyObject*
 fpacing_init(PyObject *self, PyObject *args)
 {
     // Input arguments
-    PyObject* times;
-    PyObject* values;
+    PyObject* protocol;
 
     FSys_Flag flag;
 
@@ -71,7 +70,7 @@ fpacing_init(PyObject *self, PyObject *args)
     pacing = NULL;
 
     // Check input arguments
-    if (!PyArg_ParseTuple(args, "OO", &times, &values)) {
+    if (!PyArg_ParseTuple(args, "O", &protocol)) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         // Nothing allocated yet, no pyobjects _created_, return directly
         return 0;
@@ -85,7 +84,7 @@ fpacing_init(PyObject *self, PyObject *args)
     // Set up fixed-form pacing
     pacing = FSys_Create(&flag);
     if (flag != FSys_OK) { FSys_SetPyErr(flag); return fpacing_clean(); }
-    flag = FSys_Populate(pacing, times, values);
+    flag = FSys_Populate(pacing, protocol);
     if (flag != FSys_OK) { FSys_SetPyErr(flag); return fpacing_clean(); }
 
     // Done!

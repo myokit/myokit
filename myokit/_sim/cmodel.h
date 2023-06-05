@@ -45,7 +45,8 @@ States:
 State derivatives:
     Calculated by the model.
 Bound variables:
-    External inputs to the model (e.g. time and pacing).
+    External inputs to the model (e.g. time and pacing). There are an arbitrary
+    number of these, and the model stores the current value of each
 Intermediary variables:
     The remaining variables that depend on state variables.
 Constants:
@@ -214,6 +215,8 @@ typedef int Model_Flag;
 /* Logging sensitivities */
 #define Model_NO_SENSITIVITIES_TO_LOG       -300
 #define Model_SENSITIVITY_LOG_APPEND_FAILED -303
+/* Pacing */
+#define Model_INVALID_PACING                -400
 
 /* Caching doesn't help much when running without jacobians etc., so disabled
    for now
@@ -259,7 +262,9 @@ Model_SetPyErr(Model_Flag flag)
     case Model_SENSITIVITY_LOG_APPEND_FAILED:
         PyErr_SetString(PyExc_Exception, "CModel error: Call to append() failed on sensitivity matrix logging list.");
         break;
-
+    case Model_INVALID_PACING:
+        PyErr_SetString(PyExc_Exception, "CModel error: Invalid pacing provided.");
+        break;
     /* Unknown */
     default:
         PyErr_Format(PyExc_Exception, "CModel error: Unlisted error %d", (int)flag);
@@ -277,9 +282,12 @@ struct Model_Memory {
     /* If this model has sensitivities this will be 1, otherwise 0. */
     int has_sensitivities;
 
+    /* Pacing */
+    realtype *pace_values;
+    int n_pace;
+
     /* Bound variables */
     realtype time;
-    realtype pace;
     realtype realtime;
     realtype evaluations;
 
@@ -445,6 +453,41 @@ Model_ClearCache(Model model)
 }
 
 /*
+ * Sets up (i.e. allocates memory for) array of protocol-determined values
+ *
+ * Arguments
+ *  n_pace: the number of pacing values to use.
+ *
+ * Returns a model flag.
+ *
+ */
+Model_Flag
+Model_SetupPacing(Model model, int n_pace)
+{
+    if (model == NULL) return Model_INVALID_MODEL;
+    if (n_pace < 0) return Model_INVALID_PACING;
+
+    /* Free any existing pacing */
+    if (model->n_pace > 0) {
+        free(model->pace_values);
+    }
+
+    /* Allocate new pacing */
+    model->n_pace = n_pace;
+    model->pace_values = (realtype*)malloc(n_pace * sizeof(realtype));
+    if (model->pace_values == NULL) {
+        return Model_OUT_OF_MEMORY;
+    }
+
+    /* Clear values */
+    for (int i = 0; i < n_pace; i++) {
+        model->pace_values[i] = 0;
+    }
+
+    return Model_OK;
+}
+
+/*
  * (Re)calculates the values of all constants that are derived from other
  * constants.
  *
@@ -503,14 +546,14 @@ for eq in parameter_derived.values():
  *  literals : An array of size model->n_literals
  *
  * Returns a model flag.
- */
+ *
 Model_Flag
 Model_SetLiteralVariables(Model model, const realtype* literals)
 {
     int i;
     if (model == NULL) return Model_INVALID_MODEL;
 
-    /* Scan for changes */
+    /* Scan for changes *
     i = 0;
     #ifdef Model_CACHING
     if (Model__ValidCache(model)) {
@@ -522,7 +565,7 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
     }
     #endif
 
-    /* Update remaining */
+    /* Update remaining *
     if (i < model->n_literals) {
         for (; i<model->n_literals; i++) {
             model->literals[i] = literals[i];
@@ -535,7 +578,7 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
     }
 
     return Model_OK;
-}
+}*/
 
 /*
  * Updates the parameter variables to the values given in `parameters`.
@@ -657,8 +700,10 @@ Model_SetParametersFromIndependents(Model model, const realtype* independents)
 Model_Flag
 Model_SetBoundVariables(
     Model model,
-    const realtype time, const realtype pace,
-    const realtype realtime, const realtype evaluations)
+    const realtype time,
+    const realtype *pace_values,
+    const realtype realtime,
+    const realtype evaluations)
 {
     int changed;
     if (model == NULL) return Model_INVALID_MODEL;
@@ -669,13 +714,13 @@ Model_SetBoundVariables(
         changed = 1;
     }
 
-<?
-if model.binding('pace') is not None:
-    print(tab + 'if (pace != model->pace) {')
-    print(tab + '    model->pace = pace;')
-    print(tab + '    changed = 1;')
-    print(tab + '}')
-?>
+    for (int i = 0; i < model->n_pace; i++) {
+        if (pace_values[i] != model->pace_values[i]) {
+            model->pace_values[i] = pace_values[i];
+            changed = 1;
+        }
+    }
+
     #ifdef Model_CACHING
     if (changed) {
         Model__InvalidateCache(model);
@@ -1132,6 +1177,10 @@ Model Model_Create(Model_Flag* flagp)
     model->parameters = (realtype*)malloc(model->n_parameters * sizeof(realtype));
     model->parameter_derived = (realtype*)malloc(model->n_parameter_derived * sizeof(realtype));
 
+    /* Pacing */
+    model->n_pace = 0;
+    model->pace_values = NULL;
+
     /* Literals */
     model->n_literals = <?= len(literals) ?>;
     model->n_literal_derived = <?= len(literal_derived) ?>;
@@ -1194,9 +1243,8 @@ for i, expr in enumerate(s_independents):
      * Default values
      */
 
-    /* Bound variables */
+    /* Bound variables (except pacing) */
     model->time = 0;
-    model->pace = 0;
     model->realtime = 0;
     model->evaluations = 0;
 

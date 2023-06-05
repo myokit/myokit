@@ -38,10 +38,10 @@ w.set_lhs_function(v)
 
 # Process bindings, remove unsupported bindings, get map of bound variables to
 # internal names
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time' : 't',
     'pace' : 'pace',
-    })
+})
 
 # Tab
 tab = '    '
