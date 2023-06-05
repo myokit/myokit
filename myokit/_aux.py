@@ -439,13 +439,14 @@ def _prepare_bindings(model, labels):
     Takes a mapping from labels to strings and returns a mapping from variable
     objects to strings, for all labels that are defined in the model.
 
-    Raises an error if the label refers to a variable that is not a literal.
+    Raises an error if the label refers to a variable that is not a literal
+    (i.e. it depends on another variable).
 
     The argument ``mapping`` should take the form::
 
         labels = {
-            'binding_label_1' : internal_name_1,
-            'binding_label_2' : internal_name_2,
+            binding_label_1 : internal_name_1,
+            binding_label_2 : internal_name_2,
             ...
             }
 
@@ -457,21 +458,20 @@ def _prepare_bindings(model, labels):
             ...
             }
 
-    Unsupported bindings (i.e. bindings not appearing in ``labels``) will
-    be ignored.
     """
-    unused = []
     variables = {}
-    for label, var in self._bindings.items():
-        try:
-            variables[var] = labels[label]
-        except KeyError:
-            unused.append(var)
-            continue
-        var.set_rhs(0)
-    for var in unused:
-        var.set_binding(None)
+    for label, internal_name in labels.items():
+        var = model.label(label)
+        if var is not None:
+            if not var.is_literal():
+                raise myokit.InvalidBindingError(
+                    'The variable ' + var.qname() + ' was labelled as '
+                    + label + ' but has dependencies on other variables'
+                    ' - only variables without dependencies can be used as '
+                    + label + '.')
+            variables[var] = internal_name
     return variables
+
 
 def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     """

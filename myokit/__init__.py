@@ -397,7 +397,6 @@ from ._model_api import ( # noqa
     EquationList,
     Model,
     ModelPart,
-    _prepare_bindings,
     UserFunction,
     Variable,
 )

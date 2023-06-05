@@ -90,36 +90,13 @@ class CModel(object):
 
         # get mapping from variables to C variable names as used in model.h
         labels = {
-            label: 'pace_values[{}]'.format(i)
-            for i, label in enumerate(pacing_labels)
-        }
-        labels.update({
             'time': 'time',
             'realtime': 'realtime',
             'evaluations': 'evaluations',
-        })
-        bound_variables = self._prepare_bindings(model, labels)
-
-        bound_variables = {}
-        for label in ('time', 'realtime', 'evaluations'):
-            var = model.binding(label)
-            if var is not None:
-                bound_variables[var] = label
-
-
-        variables = {}
-        unused = []
-        for label, var in model._bindings.items():
-            try:
-                variables[var] = labels[label]
-            except KeyError:
-                unused.append(var)
-                continue
-            var.set_rhs(0)
-
-        return variables
-
-
+        }
+        for i, label in enumerate(pacing_labels):
+            labels[label] = 'pace_values[' + str(i) + ']'
+        bound_variables = myokit._prepare_bindings(model, labels)
 
         # Get equations in solvable order (grouped by component)
         equations = model.solvable_order()
