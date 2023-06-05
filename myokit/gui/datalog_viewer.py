@@ -117,10 +117,11 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
-        # Add widget for Abf file tabs
-        self._tabs = QtWidgets.QTabWidget()
+        # Add widget for file tabs
+        self._tabs = TabWidget()
         self._tabs.setTabsClosable(True)
         self._tabs.tabCloseRequested.connect(self.action_close)
+        self._tabs.currentChanged.connect(self.fileTabChangeEvent)
         self.setCentralWidget(self._tabs)
         # Menu bar
         self.create_menu()
@@ -135,6 +136,12 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # Load any selected files
         for filename in filenames:
             self.load_file(filename)
+        tc = self._tabs.count()
+        if tc > 0:
+            if tc > 1:
+                self._tool_next_file.setEnabled(True)
+                self._tool_prev_file.setEnabled(True)
+            self._tabs.setCurrentIndex(0)
 
     def action_about(self):
         """
@@ -146,8 +153,16 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         """
         Called when a tab should be closed
         """
+        # Remove tab
         tab = self._tabs.widget(index)
         self._tabs.removeTab(index)
+
+        # Update buttons
+        if self._tabs.count() < 2:
+            self._tool_next_file.setEnabled(False)
+            self._tool_prev_file.setEnabled(False)
+
+        # Delete tab
         if tab is not None:
             tab.deleteLater()
         gc.collect()
@@ -168,12 +183,48 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         if filenames:
             # Save current number of tabs
             tab_count = self._tabs.count()
+
             # Load files
             for filename in filenames:
                 self.load_file(str(filename))
+
             # If loading went ok, show first of newly loaded files
-            if self._tabs.count() > tab_count:
+            tab_count_new = self._tabs.count()
+            if tab_count_new > tab_count:
                 self._tabs.setCurrentIndex(tab_count)
+
+                # Enable next/previous file menu items
+                if tab_count_new > 1:
+                    self._tool_next_file.setEnabled(True)
+                    self._tool_prev_file.setEnabled(True)
+
+    def action_next_file(self):
+        """
+        Select the next open file.
+        """
+        self._tabs.next()
+
+    def action_next_var(self):
+        """
+        Select the next variable in the selected file.
+        """
+        tab = self._tabs.currentWidget()
+        if tab:
+            tab.next()
+
+    def action_prev_file(self):
+        """
+        Select the previous open file.
+        """
+        self._tabs.previous()
+
+    def action_prev_var(self):
+        """
+        Select the previous variable in the selected file
+        """
+        tab = self._tabs.currentWidget()
+        if tab:
+            tab.previous()
 
     def closeEvent(self, event=None):
         """
@@ -211,6 +262,37 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tool_exit.setIcon(QtGui.QIcon.fromTheme('application-exit'))
         self._tool_exit.triggered.connect(self.close)
         self._menu_file.addAction(self._tool_exit)
+        # View menu
+        self._menu_view = self._menu.addMenu('&View')
+        # View > Next file
+        self._tool_next_file = QtWidgets.QAction('Next file', self)
+        self._tool_next_file.setShortcut('Ctrl+PgDown')
+        self._tool_next_file.setStatusTip('Select the next open file')
+        self._tool_next_file.triggered.connect(self.action_next_file)
+        self._tool_next_file.setEnabled(False)
+        self._menu_view.addAction(self._tool_next_file)
+        # View > Previous file
+        self._menu_view.addAction(self._tool_next_file)
+        self._tool_prev_file = QtWidgets.QAction('Previous file', self)
+        self._tool_prev_file.setShortcut('Ctrl+PgUp')
+        self._tool_prev_file.setStatusTip('Select the previous open file')
+        self._tool_prev_file.triggered.connect(self.action_prev_file)
+        self._tool_prev_file.setEnabled(False)
+        self._menu_view.addAction(self._tool_prev_file)
+        # View > Next variable
+        self._tool_next_var = QtWidgets.QAction('Next variable', self)
+        self._tool_next_var.setShortcut('PgDown')
+        self._tool_next_var.setStatusTip('Show the next variable')
+        self._tool_next_var.triggered.connect(self.action_next_var)
+        self._tool_next_var.setEnabled(False)
+        self._menu_view.addAction(self._tool_next_var)
+        # View > Previous var
+        self._tool_prev_var = QtWidgets.QAction('Previous variable', self)
+        self._tool_prev_var.setShortcut('PgUp')
+        self._tool_prev_var.setStatusTip('Show the previous variable')
+        self._tool_prev_var.triggered.connect(self.action_prev_var)
+        self._tool_prev_var.setEnabled(False)
+        self._menu_view.addAction(self._tool_prev_var)
         # Help menu
         self._menu_help = self._menu.addMenu('&Help')
         # Help > About
@@ -411,8 +493,46 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         super(DataLogViewer, self).show()
         QtWidgets.QApplication.processEvents()
 
+    def fileTabChangeEvent(self, index):
+        """
+        Different file tab selected.
+        """
+        if index >= 0:
+            tab = self._tabs.widget(index)
+            if tab.count() > 1:
+                self._tool_prev_var.setEnabled(True)
+                self._tool_next_var.setEnabled(True)
+                return
+        self._tool_prev_var.setEnabled(False)
+        self._tool_next_var.setEnabled(False)
 
-class AbfTab(QtWidgets.QTabWidget):
+
+class TabWidget(QtWidgets.QTabWidget):
+    """
+    Tab widget that can move up and down when asked.
+    """
+    def next(self):
+        """
+        Select the next widget.
+        """
+        n = self.count()
+        if n < 2:
+            return
+        i = self.currentIndex() + 1
+        self.setCurrentIndex(0 if i >= n else i)
+
+    def previous(self):
+        """
+        Select the previous widget.
+        """
+        n = self.count()
+        if n < 2:
+            return
+        i = self.currentIndex() - 1
+        self.setCurrentIndex(n - 1 if i < 0 else i)
+
+
+class AbfTab(TabWidget):
     """
     A widget displaying an ABF file.
     """
@@ -514,7 +634,7 @@ class AbfTab(QtWidgets.QTabWidget):
         super(AbfTab, self).deleteLater()
 
 
-class AtfTab(QtWidgets.QTabWidget):
+class AtfTab(TabWidget):
     """
     A widget displaying an AGF file.
     """
@@ -585,7 +705,7 @@ class AtfTab(QtWidgets.QTabWidget):
         super(AtfTab, self).deleteLater()
 
 
-class CsvTab(QtWidgets.QTabWidget):
+class CsvTab(TabWidget):
     """
     A widget displaying a CSV file.
 
@@ -619,17 +739,33 @@ class CsvTab(QtWidgets.QTabWidget):
                 self, TITLE, 'Unable to load file: no data found.')
             return
 
-        # Add tab for each column
-        for k, v in log.items():
-            if k == time:
+        # Overlapping sweeps or neighbouring cells?
+        keys = []
+        groups = {}
+        for key in log.keys():
+            if key == time:
                 continue
-            self.addTab(self.create_graph_tab(k, v), k)
+            index, var = myokit.split_key(key)
+            if index:
+                group = groups.get(var, None)
+                if group is None:
+                    groups[var] = [index]
+                    keys.append(var)
+                else:
+                    group.append(index)
+            else:
+                keys.append(var)
 
-    def create_graph_tab(self, key, data):
+        # Add tab for each column
+        for k in keys:
+            self.addTab(self.create_graph_tab(k, groups.get(k)), k)
+
+    def create_graph_tab(self, key, indices=None):
         """
-        Creates a widget displaying the ``data`` stored under ``key``.
+        Creates a widget displaying the data stored under ``key``.
         """
         widget = QtWidgets.QWidget(self)
+
         # Create figure
         figure = matplotlib.figure.Figure()
         figure.suptitle(self._filename)
@@ -638,8 +774,14 @@ class CsvTab(QtWidgets.QTabWidget):
         axes = figure.add_subplot(1, 1, 1)
         axes.set_title(key)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
+
         # Draw lines
-        axes.plot(self._time, data)
+        if indices is None:
+            axes.plot(self._time, self._log[key])
+        else:
+            for i in indices:
+                axes.plot(self._time, self._log[i + key])
+
         # Create a layout
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(canvas)
@@ -662,7 +804,7 @@ class CsvTab(QtWidgets.QTabWidget):
         super(CsvTab, self).deleteLater()
 
 
-class MatTab(QtWidgets.QTabWidget):
+class MatTab(TabWidget):
     """
     A widget displaying a MAT file.
     """
@@ -750,7 +892,7 @@ class MatTab(QtWidgets.QTabWidget):
         super(MatTab, self).deleteLater()
 
 
-class TxtTab(QtWidgets.QTabWidget):
+class TxtTab(TabWidget):
     """
     A widget displaying a TXT file (with lots of heuristics!).
     """
@@ -832,7 +974,7 @@ class TxtTab(QtWidgets.QTabWidget):
         super(TxtTab, self).deleteLater()
 
 
-class WcpTab(QtWidgets.QTabWidget):
+class WcpTab(TabWidget):
     """
     A widget displaying a WCP file.
     """

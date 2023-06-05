@@ -19,6 +19,8 @@ Implementation
 Widgets
 -------
 
+.. autoclass:: TabWidget
+
 .. autoclass:: AbfTab
 
 .. autoclass:: AtfTab
