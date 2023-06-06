@@ -474,7 +474,7 @@ Model_SetupPacing(Model model, int n_pace)
 
     /* Allocate new pacing */
     model->n_pace = n_pace;
-    model->pace_values = (realtype*)malloc(n_pace * sizeof(realtype));
+    model->pace_values = (realtype*)malloc((size_t)n_pace * sizeof(realtype));
     if (model->pace_values == NULL) {
         return Model_OUT_OF_MEMORY;
     }
@@ -553,7 +553,7 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
     int i;
     if (model == NULL) return Model_INVALID_MODEL;
 
-    /* Scan for changes *
+    * Scan for changes *
     i = 0;
     #ifdef Model_CACHING
     if (Model__ValidCache(model)) {
@@ -565,7 +565,7 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
     }
     #endif
 
-    /* Update remaining *
+    * Update remaining *
     if (i < model->n_literals) {
         for (; i<model->n_literals; i++) {
             model->literals[i] = literals[i];
@@ -705,19 +705,27 @@ Model_SetBoundVariables(
     const realtype realtime,
     const realtype evaluations)
 {
+    #ifdef Model_CACHING
     int changed;
+    #endif
     if (model == NULL) return Model_INVALID_MODEL;
 
+    #ifdef Model_CACHING
     changed = 0;
+    #endif
     if (time != model->time) {
         model->time = time;
+        #ifdef Model_CACHING
         changed = 1;
+        #endif
     }
 
     for (int i = 0; i < model->n_pace; i++) {
         if (pace_values[i] != model->pace_values[i]) {
             model->pace_values[i] = pace_values[i];
+            #ifdef Model_CACHING
             changed = 1;
+            #endif
         }
     }
 
@@ -957,11 +965,11 @@ Model_InitialiseLogging(Model model, PyObject* log_dict)
     if (model->logging_initialised) return Model_LOGGING_ALREADY_INITIALISED;
 
     /* Number of variables to log */
-    model->n_logged_variables = PyDict_Size(log_dict);
+    model->n_logged_variables = (int)PyDict_Size(log_dict);
 
     /* Allocate pointer lists */
-    model->_log_lists = (PyObject**)malloc(sizeof(PyObject*) * model->n_logged_variables);
-    model->_log_vars = (realtype**)malloc(sizeof(realtype*) * model->n_logged_variables);
+    model->_log_lists = (PyObject**)malloc((size_t)model->n_logged_variables * sizeof(PyObject*));
+    model->_log_vars = (realtype**)malloc((size_t)model->n_logged_variables * sizeof(realtype*));
 
     /* Check states */
     i = 0;
@@ -1095,13 +1103,14 @@ Model_Flag
 Model_LogSensitivityMatrix(Model model, PyObject* list)
 {
     PyObject *l1, *l2;
-    PyObject *val;
     int flag;
+    <?= 'PyObject *val;' if s_dependents else '' ?>
 
     if (model == NULL) return Model_INVALID_MODEL;
 
     /* Create outer tuple */
     l1 = PyTuple_New(model->ns_dependents);
+    l2 = NULL;  /* Removes "may be unitialized" error */
     if (l1 == NULL) goto nomem;
 
     /* Note that PyTuple_SetItem steals a reference */
@@ -1164,18 +1173,18 @@ Model Model_Create(Model_Flag* flagp)
 
     /* States and derivatives */
     model->n_states = <?= model.count_states() ?>;
-    model->states = (realtype*)malloc(model->n_states * sizeof(realtype));
-    model->derivatives = (realtype*)malloc(model->n_states * sizeof(realtype));
+    model->states = (realtype*)malloc((size_t)model->n_states * sizeof(realtype));
+    model->derivatives = (realtype*)malloc((size_t)model->n_states * sizeof(realtype));
 
     /* Intermediary variables */
     model->n_intermediary = <?= model.count_variables(inter=True, deep=True) ?>;
-    model->intermediary = (realtype*)malloc(model->n_intermediary * sizeof(realtype));
+    model->intermediary = (realtype*)malloc((size_t)model->n_intermediary * sizeof(realtype));
 
     /* Parameters */
     model->n_parameters = <?= len(parameters) ?>;
     model->n_parameter_derived = <?= len(parameter_derived) ?>;
-    model->parameters = (realtype*)malloc(model->n_parameters * sizeof(realtype));
-    model->parameter_derived = (realtype*)malloc(model->n_parameter_derived * sizeof(realtype));
+    model->parameters = (realtype*)malloc((size_t)model->n_parameters * sizeof(realtype));
+    model->parameter_derived = (realtype*)malloc((size_t)model->n_parameter_derived * sizeof(realtype));
 
     /* Pacing */
     model->n_pace = 0;
@@ -1184,8 +1193,8 @@ Model Model_Create(Model_Flag* flagp)
     /* Literals */
     model->n_literals = <?= len(literals) ?>;
     model->n_literal_derived = <?= len(literal_derived) ?>;
-    model->literals = (realtype*)malloc(model->n_literals * sizeof(realtype));
-    model->literal_derived = (realtype*)malloc(model->n_literal_derived * sizeof(realtype));
+    model->literals = (realtype*)malloc((size_t)model->n_literals * sizeof(realtype));
+    model->literal_derived = (realtype*)malloc((size_t)model->n_literal_derived * sizeof(realtype));
 
     /*
      * Sensitivities
@@ -1200,23 +1209,23 @@ Model Model_Create(Model_Flag* flagp)
     /* Pointers to independent variables */
     /* Note that, for sensitivities w.r.t. initial values, the entry in this
        list points to the _current_, not the initial value. */
-    model->s_independents = (realtype**)malloc(model->ns_independents * sizeof(realtype));
+    model->s_independents = (realtype**)malloc((size_t)model->ns_independents * sizeof(realtype));
 <?
 for i, expr in enumerate(s_independents):
     print(tab + 'model->s_independents[' + str(i) + '] = &' + v(expr.var()) + ';')
 ?>
     /* Type of independents (1 for parameter, 0 for initial) */
-    model->s_is_parameter = (int*)malloc(model->ns_independents * sizeof(int));
+    model->s_is_parameter = (int*)malloc((size_t)model->ns_independents * sizeof(int));
 <?
 for i, expr in enumerate(s_independents):
     print(tab + 'model->s_is_parameter[' + str(i) + '] = ' + str(1 if isinstance(expr, myokit.Name) else 0) + ';')
 ?>
     /* Sensitivities of state variables */
-    model->s_states = (realtype*)malloc(model->n_states * model->ns_independents * sizeof(realtype));
+    model->s_states = (realtype*)malloc((size_t)(model->n_states * model->ns_independents) * sizeof(realtype));
 
     /* Sensitivities of intermediary variables needed in calculations */
     model->ns_intermediary = <?= sum(len(x) for x in s_output_equations) ?>;
-    model->s_intermediary = (realtype*)malloc(model->ns_intermediary * sizeof(realtype));
+    model->s_intermediary = (realtype*)malloc((size_t)model->ns_intermediary * sizeof(realtype));
 
     /*
      * Logging

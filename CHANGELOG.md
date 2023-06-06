@@ -4,13 +4,13 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
-  - [#898](https://github.com/myokit/myokit/pull/899) Initial conditions for state variables can now be (constant-valued) expressions. Previously, only literals were allowed.
+  - [#898](https://github.com/myokit/myokit/pull/899) @martinjrobins Initial conditions for state variables can now be (constant-valued) expressions. Previously, only literals were allowed.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Model.initial_values`, which returns the model's initial values as a list of expressions, floats, or equations.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Model.set_initial_values`, which sets the model's initial values using a list of expressions or anything accepted by `map_to_state`.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.initial_value`, which returns a state variable's initial value as an expression or float.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Variable.set_initial_value`, which sets a state variable's initial value using an expression, string expression, or float.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `IllegalReferenceInInitialValueError` for illegal references made in initial value expressions.
-  - [#947](https://github.com/myokit/myokit/pull/947) The `Simulation` class can now handle multiple protocols during a single simulation.
+  - [#947](https://github.com/myokit/myokit/pull/947) @martinjrobins The `Simulation` class can now handle multiple protocols during a single simulation.
   - [#947](https://github.com/myokit/myokit/pull/947) Fixed-form protocols are now implemented in a `TimeSeriesProtocol`.
 - Changed
   - [#898](https://github.com/myokit/myokit/pull/899) `Variable.promote` can now take an expression, a number, or a string (which will be parsed as an expression) for the argument `initial_value`.
@@ -19,6 +19,8 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) The only argument to `Variable.promote` has been renamed from `state_value` to `initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.import_component` now preserves the ordering of the imported states.
   - [#953](https://github.com/myokit/myokit/pull/953) The DataLogViewer now overlaps traces with numbering (e.g. 0.membrane.V and 1.membrane.V), and toggles between files and variables with Page up and down Or Ctrl+Page up and down.
+  - [#962](https://github.com/myokit/myokit/pull/962) Scipy is no longer a required dependency.
+  - [#962](https://github.com/myokit/myokit/pull/962) The DataLogViewer only supports Matlab file loading if SciPy is installed.
 - Deprecated
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favour of `Model.set_initial_values`.
@@ -28,6 +30,7 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.save_state` and `Model.load_state` are deprecated.
   - [#918](https://github.com/myokit/myokit/pull/918) The `Variable.promote` keyword argument `state_value` is deprecated in favour of `initial_value`.
   - [#947](https://github.com/myokit/myokit/pull/947) `Simulation.set_fixed_form_protocol` is deprecated in favour of using `Simulation.set_protocol` with a `TimeSeriesProtocol`
+  - [#962](https://github.com/myokit/myokit/pull/962) The method `DataLog.regularize` is deprecated.
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `LegacySimulation` class.

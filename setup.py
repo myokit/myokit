@@ -85,10 +85,9 @@ setup(
         'lxml',
         'matplotlib>=1.5',
         'numpy',
-        'scipy',            # Used in data log, and data log viewer
         'setuptools',
         # PyQT or PySide?
-        # (PySide is pip installable, Travis can get PyQt from apt)
+        # (PySide is pip installable, Actions can get PyQt from apt)
     ],
 
     # Optional extras
@@ -97,11 +96,12 @@ setup(
             'sphinx>=1.5, !=1.7.3',     # Doc generation
         ],
         'dev': [
-            'coverage',                 # Coverage checking
-            'flake8>=3',                # Style checking
+            'coverage',             # Coverage checking
+            'flake8>=3',            # Style checking
         ],
         'optional': [
-            'sympy',                    # Used in formats.sympy
+            'scipy',            # Used in data log, and data log viewer
+            'sympy',            # Used in formats.sympy
         ],
         'gui': ['pyqt5', 'sip'],
         'pyqt': ['pyqt5', 'sip'],
