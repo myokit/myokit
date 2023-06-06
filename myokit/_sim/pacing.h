@@ -368,7 +368,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
         // since they are tested by the Python code already!
         if(n > 0) {
             PyObject *item, *attr;
-            events = (ESys_Event)malloc((size_t)n*sizeof(struct ESys_Event_mem));
+            events = (ESys_Event)malloc((size_t)n * sizeof(struct ESys_Event_mem));
             e = events;
             for(i=0; i<n; i++) {
                 item = PyList_GetItem(list, i); // Don't decref!
@@ -758,6 +758,7 @@ FSys_Populate(FSys sys, PyObject* protocol)
 {
     int i;
     Py_ssize_t n;
+    PyObject *times_list, *values_list;
 
     // Check ESys
     if(sys == 0) return FSys_INVALID_SYSTEM;
@@ -767,7 +768,7 @@ FSys_Populate(FSys sys, PyObject* protocol)
     // Get PyList from protocol (will need to decref!)
     // Cast to (char*) happens because CallMethod accepts a mutable char*
     // This should have been const char* and has been fixed in python 3
-    PyObject* times_list = PyObject_CallMethod(protocol, (char*)"times", NULL); // Returns a new reference
+    times_list = PyObject_CallMethod(protocol, (char*)"times", NULL); // Returns a new reference
     if(times_list == NULL) return FSys_POPULATE_INVALID_PROTOCOL;
     if(!PyList_Check(times_list)) {
         Py_DECREF(times_list);
@@ -776,7 +777,7 @@ FSys_Populate(FSys sys, PyObject* protocol)
 
     // Check and convert times list
     n = PyList_Size(times_list);
-    sys->times = (double*)malloc((size_t)n*sizeof(double));
+    sys->times = (double*)malloc((size_t)n * sizeof(double));
     for(i=0; i<n; i++) {
         // GetItem and convert --> Borrowed reference so ok not to decref!
         sys->times[i] = PyFloat_AsDouble(PyList_GetItem(times_list, i));
@@ -795,7 +796,7 @@ FSys_Populate(FSys sys, PyObject* protocol)
     }
 
     // Check and convert values list
-    PyObject* values_list = PyObject_CallMethod(protocol, (char*)"values", NULL); // Returns a new reference
+    values_list = PyObject_CallMethod(protocol, (char*)"values", NULL); // Returns a new reference
     if(values_list == NULL) {
         free(sys->times); sys->times = NULL;
         return FSys_POPULATE_INVALID_PROTOCOL;
@@ -805,7 +806,7 @@ FSys_Populate(FSys sys, PyObject* protocol)
         Py_DECREF(values_list);
         return FSys_POPULATE_INVALID_VALUES;
     }
-    sys->values = (double*)malloc((size_t)n*sizeof(double));
+    sys->values = (double*)malloc((size_t)n * sizeof(double));
     for(i=0; i<n; i++) {
         // GetItem and convert --> Borrowed reference so ok not to decref!
         sys->values[i] = PyFloat_AsDouble(PyList_GetItem(values_list, i));
