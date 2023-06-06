@@ -254,7 +254,6 @@ class AbfFile(object):
             # cases that trigger this error they should be resolved. At the
             # same time, if it happens to a user we want it to "sort-of work"
             # (an experimental rather than a production setting)
-            logging.basicConfig()
             log = logging.getLogger(__name__)
             log.warning('Unable to read protocol from ' + self._filepath)
             log.warning(traceback.format_exc())
@@ -1065,7 +1064,6 @@ class AbfFile(object):
 
                     else:  # pragma: no cover
 
-                        logging.basicConfig()
                         log = logging.getLogger(__name__)
                         log.warning(
                             'Unsupported epoch type: ' + epoch_types(kind))
