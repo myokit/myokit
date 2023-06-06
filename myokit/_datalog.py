@@ -863,7 +863,7 @@ class DataLog(OrderedDict):
         # Deprecated since 2023-06-06
         import warnings
         warnings.warn(
-            'The method `regularize` is deprecated and will be removed in
+            'The method `regularize` is deprecated and will be removed in'
             ' future versions of Myokit.')
 
         from scipy.interpolate import UnivariateSpline as Spline
