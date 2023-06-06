@@ -126,8 +126,10 @@ class DataLogTest(unittest.TestCase):
             'engine.time': [0, 5, 10, 15, 20],
             'membrane.V': [0, 50, 100, 150, 200]})
         d.set_time_key('engine.time')
-        with WarningCollector():
+        with WarningCollector() as w:
             self.assertEqual(d.find(-5), d.find_after(-5))
+        self.assertIn('eprecated', w.text())
+        with WarningCollector():
             self.assertEqual(d.find(0), d.find_after(0))
             self.assertEqual(d.find(2), d.find_after(2))
             self.assertEqual(d.find(5), d.find_after(5))
@@ -2181,12 +2183,22 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(d.length(), 100)
 
     def test_regularize(self):
-        # Test the regularize() method.
+        # Test the deprecated regularize() method.
 
         d = myokit.DataLog(time='time')
         d['time'] = np.log(np.linspace(1, 25, 100))
         d['values'] = np.linspace(1, 25, 100)
-        e = d.regularize(dt=0.5)
+
+        has_scipy = True
+        with WarningCollector() as w:
+            try:
+                e = d.regularize(dt=0.5)
+            except ImportError:
+                has_scipy = False
+        self.assertIn('eprecated', w.text())
+        if not has_scipy:
+            return
+
         self.assertEqual(len(e['time']), 7)
         x = np.array([0, 0.5, 1, 1.5, 2, 2.5, 3])
         self.assertTrue(np.all(e['time'] == x))
