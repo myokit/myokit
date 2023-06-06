@@ -329,9 +329,34 @@ class SimulationTest(unittest.TestCase):
             progress=CancellingReporter(0))
 
     def test_apd_tracking(self):
-        # Test the APD calculation method.
+        # Test the APD / rootfinding method.
+        # Tested against offline method in test_datalog.py
 
-        # More testing is done in test_datalog.py!
+        # Test that it works
+        self.sim.reset()
+        res = self.sim.run(
+            1800, log=['engine.time', 'membrane.V'],
+            apd_variable='membrane.V', apd_threshold=-70)
+
+        self.assertIsInstance(res, tuple)
+        self.assertEqual(len(res), 2)
+        d, apds = res
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertIsInstance(apds, myokit.DataLog)
+        self.assertEqual(len(apds), 2)
+        self.assertEqual(apds.length(), 2)
+        self.assertIn('start', apds)
+        self.assertAlmostEqual(apds['start'][0], 1, places=0)
+        self.assertAlmostEqual(apds['start'][1], 1001, places=0)
+        self.assertIn('start', apds)
+        self.assertAlmostEqual(apds['duration'][0], 383.8771946126979)
+        self.assertAlmostEqual(apds['duration'][1], 378.31591552158545)
+
+        # Works with variable objects too
+        self.sim.reset()
+        res = self.sim.run(
+            1000, log=['engine.time', 'membrane.V'],
+            apd_variable=self.model.get('membrane.V'), apd_threshold=-70)
 
         # Apd var is not a state
         self.assertRaisesRegex(
@@ -844,6 +869,7 @@ class SimulationTest(unittest.TestCase):
 
         # Literal
         self.sim.set_constant('cell.Na_i', 11)
+        self.sim.set_constant(self.model.get('cell.Na_i'), 11)
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
 
         # Parameter (needs sensitivies set)
@@ -1037,23 +1063,6 @@ class SimulationTest(unittest.TestCase):
         self.assertTrue(np.all(ev >= 0))
         self.assertTrue(np.all(rt[1:] >= rt[:-1]))
         self.assertTrue(np.all(ev[1:] >= ev[:-1]))
-
-    def test_apd(self):
-        # Test the apd rootfinding routine
-
-        s = myokit.Simulation(self.model, self.protocol)
-        s.set_tolerance(1e-8, 1e-8)
-        d, apds = s.run(
-            1800, log=myokit.LOG_NONE,
-            apd_variable='membrane.V', apd_threshold=-70)
-
-        # Check with threshold equal to V
-        self.assertEqual(len(apds['start']), 2)
-        self.assertEqual(len(apds['duration']), 2)
-        self.assertAlmostEqual(apds['start'][0], 1.19, places=1)
-        self.assertAlmostEqual(apds['start'][1], 1001.19, places=1)
-        self.assertAlmostEqual(apds['duration'][0], 383.88262, places=1)
-        self.assertAlmostEqual(apds['duration'][1], 378.31448, places=1)
 
     def test_derivatives(self):
         # Tests logging of derivatives by comparing with a finite difference
