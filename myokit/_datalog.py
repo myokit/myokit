@@ -826,10 +826,15 @@ class DataLog(OrderedDict):
             key = '.'.join(parts)
         return str(key)
 
-    def regularize(self, dt, tmin=None, tmax=None):
+    def regularize(self, dt, tmin=None, tmax=None):  # pragma: no cover
         """
         Returns a copy of this DataLog with data points at regularly spaced
         times.
+
+        This method is deprecated and will be removed in future versions of
+        Myokit.
+
+        This method requires ``SciPy`` to be installed.
 
         *Note: While regularize() can be used post-simulation to create fixed
         time-step data from variable time-step data, it is usually better to
@@ -854,11 +859,15 @@ class DataLog(OrderedDict):
 
         As a result of the cubic spline interpolation, the function may perform
         poorly on large data sets.
-
-        This method requires ``SciPy`` to be installed.
         """
-        self.validate()
+        # Deprecated since 2023-06-06
+        import warnings
+        warnings.warn(
+            'The method `regularize` is deprecated and will be removed in
+            ' future versions of Myokit.')
+
         from scipy.interpolate import UnivariateSpline as Spline
+        self.validate()
 
         # Check time variable
         time = self.time()

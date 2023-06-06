@@ -19,6 +19,8 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) The only argument to `Variable.promote` has been renamed from `state_value` to `initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.import_component` now preserves the ordering of the imported states.
   - [#953](https://github.com/myokit/myokit/pull/953) The DataLogViewer now overlaps traces with numbering (e.g. 0.membrane.V and 1.membrane.V), and toggles between files and variables with Page up and down Or Ctrl+Page up and down.
+  - [#962](https://github.com/myokit/myokit/pull/962) Scipy is no longer a required dependency.
+  - [#962](https://github.com/myokit/myokit/pull/962) The DataLogViewer only supports Matlab file loading if SciPy is installed.
 - Deprecated
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favour of `Model.set_initial_values`.
@@ -28,6 +30,7 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.save_state` and `Model.load_state` are deprecated.
   - [#918](https://github.com/myokit/myokit/pull/918) The `Variable.promote` keyword argument `state_value` is deprecated in favour of `initial_value`.
   - [#947](https://github.com/myokit/myokit/pull/947) `Simulation.set_fixed_form_protocol` is deprecated in favour of using `Simulation.set_protocol` with a `TimeSeriesProtocol`
+  - [#962](https://github.com/myokit/myokit/pull/962) The method `DataLog.regularize` is deprecated.
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `LegacySimulation` class.
