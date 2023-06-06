@@ -314,7 +314,7 @@ double realtime_start;      /* time when sim run started */
  * Returns the current time as given by the benchmarker.
  */
 double
-benchmarker_realtime()
+benchmarker_realtime(void)
 {
     double val;
     PyObject* ret = PyObject_CallMethodObjArgs(benchmarker, benchmarker_time_str, NULL);
@@ -373,7 +373,7 @@ rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
 
     /* Set time, pace, evaluations and realtime */
     evaluations++;
-    Model_SetBoundVariables(model, t, pacing, realtime, evaluations);
+    Model_SetBoundVariables(model, (realtype)t, (realtype*)pacing, (realtype)realtime, (realtype)evaluations);
 
     /* Set sensitivity parameters */
     if (model->has_sensitivities) {
@@ -434,7 +434,7 @@ rf_function(realtype t, N_Vector y, realtype *gout, void *user_data)
  * Cleans up after a simulation
  */
 PyObject*
-sim_clean()
+sim_clean(void)
 {
     if (initialised) {
         #ifdef MYOKIT_DEBUG_PROFILING
@@ -549,11 +549,18 @@ sim_init(PyObject *self, PyObject *args)
     ESys_Flag flag_epacing;
     FSys_Flag flag_fpacing;
 
+    /* Pacing systems */
+    ESys epacing;
+    FSys fpacing;
+
     /* General purpose ints for iterating */
     int i, j;
 
     /* Log the first point? Only happens if not continuing from a log */
     int log_first_point;
+
+    /* Proposed next logging or pacing point */
+    double t_proposed;
 
     /* Python objects, and a python list index variable */
     Py_ssize_t pos;
@@ -917,7 +924,7 @@ sim_init(PyObject *self, PyObject *args)
         if (udata == 0) {
             return sim_cleanx(PyExc_Exception, "Unable to create user data object to store parameter values.");
         }
-        udata->p = (realtype*)malloc(sizeof(realtype) * model->ns_independents);
+        udata->p = (realtype*)malloc((size_t)model->ns_independents * sizeof(realtype));
         if (udata->p == 0) {
             return sim_cleanx(PyExc_Exception, "Unable to allocate space to store parameter values.");
         }
@@ -933,7 +940,7 @@ sim_init(PyObject *self, PyObject *args)
 
         /* Create parameter scaling vector, for error control */
         /* TODO: Get this from the Python code ? */
-        pbar = (realtype*)malloc(sizeof(realtype) * model->ns_independents);
+        pbar = (realtype*)malloc((size_t)model->ns_independents * sizeof(realtype));
         if (pbar == NULL) {
             return sim_cleanx(PyExc_Exception, "Unable to allocate space to store parameter scales.");
         }
@@ -954,17 +961,17 @@ sim_init(PyObject *self, PyObject *args)
         if (!PyList_Check(protocols)) {
             return sim_cleanx(PyExc_TypeError, "'protocols' must be a list.");
         }
-        n_pace = PyList_Size(protocols);
+        n_pace = (int)PyList_Size(protocols);
     }
-    pacing_systems = (union PSys*)malloc(sizeof(union PSys) * n_pace);
+    pacing_systems = (union PSys*)malloc((size_t)n_pace * sizeof(union PSys));
     if (pacing_systems == NULL) {
         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing systems.");
     }
-    pacing_types = (enum PSysType *)malloc(sizeof(enum PSysType) * n_pace);
+    pacing_types = (enum PSysType *)malloc((size_t)n_pace * sizeof(enum PSysType));
     if (pacing_types == NULL) {
         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing types.");
     }
-    pacing = (realtype*)malloc(sizeof(realtype) * n_pace);
+    pacing = (realtype*)malloc((size_t)n_pace * sizeof(realtype));
     if (pacing == NULL) {
         return sim_cleanx(PyExc_Exception, "Unable to allocate space to store pacing values.");
     }
@@ -975,7 +982,7 @@ sim_init(PyObject *self, PyObject *args)
      */
     tnext = tmax;
 
-    /* 
+    /*
      * Set up event-based and/or fixed pacing.
      */
     if (protocols != Py_None) {
@@ -985,15 +992,15 @@ sim_init(PyObject *self, PyObject *args)
             if (strcmp(protocol_type_name, "Protocol") == 0) {
                 pacing_systems[i].event = ESys_Create(&flag_epacing);
                 pacing_types[i] = EVENT;
-                ESys epacing = pacing_systems[i].event;
+                epacing = pacing_systems[i].event;
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 flag_epacing = ESys_Populate(epacing, protocol);
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 flag_epacing = ESys_AdvanceTime(epacing, tmin);
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-                const double ptnext = ESys_GetNextTime(epacing, &flag_epacing);
+                t_proposed = ESys_GetNextTime(epacing, &flag_epacing);
                 pacing[i] = ESys_GetLevel(epacing, &flag_epacing);
-                tnext = fmin(ptnext, tnext);
+                tnext = fmin(t_proposed, tnext);
 
                 #ifdef MYOKIT_DEBUG_PROFILING
                 benchmarker_print("CP Created event-based pacing system.");
@@ -1001,7 +1008,7 @@ sim_init(PyObject *self, PyObject *args)
             } else if (strcmp(protocol_type_name, "TimeSeriesProtocol") == 0) {
                 pacing_systems[i].fixed = FSys_Create(&flag_fpacing);
                 pacing_types[i] = FIXED;
-                FSys fpacing = pacing_systems[i].fixed;
+                fpacing = pacing_systems[i].fixed;
                 if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
                 flag_fpacing = FSys_Populate(fpacing, protocol);
                 if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
@@ -1136,7 +1143,7 @@ sim_init(PyObject *self, PyObject *args)
         if (check_cvode_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
 
         /* Direction of root crossings, one entry per root function, but we only use 1. */
-        rf_direction = (int*)malloc(sizeof(int)*1);
+        rf_direction = (int*)malloc(sizeof(int));
 
         #ifdef MYOKIT_DEBUG_PROFILING
         benchmarker_print("CP CVODES root-finding initialised.");
@@ -1333,7 +1340,7 @@ sim_step(PyObject *self, PyObject *args)
                 }
                 PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));
                 PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
-                PyList_SetItem(bound_py, 2, PyFloat_FromDouble(evaluations));
+                PyList_SetItem(bound_py, 2, PyFloat_FromDouble((double)evaluations));
                 for (int i = 0; i < n_pace; i++) {
                     PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
                 }
@@ -1550,7 +1557,7 @@ sim_step(PyObject *self, PyObject *args)
                 } else if (model->logging_bound) {
                     /* Logging bounds but not derivs or inters: No need to run
                        full rhs, just update bound variables */
-                    Model_SetBoundVariables(model, t, pacing, realtime, evaluations);
+                    Model_SetBoundVariables(model, (realtype)t, (realtype*)pacing, (realtype)realtime, (realtype)evaluations);
                 }
 
                 /* Write to log */
@@ -1635,7 +1642,7 @@ sim_step(PyObject *self, PyObject *args)
     /* Set bound variable values */
     PyList_SetItem(bound_py, 0, PyFloat_FromDouble(t));
     PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
-    PyList_SetItem(bound_py, 2, PyFloat_FromDouble(evaluations));
+    PyList_SetItem(bound_py, 2, PyFloat_FromDouble((double)evaluations));
     for (int i = 0; i < n_pace; i++) {
         PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
     }
@@ -1729,7 +1736,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     }
 
     /* Set pacing values */
-    pacing_in = (double*)malloc(sizeof(double) * n_pace);
+    pacing_in = (double*)malloc((size_t)n_pace * sizeof(double));
     for (int i = 0; i < n_pace; i++) {
         val = PyList_GetItem(pace_in, i); /* Don't decref */
         if (!PyFloat_Check(val)) {
@@ -1740,7 +1747,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     }
 
     /* Set bound variables */
-    Model_SetBoundVariables(model, time_in, pacing_in, 0, 0);
+    Model_SetBoundVariables(model, (realtype)time_in, (realtype*)pacing_in, 0, 0);
 
     /* Set literal values */
     for (i=0; i<model->n_literals; i++) {
