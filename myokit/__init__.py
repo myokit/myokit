@@ -32,14 +32,6 @@ from __future__ import print_function, unicode_literals
 
 
 #
-# Configure logging
-#
-import logging  # noqa  (not at top of file)
-logging.basicConfig()
-del logging
-
-
-#
 # Check python version
 #
 # Hexversion guide:

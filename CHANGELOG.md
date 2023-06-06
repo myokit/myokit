@@ -42,6 +42,7 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) Fixed error when `var()` was called on a `PartialDerivative` with a `Derivative` as first argument.
   - [#933](https://github.com/myokit/myokit/pull/933) Made `myokit.step` base its error classification (large/small/none) on numerics, not representation.
   - [#947](https://github.com/myokit/myokit/pull/947) Fixed minor memory leak (reference counting issue) when using fixed form protocols.
+  - [#967](https://github.com/myokit/myokit/pull/967) Myokit no longer calls `logging.basicConfig()` when used as a library.
 
 ## [1.33.9] - 2022-11-08
 - Fixed
