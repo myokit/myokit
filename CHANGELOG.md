@@ -34,7 +34,7 @@ This page lists the main changes made to Myokit in each release.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `PSimulation` class.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `ICSimulation` class.
   - [#957](https://github.com/myokit/myokit/pull/957) Removed the method `Model.prepare_bindings`.
-  - []() Removed the module `myokit.lib.common`, which had been deprecated since April 2018.
+  - [#961](https://github.com/myokit/myokit/pull/961) Removed the module `myokit.lib.common`, which had been deprecated since April 2018.
 - Fixed
   - [#918](https://github.com/myokit/myokit/pull/918) Fixed error when `var()` was called on a `PartialDerivative` with a `Derivative` as first argument.
   - [#933](https://github.com/myokit/myokit/pull/933) Made `myokit.step` base its error classification (large/small/none) on numerics, not representation.
