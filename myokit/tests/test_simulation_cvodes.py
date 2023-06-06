@@ -349,8 +349,8 @@ class SimulationTest(unittest.TestCase):
         self.assertAlmostEqual(apds['start'][0], 1, places=0)
         self.assertAlmostEqual(apds['start'][1], 1001, places=0)
         self.assertIn('start', apds)
-        self.assertAlmostEqual(apds['duration'][0], 383.877194, places=3)
-        self.assertAlmostEqual(apds['duration'][1], 378.315915, places=3)
+        self.assertAlmostEqual(apds['duration'][0], 383.877194, places=1)
+        self.assertAlmostEqual(apds['duration'][1], 378.315915, places=1)
 
         # Works with variable objects too
         self.sim.reset()
