@@ -32,6 +32,13 @@ from myokit.gui import matplotlib_backend as backend
 # NumPy
 import numpy as np
 
+# SciPy: Only used to load matlab files.
+try:
+    import scipy.io
+    has_scipy = True
+except ImportError:
+    has_scipy = False
+
 # ConfigParser in Python 2 and 3
 try:
     import ConfigParser as configparser
@@ -109,30 +116,52 @@ class DataLogViewer(myokit.gui.MyokitApplication):
     """
     def __init__(self, *filenames):
         super(DataLogViewer, self).__init__()
+
         # Set Title, icon
         self.setWindowTitle(TITLE + ' ' + myokit.__version__)
+
         # Set size, center
         self.resize(800, 600)
         qr = self.frameGeometry()
         cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
         # Add widget for file tabs
         self._tabs = TabWidget()
         self._tabs.setTabsClosable(True)
         self._tabs.tabCloseRequested.connect(self.action_close)
         self._tabs.currentChanged.connect(self.fileTabChangeEvent)
         self.setCentralWidget(self._tabs)
+
         # Menu bar
         self.create_menu()
+
         # Tool bar
         self.create_toolbar()
+
         # Status bar
         self.statusBar().showMessage('Ready')
+
         # Current path
         self._path = QtCore.QDir.currentPath()
+
         # Load settings from ini file
         self.load_config()
+
+        # File-loading methods
+        self._load_actions = {
+            '.abf': self.load_abf_file,
+            '.atf': self.load_atf_file,
+            '.csv': self.load_datalog,
+            '.pro': self.load_abf_file,
+            '.txt': self.load_txt_file,
+            '.wcp': self.load_wcp_file,
+            '.zip': self.load_datalog,
+        }
+        if has_scipy:
+            self._load_actions['.mat'] = self.load_mat_file
+
         # Load any selected files
         for filename in filenames:
             self.load_file(filename)
@@ -356,18 +385,8 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         Loads a data file.
         """
         root, ext = os.path.splitext(os.path.basename(filename))
-        actions = {
-            '.abf': self.load_abf_file,
-            '.atf': self.load_atf_file,
-            '.csv': self.load_datalog,
-            '.mat': self.load_mat_file,
-            '.pro': self.load_abf_file,
-            '.txt': self.load_txt_file,
-            '.wcp': self.load_wcp_file,
-            '.zip': self.load_datalog,
-        }
         try:
-            action = actions[ext.lower()]
+            action = self._load_actions[ext.lower()]
         except KeyError:
             QtWidgets.QMessageBox.critical(
                 self, TITLE, 'File format not recognized: ' + ext)
@@ -426,8 +445,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         This method requires ``SciPy`` to be installed.
         """
         try:
-            from scipy.io import loadmat
-            mat = loadmat(filename)
+            mat = scipy.io.loadmat(filename)
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
