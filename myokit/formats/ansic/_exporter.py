@@ -121,7 +121,7 @@ class AnsiCCableExporter(myokit.formats.TemplatedRunnableExporter):
     ``pace``
         The value of the pacing variable, implemented using the given protocol.
     ``diffusion_current``
-        The current flowing from each cell to its neighbours. This will be
+        The current flowing from each cell to its neighbors. This will be
         positive if the cell is acting as a source, negative when it's acting
         as a sink.
 

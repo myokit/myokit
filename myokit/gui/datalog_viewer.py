@@ -757,7 +757,7 @@ class CsvTab(TabWidget):
                 self, TITLE, 'Unable to load file: no data found.')
             return
 
-        # Overlapping sweeps or neighbouring cells?
+        # Overlapping sweeps or neighboring cells?
         keys = []
         groups = {}
         for key in log.keys():

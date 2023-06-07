@@ -58,7 +58,7 @@ class SimulationOpenCL(myokit.CModule):
     ``pace``
         The pacing level, this is set if a protocol was passed in.
     ``diffusion_current`` (if enabled)
-        The current flowing from the cell to its neighbours. This will be
+        The current flowing from the cell to its neighbors. This will be
         positive when the cell is acting as a source, negative when it is
         acting as a sink.
 
@@ -103,7 +103,7 @@ class SimulationOpenCL(myokit.CModule):
     cells ``i - 1`` and ``i + 1`` (except at the boundaries).
     Similarly, if ``ncells`` is a 2-dimensional tuple ``(nx, ny)`` a grid will
     be assumed so that each (non-boundary) cell is connected to four
-    neighbours.
+    neighbors.
     Finally, arbitrary geometries can be used by passing a scalar to ``ncells``
     and specifying the connections with :meth:`set_connections`.
 
@@ -765,7 +765,7 @@ class SimulationOpenCL(myokit.CModule):
 
             I_diff[i] = sum[g[i,j] * (V[i] - V[j])]
 
-        in which the sum is over all neighbours ``j`` of cell ``i``.
+        in which the sum is over all neighbors ``j`` of cell ``i``.
 
         Alternatively, with capacitance and currents normalised to membrane
         area, we can write::
@@ -825,9 +825,9 @@ class SimulationOpenCL(myokit.CModule):
         """
         return D * A * k / ((k + 1) * chi * dx * dx)
 
-    def neighbours(self, x, y=None):
+    def neighbors(self, x, y=None):
         """
-        Returns a list of indices specifying the neighbours of the cell at
+        Returns a list of indices specifying the neighbors of the cell at
         index ``x`` (or index ``(x, y)`` for 2d simulations).
 
         Indices are given either as integers (1d or arbitrary geometry) or as
@@ -857,29 +857,32 @@ class SimulationOpenCL(myokit.CModule):
 
         # User-specified connections (always 1d)
         if self._connections is not None:
-            neighbours = []
+            neighbors = []
             for i, j, c in self._connections:
                 if i == x:
-                    neighbours.append(j)
+                    neighbors.append(j)
                 elif j == x:
-                    neighbours.append(i)
-            return neighbours
+                    neighbors.append(i)
+            return neighbors
 
-        # Left and right neighbours
-        neighbours = []
+        # Left and right neighbors
+        neighbors = []
         if x > 0:
-            neighbours.append(x - 1)
+            neighbors.append(x - 1)
         if x + 1 < self._dims[0]:
-            neighbours.append(x + 1)
+            neighbors.append(x + 1)
 
-        # Top and bottom neighbours
+        # Top and bottom neighbors
         if len(self._dims) == 2:
-            neighbours = [(i, y) for i in neighbours]
+            neighbors = [(i, y) for i in neighbors]
             if y > 0:
-                neighbours.append((x, y - 1))
+                neighbors.append((x, y - 1))
             if y + 1 < self._dims[1]:
-                neighbours.append((x, y + 1))
-        return neighbours
+                neighbors.append((x, y + 1))
+        return neighbors
+
+    def neighbours(self, x, y=None):
+        """ Alias of :meth:`neighbors`. """
 
     def pre(self, duration, report_nan=True, progress=None,
             msg='Pre-pacing SimulationOpenCL'):
@@ -1165,14 +1168,14 @@ class SimulationOpenCL(myokit.CModule):
                     vdiff = self._model.binding('diffusion_current')
                     vdiff = None if vdiff is None else vdiff.qname()
 
-                # List all neighbours for this cell
-                neighbours = self.neighbours(*icell)
+                # List all neighbors for this cell
+                neighbors = self.neighbors(*icell)
                 if len(self._dims) == 2:
-                    neighbours_str = ', '.join(
+                    neighbors_str = ', '.join(
                         ('(' + ','.join([str(i) for i in j]) + ')')
-                        for j in neighbours)
+                        for j in neighbors)
                 else:
-                    neighbours_str = ', '.join(str(j) for j in neighbours)
+                    neighbors_str = ', '.join(str(j) for j in neighbors)
 
                 # Show final state
                 txt.append('State during:')
@@ -1192,8 +1195,8 @@ class SimulationOpenCL(myokit.CModule):
                     txt.append(
                         '  Diffusion current: ' + myokit.float.str(
                             bounds[0][vdiff], precision=self._precision))
-                if neighbours:
-                    txt.append('  Connected cells: ' + neighbours_str)
+                if neighbors:
+                    txt.append('  Connected cells: ' + neighbors_str)
 
                 # Show previous state (and derivatives)
                 n_states = len(states)
@@ -1239,8 +1242,8 @@ class SimulationOpenCL(myokit.CModule):
                         txt.append(
                             '  Diffusion current: ' + myokit.float.str(
                                 bounds[1][vdiff], precision=self._precision))
-                    if neighbours:
-                        txt.append('  Connected cells: ' + neighbours_str)
+                    if neighbors:
+                        txt.append('  Connected cells: ' + neighbors_str)
 
                     # Show all variables with non-finite values
                     txt.append(

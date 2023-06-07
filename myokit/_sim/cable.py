@@ -39,7 +39,7 @@ class Simulation1d(myokit.CModule):
     ``pace``
         The pacing level, this is set if a protocol was passed in.
     ``diffusion_current``
-        The current flowing from the cell to its neighbours. This will be
+        The current flowing from the cell to its neighbors. This will be
         positive when the cell is acting as a source, negative when it is
         acting as a sink.
 
@@ -77,7 +77,7 @@ class Simulation1d(myokit.CModule):
 
         i = sum[g * (V - V_j)]
 
-    Where the sum is taken over all neighbouring cells j (see [1]).
+    Where the sum is taken over all neighboring cells j (see [1]).
 
     The resulting ODE system is solved using a forward Euler (FE) method with
     fixed step sizes. Smaller step sizes lead to more accurate results, and it

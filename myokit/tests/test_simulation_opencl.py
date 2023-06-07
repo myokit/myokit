@@ -621,7 +621,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertRaisesRegex(
             RuntimeError, 'method is unavailable', s.is_paced, 0)
         self.assertRaisesRegex(
-            RuntimeError, 'method is unavailable', s.neighbours, 0)
+            RuntimeError, 'method is unavailable', s.neighbors, 0)
         self.assertRaisesRegex(
             RuntimeError, 'method is unavailable', s.set_conductance)
         self.assertRaisesRegex(
@@ -691,105 +691,108 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertEqual(x, m.initial_values(True) * 2)
         self.assertEqual(x, s.default_state())
 
-    def test_neighbours_0d(self):
-        # Test listing neighbours in a 0d simulation
+    def test_neighbors_0d(self):
+        # Test listing neighbors in a 0d simulation
 
-        x = self.s0.neighbours(0)
+        x = self.s0.neighbors(0)
         self.assertEqual(len(x), 0)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s0.neighbours, -1)
+            IndexError, 'out of range', self.s0.neighbors, -1)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s0.neighbours, 1)
+            IndexError, 'out of range', self.s0.neighbors, 1)
         self.assertRaisesRegex(
-            ValueError, '1-dimensional', self.s0.neighbours, 0, 1)
+            ValueError, '1-dimensional', self.s0.neighbors, 0, 1)
 
-    def test_neighbours_1d(self):
-        # Test listing neighbours in a 1d simulation
+        # Test alias
+        self.assertEqual(self.s0.neighbors(0), self.s0.neighbors(0))
+
+    def test_neighbors_1d(self):
+        # Test listing neighbors in a 1d simulation
 
         # Left edge
-        x = self.s1.neighbours(0)
+        x = self.s1.neighbors(0)
         self.assertEqual(len(x), 1)
         self.assertIn(1, x)
         # Middle
-        x = self.s1.neighbours(1)
+        x = self.s1.neighbors(1)
         self.assertEqual(len(x), 2)
         self.assertIn(0, x)
         self.assertIn(2, x)
         # Right edge
-        x = self.s1.neighbours(9)
+        x = self.s1.neighbors(9)
         self.assertEqual(len(x), 1)
         self.assertIn(8, x)
 
         # Out of range
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s1.neighbours, -1)
+            IndexError, 'out of range', self.s1.neighbors, -1)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s1.neighbours, 10)
+            IndexError, 'out of range', self.s1.neighbors, 10)
         self.assertRaisesRegex(
-            ValueError, '1-dimensional', self.s1.neighbours, 0, 1)
+            ValueError, '1-dimensional', self.s1.neighbors, 0, 1)
 
-    def test_neighbours_1d_connections(self):
-        # Test listing neighbours in a 1d simulation with arbitrary geometry
+    def test_neighbors_1d_connections(self):
+        # Test listing neighbors in a 1d simulation with arbitrary geometry
 
         try:
             g = 1
             self.s1.set_connections(
                 [(0, 1, g), (0, 2, g), (3, 0, g), (3, 2, g)])
-            x = self.s1.neighbours(0)
+            x = self.s1.neighbors(0)
             self.assertEqual(len(x), 3)
             self.assertIn(1, x)
             self.assertIn(2, x)
             self.assertIn(3, x)
-            x = self.s1.neighbours(1)
+            x = self.s1.neighbors(1)
             self.assertEqual(len(x), 1)
             self.assertIn(0, x)
-            x = self.s1.neighbours(2)
+            x = self.s1.neighbors(2)
             self.assertEqual(len(x), 2)
             self.assertIn(0, x)
             self.assertIn(3, x)
-            x = self.s1.neighbours(3)
+            x = self.s1.neighbors(3)
             self.assertEqual(len(x), 2)
             self.assertIn(0, x)
             self.assertIn(2, x)
-            x = self.s1.neighbours(4)
+            x = self.s1.neighbors(4)
             self.assertEqual(len(x), 0)
         finally:
             # Restore defaults
             self.s1.set_conductance()
 
-    def test_neighbours_2d(self):
-        # Test listing neighbours in a 2d simulation
+    def test_neighbors_2d(self):
+        # Test listing neighbors in a 2d simulation
 
         # Corners
-        x = self.s2.neighbours(0, 0)
+        x = self.s2.neighbors(0, 0)
         self.assertEqual(len(x), 2)
         self.assertIn((1, 0), x)
         self.assertIn((0, 1), x)
-        x = self.s2.neighbours(3, 2)
+        x = self.s2.neighbors(3, 2)
         self.assertEqual(len(x), 2)
         self.assertIn((3, 1), x)
         self.assertIn((2, 2), x)
 
         # Edges
-        x = self.s2.neighbours(1, 0)
+        x = self.s2.neighbors(1, 0)
         self.assertEqual(len(x), 3)
         self.assertIn((0, 0), x)
         self.assertIn((2, 0), x)
         self.assertIn((1, 1), x)
-        x = self.s2.neighbours(3, 1)
+        x = self.s2.neighbors(3, 1)
         self.assertEqual(len(x), 3)
         self.assertIn((2, 1), x)
         self.assertIn((3, 0), x)
         self.assertIn((3, 2), x)
 
         # Middle
-        x = self.s2.neighbours(1, 1)
+        x = self.s2.neighbors(1, 1)
         self.assertEqual(len(x), 4)
         self.assertIn((0, 1), x)
         self.assertIn((2, 1), x)
         self.assertIn((1, 0), x)
         self.assertIn((1, 2), x)
-        x = self.s2.neighbours(2, 1)
+        x = self.s2.neighbors(2, 1)
         self.assertEqual(len(x), 4)
         self.assertIn((1, 1), x)
         self.assertIn((3, 1), x)
@@ -798,15 +801,15 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Out of range
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s2.neighbours, -1, 0)
+            IndexError, 'out of range', self.s2.neighbors, -1, 0)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s2.neighbours, 0, -1)
+            IndexError, 'out of range', self.s2.neighbors, 0, -1)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s2.neighbours, 4, 0)
+            IndexError, 'out of range', self.s2.neighbors, 4, 0)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s2.neighbours, 0, 3)
+            IndexError, 'out of range', self.s2.neighbors, 0, 3)
         self.assertRaisesRegex(
-            ValueError, '2-dimensional', self.s2.neighbours, 0)
+            ValueError, '2-dimensional', self.s2.neighbors, 0)
 
     def test_protocol(self):
         # Tests changing the protocol
