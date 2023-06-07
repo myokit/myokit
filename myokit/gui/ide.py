@@ -107,7 +107,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self.resize(950, 720)
         self.setMinimumSize(600, 440)
         qr = self.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        cp = QtGui.QGuiApplication.primaryScreen().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -172,7 +172,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._script_tools.add(self._script_search, 'Find/Replace')
 
         # Create editor tabs
-        self._model_tab = QtWidgets.QSplitter(Qt.Horizontal)
+        self._model_tab = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
         self._model_tab.editor = self._model_editor
         self._model_tab.search = self._model_search
         self._model_tab.addWidget(self._model_editor)
@@ -181,7 +181,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._model_tab.setCollapsible(0, False)
         self._model_tab.setCollapsible(1, False)
 
-        self._protocol_tab = QtWidgets.QSplitter(Qt.Horizontal)
+        self._protocol_tab = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
         self._protocol_tab.editor = self._protocol_editor
         self._protocol_tab.search = self._protocol_search
         self._protocol_tab.addWidget(self._protocol_editor)
@@ -190,7 +190,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._protocol_tab.setCollapsible(0, False)
         self._protocol_tab.setCollapsible(1, False)
 
-        self._script_tab = QtWidgets.QSplitter(Qt.Horizontal)
+        self._script_tab = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
         self._script_tab.editor = self._script_editor
         self._script_tab.search = self._script_search
         self._script_tab.addWidget(self._script_editor)
@@ -233,7 +233,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._console.write('Loading Myokit IDE')
 
         # Create central layout: vertical splitter
-        self._central_splitter = QtWidgets.QSplitter(Qt.Vertical)
+        self._central_splitter = QtWidgets.QSplitter(Qt.Orientation.Vertical)
         self._central_splitter.addWidget(self._editor_tabs)
         self._central_splitter.addWidget(self._console)
         self._central_splitter.setSizes([580, 120])
@@ -369,10 +369,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         try:
             # Ask are you sure?
             msg = 'Remove all units from expressions in model?'
-            box = QtWidgets.QMessageBox
-            options = box.Yes | box.No
-            reply = box.question(self, TITLE, msg, options)
-            if reply == box.No:
+            sb = QtWidgets.QMessageBox.StandardButton
+            reply = QtWidgets.QMessageBox.question(
+                self, TITLE, msg, sb.Yes | sb.No)
+            if reply == sb.No:
                 return
             # Strip units
             # Note: lines are used in error handling!
@@ -994,7 +994,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             #self.setEnabled(False)
             self._console.write('Running embedded script.')
             QtWidgets.QApplication.setOverrideCursor(
-                QtGui.QCursor(Qt.WaitCursor))
+                QtGui.QCursor(Qt.CursorShape.WaitCursor))
             # Create progress bar
             pbar = progress.ProgressBar(self, 'Running embedded script')
             pbar.show()
@@ -2348,15 +2348,15 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             msg = 'Save changes to ' + str(self._file) + '?'
         else:
             msg = 'Save changes to new file?'
-        box = QtWidgets.QMessageBox
-        options = box.Yes | box.No
+        sb = QtWidgets.QMessageBox.StandardButton
+        options = sb.Yes | sb.No
         if cancel:
-            options |= box.Cancel
-        reply = box.question(self, TITLE, msg, options)
-        if reply == box.Yes:
+            options |= sb.Cancel
+        reply = QtWidgets.QMessageBox.question(self, TITLE, msg, options)
+        if reply == sb.Yes:
             # Only allow quitting if save succesful
             return self.save_file(save_as=False)
-        elif reply == box.No:
+        elif reply == sb.No:
             return True
         else:
             return False
@@ -2650,7 +2650,7 @@ class TabbedToolBar(QtWidgets.QTabWidget):
     def keyPressEvent(self, event):
         """ Qt event: A key-press reaches the widget. """
         key = event.key()
-        if key == Qt.Key_Escape:
+        if key == Qt.Key.Key_Escape:
             self.setFocus()
             self.focusPreviousChild()
         else:

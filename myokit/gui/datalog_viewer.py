@@ -110,7 +110,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # Set size, center
         self.resize(800, 600)
         qr = self.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        cp = QtGui.QGuiApplication.primaryScreen().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 

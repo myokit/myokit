@@ -244,6 +244,8 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Get key and modifiers
         key = event.key()
         mod = event.modifiers()
+        K = Qt.Key
+        M = Qt.KeyBoardModifier
         # Possible modifiers:
         #  NoModifier
         #  ShiftModifier, ControlModifier, AltModifiier
@@ -254,7 +256,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         if mod & Qt.KeypadModifier:
             mod = mod ^ Qt.KeypadModifier   # xor!
         # Actions per key/modifier combination
-        if key == Qt.Key_Tab and mod == Qt.NoModifier:
+        if key == K.Key_Tab and mod == M.NoModifier:
             # Indent
             cursor = self.textCursor()
             start, end = cursor.selectionStart(), cursor.selectionEnd()
@@ -274,7 +276,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 pos = cursor.positionInBlock()
                 cursor.insertText((TABS - pos % TABS) * SPACE)
 
-        elif key == Qt.Key_Backtab and mod == Qt.ShiftModifier:
+        elif key == K.Key_Backtab and mod == M.ShiftModifier:
             # Dedent all lines in selection (or single line if no selection)
             '''
             cursor = self.textCursor()
@@ -333,12 +335,12 @@ class Editor(QtWidgets.QPlainTextEdit):
                 cursor.setPosition(new_end, QtGui.QTextCursor.KeepAnchor)
                 self.setTextCursor(cursor)
 
-        elif key == Qt.Key_Enter or key == Qt.Key_Return:
+        elif key == K.Key_Enter or key == K.Key_Return:
             # Enter/Return with modifier is overruled here to mean nothing
             # This is very important as the default for shift-enter is to
             # start a new line within the same block (this can't happen with
             # copy-pasting, so it's safe to just catch it here).
-            if mod == Qt.NoModifier:
+            if mod == M.NoModifier:
                 # "Smart" enter:
                 #   - If selection, selection is deleted
                 #   - Else, autoindenting is performed
@@ -360,8 +362,8 @@ class Editor(QtWidgets.QPlainTextEdit):
                 # Scroll if necessary
                 self.ensureCursorVisible()
 
-        elif key == Qt.Key_Home and (
-                mod == Qt.NoModifier or mod == Qt.ShiftModifier):
+        elif key == K.Key_Home and (
+                mod == M.NoModifier or mod == M.ShiftModifier):
             # Plain home button: move to start of line
             # If Control is used: Jump to start of document
             # Ordinary home button: Jump to first column or first
@@ -385,24 +387,24 @@ class Editor(QtWidgets.QPlainTextEdit):
                 self._last_column = indent
             # If Shift is used: only move position (keep anchor, i.e. select)
             anchor = (
-                QtGui.QTextCursor.KeepAnchor if mod == Qt.ShiftModifier
+                QtGui.QTextCursor.KeepAnchor if mod == M.ShiftModifier
                 else QtGui.QTextCursor.MoveAnchor)
             cursor.setPosition(newpos, anchor)
             self.setTextCursor(cursor)
 
-        elif key == Qt.Key_Home and (
-                mod == Qt.ControlModifier
-                or mod == Qt.ControlModifier & Qt.ShiftModifier):
+        elif key == K.Key_Home and (
+                mod == M.ControlModifier
+                or mod == M.ControlModifier & M.ShiftModifier):
             # Move to start of document
             # If Shift is used: only move position (keep anchor, i.e. select)
             anchor = (
-                QtGui.QTextCursor.KeepAnchor if mod == Qt.ShiftModifier
+                QtGui.QTextCursor.KeepAnchor if mod == M.ShiftModifier
                 else QtGui.QTextCursor.MoveAnchor)
             cursor = self.textCursor()
             cursor.setPosition(0, anchor)
             self.setTextCursor(cursor)
 
-        elif key in (Qt.Key_Up, Qt.Key_Down) and mod == Qt.AltModifier:
+        elif key in (K.Key_Up, K.Key_Down) and mod == M.AltModifier:
             # Move selected lines up or down
             # Get current selection
             doc = self.document()
@@ -419,7 +421,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                     block2 = block2.previous()  # always valid
             block2 = block1 if start == end else doc.findBlock(end)
             # Check if we can move
-            if key == Qt.Key_Up:
+            if key == K.Key_Up:
                 if not block1.previous().isValid():
                     return
             elif not block2.next().isValid():
@@ -434,7 +436,7 @@ class Editor(QtWidgets.QPlainTextEdit):
             line = cursor.selectedText()
             size = cursor.selectionEnd() - cursor.selectionStart()
             cursor.removeSelectedText()
-            if key == Qt.Key_Up:
+            if key == K.Key_Up:
                 cursor.deletePreviousChar()
                 cursor.movePosition(QtGui.QTextCursor.StartOfLine)
                 cursor.insertText(line + '\n')
@@ -450,8 +452,8 @@ class Editor(QtWidgets.QPlainTextEdit):
                 QtGui.QTextCursor.Left, QtGui.QTextCursor.KeepAnchor, size)
             self.setTextCursor(cursor)
 
-        elif key in (Qt.Key_Up, Qt.Key_Down, Qt.Key_PageUp, Qt.Key_PageDown) \
-                and (mod == Qt.NoModifier or mod == Qt.ShiftModifier):
+        elif key in (K.Key_Up, K.Key_Down, K.Key_PageUp, K.Key_PageDown) \
+                and (mod == M.NoModifier or mod == M.ShiftModifier):
             # Move cursor up/down
             # Maintain the column position, even when the current row doesn't
             # have as many characters. Reset this behavior as soon as a
@@ -459,12 +461,12 @@ class Editor(QtWidgets.QPlainTextEdit):
             # changed.
             # Set up operation
             anchor = (
-                QtGui.QTextCursor.KeepAnchor if mod == Qt.ShiftModifier
+                QtGui.QTextCursor.KeepAnchor if mod == M.ShiftModifier
                 else QtGui.QTextCursor.MoveAnchor)
             operation = \
                 QtGui.QTextCursor.PreviousBlock if key in (
-                    Qt.Key_Up, Qt.Key_PageUp) else QtGui.QTextCursor.NextBlock
-            n = 1 if key in (Qt.Key_Up, Qt.Key_Down) else (
+                    K.Key_Up, K.Key_PageUp) else QtGui.QTextCursor.NextBlock
+            n = 1 if key in (K.Key_Up, K.Key_Down) else (
                 self._blocks_per_page - 3)
             # Move
             cursor = self.textCursor()
@@ -484,15 +486,15 @@ class Editor(QtWidgets.QPlainTextEdit):
                 self._last_column = cursor.positionInBlock()
             self.setTextCursor(cursor)
 
-        elif key in (Qt.Key_Left, Qt.Key_Right, Qt.Key_End) and not (
-                mod & Qt.AltModifier):
+        elif key in (K.Key_Left, K.Key_Right, K.Key_End) and not (
+                mod & M.AltModifier):
             # Allow all modifiers except alt
             # Reset smart up/down behavior
             self._last_column = None
             # Pass to parent class
             super().keyPressEvent(event)
 
-        elif key == Qt.Key_Insert and mod == Qt.NoModifier:
+        elif key == K.Key_Insert and mod == M.NoModifier:
             # Insert/replace
             self.setOverwriteMode(not self.overwriteMode())
 
@@ -529,11 +531,11 @@ class Editor(QtWidgets.QPlainTextEdit):
             # Shift-Enter           Starts new line within the same block!
             #                       Definitely removed
             # Ctrl-i                Undocumented, but inserts tab...
-            ctrl_ignore = (Qt.Key_K, Qt.Key_I)
-            if mod == Qt.ControlModifier and key in ctrl_ignore:
+            ctrl_ignore = (K.Key_K, K.Key_I)
+            if mod == M.ControlModifier and key in ctrl_ignore:
                 # Control-K: ignore
                 pass
-            elif key == Qt.Key_Up or key == Qt.Key_Down:
+            elif key == K.Key_Up or key == K.Key_Down:
                 # Up/down with modifiers: ignore
                 pass
             else:
@@ -572,8 +574,8 @@ class Editor(QtWidgets.QPlainTextEdit):
         while block.isValid() and btop <= ebot:
             count += 1
             if block.isVisible() and bbot >= etop:
-                painter.drawText(
-                    0, btop, width - 4, height, Qt.AlignRight, str(count))
+                painter.drawText(0, btop, width - 4, height,
+                                 Qt.AlignmentFlag.AlignRight, str(count))
             block = block.next()
             btop = bbot
             bbot += int(self.blockBoundingRect(block).height())
@@ -916,7 +918,7 @@ class FindReplaceWidget(QtWidgets.QWidget):
     def keyPressEvent(self, event):
         """ Qt event: A key-press reaches the widget. """
         key = event.key()
-        if key == Qt.Key_Enter or key == Qt.Key_Return:
+        if key == Qt.Key.Key_Enter or key == Qt.Key.Key_Return:
             self.action_find()
         else:
             super().keyPressEvent(event)

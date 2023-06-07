@@ -18,41 +18,103 @@ platform = platform.system()
 # Select Qt library to use
 pyqt4 = False
 pyqt5 = False
+pyqt6 = False
 pyside = False
 pyside2 = False
+pyside6 = False
 
 # Allow overriding automatic selection
+if myokit.FORCE_PYQT6:
+    pyqt6 = True
 if myokit.FORCE_PYQT5:
     pyqt5 = True
 elif myokit.FORCE_PYQT4:
     pyqt4 = True
-elif myokit.FORCE_PYSIDE:
-    pyside = True
+elif myokit.FORCE_PYSIDE6:
+    pyside6 = True
 elif myokit.FORCE_PYSIDE2:
     pyside2 = True
+elif myokit.FORCE_PYSIDE:
+    pyside = True
 else:
     # Automatic selection
     try:
-        import PyQt5  # noqa
-        pyqt5 = True
+        import PyQt6  # noqa
+        pyqt6 = True
     except ImportError:
         try:
-            import PySide2  # noqa
-            pyside2 = True
+            import PySide6  # noqa
+            pyside6 = True
         except ImportError:
             try:
-                import PyQt4  # noqa
-                pyqt4 = True
+                import PyQt5  # noqa
+                pyqt5 = True
             except ImportError:
                 try:
-                    import PySide  # noqa
-                    pyside = True
+                    import PySide2  # noqa
+                    pyside2 = True
                 except ImportError:
-                    raise ImportError(
-                        'Unable to find PyQt5, PyQt4, PySide2 or PySide')
+                    try:
+                        import PyQt4  # noqa
+                        pyqt4 = True
+                    except ImportError:
+                        try:
+                            import PySide  # noqa
+                            pyside = True
+                        except ImportError:
+                            raise ImportError(
+                                'Unable to find PyQt6, PyQt5, PyQt4, PySide6,',
+                                ' PySide2, or PySide.')
+
 
 # Import and configure Qt
-if pyqt5:
+if pyqt6:
+
+    # Load PyQt5
+    from PyQt6 import QtGui, QtWidgets, QtCore
+    from PyQt6.QtCore import Qt
+
+    # Fix PyQt naming issues
+    QtCore.Signal = QtCore.pyqtSignal
+    QtCore.Slot = QtCore.pyqtSlot
+    QtCore.Property = QtCore.pyqtProperty
+
+    # Adapt to Qt6 API changes
+    QtWidgets.QAction = QtGui.QAction
+    QtWidgets.QApplication.exec_ = QtWidgets.QApplication.exec
+
+    # Configure Matplotlib for use with PyQt6
+    import matplotlib
+    try:
+        matplotlib.use('QtAgg')
+    except ImportError:
+        pass
+    import matplotlib.backends.backend_qt5agg as matplotlib_backend
+
+    # Set backend variables
+    backend = 'PyQt6'
+    qtversion = 6
+
+elif pyside6:
+
+    # Load PySide6
+    # Load main classes
+    from PySide6 import QtGui, QtWidgets, QtCore
+    from PySide6.QtCore import Qt
+
+    # Configure Matplotlib for use with PySide6
+    import matplotlib
+    try:
+        matplotlib.use('Qt6Agg')
+    except ImportError:
+        pass
+    import matplotlib.backends.backend_qt6agg as matplotlib_backend  # noqa
+
+    # Set backend variables
+    backend = 'PySide6'
+    qtversion = 6
+
+elif pyqt5:
 
     # Load PyQt5
     from PyQt5 import QtGui, QtWidgets, QtCore
@@ -295,7 +357,7 @@ else:
     raise Exception('Selection of qt version failed.')
 
 # Delete temporary variables
-del pyqt4, pyqt5, pyside
+del pyqt4, pyqt5, pyqt6, pyside, pyside2, pyside6
 
 # Load Gnome theme on Wayland (for icons)
 if platform == 'Linux':

@@ -271,10 +271,12 @@ TIME_FORMAT = '%H:%M:%S'
 #
 # GUI: Favor PySide or PyQt
 #
+FORCE_PYQT6 = False
 FORCE_PYQT5 = False
 FORCE_PYQT4 = False
-FORCE_PYSIDE = False
+FORCE_PYSIDE6 = False
 FORCE_PYSIDE2 = False
+FORCE_PYSIDE = False
 
 
 #

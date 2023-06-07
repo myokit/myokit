@@ -93,7 +93,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self.resize(800, 600)
         self.setMinimumSize(600, 400)
         qr = self.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        cp = QtGui.QGuiApplication.primaryScreen().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
         # Status bar
@@ -120,7 +120,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._video_scene.double_click.connect(self.event_video_double_click)
         self._video_view = VideoView(self._video_scene)
         self._video_view.setMouseTracking(True)
-        self._video_view.setCursor(Qt.CrossCursor)
+        self._video_view.setCursor(Qt.CursorShape.CrossCursor)
         #self._video_view.setViewport(QtOpenGL.QGLWidget())
         self._video_pixmap = None
         self._video_item = None
@@ -135,7 +135,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._colorbar_pixmap = None
         self._colorbar_item = None
         # Video slider
-        self._slider = QtWidgets.QSlider(Qt.Horizontal)
+        self._slider = QtWidgets.QSlider(Qt.Orientation.Horizontal)
         self._slider.setTickPosition(QtWidgets.QSlider.NoTicks)
         #self._slider.setTickPosition(QtWidgets.QSlider.TicksBothSides)
         self._slider.setSingleStep(1)
@@ -158,21 +158,24 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._frame_field.setReadOnly(True)
         self._frame_field.setMaxLength(6)
         self._frame_field.setMaximumWidth(100)
-        self._frame_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._frame_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         # Time indicator
         self._time_label = QtWidgets.QLabel('Time')
         self._time_field = QtWidgets.QLineEdit('0')
         self._time_field.setReadOnly(True)
         self._time_field.setMaxLength(6)
         self._time_field.setMaximumWidth(100)
-        self._time_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._time_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         # Speed indicator
         self._rate_label = QtWidgets.QLabel('Delay')
         self._rate_field = QtWidgets.QLineEdit(str(self._timer_interval))
         self._rate_field.setValidator(QtGui.QIntValidator(1, 2**20, self))
         self._rate_field.editingFinished.connect(self.event_rate_changed)
         self._rate_field.setMaximumWidth(100)
-        self._rate_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._rate_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         # Graph controls
         self._graph_clear_button = QtWidgets.QPushButton('Clear graphs')
         self._graph_clear_button.pressed.connect(self.action_clear_graphs)
@@ -203,7 +206,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._graph_area = GraphArea()
         self._graph_area.mouse_moved.connect(self.event_graph_mouse_move)
         self._graph_area.setMouseTracking(True)
-        self._graph_area.setCursor(Qt.CrossCursor)
+        self._graph_area.setCursor(Qt.CursorShape.CrossCursor)
         # Video and colorbar layout
         self._video_plus_layout = QtWidgets.QHBoxLayout()
         self._video_plus_layout.addWidget(self._video_view)
@@ -216,7 +219,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._video_widget = QtWidgets.QWidget()
         self._video_widget.setLayout(self._video_layout)
         # Central layout
-        self._central_widget = QtWidgets.QSplitter(Qt.Vertical)
+        self._central_widget = QtWidgets.QSplitter(Qt.Orientation.Vertical)
         self._central_widget.addWidget(self._video_widget)
         self._central_widget.addWidget(self._graph_area)
         self.setCentralWidget(self._central_widget)
@@ -671,7 +674,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         Catch key presses?
         """
-        if e.key() == Qt.Key_Space:
+        if e.key() == Qt.Key.Key_Space:
             self.action_start_stop()
 
     def load_config(self):
@@ -956,8 +959,8 @@ class VideoScene(QtWidgets.QGraphicsScene):
         """
         Single-click
         """
-        if event.button() == QtCore.Qt.LeftButton:
-            if event.modifiers() == Qt.NoModifier:
+        if event.button() == Qt.MouseButton.LeftButton:
+            if event.modifiers() == Qt.KeyBoardModifier.NoModifier:
                 p = event.scenePos()
                 x, y = int(p.x()), int(p.y())
                 if x >= 0 and x < self._w and y >= 0 and y < self._h:
@@ -968,8 +971,8 @@ class VideoScene(QtWidgets.QGraphicsScene):
         """
         Double-click
         """
-        if event.button() == QtCore.Qt.LeftButton:
-            if event.modifiers() == Qt.NoModifier:
+        if event.button() == Qt.MouseButton.LeftButton:
+            if event.modifiers() == Qt.KeyBoardModifier.NoModifier:
                 p = event.scenePos()
                 x, y = int(p.x()), int(p.y())
                 if x >= 0 and x < self._w and y >= 0 and y < self._h:
@@ -1008,13 +1011,13 @@ class VideoView(QtWidgets.QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # Set rendering hints
-        self.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         self.setViewportUpdateMode(
             QtWidgets.QGraphicsView.BoundingRectViewportUpdate)
 
         # Fit scene rect in view
         self.fitInView(self.sceneRect(), keepAspect=True)
-        self.setAlignment(Qt.AlignCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Delayed resizing
         self._resize_timer = QtCore.QTimer()
@@ -1263,7 +1266,7 @@ class GraphArea(QtWidgets.QWidget):
 
         # Create coordinate system for graphs
         painter.scale(self.width(), self.height())
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
         # Create pen
         pen = QtGui.QPen()
