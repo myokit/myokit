@@ -1214,7 +1214,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         c.set_initial_value(myokit.Name(p))
         mm = sm.myokit_model()
         self.assertTrue(mm.has_component('comp'))
-        self.assertEqual(mm.get('comp.size').rhs().code(), 'myokit.parameter')
+        self.assertEqual(mm.get('comp.size').rhs().code(), 'global.parameter')
         self.assertFalse(mm.get('comp.size').is_state())
 
         # Check setting size as value
@@ -1241,7 +1241,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         c.set_value(myokit.Name(p))
         mm = sm.myokit_model()
         self.assertTrue(mm.has_component('comp'))
-        self.assertEqual(mm.get('comp.size').rhs().code(), 'myokit.parameter')
+        self.assertEqual(mm.get('comp.size').rhs().code(), 'global.parameter')
         self.assertFalse(mm.get('comp.size').is_state())
 
         # Check setting size as rate
@@ -1289,9 +1289,9 @@ class SBMLTestMyokitModel(unittest.TestCase):
         m = m.myokit_model()
 
         # Check that model created parameters in 'global' component
-        self.assertTrue(m.has_variable('myokit.z'))
-        self.assertTrue(m.has_variable('myokit.boat'))
-        self.assertTrue(m.has_variable('myokit.c'))
+        self.assertTrue(m.has_variable('global.z'))
+        self.assertTrue(m.has_variable('global.boat'))
+        self.assertTrue(m.has_variable('global.c'))
 
         # Check that total number of parameters is 4 (3 parameters and time)
         self.assertEqual(m.count_variables(), 4)
@@ -1303,7 +1303,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         p = m.add_parameter('param')
         p.set_initial_value(myokit.Number(7))
         mm = m.myokit_model()
-        pp = mm.get('myokit.param')
+        pp = mm.get('global.param')
         self.assertFalse(pp.is_state())
         self.assertEqual(pp.rhs(), myokit.Number(7))
 
@@ -1311,7 +1311,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertIsNone(pp.unit())
         p.set_units(myokit.units.pF)
         mm = m.myokit_model()
-        pp = mm.get('myokit.param')
+        pp = mm.get('global.param')
         self.assertFalse(pp.is_state())
         self.assertEqual(pp.rhs(), myokit.Number(7))
         self.assertEqual(pp.unit(), myokit.units.pF)
@@ -1331,7 +1331,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         p = m.add_parameter('param')
         p.set_value(myokit.Plus(myokit.Number(7), myokit.Number(3)))
         mm = m.myokit_model()
-        pp = mm.get('myokit.param')
+        pp = mm.get('global.param')
         self.assertFalse(pp.is_state())
         self.assertEqual(
             pp.rhs(), myokit.Plus(myokit.Number(7), myokit.Number(3)))
@@ -1340,7 +1340,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertIsNone(pp.unit())
         p.set_units(myokit.units.pF)
         mm = m.myokit_model()
-        pp = mm.get('myokit.param')
+        pp = mm.get('global.param')
         self.assertFalse(pp.is_state())
         self.assertEqual(pp.rhs().code(), '7 + 3')
         self.assertEqual(pp.unit(), myokit.units.pF)
@@ -1361,7 +1361,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         p.set_value(myokit.Number(3.2), is_rate=True)
         with WarningCollector():
             mm = m.myokit_model()
-        pp = mm.get('myokit.param')
+        pp = mm.get('global.param')
         self.assertTrue(pp.is_state())
         self.assertEqual(pp.rhs(), myokit.Number(3.2))
         self.assertEqual(pp.initial_value(as_float=True), 0)
@@ -1369,7 +1369,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # With initial value
         p.set_initial_value(myokit.Number(1))
         mm = m.myokit_model()
-        pp = mm.get('myokit.param')
+        pp = mm.get('global.param')
         self.assertTrue(pp.is_state())
         self.assertEqual(pp.rhs(), myokit.Number(3.2))
         self.assertEqual(pp.initial_value(as_float=True), 1)
@@ -1378,7 +1378,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertIsNone(pp.unit())
         p.set_units(myokit.units.pF)
         mm = m.myokit_model()
-        pp = mm.get('myokit.param')
+        pp = mm.get('global.param')
         self.assertTrue(pp.is_state())
         self.assertEqual(pp.rhs(), myokit.Number(3.2))
         self.assertEqual(pp.unit(), myokit.units.pF)
@@ -1478,7 +1478,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         mm = m.myokit_model()
         ms = mm.get('comp.spec_1_amount')
         self.assertFalse(ms.is_state())
-        self.assertEqual(ms.rhs().code(), 'myokit.p1')
+        self.assertEqual(ms.rhs().code(), 'global.p1')
 
         # Species in concentration: unreferenced parameter
         p2 = sbml.Parameter(m, 'p2')
@@ -2168,10 +2168,10 @@ class SBMLTestMyokitModel(unittest.TestCase):
         m = m.myokit_model()
 
         # Check that time variable exists
-        self.assertTrue(m.has_variable('myokit.time'))
+        self.assertTrue(m.has_variable('global.time'))
 
         # Check that unit is set
-        var = m.get('myokit.time')
+        var = m.get('global.time')
         self.assertEqual(var.unit(), myokit.units.ampere)
 
         # Check that initial value is set
@@ -2189,10 +2189,10 @@ class SBMLTestMyokitModel(unittest.TestCase):
         p = s.add_parameter('param')
         p.set_value(myokit.Plus(myokit.Number(1), myokit.Name(s.time())))
         m = s.myokit_model()
-        t = m.get('myokit.time')
+        t = m.get('global.time')
         self.assertEqual(t.unit(), myokit.units.ms)
         self.assertEqual(
-            m.get('myokit.param').rhs(),
+            m.get('global.param').rhs(),
             myokit.Plus(myokit.Number(1), myokit.Name(m.time())))
 
 

@@ -21,6 +21,7 @@ This page lists the main changes made to Myokit in each release.
   - [#953](https://github.com/myokit/myokit/pull/953) The DataLogViewer now overlaps traces with numbering (e.g. 0.membrane.V and 1.membrane.V), and toggles between files and variables with Page up and down Or Ctrl+Page up and down.
   - [#962](https://github.com/myokit/myokit/pull/962) Scipy is no longer a required dependency.
   - [#962](https://github.com/myokit/myokit/pull/962) The DataLogViewer only supports Matlab file loading if SciPy is installed.
+  - [#975](https://github.com/myokit/myokit/pull/975) Global parameters in imported SBML documents are now placed in a component named `global` instead of `myokit`.
 - Deprecated
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favour of `Model.set_initial_values`.

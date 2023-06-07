@@ -913,12 +913,12 @@ class TestSBMLParser(unittest.TestCase):
         # Check species reactions (no unecessary zeros and all terms present)
         model_mmt = m.myokit_model().code()
         S1_rhs = \
-            'dot(S1_amount) = -(r1 * (size * myokit.k1 * S1_concentration)) ' \
-            + '- size * myokit.k1 * S1_concentration'
+            'dot(S1_amount) = -(r1 * (size * global.k1 * S1_concentration)) ' \
+            + '- size * global.k1 * S1_concentration'
         self.assertTrue(S1_rhs in model_mmt)
-        S2_rhs = 'dot(S2_amount) = r2 * (size * myokit.k1 * S1_concentration)'
+        S2_rhs = 'dot(S2_amount) = r2 * (size * global.k1 * S1_concentration)'
         self.assertTrue(S2_rhs in model_mmt)
-        S3_rhs = 'dot(S3_amount) = size * myokit.k1 * S1_concentration'
+        S3_rhs = 'dot(S3_amount) = size * global.k1 * S1_concentration'
         self.assertTrue(S3_rhs in model_mmt)
 
     def test_parse_rule(self):
