@@ -193,7 +193,7 @@ for group in equations.values():
 print('')
 print('/* Aliases of state variables. */')
 for var in model.states():
-    print('#define ' + var.uname() + ' state[' + str(var.indice()) + ']')
+    print('#define ' + var.uname() + ' state[' + str(var.index()) + ']')
 
 ?>
 

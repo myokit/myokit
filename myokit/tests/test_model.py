@@ -978,7 +978,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m1['y'].code(), ms['y'].code())
         self.assertTrue(ms.is_similar(ms_unaltered, True))
         # Check that state order is preserved
-        self.assertLess(m1.get('y.e').indice(), m1.get('x.a').indice())
+        self.assertLess(m1.get('y.e').index(), m1.get('x.a').index())
 
         # Import multiple components and rename
         component_list = [ms['x'], ms['y']]
@@ -989,7 +989,7 @@ class ModelTest(unittest.TestCase):
         self.assertFalse(m1['yy'] is ms['y'])
         self.assertTrue(ms.is_similar(ms_unaltered, True))
         # Check that state order is preserved
-        self.assertLess(m1.get('yy.e').indice(), m1.get('xx.a').indice())
+        self.assertLess(m1.get('yy.e').index(), m1.get('xx.a').index())
 
         # Import 1 component in list
         m1.import_component([ms['p']], new_name='p3')
@@ -1009,7 +1009,7 @@ class ModelTest(unittest.TestCase):
             m1.get('n.c').initial_value(),
             myokit.Plus(myokit.Number(1), myokit.Name(m1.get('n.p'))))
         # Check that state order is preserved
-        self.assertLess(m1.get('n.c').indice(), m1.get('n.b').indice())
+        self.assertLess(m1.get('n.c').index(), m1.get('n.b').index())
         m1 = m1_unaltered
 
         # ...including references to parameters in other components

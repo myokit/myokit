@@ -31,6 +31,7 @@ This page lists the main changes made to Myokit in each release.
   - [#918](https://github.com/myokit/myokit/pull/918) The `Variable.promote` keyword argument `state_value` is deprecated in favour of `initial_value`.
   - [#947](https://github.com/myokit/myokit/pull/947) `Simulation.set_fixed_form_protocol` is deprecated in favour of using `Simulation.set_protocol` with a `TimeSeriesProtocol`
   - [#962](https://github.com/myokit/myokit/pull/962) The method `DataLog.regularize` is deprecated.
+  - [#974](https://github.com/myokit/myokit/pull/974) `Variable.indice` is deprecated in favour of `Variable.index`.
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `LegacySimulation` class.

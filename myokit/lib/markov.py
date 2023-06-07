@@ -463,8 +463,8 @@ class LinearModel(object):
             # Get state variables
             states = [x for x in component.variables(state=True)]
 
-            # Sort by state indice
-            states.sort(key=lambda x: x.indice())
+            # Sort by state index
+            states.sort(key=lambda x: x.index())
 
         else:
 
@@ -1228,7 +1228,7 @@ class DiscreteSimulation(object):
                 ' equal 1.')
         y = np.round(x * self._nchannels)
         # To make sure it always sums to 1, correct the value found at the
-        # indice with the biggest rounding error.
+        # index with the biggest rounding error.
         i = np.argmax(np.abs(x - y))
         y[i] = 0
         y[i] = self._nchannels - np.sum(y)

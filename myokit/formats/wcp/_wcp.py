@@ -231,7 +231,7 @@ class WcpFile(object):
         Creates and returns a:class:`myokit.DataLog` containing all the
         data from this file.
 
-        Each channel is stored under its own name, with an indice indicating
+        Each channel is stored under its own name, with an index indicating
         the record it was from. Time is stored under ``time``.
         """
         log = myokit.DataLog()

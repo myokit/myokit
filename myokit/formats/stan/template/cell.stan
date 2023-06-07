@@ -21,7 +21,7 @@ functions{
    *
    * @param x The value to search for.
    * @param sorted A sorted (non-decreasing) vector of values to search in.
-   * @return The greatest array indice `i` such that `sorted[i] <= x`
+   * @return The greatest array index `i` such that `sorted[i] <= x`
    */
   int find_interval_elem(real x, vector sorted) {
 
@@ -83,10 +83,10 @@ functions{
     vector[n] times  = to_vector(xr[1:n]);
     vector[n] values = to_vector(xr[(n + 1):(2 * n)]);
 
-    // Find indice for current time
+    // Find index for current time
     int i = find_interval_elem(time, values);
 
-    // Return pacing value
+    // Return pacing valueo
     return (i == 0) ? values[1] : values[i];
   }
 

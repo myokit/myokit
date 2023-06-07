@@ -1339,7 +1339,7 @@ class ModelParseTest(unittest.TestCase):
         x = m.get('test.x')
         y = m.get('test.y')
         s = m.initial_values(as_floats=True)
-        i = m.get('membrane.V').indice()
+        i = m.get('membrane.V').index()
         # Test x, xo, y, yo
 
         v = myokit.Name(m.get('membrane.V'))

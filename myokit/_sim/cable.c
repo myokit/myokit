@@ -441,7 +441,7 @@ for label, eqs in equations.items():
         /* Initial values */
 <?
 for var in model.states():
-    print(tab*2 + v(var) + ' = PyFloat_AsDouble(PyList_GetItem(state_in, icell * N_STATE + ' + str(var.indice()) + '));')
+    print(tab*2 + v(var) + ' = PyFloat_AsDouble(PyList_GetItem(state_in, icell * N_STATE + ' + str(var.index()) + '));')
 ?>
         /* Zeros for pacing and diffusion current */
 <?
@@ -581,7 +581,7 @@ for var in model.states():
     for(icell=0; icell<ncells; icell++) {
 <?
 for var in model.states():
-    print(tab*2 + 'PyList_SetItem(state_out, icell * N_STATE + ' + str(var.indice()) + ', PyFloat_FromDouble(' + v(var) + '));')
+    print(tab*2 + 'PyList_SetItem(state_out, icell * N_STATE + ' + str(var.index()) + ', PyFloat_FromDouble(' + v(var) + '));')
 ?>
         cell++;
     }

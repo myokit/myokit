@@ -402,7 +402,7 @@ class CModel(object):
         """ Generates and returns the model code. """
 
         # Get states whose initial value is used in sensivitity calculations
-        initials = [p.var().indice() for p in independents
+        initials = [p.var().index() for p in independents
                     if isinstance(p, myokit.InitialValue)]
 
         # Arguments

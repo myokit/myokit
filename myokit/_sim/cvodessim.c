@@ -297,7 +297,7 @@ PyObject* log_times;    /* The point list (or None if disabled) */
 /*
  * Root finding
  */
-int rf_indice;          /* Indice of state variable to use in root finding (ignored if not enabled) */
+int rf_index;          /* Index of state variable to use in root finding (ignored if not enabled) */
 double rf_threshold;    /* Threshold to use for root finding (ignored if not enabled) */
 PyObject* rf_list;      /* List to store found roots in (or None if not enabled) */
 int* rf_direction;      /* Direction of root crossings: 1 for up, -1 for down, 0 for no crossing. */
@@ -426,7 +426,7 @@ shs(N_Vector* sy)
 int
 rf_function(realtype t, N_Vector y, realtype *gout, void *user_data)
 {
-    gout[0] = NV_Ith_S(y, rf_indice) - rf_threshold;
+    gout[0] = NV_Ith_S(y, rf_index) - rf_threshold;
     return 0;
 }
 
@@ -621,12 +621,12 @@ sim_init(PyObject *self, PyObject *args)
             &bound_py,          /*  4. List: store final bound variables here */
             &literals,          /*  5. List: literal constant values */
             &parameters,        /*  6. List: parameter values */
-            &protocols,        /*   7. Event-based or fixed protocols */
+            &protocols,         /*   7. Event-based or fixed protocols */
             &log_dict,          /*  8. DataLog */
             &log_interval,      /*  9. Float: log interval, or 0 */
             &log_times,         /* 10. List of logging times, or None */
             &sens_list,         /* 11. List to store sensitivities in */
-            &rf_indice,         /* 12. Int: root-finding state variable */
+            &rf_index,          /* 12. Int: root-finding state variable */
             &rf_threshold,      /* 13. Float: root-finding threshold */
             &rf_list,           /* 14. List to store roots in or None */
             &benchmarker,       /* 15. myokit.tools.Benchmarker object */

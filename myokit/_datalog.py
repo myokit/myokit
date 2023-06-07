@@ -267,7 +267,7 @@ class DataLog(OrderedDict):
 
     def find_after(self, time):
         """
-        Returns the lowest indice ``i`` such that
+        Returns the lowest index ``i`` such that
 
             times[i] >= time
 
@@ -286,7 +286,7 @@ class DataLog(OrderedDict):
 
         # Find t
         def find(lo, hi):
-            # lo = first indice, hi = last indice + 1
+            # lo = first index, hi = last index + 1
             if (lo + 1 == hi):
                 return lo + 1
             m = int((lo + hi) / 2)
@@ -440,7 +440,7 @@ class DataLog(OrderedDict):
 
     def itrim_left(self, i):
         """
-        Returns a copy of this log, with all entries before indice ``i``
+        Returns a copy of this log, with all entries before index ``i``
         removed (similar to performing ``x = x[i:]`` on a list).
         """
         log = DataLog()
@@ -454,7 +454,7 @@ class DataLog(OrderedDict):
 
     def itrim_right(self, i):
         """
-        Returns a copy of this log, with all entries starting from indice ``i``
+        Returns a copy of this log, with all entries starting from index ``i``
         removed (similar to performing ``x = x[:i]`` on a list).
         """
         log = DataLog()
@@ -873,7 +873,7 @@ class DataLog(OrderedDict):
         time = self.time()
         n = len(time)
 
-        # Get left indice for splines
+        # Get left index for splines
         imin = 0
         if tmin is None:
             tmin = time[0]
@@ -882,7 +882,7 @@ class DataLog(OrderedDict):
             # left so that the spline has 4 points
             imin = max(0, np.searchsorted(time, tmin) - 2)
 
-        # Get right indice for splines
+        # Get right index for splines
         imax = n
         if tmax is None:
             tmax = time[-1]

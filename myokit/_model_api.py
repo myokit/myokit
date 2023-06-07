@@ -1988,7 +1988,7 @@ class Model(ObjectWithMeta, VarProvider):
                 var = comp.get(ext_var.name())
                 state_map[var] = ext_var
                 new_states.append(var)
-        new_states.sort(key=lambda var: state_map[var].indice())
+        new_states.sort(key=lambda var: state_map[var].index())
         for var in new_states:
             var.promote()   # Initial value is set later
 
@@ -2722,11 +2722,11 @@ class Model(ObjectWithMeta, VarProvider):
                     'Duplicate entry in order specification: "'
                     + str(v.qname()) + '".')
             state.append(v)
-            current.append(self._state_init[v._indice])
+            current.append(self._state_init[v._index])
         self._state_vars = state
         self._state_init = current
         for k, v in enumerate(state):
-            v._indice = k
+            v._index = k
 
     def remove_component(self, component):
         """
@@ -2846,7 +2846,7 @@ class Model(ObjectWithMeta, VarProvider):
         Resets the indices of this model's state variables.
         """
         for k, v in enumerate(self._state_vars):
-            v._indice = k
+            v._index = k
 
     def _reset_validation(self):
         """
@@ -3875,8 +3875,8 @@ class Variable(VarOwner):
     def __init__(self, parent, name):
         super(Variable, self).__init__(parent, name)
 
-        # Indice, only set if this is a state variable
-        self._indice = None
+        # Index, only set if this is a state variable
+        self._index = None
 
         # This variable's unit, if given, else dimensionless
         self._unit = None
@@ -3973,7 +3973,7 @@ class Variable(VarOwner):
         The argument ``lhs_map`` should be a dictionary mapping old
         :class:`LhsExpression` objects their equivalents in the new model.
         """
-        # _indice is set by promoting (done by model)
+        # _index is set by promoting (done by model)
         # _binding
         if self._binding:
             v.set_binding(self._binding)
@@ -4289,7 +4289,7 @@ class Variable(VarOwner):
         This will reset the validation status of the model this variable
         belongs to.
         """
-        if self._indice is None:
+        if self._index is None:
             raise Exception('Variable is not a state variable.')
 
         # Check that nobody has references to this var's derivative
@@ -4302,16 +4302,16 @@ class Variable(VarOwner):
         model = self.model()
         try:
             # Remove initial value
-            del model._state_init[self._indice]
+            del model._state_init[self._index]
 
             # Remove this variable from the state
-            del model._state_vars[self._indice]
+            del model._state_vars[self._index]
 
             # Set lhs to name expression
             self._lhs = myokit.Name(self)
 
-            # Remove this variable's indice
-            self._indice = None
+            # Remove this variable's index
+            self._index = None
 
             # Reset other states' indices
             model._reset_indices()
@@ -4344,14 +4344,24 @@ class Variable(VarOwner):
         """
         return self._rhs.eval()
 
-    def indice(self):
+    def index(self):
         """
         For state variables, this will return their index in the state vector.
+
         For all other variables, this will raise an exception.
         """
-        if self._indice is None:
+        if self._index is None:
             raise Exception('Only state variables have initial values.')
-        return self._indice
+        return self._index
+
+    def indice(self):
+        """ Deprecated alias of :meth:`index`. """
+
+        # Deprecated on 2023-06-07
+        import warnings
+        warnings.warn(
+            'The method `indice` is deprecated. Please use `index()` instead.')
+        return self.index()
 
     def initial_value(self, as_float=False):
         """
@@ -4365,7 +4375,7 @@ class Variable(VarOwner):
             raise Exception('Only state variables have initial values.')
 
         model = self.model()
-        expr = model._state_init[self._indice]
+        expr = model._state_init[self._index]
         if not as_float:
             return expr
         if not expr.is_literal():
@@ -4465,7 +4475,7 @@ class Variable(VarOwner):
         Calling ``promote`` will reset the validation status of the model this
         variable belongs to.
         """
-        if self._indice is not None:
+        if self._index is not None:
             raise Exception('Variable is already a state variable')
         if not isinstance(self._parent, Component):
             raise Exception('State variables can only be added to Components.')
@@ -4499,8 +4509,8 @@ class Variable(VarOwner):
             # Set lhs to derivative expression
             self._lhs = myokit.Derivative(myokit.Name(self))
 
-            # Get new indice
-            self._indice = len(model._state_vars)
+            # Get new index
+            self._index = len(model._state_vars)
 
             # Add to list of states
             model._state_vars.append(self)
@@ -4654,7 +4664,7 @@ class Variable(VarOwner):
         self._parent.move_variable(self, self._parent, new_name)
 
     def __repr__(self):
-        if self._indice is not None:
+        if self._index is not None:
             return '<State(' + self.qname() + ')>'
         else:
             return '<Var(' + self.qname() + ')>'
@@ -4669,7 +4679,7 @@ class Variable(VarOwner):
             s_old = (self._is_bound, self._is_state, self._is_intermediary,
                      self._is_literal, self._is_constant, self._is_nested)
         self._is_bound = self._binding is not None
-        self._is_state = self._indice is not None
+        self._is_state = self._index is not None
         self._is_nested = isinstance(self._parent, Variable)
         if self._is_state or self._is_bound or self._rhs is None:
             self._is_constant = False
@@ -4716,7 +4726,7 @@ class Variable(VarOwner):
                     ' is already bound to "' + self._binding + '".')
 
             # Check if not a state
-            if self._indice is not None:
+            if self._index is not None:
                 raise myokit.InvalidBindingError(
                     'State variables cannot be bound to an external value.')
 
@@ -4767,7 +4777,7 @@ class Variable(VarOwner):
 
         # Update
         try:
-            model._state_init[self._indice] = value
+            model._state_init[self._index] = value
         finally:
             # Reset model validation, but not the variable cache
             model._reset_validation()
@@ -4944,7 +4954,7 @@ class Variable(VarOwner):
         #
         # Check state variables
         #
-        is_state = self._indice is not None
+        is_state = self._index is not None
         is_deriv = self.lhs().is_derivative()
         if is_state:
             # Derivative is set
@@ -4961,13 +4971,13 @@ class Variable(VarOwner):
 
             # Index matches model
             m = self.model()
-            if not m._state_vars[self._indice] == self:  # pragma: no cover
+            if not m._state_vars[self._index] == self:  # pragma: no cover
                 raise myokit.IntegrityError(
                     'State variable not listed in model state vector at'
-                    ' correct indice: <' + self.qname() + '>.')
+                    ' correct index: <' + self.qname() + '>.')
 
             # Initial value is an expression
-            i = m._state_init[self._indice]
+            i = m._state_init[self._index]
             if not isinstance(i, myokit.Expression):  # pragma: no cover
                 raise myokit.IntegrityError(
                     'Initial value for <' + self.qname() + '> is not an'

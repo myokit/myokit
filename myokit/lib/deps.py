@@ -52,7 +52,7 @@ def create_state_dependency_matrix(model, direct=False, knockout=None):
             v = model.get(v, class_filter=myokit.Variable)
             if not v.is_state():
                 raise ValueError('Knockout variables must be states.')
-            iknock.append(v.indice())
+            iknock.append(v.index())
 
     # Create matrix of direct dependencies
     m = []
@@ -61,7 +61,7 @@ def create_state_dependency_matrix(model, direct=False, knockout=None):
         if i not in iknock:
             for dep in deep[var.lhs()]:
                 if dep.var().is_state():
-                    j = dep.var().indice()
+                    j = dep.var().index()
                     if j not in iknock:
                         row[j] = 1
         m.append(row)

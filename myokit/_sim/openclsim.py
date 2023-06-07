@@ -657,7 +657,7 @@ class SimulationOpenCL(myokit.CModule):
 
         # Get value causing error
         if var.is_state():
-            value = states[1 if ifirst > 0 else 0][var.indice()]
+            value = states[1 if ifirst > 0 else 0][var.index()]
         else:  # pragma: no cover
             value = bounds[1 if ifirst > 0 else 0][var.qname()]
         var = var.qname()

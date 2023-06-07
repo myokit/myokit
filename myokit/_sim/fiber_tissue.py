@@ -676,7 +676,7 @@ class FiberTissueSimulation(myokit.CModule):
 
         # Get value causing error
         if var.is_state():
-            value = states[1 if ifirst > 0 else 0][var.indice()]
+            value = states[1 if ifirst > 0 else 0][var.index()]
         else:
             value = bound[1 if ifirst > 0 else 0][var.qname()]
         var = var.qname()
@@ -909,8 +909,8 @@ class FiberTissueSimulation(myokit.CModule):
                 self._ncellsf[1],
                 self._ncellst[0],
                 self._ncellst[1],
-                self._vmf.indice(),
-                self._vmt.indice(),
+                self._vmf.index(),
+                self._vmt.index(),
                 self._gf[0],
                 self._gf[1],
                 self._gt[0],

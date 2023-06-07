@@ -250,7 +250,7 @@ bench(PyObject* self, PyObject* args, void (*fnc)(void))
         return 0;
     }
     if (start < 0) {
-        PyErr_SetString(PyExc_Exception, "Invalid log position selection: Negative list indice given.");
+        PyErr_SetString(PyExc_Exception, "Invalid log position selection: Negative list index given.");
         return 0;
     }
 

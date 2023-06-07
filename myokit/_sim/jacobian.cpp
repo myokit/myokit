@@ -70,12 +70,12 @@ typedef FirstDifferential Diff;
 <?
 print('// Aliases of state variable derivatives')
 for var in model.states():
-    print('#define ' + v(var.lhs()) + ' deriv[' + str(var.indice()) + ']')
+    print('#define ' + v(var.lhs()) + ' deriv[' + str(var.index()) + ']')
 print('')
 
 print('// Aliases of state variable values')
 for var in model.states():
-    print('#define ' + v(var) + ' state[' + str(var.indice()) + ']')
+    print('#define ' + v(var) + ' state[' + str(var.index()) + ']')
 print('')
 
 print('// Aliases of input variables')

@@ -187,8 +187,8 @@ class DataBlock1d(object):
                     ' of cells.')
 
         # Get indices of selected cells
-        ilo = border                # First indice
-        ihi = self._nx - border     # Last indice + 1
+        ilo = border                # First index
+        ihi = self._nx - border     # Last index + 1
 
         # Indices of cells with AP
         i1 = None
@@ -205,8 +205,8 @@ class DataBlock1d(object):
         t = []
         for i in range(ilo, ihi):
             v = v_series[i]
-            # Get indice of first threshold crossing with positive flank
-            # Don't include crossings at log indice 0
+            # Get index of first threshold crossing with positive flank
+            # Don't include crossings at log index 0
             itime = np.where((v[1:] > -30) & (v[1:] - v[:-1] > 0))[0]
             if len(itime) == 0 or itime[0] == 0:
                 # No crossing found

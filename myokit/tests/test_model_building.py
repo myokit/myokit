@@ -124,7 +124,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertFalse(x.is_intermediary())
         self.assertFalse(x.is_constant())
         self.assertEqual(x.lhs(), myokit.Derivative(myokit.Name(x)))
-        self.assertEqual(x.indice(), 0)
+        self.assertEqual(x.index(), 0)
 
         # Test demoting, promoting
         x.demote()
