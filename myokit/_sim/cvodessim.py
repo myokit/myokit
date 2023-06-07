@@ -214,13 +214,13 @@ class Simulation(myokit.CModule):
         # Set state and default state for sensitivities
         self._s_state = self._s_default_state = None
         if self._sensitivities:
-            # Outer indice: number of independent variables
-            # Inner indice: number of states
+            # Outer index: number of independent variables
+            # Inner index: number of states
             self._s_state = []
             for expr in self._sensitivities[1]:
                 row = [0.0] * len(self._state)
                 if isinstance(expr, myokit.InitialValue):
-                    row[expr.var().indice()] = 1.0
+                    row[expr.var().index()] = 1.0
                 self._s_state.append(row)
             self._s_default_state = [list(x) for x in self._s_state]
 
@@ -509,7 +509,7 @@ class Simulation(myokit.CModule):
             for i, expr in enumerate(self._sensitivities[1]):
                 if isinstance(expr, myokit.InitialValue):
                     self._s_state[i] = [0.0] * len(self._state)
-                    self._s_state[i][expr.var().indice()] = 1.0
+                    self._s_state[i][expr.var().index()] = 1.0
             # Update default state
             self._s_default_state = [list(x) for x in self._s_state]
 
@@ -646,8 +646,8 @@ class Simulation(myokit.CModule):
 
         However, if sensitivity calculations are enabled a tuple is returned,
         where the first entry is the :class:`myokit.DataLog` and the second
-        entry is a matrix of sensitivities ``dy/dx``, where the first indice
-        specifies the dependent variable ``y``, and the second indice specifies
+        entry is a matrix of sensitivities ``dy/dx``, where the first index
+        specifies the dependent variable ``y``, and the second index specifies
         the independent variable ``x``.
 
         Finally, if APD calculation is enabled, the method returns a tuple
@@ -716,7 +716,7 @@ class Simulation(myokit.CModule):
 
         # APD measuring
         root_list = None
-        root_indice = 0
+        root_index = 0
         root_threshold = 0
         if apd_variable is None:
             if apd_threshold is not None:
@@ -733,7 +733,7 @@ class Simulation(myokit.CModule):
 
             # Set up root finding
             root_list = []
-            root_indice = apd_variable.indice()
+            root_index = apd_variable.index()
             root_threshold = float(apd_threshold)
 
         # Get progress indication function (if any)
@@ -796,9 +796,9 @@ class Simulation(myokit.CModule):
                 log_times,
                 # 11. A list to store calculated sensitivities in
                 sensitivities,
-                # 12. The state variable indice for root finding (only used if
+                # 12. The state variable index for root finding (only used if
                 #     root_list is a list)
-                root_indice,
+                root_index,
                 # 13. The threshold for root crossing (can be 0 too, only used
                 #     if root_list is a list).
                 root_threshold,

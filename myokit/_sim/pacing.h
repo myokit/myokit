@@ -856,7 +856,7 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
     }
 
     // Find the highest index `i` of sorted array `times` such that
-    // `times[i] <= time`, or `-1` if no such indice can be found.
+    // `times[i] <= time`, or `-1` if no such index can be found.
     // A guess can be given, which will be used to speed things up
 
     // Get left point, check value

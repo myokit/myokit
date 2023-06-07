@@ -256,6 +256,29 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(vdot, v.rhs().eval())
         m.check_units(myokit.UNIT_STRICT)
 
+    def test_index(self):
+        # Tests the index() method
+
+        m = myokit.Model()
+        c = m.add_component('c')
+        a = c.add_variable('a')
+        a.set_rhs(0)
+        a.promote(0)
+        b = c.add_variable('b')
+        b.set_rhs(0)
+        b.promote(0)
+
+        self.assertEqual(a.index(), 0)
+        self.assertEqual(b.index(), 1)
+        m.reorder_state((b, a))
+        self.assertEqual(a.index(), 1)
+        self.assertEqual(b.index(), 0)
+
+        # Test deprecated alias
+        with WarningCollector() as w:
+            self.assertEqual(a.indice(), 1)
+        self.assertIn('deprecated', w.text())
+
     def test_initial_value(self):
         # Tests :meth:`Variable.initial_value`.
 
@@ -360,7 +383,7 @@ class VariableTest(unittest.TestCase):
         self.assertFalse(v.is_state())
         self.assertEqual(v.lhs(), myokit.Name(v))
         self.assertRaises(Exception, v.demote)
-        self.assertRaises(Exception, v.indice)
+        self.assertRaises(Exception, v.index)
         self.assertRaises(Exception, v.initial_value)
 
         v.promote(3)
@@ -369,7 +392,7 @@ class VariableTest(unittest.TestCase):
         self.assertFalse(v.is_intermediary())
         self.assertTrue(v.is_state())
         self.assertEqual(v.lhs(), myokit.Derivative(myokit.Name(v)))
-        self.assertEqual(v.indice(), 0)
+        self.assertEqual(v.index(), 0)
         self.assertEqual(v.initial_value(), myokit.Number(3))
 
         v.demote()
@@ -379,7 +402,7 @@ class VariableTest(unittest.TestCase):
         self.assertFalse(v.is_state())
         self.assertEqual(v.lhs(), myokit.Name(v))
         self.assertRaises(Exception, v.demote)
-        self.assertRaises(Exception, v.indice)
+        self.assertRaises(Exception, v.index)
         self.assertRaises(Exception, v.initial_value)
 
         # Test errors

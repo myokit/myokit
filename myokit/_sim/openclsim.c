@@ -975,7 +975,7 @@ for var in model.states():
         print(3*tab + 'sprintf(log_var_name, "%u.' + var.qname() + '", (unsigned int)j);')
     else:
         print(3*tab + 'sprintf(log_var_name, "%u.%u.' + var.qname() + '", (unsigned int)j, (unsigned int)i);' )
-    print(3*tab + 'if(log_add(log_dict, logs, vars, k_vars, log_var_name, &rvec_state[(i*nx+j)*n_state+' + str(var.indice()) + '])) {')
+    print(3*tab + 'if(log_add(log_dict, logs, vars, k_vars, log_var_name, &rvec_state[(i*nx+j)*n_state+' + str(var.index()) + '])) {')
     print(4*tab + 'logging_states = 1;')
     print(4*tab + 'k_vars++;')
     print(3*tab + '}')

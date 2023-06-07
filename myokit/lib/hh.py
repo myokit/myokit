@@ -393,8 +393,8 @@ class HHModel(object):
             # Get state variables
             states = [x for x in component.variables(state=True)]
 
-            # Sort by state indice
-            states.sort(key=lambda x: x.indice())
+            # Sort by state index
+            states.sort(key=lambda x: x.index())
 
         else:
 

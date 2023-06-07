@@ -874,7 +874,7 @@ if var is not None:
 <?
 for var in modelf.states():
     print(3*tab + 'sprintf(log_var_name, "%u.%u.' + var.qname() + '", (unsigned int)j, (unsigned int)i);' )
-    print(3*tab + 'if(log_add(log_dict_f, logs_f, vars_f, k_vars, log_var_name, &rvec_state_f[(i*nfx+j)*n_state_f+' + str(var.indice()) + '])) {')
+    print(3*tab + 'if(log_add(log_dict_f, logs_f, vars_f, k_vars, log_var_name, &rvec_state_f[(i*nfx+j)*n_state_f+' + str(var.index()) + '])) {')
     print(4*tab + 'logging_states_f = 1;')
     print(4*tab + 'k_vars++;')
     print(3*tab + '}')
@@ -945,7 +945,7 @@ if var is not None:
 <?
 for var in modelt.states():
     print(3*tab + 'sprintf(log_var_name, "%u.%u.' + var.qname() + '", (unsigned int)j, (unsigned int)i);' )
-    print(3*tab + 'if(log_add(log_dict_t, logs_t, vars_t, k_vars, log_var_name, &rvec_state_t[(i*ntx+j)*n_state_t+' + str(var.indice()) + '])) {')
+    print(3*tab + 'if(log_add(log_dict_t, logs_t, vars_t, k_vars, log_var_name, &rvec_state_t[(i*ntx+j)*n_state_t+' + str(var.index()) + '])) {')
     print(4*tab + 'logging_states_t = 1;')
     print(4*tab + 'k_vars++;')
     print(3*tab + '}')

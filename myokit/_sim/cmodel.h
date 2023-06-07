@@ -924,7 +924,7 @@ for eqs in s_output_equations:
  *
  * Arguments
  *  log_dict : A dictionary mapping variable names to sequences.
- *  i : The next indice to add logs and vars.
+ *  i : The next index to add logs and vars.
  *  name : The name to check.
  *  var : A pointer to the variable.
  *
@@ -1090,8 +1090,8 @@ Model_Log(Model model)
  * Creates a matrix of sensitivities and adds it to a Python sequence.
  *
  * The created matrix is a (Python) tuple of tuples, where the first (outer)
- * indice is for the dependent variable (y in dy/dx) and the second (inner)
- * indice is for the independent variable (x in dy/dx).
+ * index is for the dependent variable (y in dy/dx) and the second (inner)
+ * index is for the independent variable (x in dy/dx).
  *
  * model : The model whose sensitivities to log (must have sensitivity
  *         calculations enabled).

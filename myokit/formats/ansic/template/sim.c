@@ -22,11 +22,11 @@ model.create_unique_names()
 # Define lhs function
 def v(var):
     if isinstance(var, myokit.Derivative):
-        return 'NV_Ith_S(ydot, ' + str(var.var().indice()) + ')'
+        return 'NV_Ith_S(ydot, ' + str(var.var().index()) + ')'
     elif isinstance(var, myokit.Name):
         var = var.var()
     if var.is_state():
-        return 'NV_Ith_S(y, ' + str(var.indice()) + ')'
+        return 'NV_Ith_S(y, ' + str(var.index()) + ')'
     elif var.is_constant():
         return 'AC_' + var.uname()
     else:
