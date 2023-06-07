@@ -2276,7 +2276,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Check for cached valid model
         if self._valid_model is not None and not force:
             if console:
-                self._console.write('No changes to model since last build.')
+                self._console.write(
+                    'No changes to model since last build (no errors found).')
             return self._valid_model
 
         # Parse and validate
@@ -2390,7 +2391,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Check for cached valid protocol
         if self._valid_protocol and not force:
             if console:
-                self._console.write('No changes to protocol since last build.')
+                self._console.write(
+                    'No changes to protocol since last build (no errors'
+                    ' found).')
             return self._valid_protocol
 
         # Parse and validate
