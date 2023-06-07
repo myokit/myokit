@@ -44,7 +44,7 @@ Meta-data can be added to a model using the syntax ``field: value``
 All state variables require an initial value to be specified in the model
 header using the syntax ``component.variable = value``
 
-Initial values can be numbers or expressions. Expressions can make reference 
+Initial values can be numbers or expressions. Expressions can make reference
 to variables as long as they not nested (see below) and are constant in time.
 References must be made using the syntax ``component.variable``.
 
@@ -59,6 +59,10 @@ Example::
     ina.m  = 0
     ina.h  = 0.9
     ina.j  = 1 / ina.parameter_1
+
+A model's initial values specify a state that *may* be used as the starting
+point for simulation. No initial time is defined (simulation engines will
+typically use 0 as default).
 
 Component syntax
 ================
