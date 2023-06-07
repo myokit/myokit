@@ -255,6 +255,12 @@ class LoadSaveMmtTest(unittest.TestCase):
                 text = f.read()
             self.assertEqual(text, myokit.save(model=m, protocol=p, script=x))
 
+        # Save nothing
+        with TemporaryDirectory() as d:
+            opath = d.path('test.mmt')
+            self.assertRaises(ValueError, myokit.save, opath)
+            self.assertFalse(os.path.exists(opath))
+
     def test_save_model(self):
         # Test if the correct parts are saved/loaded from disk using the
         # ``save_model()`` method.
