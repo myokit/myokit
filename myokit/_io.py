@@ -176,6 +176,10 @@ def save(filename=None, model=None, protocol=None, script=None):
 
     If no filename is given the ``mmt`` code is returned as a string.
     """
+    if model is None and protocol is None and script is None:
+        raise ValueError(
+            'At least one of [model, protocol, script] must not be None.')
+
     if filename:
         filename = os.path.expanduser(filename)
         f = open(filename, 'w')
