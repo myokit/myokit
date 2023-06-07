@@ -1880,7 +1880,7 @@ class Quotient(InfixExpression):
         #
         # Alternatively, a // b = floor(a / b).
         #
-        # Here we ignore the discontinuities in favour of a left or right
+        # Here we ignore the discontinuities in favor of a left or right
         # derivative, and simply return zero for all points.
         return None
 
