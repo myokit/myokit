@@ -22,6 +22,7 @@ This page lists the main changes made to Myokit in each release.
   - [#962](https://github.com/myokit/myokit/pull/962) Scipy is no longer a required dependency.
   - [#962](https://github.com/myokit/myokit/pull/962) The DataLogViewer only supports Matlab file loading if SciPy is installed.
   - [#975](https://github.com/myokit/myokit/pull/975) Global parameters in imported SBML documents are now placed in a component named `global` instead of `myokit`.
+  - [#978](https://github.com/myokit/myokit/pull/978) The IDE now validates _either_ the model _or_ the protocol, depending on the current tab (previously both were validated).
 - Deprecated
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favor of `Model.initial_values`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favor of `Model.set_initial_values`.
@@ -47,6 +48,7 @@ This page lists the main changes made to Myokit in each release.
   - [#947](https://github.com/myokit/myokit/pull/947) Fixed minor memory leak (reference counting issue) when using fixed form protocols.
   - [#967](https://github.com/myokit/myokit/pull/967) Myokit no longer calls `logging.basicConfig()` when used as a library.
   - [#977](https://github.com/myokit/myokit/pull/977) `myokit.save()` now raises a `ValueError` if `model`, `protocol`, and `script` are all None.
+  - [#978](https://github.com/myokit/myokit/pull/978) Clarified message shown in IDE after re-validation of valid model or protocol.
 
 ## [1.33.9] - 2022-11-08
 - Fixed
