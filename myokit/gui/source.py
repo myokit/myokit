@@ -54,7 +54,7 @@ COLOR_SELECTED_LINE = QtGui.QColor(238, 238, 238)
 
 def _check_for_dark_mode(palette):
     """
-    Checks the default editor background color, and adjusts the colour scheme
+    Checks the default editor background color, and adjusts the color scheme
     if it looks like dark-mode is enabled.
     """
     c = palette.base().color()

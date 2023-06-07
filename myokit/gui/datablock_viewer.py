@@ -1119,7 +1119,7 @@ class GraphArea(QtWidgets.QWidget):
         # Current position in time
         self._position = self._tmin
 
-        # Colours for drawing
+        # Colors for drawing
         self._color_temp = Qt.black
         self._color_cycle = [
             Qt.red,
