@@ -595,7 +595,7 @@ class Expression(object):
 
     def is_literal(self):
         """
-        Returns ``True`` if this expression doesn't contain any references.
+        Returns ``True`` if this expression does not contain any references.
         """
         return len(self._references) == 0
 
@@ -608,8 +608,10 @@ class Expression(object):
 
     def is_number(self, value=None):
         """
-        Returns ``True`` only if this expression is a :class:`myokit.Number`
-        (and has the value ``value``, if given).
+        Returns ``True`` only if this expression is a :class:`myokit.Number`.
+
+        If the optional argument ``value`` is set, it will also return
+        ``False`` if the number does not have the given value.
         """
         return False
 
@@ -983,7 +985,7 @@ class LhsExpression(Expression):
         return self.var().is_constant()
 
     def is_literal(self):
-        """See :meth:`Expression.is_constant()`."""
+        """See :meth:`Expression.is_literal()`."""
         return False
 
     def rhs(self):
