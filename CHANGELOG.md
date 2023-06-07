@@ -2,7 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.34.0] - 2023-06-07
 - Added
   - [#898](https://github.com/myokit/myokit/pull/899) @martinjrobins Initial conditions for state variables can now be (constant-valued) expressions. Previously, only literals were allowed.
   - [#918](https://github.com/myokit/myokit/pull/918) Added `Model.initial_values`, which returns the model's initial values as a list of expressions, floats, or equations.
