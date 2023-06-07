@@ -52,8 +52,8 @@ class Quantity(object):
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                '<' + str(value) + '> needs to be an instance of '
-                'myokit.Expression.')
+                '<' + str(value) + '> needs to be an instance of'
+                ' myokit.Expression.')
 
         self._initial_value = value
 
@@ -75,8 +75,8 @@ class Quantity(object):
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                '<' + str(value) + '> needs to be an instance of '
-                'myokit.Expression.')
+                '<' + str(value) + '> needs to be an instance of'
+                ' myokit.Expression.')
 
         self._value = value
         self._is_rate = bool(is_rate)
@@ -126,8 +126,8 @@ class Compartment(Quantity):
 
         if not isinstance(model, Model):
             raise SBMLError(
-                '<' + str(model) + '> needs to be an instance of '
-                'myokit.formats.sbml.Model.')
+                '<' + str(model) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Model.')
 
         self._model = model
         self._sid = str(sid)
@@ -280,7 +280,7 @@ class Model(object):
         if not isinstance(compartment, Compartment):
             raise SBMLError(
                 '<' + compartment + '> needs to be instance of'
-                'myokit.formats.sbml.Compartment')
+                ' myokit.formats.sbml.Compartment')
 
         sid = str(sid) if sid else sid
         self._register_sid(sid)
@@ -427,7 +427,7 @@ class Model(object):
         if not isinstance(factor, Parameter):
             raise SBMLError(
                 '<' + str(factor) + '> needs to be instance of'
-                'myokit.formats.sbml.Parameter.')
+                ' myokit.formats.sbml.Parameter.')
 
         self._conversion_factor = factor
 
@@ -585,8 +585,8 @@ class Parameter(Quantity):
 
         if not isinstance(model, Model):
             raise SBMLError(
-                '<' + str(model) + '> needs to be an instance of '
-                'myokit.formats.sbml.Model.')
+                '<' + str(model) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Model.')
 
         self._model = model
         self._sid = str(sid)
@@ -629,8 +629,8 @@ class Reaction(object):
 
         if not isinstance(model, Model):
             raise SBMLError(
-                '<' + str(model) + '> needs to be an instance of '
-                'myokit.formats.sbml.Model.')
+                '<' + str(model) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Model.')
 
         self._model = model
         self._sid = str(sid)
@@ -650,8 +650,8 @@ class Reaction(object):
         """Adds a modifier to this reaction and returns the created object."""
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + str(species) + '> needs to be an instance of '
-                'myokit.formats.sbml.Species')
+                '<' + str(species) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Species')
 
         sid = str(sid) if sid else sid
         if sid is not None:
@@ -668,8 +668,8 @@ class Reaction(object):
         """
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + str(species) + '> needs to be an instance of '
-                'myokit.formats.sbml.Species')
+                '<' + str(species) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Species')
 
         sid = str(sid) if sid else sid
         if sid is not None:
@@ -685,8 +685,8 @@ class Reaction(object):
         """Adds a reactant to this reaction and returns the created object."""
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + str(species) + '> needs to be an instance of '
-                'myokit.formats.sbml.Species')
+                '<' + str(species) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Species')
 
         sid = str(sid) if sid else sid
         if sid is not None:
@@ -731,8 +731,8 @@ class Reaction(object):
         """
         if not isinstance(expression, myokit.Expression):
             raise SBMLError(
-                '<' + str(expression) + '> needs to be an instance of '
-                'myokit.Expression.')
+                '<' + str(expression) + '> needs to be an instance of'
+                ' myokit.Expression.')
 
         self._kinetic_law = expression
 
@@ -777,7 +777,7 @@ class Species(Quantity):
         if not isinstance(compartment, Compartment):
             raise SBMLError(
                 '<' + compartment + '> needs to be instance of'
-                'myokit.formats.sbml.Compartment')
+                ' myokit.formats.sbml.Compartment')
         if not isinstance(is_amount, bool):
             raise SBMLError(
                 'Is_amount <' + str(is_amount) + '> needs to be a boolean.')
@@ -853,7 +853,7 @@ class Species(Quantity):
         if not isinstance(factor, Parameter):
             raise SBMLError(
                 '<' + str(factor) + '> needs to be instance of'
-                'myokit.formats.sbml.Parameter.')
+                ' myokit.formats.sbml.Parameter.')
 
         self._conversion_factor = factor
 
@@ -867,8 +867,8 @@ class Species(Quantity):
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                '<' + str(value) + '> needs to be an instance of '
-                'myokit.Expression.')
+                '<' + str(value) + '> needs to be an instance of'
+                ' myokit.Expression.')
         if (in_amount is not None) and (not isinstance(in_amount, bool)):
             raise SBMLError(
                 '<in_amount> needs to be an instance of bool or None.')
@@ -919,7 +919,7 @@ class SpeciesReference(Quantity):
         if not isinstance(species, Species):
             raise SBMLError(
                 '<' + species + '> needs to be instance of'
-                'myokit.formats.sbml.Species')
+                ' myokit.formats.sbml.Species')
 
         self._species = species
         self._sid = str(sid) if sid else sid
@@ -945,7 +945,7 @@ class ModifierSpeciesReference(object):
         if not isinstance(species, Species):
             raise SBMLError(
                 '<' + species + '> needs to be instance of'
-                'myokit.formats.sbml.Species')
+                ' myokit.formats.sbml.Species')
 
         self._species = species
         self._sid = str(sid) if sid else sid
@@ -1058,7 +1058,7 @@ class _MyokitConverter(object):
 
     @staticmethod
     def add_global_component(
-            myokit_model, component_references, name='myokit'):
+            myokit_model, component_references, name='global'):
         """
         Creates a component used to store global parameters and the time
         variable.
