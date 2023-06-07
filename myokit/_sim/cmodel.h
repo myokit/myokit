@@ -1295,7 +1295,7 @@ for var in model.states():
     #endif
 
     /*
-     * Finalise
+     * Finalize
      */
 
     /* Set flag to indicate success */

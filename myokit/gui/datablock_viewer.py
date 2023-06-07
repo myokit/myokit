@@ -1136,7 +1136,7 @@ class GraphArea(QtWidgets.QWidget):
             Qt.darkYellow,
         ]
 
-        # Scaling factors from pixels to normalised (0, 1) coordinates. Updated
+        # Scaling factors from pixels to normalized (0, 1) coordinates. Updated
         # after every resize.
         self._sw = 1.0
         self._sh = 1.0
@@ -1238,7 +1238,7 @@ class GraphArea(QtWidgets.QWidget):
         if self._last_variable is None:
             return
 
-        # Get normalised x, y coordinates ([0, 1])
+        # Get normalized x, y coordinates ([0, 1])
         p = event.pos()
         x = float(p.x()) * self._sw
         y = 1 - float(p.y()) * self._sh

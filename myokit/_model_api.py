@@ -785,7 +785,7 @@ class Model(ObjectWithMeta, VarProvider):
     For consistency with components, variables, and expressions, models cannot
     be compared with ``==`` (which will only return ``True`` if both operands
     are the same object). Checking if models are the same in other senses can
-    be done with :meth:`is_similar`. Models can be serialised with ``pickle``.
+    be done with :meth:`is_similar`. Models can be serialized with ``pickle``.
     """
 
     def __init__(self, name=None):

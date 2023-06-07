@@ -45,7 +45,7 @@ class Protocol(object):
     is not.
 
     Protocols can be compared with ``==``, which will check if the :meth:`code`
-    for both protocols is the same. Protocols can be serialised with
+    for both protocols is the same. Protocols can be serialized with
     ``pickle``.
     """
     def __init__(self):
@@ -865,7 +865,7 @@ class TimeSeriesProtocol(object):
 
     Protocols can be compared with ``==``, which will check if the sequence of
     time value pairs is the same, and the interpolation method is the same.
-    Protocols can be serialised with ``pickle``.
+    Protocols can be serialized with ``pickle``.
 
     """
 

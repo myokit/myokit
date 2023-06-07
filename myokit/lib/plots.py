@@ -265,7 +265,8 @@ def current_arrows(log, voltage, currents, axes=None):
 
 def cumulative_current(
         log, currents, axes=None, labels=None, colors=None, integrate=False,
-        normalise=False, max_currents=None, line_args={}, fill_args={}):
+        normalize=False, max_currents=None, line_args={}, fill_args={},
+        normalise=None):
     """
     Plots a number of currents, one on top of the other, with the positive and
     negative parts of the current plotted separately.
@@ -291,8 +292,8 @@ def cumulative_current(
         current.
     ``integrate``
         Set this to ``True`` to plot total carried charge instead of currents.
-    ``normalise``
-        Set this to ``True`` to normalise the graph at every point, so that the
+    ``normalize``
+        Set this to ``True`` to normalize the graph at every point, so that the
         relative contribution of each current is shown.
     ``max_currents``
         Set this to any integer n to display only the first n currents, and
@@ -309,6 +310,15 @@ def cumulative_current(
     """
     import matplotlib
     import matplotlib.pyplot as plt
+
+    # Deprecated on 2023-06-7
+    if normalize is not None:
+        import warnings
+        warnings.warn(
+            'The keyword argument `normalise` is deprecated. Please use'
+            ' `normalize` instead.')
+        normalize = normalise
+    del normalise
 
     # Get axes
     if axes is None:
@@ -330,8 +340,8 @@ def cumulative_current(
     neg = np.minimum(pos, 0)
     pos = np.maximum(pos, 0)
 
-    # Normalise
-    if normalise:
+    # Normalize
+    if normalize:
         pos /= np.maximum(np.sum(pos, axis=0), 1e-99)
         neg /= -np.minimum(np.sum(neg, axis=0), -1e-99)
 

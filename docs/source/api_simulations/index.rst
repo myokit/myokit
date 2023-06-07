@@ -21,7 +21,7 @@ specialized dict type can be stored to disk using
 or two-dimensional logs often take the shape of a rectangular grid. While the
 :class:`DataLog` class is built for maximum flexibility and allows irregular
 shapes, it can often be useful to exploit the rectangular grid shape of the
-data. For these cases, the data logs can be converted to specialised structures
+data. For these cases, the data logs can be converted to specialized structures
 called :class:`DataBlock1d` and :class:`DataBlock2d`.
 
 A few specialized classes are included in the simulations package. The

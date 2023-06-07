@@ -767,7 +767,7 @@ class SimulationOpenCL(myokit.CModule):
 
         in which the sum is over all neighbors ``j`` of cell ``i``.
 
-        Alternatively, with capacitance and currents normalised to membrane
+        Alternatively, with capacitance and currents normalized to membrane
         area, we can write::
 
             dV/dt = -1/cm (i_ion + i_stim + i_diff)
@@ -787,10 +787,10 @@ class SimulationOpenCL(myokit.CModule):
 
             g_bar = (1 / chi) * (k / (k + 1)) * D * (1 / dx^2)
 
-        where ``g_bar`` is the cell-to-cell conductance, but normalised with
+        where ``g_bar`` is the cell-to-cell conductance, but normalized with
         respect to unit membrane area.
-        For models with currents normalised to area this is unproblematic, but
-        to convert to models with unnormalised currents this means we have
+        For models with currents normalized to area this is unproblematic, but
+        to convert to models with unnormalized currents this means we have
         added the further assumption that **each node contains some fixed
         amount of membrane**, determined by an area A::
 

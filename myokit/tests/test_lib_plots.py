@@ -15,7 +15,7 @@ import unittest
 import myokit
 import myokit.lib.plots as plots
 
-from myokit.tests import DIR_DATA
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class LibPlotTest(unittest.TestCase):
@@ -176,19 +176,27 @@ class LibPlotTest(unittest.TestCase):
         plt.close(fig)
         plt.show()
 
-        # Normalise currents
+        # Normalize currents
         fig = plt.figure()
-        plots.cumulative_current(d, currents, normalise=True)
+        plots.cumulative_current(d, currents, normalize=True)
         plt.legend()
         plt.close(fig)
         plt.show()
 
-        # Normalise currents and set maximum number of currents shown
+        # Normalize currents and set maximum number of currents shown
         fig = plt.figure()
-        plots.cumulative_current(d, currents, normalise=True, max_currents=3)
+        plots.cumulative_current(d, currents, normalize=True, max_currents=3)
         plt.legend()
         plt.close(fig)
         plt.show()
+
+        with WarningCollector() as w:
+            fig = plt.figure()
+            plots.cumulative_current(d, currents, normalise=True)
+            plt.legend()
+            plt.close(fig)
+            plt.show()
+        self.assertIn('deprecated', w.text())
 
 
 if __name__ == '__main__':
