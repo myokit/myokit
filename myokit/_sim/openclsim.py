@@ -888,6 +888,8 @@ class SimulationOpenCL(myokit.CModule):
         warnings.warn('The method SimulationOpenCL.neighbours() is deprecated.'
                       ' Please use neighbors() instead.')
 
+        return self.neighbors(x, y)
+
     def pre(self, duration, report_nan=True, progress=None,
             msg='Pre-pacing SimulationOpenCL'):
         """
