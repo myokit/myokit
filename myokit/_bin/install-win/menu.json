@@ -10,13 +10,6 @@ icons = icons.replace('\\', '/')
     "menu_items":
         [
             {
-                "name": "Myokit IDE",
-                "script": "${PYTHON_SCRIPTS}/myokit.exe",
-                "scriptarguments": ["ide"],
-                "workdir": "${PREFIX}",
-                "icon": "<?=icons?>/icon-ide.ico"
-            },
-            {
                 "name": "DataLog viewer",
                 "script": "${PYTHON_SCRIPTS}/myokit.exe",
                 "scriptarguments": ["log"],
@@ -29,6 +22,13 @@ icons = icons.replace('\\', '/')
                 "scriptarguments": ["block"],
                 "workdir": "${PREFIX}",
                 "icon": "<?=icons?>/icon-datablock-viewer.ico"
+            },
+            {
+                "name": "Myokit IDE",
+                "script": "${PYTHON_SCRIPTS}/myokit.exe",
+                "scriptarguments": ["ide"],
+                "workdir": "${PREFIX}",
+                "icon": "<?=icons?>/icon-ide.ico"
             }
         ]
 }
