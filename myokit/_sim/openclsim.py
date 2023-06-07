@@ -883,6 +883,10 @@ class SimulationOpenCL(myokit.CModule):
 
     def neighbours(self, x, y=None):
         """ Alias of :meth:`neighbors`. """
+        # Deprecated since 2023-06-07
+        import warnings
+        warnings.warn('The method SimulationOpenCL.neighbours() is deprecated.'
+                      ' Please use neighbors() instead.')
 
     def pre(self, duration, report_nan=True, progress=None,
             msg='Pre-pacing SimulationOpenCL'):

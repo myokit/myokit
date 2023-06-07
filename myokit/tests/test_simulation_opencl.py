@@ -704,7 +704,9 @@ class SimulationOpenCLTest(unittest.TestCase):
             ValueError, '1-dimensional', self.s0.neighbors, 0, 1)
 
         # Test alias
-        self.assertEqual(self.s0.neighbors(0), self.s0.neighbors(0))
+        with WarningCollector() as w:
+            self.assertEqual(self.s0.neighbours(0), self.s0.neighbors(0))
+        self.assertIn('deprecated', w.text())
 
     def test_neighbors_1d(self):
         # Test listing neighbors in a 1d simulation
