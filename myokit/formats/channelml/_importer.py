@@ -147,7 +147,7 @@ class ChannelMLImporter(formats.Importer):
                 ' supported.')
 
         # Add channel component
-        name = self._sanitise_name(root.getAttribute('name'))
+        name = self._sanitize_name(root.getAttribute('name'))
         if name in model:
             name_root = name
             i = 2
@@ -200,7 +200,7 @@ class ChannelMLImporter(formats.Importer):
         # Add gates
         gvars = []
         for gate in cvr.getElementsByTagName('gate'):
-            gname = self._sanitise_name(gate.getAttribute('name'))
+            gname = self._sanitize_name(gate.getAttribute('name'))
             gvar = component.add_variable(gname)
             gvar.promote(0)
             cstate = gate.getElementsByTagName('closed_state')
@@ -242,7 +242,7 @@ class ChannelMLImporter(formats.Importer):
                         + gname + '>')
 
                 # Add closed-to-open transition
-                tname = self._sanitise_name(tco.getAttribute('name'))
+                tname = self._sanitize_name(tco.getAttribute('name'))
                 tcovar = gvar.add_variable(tname)
                 expr = str(tco.getAttribute('expr'))
                 try:
@@ -255,7 +255,7 @@ class ChannelMLImporter(formats.Importer):
                     tcovar.meta['expression'] = str(expr)
 
                 # Add open-to-closed transition
-                tname = self._sanitise_name(toc.getAttribute('name'))
+                tname = self._sanitize_name(toc.getAttribute('name'))
                 tocvar = gvar.add_variable(tname)
                 expr = str(toc.getAttribute('expr'))
                 try:
@@ -284,7 +284,7 @@ class ChannelMLImporter(formats.Importer):
                 tc = tc[0]
 
                 # Add steady-state variable
-                ssname = self._sanitise_name(ss.getAttribute('name'))
+                ssname = self._sanitize_name(ss.getAttribute('name'))
                 ssvar = gvar.add_variable(ssname)
                 expr = str(ss.getAttribute('expr'))
                 try:
@@ -296,7 +296,7 @@ class ChannelMLImporter(formats.Importer):
                     ssvar.meta['expression'] = str(expr)
 
                 # Add time course variable
-                tcname = self._sanitise_name(tc.getAttribute('name'))
+                tcname = self._sanitize_name(tc.getAttribute('name'))
                 tcvar = gvar.add_variable(tcname)
                 expr = str(tc.getAttribute('expr'))
                 try:
@@ -412,7 +412,7 @@ class ChannelMLImporter(formats.Importer):
         return textwrap.fill(
             str('\n'.join(text(node))), 70, replace_whitespace=False)
 
-    def _sanitise_name(self, name):
+    def _sanitize_name(self, name):
         """
         Tests if a name is a valid myokit name. Adapts it if it isn't.
         """
