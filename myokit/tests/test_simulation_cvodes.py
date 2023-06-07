@@ -81,8 +81,14 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(d1.time(), d2.time())
 
     def test_multiple_protocols(self):
+        # Test using multiple protocols
+
+        # Set up a model
         model = myokit.Model()
         c = model.add_component('c')
+        t = c.add_variable('t')
+        t.set_binding('time')
+        t.set_rhs(0)
 
         a = c.add_variable('a')
         a.set_binding('a')
@@ -90,38 +96,145 @@ class SimulationTest(unittest.TestCase):
         b = c.add_variable('b')
         b.set_binding('b')
         b.set_rhs(0)
-
         y = c.add_variable('y')
+        y.promote(1)
+        y.set_rhs('-a * y - b * y')
+
+        # Create two overlapping protocols
+        pa = myokit.Protocol()
+        pa.schedule(level=1, start=0.2, duration=0.5)
+
+        pb = myokit.Protocol()
+        pb.schedule(level=2, start=0.5, duration=0.6)
+
+        # Run a simulation with both
+        s = myokit.Simulation(model, {'a': pa, 'b': pb})
+        s.set_tolerance(1e-8)
+        d = s.run(2).npview()
+        times = d[t]
+
+        # Check that the changing points are in the log
+        self.assertIn(0, times)
+        self.assertIn(0.2, times)
+        self.assertIn(0.5, times)
+        self.assertIn(0.7, times)
+        self.assertIn(1.1, times)
+        self.assertIn(2, times)
+
+        # Check that a, b, and y have the expected values
+        a_up = (times >= 0.2) & (times < 0.7)
+        np.testing.assert_array_equal(d[a], np.where(a_up, 1, 0))
+
+        b_up = (times >= 0.5) & (times < 1.1)
+        np.testing.assert_array_equal(d[b], np.where(b_up, 2, 0))
+
+        # Check that dy/dt has the expected values
+        # dy/dt =
+        #   0   from 0 to 0.2
+        #   -y  from 0.2 to 0.5
+        #   -3y from 0.5 to 0.7
+        #   -2y from 0.7 to 1.1
+        #   0   after 1.1
+        #
+        dy_expect = 0 * times
+        dy_expect[a_up] -= 1 * d[y][a_up]
+        dy_expect[b_up] -= 2 * d[y][b_up]
+        np.testing.assert_array_equal(d['dot(c.y)'], dy_expect)
+
+        # Check that y has the expected values
+        # The solution for dy/dt = -a*y is y(t) = c * exp(-at), so
+        # y =
+        #   1
+        #   exp(-(t - 0.5))
+        #   exp(-0.3) * exp(-3 * (t - 0.5))
+        #   exp(-0.9) * exp(-2 * (t - 0.7))
+        #   exp(-1.7)
+        #
+        y_expect = np.ones(times.shape)
+        i = (times >= 0.2) & (times < 0.5)
+        y_expect[i] = np.exp(-(times[i] - 0.2))
+        i = (times >= 0.5) & (times < 0.7)
+        y_expect[i] = np.exp(-0.3) * np.exp(-3 * (times[i] - 0.5))
+        i = (times >= 0.7) & (times < 1.1)
+        y_expect[i] = np.exp(-0.9) * np.exp(-2 * (times[i] - 0.7))
+        y_expect[times >= 1.1] = np.exp(-1.7)
+        np.testing.assert_array_almost_equal(d[y], y_expect, decimal=3)
+
+        # Test unsetting
+        s.set_protocol(None, label='a')
+        s.reset()
+        d = s.run(2).npview()
+        np.testing.assert_array_equal(d[a], np.zeros(d[a].shape))
+        times = d[t]
+        b_up = (times >= 0.5) & (times < 1.1)
+        np.testing.assert_array_equal(d[b], np.where(b_up, 2, 0))
+        y_expect = np.ones(times.shape)
+        i = (times >= 0.5) & (times < 1.1)
+        y_expect[i] = np.exp(-2 * (times[i] - 0.5))
+        y_expect[times >= 1.1] = np.exp(-1.2)
+        np.testing.assert_array_almost_equal(d[y], y_expect, decimal=3)
+
+        # Test unsetting
+        s.set_protocol(None, label='b')
+        s.reset()
+        d = s.run(2).npview()
+        np.testing.assert_array_equal(d[a], np.zeros(d[a].shape))
+        np.testing.assert_array_equal(d[a], np.zeros(d[a].shape))
+        np.testing.assert_array_equal(d[y], np.ones(d[a].shape))
+
+    def test_mixed_protocols(self):
+        # Test using a step and a time series protocol at the same time
+
+        # Set up a model
+        model = myokit.Model()
+        c = model.add_component('c')
         t = c.add_variable('t')
         t.set_binding('time')
         t.set_rhs(0)
+        a = c.add_variable('a')
+        a.set_binding('a')
+        a.set_rhs(0)
+        b = c.add_variable('b')
+        b.set_binding('b')
+        b.set_rhs(0)
+        y = c.add_variable('y')  # Just to log more points
         y.promote(1)
-        y.set_rhs('- a * y - b * y')
+        y.set_rhs('a + b')
 
-        pa = myokit.Protocol()
-        pa.schedule(1, 0, 0.5)
+        # Set up protocols
+        pa = myokit.pacing.blocktrain(level=2, offset=1, duration=2, period=5)
+        x = np.linspace(0, 10, 100)
+        y = 0.1 + 0.2 * np.sin(x)
+        pb = myokit.TimeSeriesProtocol(x, y)
 
-        pb = myokit.Protocol()
-        pb.schedule(2, 1.0, 0.5)
+        # Run a simulation with both
+        s = myokit.Simulation(model, {'a': pa, 'b': pb})
+        s.set_tolerance(1e-8)
+        d = s.run(12).npview()
+        t = d[t]
 
-        sim = myokit.Simulation(model, {'a': pa, 'b': pb})
-        sol = sim.run(2)
-        times = np.array(sol['c.t'])
-        a = np.array(sol['c.a'])
-        a_expect = np.where(times < 0.5, 1., 0.)
-        b = np.array(sol['c.b'])
-        b_expect = np.where((times >= 1.0) & (times < 1.5), 2., 0.)
-        y = np.array(sol['c.y'])
-        y_expect = np.where(times < 0.5, np.exp(-times), 0)
-        y_expect += np.where((times >= 0.5) & (times < 1.0), np.exp(-0.5), 0)
-        y_expect += np.where(
-            (times >= 1.0) & (times < 1.5),
-            np.exp(-0.5) * np.exp(-2 * (times - 1.0)), 0
-        )
-        y_expect += np.where((times >= 1.5), np.exp(-0.5) * np.exp(-1.0), 0)
-        np.testing.assert_array_equal(a, a_expect)
-        np.testing.assert_array_equal(b, b_expect)
-        np.testing.assert_array_almost_equal(y, y_expect, decimal=3)
+        # Start, end, and change points visited exactly
+        self.assertIn(0, t)
+        self.assertIn(1, t)
+        self.assertIn(3, t)
+        self.assertIn(6, t)
+        self.assertIn(8, t)
+        self.assertIn(11, t)
+        self.assertIn(12, t)
+
+        # Test a
+        a_e = np.zeros(t.shape)
+        a_e[(t >= 1) & (t < 3)] = 2
+        a_e[(t >= 6) & (t < 8)] = 2
+        a_e[(t >= 11) & (t < 13)] = 2
+        np.testing.assert_array_equal(d[a], a_e)
+
+        # Test b
+        b_e = 0.1 + 0.2 * np.sin(t)
+        b_e[t > 10] = y[-1]
+        # Note: We don't expect a super good match here, as b_e is an exact
+        #       sine value, while the solver will be interpolating y
+        np.testing.assert_array_almost_equal(d[b], b_e, decimal=3)
 
     def test_no_protocol(self):
         # Test running without a protocol.
