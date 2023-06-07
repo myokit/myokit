@@ -125,7 +125,7 @@ class ProtocolFloatingPointTest(unittest.TestCase):
 
 class PacingSystemFloatingPointTest(unittest.TestCase):
     """
-    Test float behaviour in the Python PacingSystem implementation, using the
+    Test float behavior in the Python PacingSystem implementation, using the
     log_for_interval method.
     """
 

@@ -84,7 +84,7 @@ class MathMLParser(object):
         will be added to this set.
 
     This is not a validating parser: if the MathML is invalid the method's
-    behaviour is undefined.
+    behavior is undefined.
 
     The following MathML elements are recognised:
 

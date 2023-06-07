@@ -85,7 +85,7 @@ class Simulation(myokit.CModule):
         determined using the protocol passed into the Simulation.
     ``evaluations``
         This input provides the number of rhs evaluations used at each point in
-        time and can be used to gain some insight into the solver's behaviour.
+        time and can be used to gain some insight into the solver's behavior.
     ``realtime``
         This input provides the elapsed system time at each logged point.
 

@@ -516,7 +516,7 @@ class Unit(object):
             ``True`` if this units name should be used to display this unit in.
             This should be set for all common units (m, kg, nm, Hz) but not for
             more obscure units (furlong, parsec). Having ``output`` set to
-            ``False`` will cause one-way behaviour: Myokit will recognise the
+            ``False`` will cause one-way behavior: Myokit will recognise the
             unit name but never use it in output.
             Setting this to ``True`` will also register the given name as a
             preferred representation format.

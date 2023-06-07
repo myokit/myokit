@@ -1136,7 +1136,7 @@ class DataLog(OrderedDict):
 
         By default, the returned intervals are *closed*, so both the left and
         right endpoint are included (if present in the data). This may involve
-        the duplication of some data points. To disable this behaviour and
+        the duplication of some data points. To disable this behavior and
         return half-closed endpoints (containing only the left point), set
         ``closed_intervals`` to ``False``.
         """
