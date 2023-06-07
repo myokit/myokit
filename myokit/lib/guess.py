@@ -392,7 +392,7 @@ def membrane_potential(model):
     # Common units for the membrane potential
     common_units = [myokit.units.V]
 
-    # Non-dimensionalised (e.g. Mitchell-Schaeffer) use [1]
+    # Non-dimensionalized (e.g. Mitchell-Schaeffer) use [1]
     # But this causes too many false positives
     # common_units.append(myokit.units.dimensionless)
 
@@ -581,7 +581,7 @@ def stimulus_current(model):
         myokit.units.A / myokit.units.m**2,
     ]
 
-    # Non-dimensionalised (e.g. Mitchell-Schaeffer) use [mS/uF]
+    # Non-dimensionalized (e.g. Mitchell-Schaeffer) use [mS/uF]
     # But this causes too many false positives
     # common_units.append(myokit.units.S / myokit.units.F)
 

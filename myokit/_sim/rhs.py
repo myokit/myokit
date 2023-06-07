@@ -33,7 +33,7 @@ class RhsBenchmarker(myokit.CModule):
     be selected.
 
     By default, the given list of variables are the only variables included in
-    a partial simulation. This behaviour can be inverted by setting
+    a partial simulation. This behavior can be inverted by setting
     ``exclude_selected=True``. With this setting, all variables except those in
     the given list will be tested.
 

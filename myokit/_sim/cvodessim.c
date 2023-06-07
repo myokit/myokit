@@ -185,7 +185,7 @@ ErrorHandler(int error_code, const char *module, const char *function,
  * Initialisation status.
  * Proper sequence is init(), repeated step() calls till finished, then clean.
  */
-int initialised = 0; /* Has the simulation been initialised */
+int initialized = 0; /* Has the simulation been initialized */
 
 /*
  * Model
@@ -436,7 +436,7 @@ rf_function(realtype t, N_Vector y, realtype *gout, void *user_data)
 PyObject*
 sim_clean(void)
 {
-    if (initialised) {
+    if (initialized) {
         #ifdef MYOKIT_DEBUG_PROFILING
         benchmarker_print("CP Entered sim_clean.");
         #elif defined MYOKIT_DEBUG_MESSAGES
@@ -495,7 +495,7 @@ sim_clean(void)
         Py_XDECREF(benchmarker_time_str); benchmarker_time_str = NULL;
 
         /* Deinitialisation complete */
-        initialised = 0;
+        initialized = 0;
     }
 
     /* Return 0, allowing the construct
@@ -533,7 +533,7 @@ py_sim_clean(PyObject *self, PyObject *args)
 }
 
 /*
- * Initialise a run.
+ * Initialize a run.
  * Called by the Python code's run(), followed by several calls to sim_step().
  */
 PyObject*
@@ -567,9 +567,9 @@ sim_init(PyObject *self, PyObject *args)
     PyObject *val;
     PyObject *ret;
 
-    /* Check if already initialised */
-    if (initialised) {
-        PyErr_SetString(PyExc_Exception, "Simulation already initialised.");
+    /* Check if already initialized */
+    if (initialized) {
+        PyErr_SetString(PyExc_Exception, "Simulation already initialized.");
         return 0;
     }
 
@@ -636,8 +636,8 @@ sim_init(PyObject *self, PyObject *args)
         return 0;
     }
 
-    /* Now officialy initialised */
-    initialised = 1;
+    /* Now officialy initialized */
+    initialized = 1;
 
     /*************************************************************************
     From this point on, no more direct returning! Use sim_clean()
@@ -1043,7 +1043,7 @@ sim_init(PyObject *self, PyObject *args)
         flag_cvode = CVodeSetErrHandlerFn(cvode_mem, ErrorHandler, NULL);
         if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
-        /* Initialise solver memory, specify the rhs */
+        /* Initialize solver memory, specify the rhs */
         flag_cvode = CVodeInit(cvode_mem, rhs, t, y);
         if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
@@ -1102,7 +1102,7 @@ sim_init(PyObject *self, PyObject *args)
         #endif
 
         #ifdef MYOKIT_DEBUG_PROFILING
-        benchmarker_print("CP CVODES solver initialised.");
+        benchmarker_print("CP CVODES solver initialized.");
         #endif
 
         /* Activate forward sensitivity computations */
@@ -1126,7 +1126,7 @@ sim_init(PyObject *self, PyObject *args)
             if (check_cvode_flag(&flag_cvode, "CVodeSensEEtolerances", 1)) return sim_clean();
 
             #ifdef MYOKIT_DEBUG_PROFILING
-            benchmarker_print("CP CVODES sensitivity methods initialised.");
+            benchmarker_print("CP CVODES sensitivity methods initialized.");
             #endif
         }
     }
@@ -1146,7 +1146,7 @@ sim_init(PyObject *self, PyObject *args)
         rf_direction = (int*)malloc(sizeof(int));
 
         #ifdef MYOKIT_DEBUG_PROFILING
-        benchmarker_print("CP CVODES root-finding initialised.");
+        benchmarker_print("CP CVODES root-finding initialized.");
         #endif
     }
 
@@ -1162,10 +1162,10 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /* Set up logging */
-    flag_model = Model_InitialiseLogging(model, log_dict);
+    flag_model = Model_InitializeLogging(model, log_dict);
     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
     #ifdef MYOKIT_DEBUG_PROFILING
-    benchmarker_print("CP Logging initialised.");
+    benchmarker_print("CP Logging initialized.");
     #endif
 
     /* Check logging list for sensitivities */
@@ -1262,7 +1262,7 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     #ifdef MYOKIT_DEBUG_PROFILING
-    benchmarker_print("CP Logging times and strategy initialised.");
+    benchmarker_print("CP Logging times and strategy initialized.");
     #endif
 
     /*

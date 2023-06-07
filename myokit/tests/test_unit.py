@@ -79,7 +79,7 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertFalse(myokit.Unit.close(not_pF2, pF2))
         self.assertFalse(myokit.Unit.close(pF2, not_pF2))
 
-        # The next test is not a requirement, but tests the current behaviour:
+        # The next test is not a requirement, but tests the current behavior:
         u = myokit.units.m * 1.000000001
         self.assertTrue(myokit.Unit.close(u, myokit.units.m))
 

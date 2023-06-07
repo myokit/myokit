@@ -522,7 +522,7 @@ int mcl_platform_supports_extension(cl_platform_id platform_id, const char* exte
  *
  * Arguments:
  *  cl_platform_id platform_id  The id of the platform to query
- *  char* buffer                An initialised string buffer, that can be used
+ *  char* buffer                An initialized string buffer, that can be used
  *                              to read and write string information.
  *
  * Returns NULL and sets an error message if any exception occurs.
@@ -611,7 +611,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
  * Arguments:
  *  cl_device_id device_id  The id of the device to query.
  *  size_t bufsize          Size of the string `buffer`.
- *  char* buffer            An initialised string buffer, that can be used to
+ *  char* buffer            An initialized string buffer, that can be used to
  *                          read and write string information.
  *
  * Returns NULL and sets an error message if any exception occurs.

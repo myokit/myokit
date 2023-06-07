@@ -23,16 +23,17 @@ This page lists the main changes made to Myokit in each release.
   - [#962](https://github.com/myokit/myokit/pull/962) The DataLogViewer only supports Matlab file loading if SciPy is installed.
   - [#975](https://github.com/myokit/myokit/pull/975) Global parameters in imported SBML documents are now placed in a component named `global` instead of `myokit`.
 - Deprecated
-  - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favour of `Model.initial_values`.
-  - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favour of `Model.set_initial_values`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Model.state` is deprecated in favor of `Model.initial_values`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Model.set_state` is deprecated in favor of `Model.set_initial_values`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.inits` is deprecated.
-  - [#918](https://github.com/myokit/myokit/pull/918) `Variable.state_value` is deprecated in favour of `Variable.initial_value`.
-  - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favour of `Variable.set_initial_value`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Variable.state_value` is deprecated in favor of `Variable.initial_value`.
+  - [#918](https://github.com/myokit/myokit/pull/918) `Variable.set_state_value` is deprecated in favor of `Variable.set_initial_value`.
   - [#918](https://github.com/myokit/myokit/pull/918) `Model.save_state` and `Model.load_state` are deprecated.
-  - [#918](https://github.com/myokit/myokit/pull/918) The `Variable.promote` keyword argument `state_value` is deprecated in favour of `initial_value`.
-  - [#947](https://github.com/myokit/myokit/pull/947) `Simulation.set_fixed_form_protocol` is deprecated in favour of using `Simulation.set_protocol` with a `TimeSeriesProtocol`
+  - [#918](https://github.com/myokit/myokit/pull/918) The `Variable.promote` keyword argument `state_value` is deprecated in favor of `initial_value`.
+  - [#947](https://github.com/myokit/myokit/pull/947) `Simulation.set_fixed_form_protocol` is deprecated in favor of using `Simulation.set_protocol` with a `TimeSeriesProtocol`
   - [#962](https://github.com/myokit/myokit/pull/962) The method `DataLog.regularize` is deprecated.
-  - [#974](https://github.com/myokit/myokit/pull/974) `Variable.indice` is deprecated in favour of `Variable.index`.
+  - [#974](https://github.com/myokit/myokit/pull/974) `Variable.indice` is deprecated in favor of `Variable.index`.
+  - [#976](https://github.com/myokit/myokit/pull/976) `SimulationOpenCL.neighbours` is deprecated in favor of `SimulationOpenCL.neighbors`.
 - Removed
   - [#898](https://github.com/myokit/myokit/pull/899) `NonLiteralValueError` is now no longer raised by Myokit and so has been removed.
   - [#921](https://github.com/myokit/myokit/pull/921) Removed deprecated `LegacySimulation` class.
@@ -188,14 +189,14 @@ This page lists the main changes made to Myokit in each release.
   - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `LegacySimulation` class no longer suppresses CVODE warnings but passes them on to the `warnings` module (backported from new `Simulation` class).
   - [#789](https://github.com/MichaelClerx/myokit/pull/789) The method `myokit.DataLog.save_csv()` now stores the keys using natural sort order (time is still the first field, if present).
 - Deprecated
-  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The classes `myokit.PSimulation` and `myokit.ICSimulation` have been deprecated in favour of the new `Simulation` class.
-  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The class `myokit.Benchmarker` is deprecated in favour of `myokit.tools.Benchmarker`.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The classes `myokit.PSimulation` and `myokit.ICSimulation` have been deprecated in favor of the new `Simulation` class.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The class `myokit.Benchmarker` is deprecated in favor of `myokit.tools.Benchmarker`.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_float_dict` is deprecated and will be removed in future versions.
-  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_path` is deprecated in favour of `myokit.tools.format_path`.
-  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.strfloat` is deprecated in favour of `myokit.float.str`.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_path` is deprecated in favor of `myokit.tools.format_path`.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.strfloat` is deprecated in favor of `myokit.float.str`.
   - [#758](https://github.com/MichaelClerx/myokit/pull/758) The class `myokit.FiberTissueSimulation` is deprecated and will be removed in future versions.
-  - [#776](https://github.com/MichaelClerx/myokit/pull/776) The method `OpenCLSimulation.calculate_conductance` is deprecated in favour of the new method `calculate_conductance`, which takes slightly different parameters.
-  - [#787](https://github.com/MichaelClerx/myokit/pull/787) The method `myokit.Model.eval_state_derivatives` is deprecated in favour of `myokit.Model.evaluate_derivatives`.
+  - [#776](https://github.com/MichaelClerx/myokit/pull/776) The method `OpenCLSimulation.calculate_conductance` is deprecated in favor of the new method `calculate_conductance`, which takes slightly different parameters.
+  - [#787](https://github.com/MichaelClerx/myokit/pull/787) The method `myokit.Model.eval_state_derivatives` is deprecated in favor of `myokit.Model.evaluate_derivatives`.
 - Removed
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux (still testing latest 2.7). No longer testing any Python 2.7 on Windows.
   - [#728](https://github.com/MichaelClerx/myokit/pull/728) The classes `myokit.PyCapture` and `myokit.SubCapture` have been replaced by a single context manager `myokit.tools.capture`.
@@ -253,8 +254,8 @@ This page lists the main changes made to Myokit in each release.
   - [#664](https://github.com/MichaelClerx/myokit/pull/664) EasyML export now has consistently ordered output when re-run.
   - [#664](https://github.com/MichaelClerx/myokit/pull/664) EasyML expression writer now uses `expm1` where possible.
 - Deprecated
-  - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
-  - [#632](https://github.com/MichaelClerx/myokit/pull/632) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favour of new `from_log` methods.
+  - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favor of `SimulationOpenCL.is_2d()`.
+  - [#632](https://github.com/MichaelClerx/myokit/pull/632) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favor of new `from_log` methods.
 - Fixed
   - [#650](https://github.com/MichaelClerx/myokit/pull/650) Fix to `myokit.lib.plots.cumulative_current` for normalisation in areas with zero current.
   - [#603](https://github.com/MichaelClerx/myokit/pull/603) Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.

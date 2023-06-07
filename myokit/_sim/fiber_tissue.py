@@ -60,7 +60,7 @@ class FiberTissueSimulation(myokit.CModule):
     ``pace`` (per-cell)
         The pacing level, this is set if a protocol was passed in.
     ``diffusion_current`` (per-cell)
-        The current flowing from the cell to its neighbours. This will be
+        The current flowing from the cell to its neighbors. This will be
         positive when the cell is acting as a source, negative when it is
         acting as a sink.
 

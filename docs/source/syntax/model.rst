@@ -475,7 +475,7 @@ Interfacing with the outside world
 In many cases, not all variables of interest are contained within the model.
 For example if a simulation engine is used to drive the model this engine may
 provide a variable ``time``. Other examples of external variables include a
-pacing or driving variable or an input current derived from neighbouring cells.
+pacing or driving variable or an input current derived from neighboring cells.
 
 The ``mmt`` syntax allows variables to be *bound* to an external value using
 the ``bind`` keyword::

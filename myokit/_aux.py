@@ -713,7 +713,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
         if warnings > 0:
             log.append('Found (' + str(warnings) + ') small mismatches.')
 
-    # Finalise and return
+    # Finalize and return
     log.append('-' * line_width)
     return '\n'.join(log)
 

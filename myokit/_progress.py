@@ -21,7 +21,7 @@ class ProgressReporter(object):
     pass in an object implementing this interface. The simulation will use this
     object to report on its progress.
 
-    Note that progress reporters should be re-usable, but the behaviour when
+    Note that progress reporters should be re-usable, but the behavior when
     making calls to a reporter from two different processes (either through
     multi-threading/multi-processing or jobs nested within jobs) is undefined.
 

@@ -785,7 +785,7 @@ class Model(ObjectWithMeta, VarProvider):
     For consistency with components, variables, and expressions, models cannot
     be compared with ``==`` (which will only return ``True`` if both operands
     are the same object). Checking if models are the same in other senses can
-    be done with :meth:`is_similar`. Models can be serialised with ``pickle``.
+    be done with :meth:`is_similar`. Models can be serialized with ``pickle``.
     """
 
     def __init__(self, name=None):
@@ -2202,7 +2202,7 @@ class Model(ObjectWithMeta, VarProvider):
         not ``[B,C]``.
 
         By default, dependencies on state variables' current values are
-        omitted. This behaviour can be changed by setting ``omit_states`` to
+        omitted. This behavior can be changed by setting ``omit_states`` to
         ``False``.
 
         To omit all dependencies on constants, set ``omit_constants`` to
@@ -2382,7 +2382,7 @@ class Model(ObjectWithMeta, VarProvider):
         dependencies will be added to the dependency lists of their parents.
 
         By default, dependencies on state variables' current values are
-        omitted. This behaviour can be changed by setting ``omit_states`` to
+        omitted. This behavior can be changed by setting ``omit_states`` to
         ``False``.
 
         In case of a dependency such as::
@@ -2526,7 +2526,7 @@ class Model(ObjectWithMeta, VarProvider):
         dependencies will be added to the dependency lists of their parents.
 
         By default, dependencies on state variables' current values are
-        omitted. This behaviour can be changed by setting ``omit_states`` to
+        omitted. This behavior can be changed by setting ``omit_states`` to
         ``False``. Dependencies on constants are included by default, but this
         can be changed by setting ``omit_constants`` to ``True``.
         """

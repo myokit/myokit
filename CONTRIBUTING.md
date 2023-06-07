@@ -162,9 +162,13 @@ Avoid abbreviations when possible without making names overly long.
 Class names are CamelCase, and start with an upper case letter, for example `SuperDuperSimulation`.
 Method and variable names are lower case, and use underscores for word separation, for example `x` or `iteration_count`.
 
+### Spelling
+
+Because most libraries do, Myokit uses American spelling (e.g. "color", "fiber", "normalize").
+
 ### Python 2 and 3
 
-Myokit runs in Python 2.7+ and 3.5+.
+Myokit runs in Python 2.7+ and 3.7+.
 All new code should be written [to work on both](http://python-future.org/compatible_idioms.html).
 
 ## Dependencies and reusing code

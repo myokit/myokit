@@ -85,7 +85,7 @@ class Simulation(myokit.CModule):
         determined using the protocol passed into the Simulation.
     ``evaluations``
         This input provides the number of rhs evaluations used at each point in
-        time and can be used to gain some insight into the solver's behaviour.
+        time and can be used to gain some insight into the solver's behavior.
     ``realtime``
         This input provides the elapsed system time at each logged point.
 
@@ -99,8 +99,8 @@ class Simulation(myokit.CModule):
 
     Each time a simulation is created, a C module is compiled, imported, and
     deleted in the background. This means that part of a ``Simulation`` object
-    is a reference to an imported C extension, and cannot be serialised. When
-    using ``pickle`` to serialise the simulation, this compiled part is not
+    is a reference to an imported C extension, and cannot be serialized. When
+    using ``pickle`` to serialize the simulation, this compiled part is not
     stored. Instead, when the pickled simulation is read from disk the
     compilation is repeated. Unpickling simulations also restores their state:
     variables such as model state, simulation time, and tolerance are preserved
@@ -303,7 +303,7 @@ class Simulation(myokit.CModule):
             if self._sensitivities:
                 sens_arg = [[x.code() for x in y] for y in self._sensitivities]
 
-            # Store serialised name and constructor args
+            # Store serialized name and constructor args
             fname = os.path.join(d_build, '_simulation.pickle')
             import pickle
             with open(fname, 'wb') as f:
@@ -350,7 +350,7 @@ class Simulation(myokit.CModule):
             with zipfile.ZipFile(path, 'r', zipfile.ZIP_DEFLATED) as f:
                 f.extractall(d_build)
 
-            # Load serialised name and constructor args
+            # Load serialized name and constructor args
             fname = os.path.join(d_build, '_simulation.pickle')
             import pickle
             with open(fname, 'rb') as f:

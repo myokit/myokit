@@ -1704,7 +1704,7 @@ def _split_factor(term, variables):
                 'Non-linear function of ' + str(name) + ' found in '
                 + str(term) + '.')
 
-    # Finalise multiplier
+    # Finalize multiplier
     if m is None:
         m = myokit.Number(1)
     if not positive:

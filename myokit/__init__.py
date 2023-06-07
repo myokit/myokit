@@ -287,7 +287,7 @@ DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 TIME_FORMAT = '%H:%M:%S'
 
 #
-# GUI: Favour PySide or PyQt
+# GUI: Favor PySide or PyQt
 #
 FORCE_PYQT5 = False
 FORCE_PYQT4 = False

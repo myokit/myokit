@@ -455,7 +455,7 @@ class DiGraph(object):
         for n_runs in range(max_runs):
             change = False
             for i, layer in enumerate(layers):
-                # Set nodes to median of neighbours
+                # Set nodes to median of neighbors
                 for j, node in enumerate(layer):
                     n = len(node.edgi) + len(node.edgo)
                     if n > 0:
