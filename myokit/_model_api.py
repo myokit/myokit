@@ -4380,19 +4380,21 @@ class Variable(VarOwner):
 
     def is_constant(self):
         """
-        Returns ``True`` if this variable is constant.
+        Returns ``True`` if this variable has a constant value (even if that
+        value is defined in terms of other constants).
 
         Myokit doesn't discern between mathematical and physical constants,
         parameters etc. Anything that doesn't change during a simulation is
-        termed a constant. Note that this specifically excludes variables bound
-        to external inputs.
+        termed a constant. Note that this specifically excludes variables that
+        define a _binding_ to an external input.
         """
         return self._is_constant
 
     def is_intermediary(self):
         """
         Returns ``True`` if this variable is an intermediary variable, i.e. not
-        a constant or a state variable (and not bound to an external variable).
+        a constant, not a state variable, and not bound to an external input
+        such as time.
         """
         return self._is_intermediary
 
@@ -4404,8 +4406,7 @@ class Variable(VarOwner):
 
     def is_literal(self):
         """
-        Returns ``True`` if this variable's expression contains only literal
-        values.
+        Returns ``True`` if this variable does not depend on other variables.
         """
         return self._is_literal
 
