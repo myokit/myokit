@@ -271,8 +271,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._valid_model = None
         self._valid_protocol = None
 
-        # Last-found model error
+        # Last-found model and protocol error
         self._last_model_error = None
+        self._last_protocol_error = None
 
         # React to changes to model and protocol
         # (For example devalidate model and protocol upon any changes)
@@ -815,18 +816,36 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         Jump to the last error in the model tab.
         """
         try:
-            # Check for error
-            self.model(console=True)
-            if self._last_model_error is None:
-                return
-            # Switch to model tab if required
-            self._editor_tabs.setCurrentWidget(self._model_tab)
-            # Show error
-            line = self._last_model_error.line
-            char = self._last_model_error.char
-            self.statusBar().showMessage(
-                'Jumping to (' + str(line) + ',' + str(char) + ').')
-            self._model_editor.jump_to(line - 1, char)
+            t = self._editor_tabs.currentWidget()
+            if t is self._model_tab:
+
+                # Check for error
+                self.model(console=True)
+                if self._last_model_error is None:
+                    return
+
+                # Show error
+                line = self._last_model_error.line
+                char = self._last_model_error.char
+                self.statusBar().showMessage(
+                    'Jumping to (' + str(line) + ',' + str(char) + ').')
+                self._model_editor.jump_to(line - 1, char)
+
+            elif t is self._protocol_tab:
+
+                # Check for error
+                self.protocol(console=True)
+                if self._last_protocol_error is None:
+                    return
+
+                # Show error
+                line = self._last_protocol_error.line
+                char = self._last_protocol_error.char
+                self.statusBar().showMessage(
+                    'Jumping to (' + str(line) + ',' + str(char) + ').')
+                self._protocol_editor.jump_to(line - 1, char)
+
+            # Can't be called on script tab -- or does nothing
         except Exception:
             self.show_exception()
 
@@ -1143,11 +1162,15 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
     def action_validate(self):
         """
-        Validates the model and, if the model is valid, the protocol.
+        Validates the model or the protocol, depending on the editor tab.
         """
         try:
-            self.model(console=True)
-            self.protocol(console=True)
+            current = self._editor_tabs.currentWidget()
+            if current is self._model_tab:
+                self.model(console=True)
+            elif current is self._protocol_tab:
+                self.protocol(console=True)
+            # Can't be called on script tab -- or does nothing
         except Exception:
             self.show_exception()
 
@@ -1405,6 +1428,21 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             widget.setEnabled(index == 1)
         for widget in self._script_widgets:
             widget.setEnabled(index == 2)
+
+        # Update "validate" and "jump to last error" tools
+        if t is self._model_tab:
+            self._tool_validate.setText('Validate model')
+            self._tool_validate.setToolTip('Validate the model.')
+            self._tool_validate.setEnabled(True)
+            self._tool_jump_to_error.setEnabled(True)
+        elif t is self._protocol_tab:
+            self._tool_validate.setText('Validate protocol')
+            self._tool_validate.setToolTip('Validate the protocol.')
+            self._tool_validate.setEnabled(True)
+            self._tool_jump_to_error.setEnabled(True)
+        else:
+            self._tool_validate.setEnabled(False)
+            self._tool_jump_to_error.setEnabled(False)
 
     def change_model(self):
         """ Qt slot: Called whenever the model is changed. """
@@ -2029,9 +2067,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_run = self._menu.addMenu('&Run')
         # Run > Validate
         self._tool_validate = QtWidgets.QAction(
-            '&Validate model and protocol', self)
+            '&Validate model', self)
         self._tool_validate.setShortcut('Ctrl+B')
-        self._tool_validate.setStatusTip('Validate the model and protocol')
+        self._tool_validate.setStatusTip('Validate the model.')
         self._tool_validate.triggered.connect(self.action_validate)
         self._menu_run.addAction(self._tool_validate)
         # Run > Jump to error
@@ -2358,6 +2396,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Parse and validate
         protocol = None
 
+        # Reset last protocol error
+        self._last_protocol_error = None
+
         # Check for empty protocol field
         lines = self._protocol_editor.get_text()
         if lines.strip() == '':
@@ -2378,7 +2419,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             return protocol
         except myokit.ParseError as e:
             if console or errors_in_console:
+                # Write error to console
                 self._console.write(myokit.format_parse_error(e, lines))
+                # Store error
+                self._last_protocol_error = e
             return False
 
     def save_config(self):
