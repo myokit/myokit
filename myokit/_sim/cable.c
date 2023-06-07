@@ -279,7 +279,7 @@ py_sim_clean()
 }
 
 /*
- * Initialise a run
+ * Initialize a run
  */
 static PyObject*
 sim_init(PyObject *self, PyObject *args)

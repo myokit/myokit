@@ -154,7 +154,7 @@ will be a myokit.DataLog.
 
 Methods:
 
-Model_InitialiseLogging(Model model, PyObject* log_dict)
+Model_InitializeLogging(Model model, PyObject* log_dict)
     Sets up logging for all variables used as keys in log_dict (assuming fully
     qualified names). Will raise an error if the dict contains keys that do not
     correspond to model variables. The values in the dict should implement the
@@ -164,9 +164,9 @@ Model_Log(model)
     If logging has been set up, this will log the current values of variables
     to the sequences in the log dict.
 
-Model_DeInitialiseLogging(model)
-    De-initialises logging. This only needs to be called if logging needs to be
-    set up differently, i.e. before a new call to Model_InitialiseLogging.
+Model_DeInitializeLogging(model)
+    De-initializes logging. This only needs to be called if logging needs to be
+    set up differently, i.e. before a new call to Model_InitializeLogging.
 
 Logging sensitivities
 =====================
@@ -208,8 +208,8 @@ typedef int Model_Flag;
 /* General */
 #define Model_INVALID_MODEL                 -100
 /* Logging */
-#define Model_LOGGING_ALREADY_INITIALISED   -200
-#define Model_LOGGING_NOT_INITIALISED       -201
+#define Model_LOGGING_ALREADY_INITIALIZED   -200
+#define Model_LOGGING_NOT_INITIALIZED       -201
 #define Model_UNKNOWN_VARIABLES_IN_LOG      -202
 #define Model_LOG_APPEND_FAILED             -203
 /* Logging sensitivities */
@@ -243,11 +243,11 @@ Model_SetPyErr(Model_Flag flag)
         PyErr_SetString(PyExc_Exception, "CModel error: Invalid model pointer provided.");
         break;
     /* Logging */
-    case Model_LOGGING_ALREADY_INITIALISED:
-        PyErr_SetString(PyExc_Exception, "CModel error: Logging initialised twice.");
+    case Model_LOGGING_ALREADY_INITIALIZED:
+        PyErr_SetString(PyExc_Exception, "CModel error: Logging initialized twice.");
         break;
-    case Model_LOGGING_NOT_INITIALISED:
-        PyErr_SetString(PyExc_Exception, "CModel error: Logging not initialised.");
+    case Model_LOGGING_NOT_INITIALIZED:
+        PyErr_SetString(PyExc_Exception, "CModel error: Logging not initialized.");
         break;
     case Model_UNKNOWN_VARIABLES_IN_LOG:
         PyErr_SetString(PyExc_Exception, "CModel error: Unknown variables found in logging dictionary.");
@@ -334,8 +334,8 @@ struct Model_Memory {
     int ns_intermediary;
     realtype* s_intermediary;
 
-    /* Logging initialised? */
-    int logging_initialised;
+    /* Logging initialized? */
+    int logging_initialized;
 
     /* Which variables are we logging? */
     int logging_states;
@@ -946,23 +946,23 @@ Model__AddVariableToLog(
 }
 
 /*
- * Initialises logging, using the given dict. An error is returned if logging
- * is already initialised.
+ * Initializes logging, using the given dict. An error is returned if logging
+ * is already initialized.
  *
  * Arguments
- *  model : The model whose logging system to initialise.
+ *  model : The model whose logging system to initialize.
  *  log_dict : A Python dict mapping fully qualified variable names to sequence
  *             objects to log in.
  *
  * Returns a model flag
  */
 Model_Flag
-Model_InitialiseLogging(Model model, PyObject* log_dict)
+Model_InitializeLogging(Model model, PyObject* log_dict)
 {
     int i, j;
 
     if (model == NULL) return Model_INVALID_MODEL;
-    if (model->logging_initialised) return Model_LOGGING_ALREADY_INITIALISED;
+    if (model->logging_initialized) return Model_LOGGING_ALREADY_INITIALIZED;
 
     /* Number of variables to log */
     model->n_logged_variables = (int)PyDict_Size(log_dict);
@@ -1012,24 +1012,24 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     }
 
     /* All done! */
-    model->logging_initialised = 1;
+    model->logging_initialized = 1;
     return Model_OK;
 }
 
 /*
- * De-initialises logging, undoing the effects of Model_InitialiseLogging() and
- * allowing logging to be initialised again.
+ * De-initializes logging, undoing the effects of Model_InitializeLogging() and
+ * allowing logging to be initialized again.
  *
  * Arguments
- *  model : The model whos logging to deinitialise.
+ *  model : The model whos logging to deinitialize.
  *
  * Returns a model flag.
  */
 Model_Flag
-Model_DeInitialiseLogging(Model model)
+Model_DeInitializeLogging(Model model)
 {
     if (model == NULL) return Model_INVALID_MODEL;
-    if (!model->logging_initialised) return Model_LOGGING_NOT_INITIALISED;
+    if (!model->logging_initialized) return Model_LOGGING_NOT_INITIALIZED;
 
     /* Free memory */
     if (model->_log_vars != NULL) {
@@ -1042,7 +1042,7 @@ Model_DeInitialiseLogging(Model model)
     }
 
     /* Reset */
-    model->logging_initialised = 0;
+    model->logging_initialized = 0;
     model->n_logged_variables = 0;
     model->logging_states = 0;
     model->logging_derivatives = 0;
@@ -1054,7 +1054,7 @@ Model_DeInitialiseLogging(Model model)
 
 /*
  * Logs the current state of the model to the logging dict passed in to
- * Model_InitialiseLogging.
+ * Model_InitializeLogging.
  *
  * Note: This method does not update the state in any way, e.g. to make sure
  * that what is logged is sensible.
@@ -1071,7 +1071,7 @@ Model_Log(Model model)
     PyObject *val, *ret;
 
     if (model == NULL) return Model_INVALID_MODEL;
-    if (!model->logging_initialised) return Model_LOGGING_NOT_INITIALISED;
+    if (!model->logging_initialized) return Model_LOGGING_NOT_INITIALIZED;
 
     for (i=0; i<model->n_logged_variables; i++) {
         val = PyFloat_FromDouble(*(model->_log_vars[i]));
@@ -1232,7 +1232,7 @@ for i, expr in enumerate(s_independents):
      */
 
     /* Logging configured? */
-    model->logging_initialised = 0;
+    model->logging_initialized = 0;
     model->n_logged_variables = 0;
 
     /* Logged variables and logged types */
