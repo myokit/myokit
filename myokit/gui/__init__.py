@@ -4,17 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Library imports
 import logging
 import os
 import platform
 import signal
 import sys
 
-# Myokit imports
 import myokit
 
 # Detect platform

@@ -4,7 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import sys
 
 # True if this is a release, False for a development version
 __release__ = False
@@ -23,6 +22,3 @@ if not __release__:  # pragma: no cover
     __version_tuple__ += ('dev', )
     __version__ += '.dev'
 
-# Don't expose x on Python2
-if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
-    del x

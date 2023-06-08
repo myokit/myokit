@@ -5,27 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
 import myokit.formats.cellml.v2 as cellml
 
 from myokit.tests import WarningCollector
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-# Strings in Python2 and Python3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
 
 
 class TestCellML2AnnotatableElement(unittest.TestCase):
@@ -1810,7 +1795,7 @@ class TestCellML2Units(unittest.TestCase):
         names = [x for x in cellml.Units.si_unit_names()]
         self.assertTrue(len(names) > 10)
         for name in names:
-            self.assertTrue(isinstance(name, basestring))
+            self.assertTrue(isinstance(name, str))
             self.assertTrue(
                 isinstance(cellml.Units.find_units(name), cellml.Units))
 

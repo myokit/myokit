@@ -1,3 +1,9 @@
+#
+# SBML API
+#
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
+#
 import collections
 import warnings
 import re
@@ -16,7 +22,7 @@ class SBMLError(Exception):
     """Raised if something goes wrong when working with an SBML model."""
 
 
-class Quantity(object):
+class Quantity:
     """
     Base class for anything that has a numerical value in an SBML model, and
     can be set by rules, reactions, or initial assignments.
@@ -89,7 +95,7 @@ class Quantity(object):
         return self._value
 
 
-class CSymbolVariable(object):
+class CSymbolVariable:
     """
     Represents a CSymbol that can appear in SBML expressions, but which has a
     predetermind value and/or meaning, e.g. "time".
@@ -185,7 +191,7 @@ class Compartment(Quantity):
         return '<Compartment ' + self._sid + '>'
 
 
-class Model(object):
+class Model:
     """
     Represents a model in SBML.
 
@@ -612,7 +618,7 @@ class Parameter(Quantity):
         return self._units
 
 
-class Reaction(object):
+class Reaction:
     """
     Represents an SBML reaction; to create a reaction use
     :meth:`Model.add_reaction()`.
@@ -936,7 +942,7 @@ class SpeciesReference(Quantity):
         return '<SpeciesReference ' + self._sid + '>'
 
 
-class ModifierSpeciesReference(object):
+class ModifierSpeciesReference:
     """Represents a reference to a modifier species in an SBML reaction."""
 
     def __init__(self, species, sid=None):
@@ -971,7 +977,7 @@ def convert_name(name):
     return name
 
 
-class _MyokitConverter(object):
+class _MyokitConverter:
     """
     Converts SBML Models to Myokit models.
     """

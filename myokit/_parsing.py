@@ -4,22 +4,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import re
-#import unicodedata
+
 from collections import OrderedDict
 
 import myokit
-from myokit import ParseError, ProtocolParseError
 
-# Strings in Python2 and Python3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
+from myokit import ParseError, ProtocolParseError
 
 
 def parse(source):
@@ -34,7 +26,7 @@ def parse(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -78,7 +70,7 @@ def parse_model(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -100,7 +92,7 @@ def parse_protocol(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -122,7 +114,7 @@ def parse_script(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -162,7 +154,7 @@ def parse_state(state):
     """
     # Get raw stream
     raw = state
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -205,7 +197,7 @@ def split(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
     segments = ['', '', '']
@@ -317,7 +309,7 @@ def unexpected_token(token, expected):
     # Parse expected token(s) or string
     if type(expected) == int:
         expected = [expected]
-    if not isinstance(expected, basestring):
+    if not isinstance(expected, str):
         if len(expected) > 2:
             expected = 'one of [' \
                 + ', '.join([token_str[i] for i in expected]) + ']'
@@ -348,7 +340,7 @@ def reg_token(info, token, obj):
         d[token[3]] = (token, obj)
 
 
-class ParseInfo(object):
+class ParseInfo:
     def __init__(self):
         self.model = None
         self.initial_values = OrderedDict()
@@ -1071,7 +1063,7 @@ def strip_expression_units(model_text, skip_literals=True):
     This method will raise a :class:`myokit.ParseError` if the given code
     cannot be parsed to a valid model.
     """
-    if isinstance(model_text, basestring):
+    if isinstance(model_text, str):
         lines = model_text.splitlines()
     else:
         lines = model_text
@@ -1267,7 +1259,7 @@ _COMPEQ = '=!><'
 _COMPEQ_MAP = [EQEQUAL, NOTEQUAL, MOREEQUAL, LESSEQUAL]
 
 
-class Tokenizer(object):
+class Tokenizer:
     """
     Takes a stream of lines as input and provides a stream interface returning
     tokens.
@@ -1312,7 +1304,7 @@ class Tokenizer(object):
         self._catcheri = 0
 
         # String given instead of stream of lines? Convert
-        if isinstance(stream_of_lines, basestring):
+        if isinstance(stream_of_lines, str):
             stream_of_lines = iter(stream_of_lines.splitlines())
 
         # Create tokenizer
@@ -1965,7 +1957,7 @@ def format_parse_error(ex, source=None):
     line = None
 
     if ex.line > 0 and source is not None:
-        if isinstance(source, basestring) and os.path.isfile(source):
+        if isinstance(source, str) and os.path.isfile(source):
             # Re-open file, find line
             with open(source, 'r') as f:
                 for i in range(0, ex.line):
@@ -2015,7 +2007,7 @@ def format_parse_error(ex, source=None):
     return '\n'.join(out)
 
 
-class NudParser(object):
+class NudParser:
     """
     Expression parser for nud operators.
 
@@ -2125,7 +2117,7 @@ class FunctionParser(NudParser):
         return (func, ops, (name,))
 
 
-class LedParser(object):
+class LedParser:
     """
     Expression parser for led operators.
 

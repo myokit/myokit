@@ -6,22 +6,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
+
 import numpy as np
 
 import myokit
 
 from myokit.tests import DIR_DATA, TemporaryDirectory
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:
-    basestring = str
 
 
 class LoadSaveMmtTest(unittest.TestCase):
@@ -105,7 +97,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         m, p, x = myokit.load(spath)
         self.assertIsNone(m)
         self.assertIsNone(p)
-        self.assertTrue(isinstance(x, basestring))
+        self.assertTrue(isinstance(x, str))
 
         self.assertRaises(
             myokit.SectionNotFoundError, myokit.load_model, ppath)
@@ -128,7 +120,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         m, p, x = myokit.load('example')
         self.assertIsInstance(m, myokit.Model)
         self.assertIsInstance(p, myokit.Protocol)
-        self.assertTrue(isinstance(x, basestring))
+        self.assertTrue(isinstance(x, str))
 
         # Save all three and reload
         with TemporaryDirectory() as d:
@@ -318,10 +310,10 @@ class LoadSaveMmtTest(unittest.TestCase):
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
         # Test example loading
         x = myokit.load_script('example')
-        self.assertTrue(isinstance(x, basestring))
+        self.assertTrue(isinstance(x, str))
         # Test file loading
         x = myokit.load_script(ipath)
-        self.assertTrue(isinstance(x, basestring))
+        self.assertTrue(isinstance(x, str))
         with TemporaryDirectory() as d:
             opath = d.path('test.mmt')
             myokit.save_script(opath, x)
@@ -333,7 +325,7 @@ class LoadSaveMmtTest(unittest.TestCase):
             self.assertTrue('[[script]]' in text)
             # Test reloading
             xx = myokit.load_script(opath)
-            self.assertTrue(isinstance(xx, basestring))
+            self.assertTrue(isinstance(xx, str))
             self.assertEqual(x, xx)
 
 

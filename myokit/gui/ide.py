@@ -5,10 +5,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Standard library imports
+import configparser
 import gc
 import os
 import sys
@@ -16,17 +13,14 @@ import textwrap
 import traceback
 import warnings
 
-# Myokit
 import myokit
 import myokit.formats
+import myokit.gui
 import myokit.lib.deps
 import myokit.lib.guess
 
-# Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
-# GUI components
-import myokit.gui
 from . import source
 from . import explorer
 from . import progress
@@ -36,12 +30,6 @@ from . import vargrapher
 # Matplotlib.pyplot must be imported _after_ myokit.gui has set the backend
 import matplotlib
 matplotlib.interactive(True)        # Allows plt.show()
-
-# ConfigParser in Python 2 and 3
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
 
 
 # Application title

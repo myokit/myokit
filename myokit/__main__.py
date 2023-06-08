@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import warnings
 
 _line_width = 79
@@ -421,10 +418,7 @@ def install():
     if plat == 'Linux':
         yesno = \
             'Install launcher icons and file type associations for Gnome/KDE? '
-        try:
-            yesno = raw_input(yesno)
-        except NameError:   # pragma: no python 2 cover
-            yesno = input(yesno)
+        yesno = input(yesno)
         yesno = (yesno.strip().lower())[:1] == 'y'
 
         if yesno:
@@ -432,10 +426,7 @@ def install():
 
     elif plat == 'Windows':
         yesno = 'Install start menu shortcuts? '
-        try:
-            yesno = raw_input(yesno)
-        except NameError:   # pragma: no python 2 cover
-            yesno = input(yesno)
+        yesno = input(yesno)
         yesno = (yesno.strip().lower())[:1] == 'y'
 
         if yesno:
@@ -867,10 +858,7 @@ def opencl_select():
     try:
         while True:
             x = 'Select device: '
-            try:
-                x = raw_input(x)
-            except NameError:   # pragma: no python 2 cover
-                x = input(x)    # lgtm [py/use-of-input]
+            x = input(x)
             x = x.strip()
             if x == '':
                 x = None
@@ -932,10 +920,7 @@ def reset(force=False):
         remove = True
     else:
         yesno = 'Remove all Myokit settings files? '
-        try:
-            yesno = raw_input(yesno)
-        except NameError:           # pragma: no python 2 cover
-            yesno = input(yesno)    # lgtm [py/use-of-input]
+        yesno = input(yesno)
         yesno = yesno.strip().lower()
         remove = (yesno[:1] == 'y')
     if remove:
@@ -1329,7 +1314,7 @@ def test_coverage(args):
     try:
         print('Gathering coverage data')
         p = subprocess.Popen([
-            'python3',
+            sys.executable,
             '-m',
             'coverage',
             'run',
@@ -1353,7 +1338,7 @@ def test_coverage(args):
 
         print('Generating coverage report.')
         p = subprocess.Popen([
-            'python3',
+            sys.executable,
             '-m',
             'coverage',
             'report',
@@ -1784,8 +1769,7 @@ def test_examples_single(root, path):
         p = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
         )
-        stdout, stderr = p.communicate()
-        # TODO: Use p.communicate(timeout=3600) if Python3 only
+        stdout, stderr = p.communicate(timeout=3600)
         if p.returncode != 0:
             # Show failing code, output and errors before returning
             print('ERROR')

@@ -6,18 +6,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import array
+import io
 import os
 import sys
-
-# StringIO in Python 2 and 3
-try:
-    from cStringIO import StringIO
-except ImportError:  # pragma: no python 2 cover
-    from io import StringIO
 
 import myokit
 
@@ -145,8 +137,6 @@ def load_state_bin(filename):
         code = parts[1]
         if code not in ['d', 'f']:  # pragma: no cover
             raise Exception('Invalid state file format [40].')
-        # Convert code to str for Python 2.7.10 (see #225)
-        code = str(code)
 
         size = int(parts[2])
         if size < 0:    # pragma: no cover
@@ -154,10 +144,7 @@ def load_state_bin(filename):
 
         # Create array, read bytes into array
         ar = array.array(code)
-        try:
-            ar.frombytes(f.read(info))
-        except AttributeError:  # pragma: no python 3 cover
-            ar.fromstring(f.read(info))
+        ar.frombytes(f.read(info))
 
         # Always store as little endian
         if sys.byteorder == 'big':  # pragma: no cover
@@ -184,7 +171,7 @@ def save(filename=None, model=None, protocol=None, script=None):
         filename = os.path.expanduser(filename)
         f = open(filename, 'w')
     else:
-        f = StringIO()
+        f = io.StringIO()
     out = None
     try:
         if model is not None:
@@ -297,8 +284,7 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
             'This method requires the `zlib` module to be installed.')
 
     # Data type
-    # Convert code to str for Python 2.7.10 (see #225)
-    code = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
+    code = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
 
     # Create array, ensure it's little-endian
     ar = array.array(code, state)
@@ -311,10 +297,7 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
     info.compress_type = zipfile.ZIP_DEFLATED
 
     # Write to compressed file
-    try:
-        ar = ar.tobytes()
-    except AttributeError:  # pragma: no python 3 cover
-        ar = ar.tostring()
+    ar = ar.tobytes()
     with zipfile.ZipFile(filename, 'w') as f:
         f.writestr(info, ar)
 

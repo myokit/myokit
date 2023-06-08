@@ -4,20 +4,19 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-from collections import OrderedDict
-import numpy as np
 import os
 import re
+
+import numpy as np
+
+from collections import OrderedDict
 
 
 # Format used for any text
 _ENC = 'ascii'
 
 
-class AtfFile(object):
+class AtfFile:
     """
     Represents an Axon Text File (ATF) stored on disk.
 

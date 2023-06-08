@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
 
@@ -19,18 +16,6 @@ from myokit.tests import DIR_FORMATS, WarningCollector
 
 # ChannelML dir
 DIR = os.path.join(DIR_FORMATS, 'channelml')
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:  # pragma: no python 3 cover
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
 
 
 class ChannelMLTest(unittest.TestCase):

@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 from setuptools import setup, find_packages
 
 
@@ -58,7 +56,6 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
@@ -79,11 +76,14 @@ setup(
         'console_scripts': ['myokit = myokit.__main__:main']
     },
 
+    # Python version
+    python_requires='>=3.6',
+
     # List of dependencies
     install_requires=[
         'configparser',
         'lxml',
-        'matplotlib>=1.5',
+        'matplotlib>=2.2',
         'numpy',
         'setuptools',
         # PyQT or PySide?

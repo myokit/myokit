@@ -73,7 +73,7 @@ for comp in components:
     w.set_lhs_function(lambda x: v(x, comp))
 
     ?>
-class <?= names[1] ?>(object):
+class <?= names[1] ?>:
     def __init__(self):
 <?
     for var in comp.variables(deep=True):
@@ -118,7 +118,7 @@ class <?= names[1] ?>(object):
 #
 # Engine component
 #
-class Engine(object):
+class Engine:
     """
     Calculates the derivatives in the current state
     """
@@ -213,7 +213,7 @@ def test_step():
 #
 # Pacing
 #
-class Protocol(object):
+class Protocol:
     """ Holds an ordered set of ProtocolEvent objects """
     def __init__(self):
         super(Protocol, self).__init__()
@@ -238,7 +238,7 @@ class Protocol(object):
         if self.head is not None:
             self.head = self.head.next
         return e
-class ProtocolEvent(object):
+class ProtocolEvent:
     def __init__(self, level, start, duration, period=0, multiplier=0):
         super(ProtocolEvent, self).__init__()
         self.level = float(level)
@@ -377,10 +377,7 @@ if __name__ == '__main__':
         except ArithmeticError as e:
             print('Arithmetic error occurred')
             y = 'Continue with smaller stepsize? (y/n): '
-            try:
-                y = raw_input(y)    # Python 2
-            except NameError:
-                y = input(y)        # Python 3
+            y = input(y)
             if y.lower()[0:1] == 'y':
                 small /= 2
                 large /= 2

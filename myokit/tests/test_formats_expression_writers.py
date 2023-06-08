@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
@@ -18,19 +15,6 @@ import myokit.formats.latex
 import myokit.formats.matlab
 import myokit.formats.python
 import myokit.formats.stan
-
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:  # pragma: no python 3 cover
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
 
 
 class ExpressionWriterTest(unittest.TestCase):
@@ -45,7 +29,7 @@ class ExpressionWriterTest(unittest.TestCase):
 
         # Create one of each
         for e in es:
-            self.assertIsInstance(e, basestring)
+            self.assertIsInstance(e, str)
             e = myokit.formats.ewriter(e)
             self.assertTrue(isinstance(e, myokit.formats.ExpressionWriter))
 

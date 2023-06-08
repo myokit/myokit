@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import struct
 import numpy as np
@@ -17,7 +14,7 @@ import myokit
 _ENC = 'ascii'
 
 
-class WcpFile(object):
+class WcpFile:
     """
     Represents a read-only WinWCP file (``.wcp``), stored at the location
     pointed to by ``filepath``.

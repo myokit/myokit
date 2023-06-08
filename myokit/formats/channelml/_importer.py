@@ -4,22 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import io
 import os
 import textwrap
+import warnings
 import xml.dom
 import xml.dom.minidom
-
-import warnings
-
-try:
-    # Python 2
-    from cStringIO import StringIO
-except ImportError:
-    # Python3
-    from io import StringIO
 
 import myokit
 from myokit import formats
@@ -373,7 +363,7 @@ class ChannelMLImporter(formats.Importer):
         if not root.hasAttribute('xmlns:meta'):
             return None
         ns = root.getAttribute('xmlns:meta')
-        b = StringIO()
+        b = io.StringIO()
 
         def scan(parent):
             kid = dom_child(parent)

@@ -4,22 +4,16 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import re
 import sys
 import array
-import numpy as np
-from collections import OrderedDict
-import myokit
 
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
+import numpy as np
+
+from collections import OrderedDict
+
+import myokit
 
 
 # Function to split keys into dimension-key,qname-key pairs
@@ -517,17 +511,10 @@ class DataLog(OrderedDict):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Get size of single and double types on this machine
-        try:
-            dsize = {
-                'd': len(array.array('d', [1]).tobytes()),
-                'f': len(array.array('f', [1]).tobytes()),
-            }
-        except (AttributeError, TypeError):  # pragma: no python 3 cover
-            # List dtype as str for Python 2.7.10 (see #225)
-            dsize = {
-                b'd': len(array.array(b'd', [1]).tostring()),
-                b'f': len(array.array(b'f', [1]).tostring()),
-            }
+        dsize = {
+            'd': len(array.array('d', [1]).tobytes()),
+            'f': len(array.array('f', [1]).tobytes()),
+        }
 
         # Read data
         try:
@@ -563,7 +550,7 @@ class DataLog(OrderedDict):
         head = iter(head.splitlines())
         n = int(next(head))
         data_size = int(next(head))
-        data_type = str(next(head))  # Cast to str for Python 2.7.10 (see #225)
+        data_type = next(head)
         time = next(head)
         if time:
             # Note, this field doesn't have to be present in the log!
@@ -604,10 +591,7 @@ class DataLog(OrderedDict):
 
                 # Read data
                 ar = array.array(data_type)
-                try:
-                    ar.frombytes(body[start:end])
-                except AttributeError:  # pragma: no python 3 cover
-                    ar.fromstring(body[start:end])
+                ar.frombytes(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     ar.byteswap()
                 log[field] = ar
@@ -638,8 +622,7 @@ class DataLog(OrderedDict):
         filename = os.path.expanduser(filename)
 
         # Typecode dependent on precision
-        # Typecode must be str for Python 2.7.10 (see #225)
-        typecode = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
+        typecode = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
 
         # Error raising function
         def e(line, char, msg):
@@ -647,16 +630,9 @@ class DataLog(OrderedDict):
                 'Syntax error on line ' + str(line) + ', character '
                 + str(1 + char) + ': ' + msg)
 
-        def uopen(filename):
-            # Open a filename in 'universal newline' mode, python 2 and 3
-            try:
-                return open(filename, 'r', newline=None)
-            except TypeError:   # pragma: no python 3 cover
-                return open(filename, 'U')
-
         quote = '"'
         delim = ','
-        with uopen(filename) as f:
+        with open(filename, 'r', newline=None) as f:
             # Read header
             keys = []   # The log keys, in order of appearance
 
@@ -936,8 +912,7 @@ class DataLog(OrderedDict):
                 'This method requires the `zlib` module to be installed.')
 
         # Data type
-        # dtype must be str for Python 2.7.10 (see #225)
-        dtype = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
+        dtype = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
 
         # Create data strings
         head_str = []
@@ -959,10 +934,7 @@ class DataLog(OrderedDict):
             ar = array.array(dtype, v)
             if sys.byteorder == 'big':  # pragma: no cover
                 ar.byteswap()
-            try:
-                body_str.append(ar.tobytes())
-            except AttributeError:   # pragma: no python 3 cover
-                body_str.append(ar.tostring())
+            body_str.append(ar.tobytes())
         head_str = '\n'.join(head_str)
         body_str = b''.join(body_str)
 
@@ -1006,7 +978,7 @@ class DataLog(OrderedDict):
             If a precision argument (for example ``myokit.DOUBLE_PRECISION``)
             is given, the output will be stored in such a way that this amount
             of precision is guaranteed to be present in the string. If the
-            precision argument is set to ``None`` python's default formatting
+            precision argument is set to ``None`` Python's default formatting
             is used, which may lead to smaller files.
         ``order``
             To specify the ordering of the log's arguments, pass in a sequence
@@ -1422,7 +1394,7 @@ class DataLog(OrderedDict):
         return infos
 
 
-class LoggedVariableInfo(object):
+class LoggedVariableInfo:
     """
     Contains information about the log entries for each variable. These objects
     should only be created by :meth:`DataLog.variable_info()`.
@@ -1629,9 +1601,7 @@ def prepare_log(
     be specified using the ``precision`` argument.
     """
     # Typecode dependent on precision
-    # Note: Cast to str() here makes it work with older versions of 2.7.x,
-    # where unicode isn't accepted (Python 3 of course doesn't accept bytes)
-    typecode = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
+    typecode = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
 
     # Get all options for dimensionality
     if dims is None:
@@ -1874,7 +1844,7 @@ def prepare_log(
             'Argument `log` has unexpected type. Expecting None, integer flag,'
             ' sequence of names, dict or DataLog.')
 
-    if isinstance(log, basestring):
+    if isinstance(log, str):
         raise ValueError(
             'String passed in as `log` argument, should be list'
             ' or other sequence containing strings.')

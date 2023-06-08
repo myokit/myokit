@@ -4,24 +4,18 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import collections
+import configparser
 import os
 import sys
-import numpy as np
 import traceback
-import collections
+
+import numpy as np
 
 import myokit
 import myokit.gui
-from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
-# ConfigParser in Python 2 and 3
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
+from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
 
 # Application title

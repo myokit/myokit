@@ -6,9 +6,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import io
 import os
 import re
 import shutil
@@ -18,18 +16,12 @@ import tempfile
 import threading
 import timeit
 
-# StringIO in Python 2 and 3
-try:
-    from cStringIO import StringIO
-except ImportError:  # pragma: no python 2 cover
-    from io import StringIO
-
 
 # Natural sort regex
 _natural_sort_regex = re.compile('([0-9]+)')
 
 
-class Benchmarker(object):
+class Benchmarker:
     """
     Allows benchmarking using the with statement.
 
@@ -97,7 +89,7 @@ class Benchmarker(object):
         return timeit.default_timer() - self._start
 
 
-class capture(object):
+class capture:
     """
     Context manager that temporarily redirects the current standard output and
     error streams, and captures anything that's written to them.
@@ -224,8 +216,8 @@ class capture(object):
         # Redirect
         if not self._fd:
             # Create temporary output and error streams
-            self._tmp_out = StringIO()
-            self._tmp_err = StringIO()
+            self._tmp_out = io.StringIO()
+            self._tmp_err = io.StringIO()
 
             # Redirect, attempting to flush first
             try:
@@ -391,10 +383,6 @@ class capture(object):
             return ''
         text = self._txt_err
 
-        # In Python 2, the text needs to be decoded from ascii
-        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
-            text = text.decode('ascii', 'ignore')
-
         return text
 
     def out(self):
@@ -405,10 +393,6 @@ class capture(object):
         if self._txt_out is None:
             return ''
         text = self._txt_out
-
-        # In Python 2, the text needs to be decoded from ascii
-        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
-            text = text.decode('ascii', 'ignore')
 
         return text
 

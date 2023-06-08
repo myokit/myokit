@@ -4,18 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import html
+import html.parser
 import re
-import sys
 import textwrap
-
-# HTML Parser in Python 2 and 3
-try:
-    from HTMLParser import HTMLParser
-except ImportError:
-    from html.parser import HTMLParser
 
 
 def html2ascii(html, width=79, indent='  '):
@@ -32,21 +24,13 @@ def html2ascii(html, width=79, indent='  '):
     return f.get_text()
 
 
-class Asciifier(HTMLParser):
+class Asciifier(html.parser.HTMLParser):
     INDENT = 1
     DEDENT = -1
     WHITE = [' ', '\t', '\f', '\r', '\n']
 
     def __init__(self, line_width=79, indent='  '):
-        if sys.hexversion < 0x03000000:     # pragma: no python 3 cover
-            # HTMLParser requires old-school constructor
-            HTMLParser.__init__(self)
-        else:                               # pragma: no python 2 cover
-            super(Asciifier, self).__init__(convert_charrefs=False)
-
-            # Unescape method is deprecated
-            import html
-            self.unescape = html.unescape
+        super().__init__(convert_charrefs=False)
 
         # In <head> yes/no
         self.inhead = False
@@ -226,7 +210,7 @@ class Asciifier(HTMLParser):
             return
 
         # Convert html characters
-        data = self.unescape('&' + name + ';')
+        data = html.unescape('&' + name + ';')
 
         # Convert to ascii and back to strip out non-ascii content
         data = data.encode('ascii', 'ignore').decode('ascii')

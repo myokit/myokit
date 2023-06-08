@@ -4,25 +4,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-from collections import OrderedDict
+import io
 import math
 import re
+
+from collections import OrderedDict
+
 import myokit
 
-# StringIO in Python 2 and 3
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
 
 TAB = ' ' * 4
 NAME = re.compile(r'^[a-zA-Z]\w*$')
@@ -34,8 +23,6 @@ def check_name(name):
     Tests if the given name is a valid myokit name and raises a
     :class:`myokit.InvalidNameError` if it isn't.
     """
-    # Note: Names are stored as str (so unicode in Python3)
-    # But the regex restriction means their format is compatible with ascii.
     # Check str compatibility
     name = str(name)
 
@@ -78,7 +65,7 @@ class MetaDataContainer(dict):
         super(MetaDataContainer, self).__setitem__(key, item)
 
 
-class ObjectWithMeta(object):
+class ObjectWithMeta:
     """
     Base class for objects with meta data.
 
@@ -153,7 +140,7 @@ class ModelPart(ObjectWithMeta):
         """
         Returns this object in ``mmt`` syntax.
         """
-        b = StringIO()
+        b = io.StringIO()
         self._code(b, 0)
         return b.getvalue()
 
@@ -162,7 +149,7 @@ class ModelPart(ObjectWithMeta):
         Internal version of _code(), to be implemented by all subclasses.
 
         The argument ``t`` specifies the number of tabs to indent the code
-        with. The argument ``b`` is a cStringIO buffer.
+        with. The argument ``b`` is a StringIO buffer.
         """
         raise NotImplementedError
 
@@ -249,7 +236,7 @@ class ModelPart(ObjectWithMeta):
         return self._uname
 
 
-class VarProvider(object):
+class VarProvider:
     """
     *Abstract class*
 
@@ -1124,7 +1111,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         Line numbers can be added by setting ``line_numbers=True``.
         """
-        b = StringIO()
+        b = io.StringIO()
         b.write('[[model]]\n')
         self._code(b, 0)
         if line_numbers:
@@ -1749,7 +1736,7 @@ class Model(ObjectWithMeta, VarProvider):
             'as external_component, or a string if only one '
             'component is provided'
         )
-        if isinstance(new_name, basestring):
+        if isinstance(new_name, str):
             if len(external_component) != 1:
                 raise TypeError(new_name_error_str)
             new_name = [new_name]
@@ -1757,7 +1744,7 @@ class Model(ObjectWithMeta, VarProvider):
             try:
                 ok = (
                     len(new_name) == len(external_component) and
-                    all(isinstance(name, basestring) for name in new_name)
+                    all(isinstance(name, str) for name in new_name)
                 )
                 if not ok:
                     raise TypeError(new_name_error_str)
@@ -1836,7 +1823,7 @@ class Model(ObjectWithMeta, VarProvider):
                             'The variable <' + self_var.qname() + '> in the'
                             ' given var_map\'s values is not part of this'
                             ' model.')
-                elif isinstance(self_var, basestring):
+                elif isinstance(self_var, str):
                     try:
                         self_var = self.var(self_var)
                     except KeyError:
@@ -1858,7 +1845,7 @@ class Model(ObjectWithMeta, VarProvider):
                             'The variable <' + ext_var.qname() + '> in the'
                             ' given var_map\'s keys but is not part of the'
                             ' source model.')
-                elif isinstance(ext_var, basestring):
+                elif isinstance(ext_var, str):
                     try:
                         ext_var = ext_model.var(ext_var)
                     except KeyError:
@@ -2597,7 +2584,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         """
         n = self.count_states()
-        if isinstance(state, basestring):
+        if isinstance(state, str):
             # String given. Parse into name:float map or list
             state = myokit.parse_state(state)
         if isinstance(state, dict):
@@ -2912,7 +2899,7 @@ class Model(ObjectWithMeta, VarProvider):
         accepted by :meth:`map_to_state`.
         """
         # Use map to state?
-        if isinstance(values, basestring) or isinstance(values, dict):
+        if isinstance(values, str) or isinstance(values, dict):
             self._state_init = [
                 myokit.Number(x) for x in self.map_to_state(values)]
         elif len(values) != len(self._state_vars):
@@ -4498,7 +4485,7 @@ class Variable(VarOwner):
         # Handle string and number rhs's
         model = self.model()
         if not isinstance(initial_value, myokit.Expression):
-            if isinstance(initial_value, basestring):
+            if isinstance(initial_value, str):
                 # Expressions are evaluated in model context
                 initial_value = myokit.parse_expression(
                     initial_value, context=model)
@@ -4588,9 +4575,9 @@ class Variable(VarOwner):
         # Create function
         local = {}
         if use_numpy:
-            myokit._exec(func, {'numpy': numpy}, local)
+            exec(func, {'numpy': numpy}, local)
         else:
-            myokit._exec(func, {'math': math}, local)
+            exec(func, {'math': math}, local)
         handle = local['var_pyfunc_generated']
 
         # Return
@@ -4766,7 +4753,7 @@ class Variable(VarOwner):
         # Handle strings and floats
         model = self.model()
         if not isinstance(value, myokit.Expression):
-            if isinstance(value, basestring):
+            if isinstance(value, str):
                 value = myokit.parse_expression(value, context=model)
             else:
                 value = myokit.Number(value)
@@ -4834,7 +4821,7 @@ class Variable(VarOwner):
         """
         # Handle string and number rhs's
         if not isinstance(rhs, myokit.Expression):
-            if isinstance(rhs, basestring):
+            if isinstance(rhs, str):
                 rhs = myokit.parse_expression(rhs, context=self)
             elif rhs is not None:
                 rhs = myokit.Number(rhs)
@@ -4885,7 +4872,7 @@ class Variable(VarOwner):
         """
         if unit is None or isinstance(unit, myokit.Unit):
             self._unit = unit
-        elif isinstance(unit, basestring):
+        elif isinstance(unit, str):
             self._unit = myokit.parse_unit(unit)
         else:
             raise TypeError('Method set_unit() expects a myokit.Unit or None.')
@@ -5068,7 +5055,7 @@ class Variable(VarOwner):
         return self._rhs.eval()
 
 
-class Equation(object):
+class Equation:
     """
     Defines an equation: a statement that a left-hand side (LHS) is equal to a
     right-hand side (RHS) expression.
@@ -5103,7 +5090,7 @@ class Equation(object):
 
     def code(self):
         """ Returns an ``.mmt`` representation of this equation. """
-        b = StringIO()
+        b = io.StringIO()
         self._lhs._code(b, None)
         b.write(' = ')
         self._rhs._code(b, None)
@@ -5149,7 +5136,7 @@ class EquationList(list, VarProvider):
         return stream(self)
 
 
-class UserFunction(object):
+class UserFunction:
     """
     Represents a user function.
 

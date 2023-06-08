@@ -139,23 +139,22 @@
 # Information - but no direct code - from the matlab script get_abf_header.m
 # was also used: http://neurodata.hg.sourceforge.net/hgweb/neurodata/neurodata/
 #------------------------------------------------------------------------------
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-from collections import OrderedDict
-import numpy as np
-import traceback
 import datetime
 import logging
-import struct
 import os
+import struct
+import traceback
+
+import numpy as np
+
+from collections import OrderedDict
 
 
 # Encoding for text parts of files
 _ENC = 'latin-1'
 
 
-class AbfFile(object):
+class AbfFile:
     """
     Represents a read-only Axon Binary Format file (``.abf``), stored at the
     location pointed to by ``filepath``.
@@ -1306,7 +1305,7 @@ class AbfFile(object):
                 self._adc_offsets.append(s)
 
 
-class Sweep(object):
+class Sweep:
     """
     Represents a single sweep (also called an 'episode')
 
@@ -1336,7 +1335,7 @@ class Sweep(object):
         self._channels[key] = value
 
 
-class Channel(object):
+class Channel:
     """
     Represents an analog signal for a single channel.
 

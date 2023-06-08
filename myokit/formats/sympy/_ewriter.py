@@ -4,15 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
+import myokit.formats
 
 try:
     import sympy as sp
 except ImportError:
     pass
-
-import myokit.formats
 
 
 class SymPyExpressionWriter(myokit.formats.ExpressionWriter):

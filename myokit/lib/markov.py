@@ -4,16 +4,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import collections
+
 import numpy as np
 
 import myokit
 
 
-class LinearModel(object):
+class LinearModel:
     """
     Represents a linear Markov model of an ion channel extracted from a
     :class:`myokit.Model`.
@@ -389,7 +387,7 @@ class LinearModel(object):
         globl = {'numpy': np, 'n': n}
         local = {}
 
-        myokit._exec(code, globl, local)
+        exec(code, globl, local)
         self._matrix_function = local['matrix_function']
 
         #
@@ -408,7 +406,7 @@ class LinearModel(object):
         code = head + '\n' + '\n'.join(['    ' + line for line in body])
         globl = {'numpy': np}
         local = {}
-        myokit._exec(code, globl, local)
+        exec(code, globl, local)
         self._rate_list_function = local['rate_list_function']
 
     def current(self):
@@ -635,7 +633,7 @@ class LinearModel(object):
         return x
 
 
-class AnalyticalSimulation(object):
+class AnalyticalSimulation:
     """
     Analytically evaluates a :class:`LinearModel`'s state over a given set of
     points in time.
@@ -1093,7 +1091,7 @@ class AnalyticalSimulation(object):
         return list(self._state)
 
 
-class DiscreteSimulation(object):
+class DiscreteSimulation:
     """
     Performs stochastic simulations of a :class:`LinearModel`'s behavior for a
     finite number of channels.
@@ -1563,7 +1561,7 @@ class DiscreteSimulation(object):
         return list(self._state)
 
 
-class MarkovModel(object):
+class MarkovModel:
     """
     **Deprecated**: This class has been replaced by the classes
     :class:`LinearModel` and :class:`AnalyticalSimulation`. Please update your

@@ -4,20 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import collections
 import re
 import warnings
 
 import myokit
-
-# Strings in Python2 and Python3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
 
 
 # Data types
@@ -142,7 +133,7 @@ def create_unit_name(unit):
     return name
 
 
-class AnnotatableElement(object):
+class AnnotatableElement:
     """
     Represents a CellML 2.0 element that can be annotated (using a public dict
     ``meta`` that stores key:value pairs).
@@ -1068,7 +1059,7 @@ class Model(AnnotatableElement):
         return self._version
 
 
-class Units(object):
+class Units:
     """
     Represents a CellML units definition; should not be created directly but
     only via :meth:`Model.add_units()` or :meth:`Component.add_units()`.
@@ -1615,7 +1606,7 @@ class Variable(AnnotatableElement):
         if value is not None:
 
             # Check value is a real number string
-            if isinstance(value, basestring):
+            if isinstance(value, str):
                 if is_real_number_string(value):
                     value = float(value)
                 else:
@@ -1642,7 +1633,7 @@ class Variable(AnnotatableElement):
         return self._units
 
 
-class ConnectedVariableSet(object):
+class ConnectedVariableSet:
     """
     Represents a set of connected variables.
 

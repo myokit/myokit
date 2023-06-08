@@ -5,12 +5,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-import random
 import collections
+import random
+
 import myokit
+
 # Don't import pyplot yet, this will crash if no window environment is loaded
 
 
@@ -174,7 +173,7 @@ def plot_state_dependency_matrix(
     return a
 
 
-class DiGraph(object):
+class DiGraph:
     """
     A simple directed graph implementation.
 
@@ -526,7 +525,7 @@ class DiGraph(object):
         return test
 
 
-class Node(object):
+class Node:
     """
     Defines a node in a graph
     """

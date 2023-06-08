@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import collections
 import re
 import warnings
@@ -116,7 +113,7 @@ def create_unit_name(unit):
     return name
 
 
-class AnnotatableElement(object):
+class AnnotatableElement:
     """
     Represents a CellML 1.0 or 1.1 element that can have a cmeta:id.
 
@@ -1165,7 +1162,7 @@ class Model(AnnotatableElement):
         return self._version
 
 
-class Units(object):
+class Units:
     """
     Represents a CellML units definition, should not be created directly but
     only via :meth:`Model.add_units()` or :meth:`Component.add_units()`.

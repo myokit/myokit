@@ -4,20 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
-import timeit
-import myokit
 import platform
+import timeit
 
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
-
+import myokit
 
 # Location of C source file
 SOURCE_FILE = 'rhs.c'
@@ -201,7 +192,7 @@ class RhsBenchmarker(myokit.CModule):
         else:
             self._variables = set()
             for var in variables:
-                if isinstance(var, basestring):
+                if isinstance(var, str):
                     # String? Then get variable from model
                     var = self._model.get(var)
                 else:

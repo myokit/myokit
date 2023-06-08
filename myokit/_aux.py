@@ -6,9 +6,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
 
 import sys
@@ -150,7 +147,7 @@ def format_path(path, root='.'):
     return myokit.tools.format_path(path, root)
 
 
-class ModelComparison(object):
+class ModelComparison:
     """
     Compares two models.
 
@@ -520,7 +517,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     script = '\n' + script
 
     # Class to run scripts
-    class Runner(object):
+    class Runner:
         def __init__(self, model, protocol, script, stdout, stderr, progress):
             super(Runner, self).__init__()
             self.model = model
@@ -555,7 +552,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
                     'get_model': get_model,
                     'get_protocol': get_protocol,
                 }
-                myokit._exec(self.script, environment)
+                exec(self.script, environment)
             finally:
                 if oldstdout is not None:
                     sys.stdout = oldstdout

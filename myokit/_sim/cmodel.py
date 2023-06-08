@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import traceback
 
@@ -21,7 +18,7 @@ import myokit.pype
 SOURCE_FILE = 'cmodel.h'
 
 
-class CModel(object):
+class CModel:
     """
     Generates ansi-C code for a model.
 

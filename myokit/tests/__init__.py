@@ -8,9 +8,6 @@
 # The TemporaryDirectory class was adapted from Pints
 # See: https://github.com/pints-team/pints
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import tempfile
 import warnings
@@ -43,7 +40,7 @@ if OpenCL_FOUND:
     del info
 
 
-class TemporaryDirectory(object):
+class TemporaryDirectory:
     """
     ContextManager that provides a temporary directory to create temporary
     files in. Deletes the directory and its contents when the context is
@@ -138,7 +135,7 @@ class CancellingReporter(myokit.ProgressReporter):
         return self.okays >= 0
 
 
-class WarningCollector(object):
+class WarningCollector:
     """
     Wrapper around warnings.catch_warnings() that gathers all messages into a
     single string.

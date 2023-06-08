@@ -4,15 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import timeit
 
 import myokit
 
 
-class ProgressReporter(object):
+class ProgressReporter:
     """
     Interface for progress updates in Simulations. Also allows some job types
     to be cancelled by the user.
@@ -62,7 +59,7 @@ class ProgressReporter(object):
         """
         pass
 
-    class _Job(object):
+    class _Job:
         def __init__(self, parent, msg):
             self._parent = parent
             self._msg = msg

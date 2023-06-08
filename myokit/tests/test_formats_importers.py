@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
 
@@ -15,18 +12,6 @@ import myokit
 import myokit.formats as formats
 
 from myokit.tests import DIR_FORMATS
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:  # pragma: no python 3 cover
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
 
 
 class ImporterTest(unittest.TestCase):
@@ -37,7 +22,7 @@ class ImporterTest(unittest.TestCase):
         ims = myokit.formats.importers()
         self.assertTrue(len(ims) > 0)
         for i in ims:
-            self.assertIsInstance(i, basestring)
+            self.assertIsInstance(i, str)
             i = myokit.formats.importer(i)
             self.assertTrue(isinstance(i, myokit.formats.Importer))
 

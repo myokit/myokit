@@ -5,10 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Library imports
 import os
 import platform
 import sys
@@ -36,36 +32,23 @@ if platform.system() == 'Windows':  # pragma: no linux cover
             ).stdin
     os.popen = _ospop
 
-
-# Setuptools imports
 from setuptools import setup, Extension  # noqa
 
-
-# Myokit imports
 import myokit       # noqa
 import myokit.pype  # noqa
 
 
-# Dynamic module finding and loading in Python 3.5+ and younger
-if sys.hexversion >= 0x03050000:
-    import importlib.machinery
+def load_module(name, path):
+    """ Dynamically find and load a module (Python 3.5+). """
     import importlib
+    import importlib.machinery
 
-    def load_module(name, path):
-        spec = importlib.machinery.PathFinder.find_spec(name, [path])
-        module = importlib.util.module_from_spec(spec)
-        return module
-
-else:  # pragma: no python 3 cover
-    import imp
-
-    def load_module(name, path):
-        (f, pathname, description) = imp.find_module(name, [path])
-        f.close()
-        return imp.load_dynamic(name, pathname)
+    spec = importlib.machinery.PathFinder.find_spec(name, [path])
+    module = importlib.util.module_from_spec(spec)
+    return module
 
 
-class CModule(object):
+class CModule:
     """
     Abstract base class for classes that dynamically create and compile a
     back-end C-module.

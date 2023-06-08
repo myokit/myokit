@@ -353,9 +353,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
     if (protocol != Py_None) {
 
         // Get PyList from protocol (will need to decref!)
-        // Cast to (char*) happens because CallMethod accepts a mutable char*
-        // This should have been const char* and has been fixed in python 3
-        PyObject* list = PyObject_CallMethod(protocol, (char*)"events", NULL); // Returns a new reference
+        PyObject* list = PyObject_CallMethod(protocol, "events", NULL); // Returns a new reference
         if(list == NULL) return ESys_POPULATE_INVALID_PROTOCOL;
         if(!PyList_Check(list)) {
             Py_DECREF(list);
@@ -766,9 +764,7 @@ FSys_Populate(FSys sys, PyObject* protocol)
     if (protocol == Py_None) return FSys_POPULATE_INVALID_PROTOCOL;
 
     // Get PyList from protocol (will need to decref!)
-    // Cast to (char*) happens because CallMethod accepts a mutable char*
-    // This should have been const char* and has been fixed in python 3
-    times_list = PyObject_CallMethod(protocol, (char*)"times", NULL); // Returns a new reference
+    times_list = PyObject_CallMethod(protocol, "times", NULL); // Returns a new reference
     if(times_list == NULL) return FSys_POPULATE_INVALID_PROTOCOL;
     if(!PyList_Check(times_list)) {
         Py_DECREF(times_list);

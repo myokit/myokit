@@ -4,13 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-import os
-import sys
-import platform
 import importlib
+import os
+import platform
+import sys
 
 import myokit
 
@@ -28,7 +25,7 @@ def system(live_printing=False):
         out = []
     else:
         # Create fake list interface that just prints
-        class Out(object):
+        class Out:
             def append(self, x):
                 print(x)
 

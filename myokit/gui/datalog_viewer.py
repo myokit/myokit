@@ -4,23 +4,16 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Standard library imports
+import configparser
 import gc
 import os
 import sys
 import traceback
 
-# Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
-# Myokit
 import myokit
 import myokit.gui
-
-# Myokit components
 import myokit.formats.axon
 import myokit.formats.wcp
 
@@ -38,12 +31,6 @@ try:
     has_scipy = True
 except ImportError:
     has_scipy = False
-
-# ConfigParser in Python 2 and 3
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
 
 
 # Application title
