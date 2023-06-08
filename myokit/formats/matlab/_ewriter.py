@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 from myokit.formats.python import PythonExpressionWriter
 
 
@@ -16,7 +13,7 @@ class MatlabExpressionWriter(PythonExpressionWriter):
     Myokit :class:`expressions <myokit.Expression>` to a Matlab syntax.
     """
     def __init__(self):
-        super(MatlabExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = ''
         self._fcond = 'ifthenelse'
 

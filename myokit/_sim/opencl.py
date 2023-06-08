@@ -4,23 +4,13 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import configparser
 import os
+
 import myokit
-
-try:
-    # Python2
-    from ConfigParser import ConfigParser
-except ImportError:
-    # Python 3
-    from configparser import RawConfigParser as ConfigParser
-
 
 # Settings file
 SETTINGS_FILE = os.path.join(myokit.DIR_USER, 'preferred-opencl-device.ini')
-
 
 # Location of C source for OpenCL info module
 SOURCE_FILE = 'opencl.c'
@@ -41,7 +31,7 @@ class OpenCL(myokit.CModule):
     _message = None
 
     def __init__(self):
-        super(OpenCL, self).__init__()
+        super().__init__()
         # Create back-end and cache it
         OpenCL._index += 1
         mname = 'myokit_opencl_info_' + str(OpenCL._index)
@@ -165,11 +155,8 @@ class OpenCL(myokit.CModule):
         # Read ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
         if os.path.isfile(inifile):
-            config = ConfigParser()
-            try:
-                config.read(inifile, encoding='ascii')  # Python 3
-            except TypeError:   # pragma: no python 3 cover
-                config.read(inifile)
+            config = configparser.RawConfigParser()
+            config.read(inifile, encoding='ascii')
 
             def get(section, option):
                 x = None
@@ -205,7 +192,7 @@ class OpenCL(myokit.CModule):
             device = device.encode('ascii').decode('ascii')
 
         # Create configuration
-        config = ConfigParser()
+        config = configparser.RawConfigParser()
         config.add_section('selection')
         if platform:
             config.set('selection', 'platform', platform)
@@ -271,7 +258,7 @@ class OpenCL(myokit.CModule):
     '''
 
 
-class OpenCLInfo(object):
+class OpenCLInfo:
     """
     Represents information about the available OpenCL platforms and devices.
 
@@ -299,7 +286,7 @@ class OpenCLInfo(object):
         return '\n'.join(b)
 
 
-class OpenCLPlatformInfo(object):
+class OpenCLPlatformInfo:
     """
     Represents information about an OpenCL platform.
 
@@ -376,7 +363,7 @@ class OpenCLPlatformInfo(object):
         return extension in self.extensions
 
 
-class OpenCLDeviceInfo(object):
+class OpenCLDeviceInfo:
     """
     Represents information about an OpenCL device.
 

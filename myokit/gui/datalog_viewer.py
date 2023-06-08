@@ -4,23 +4,16 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Standard library imports
+import configparser
 import gc
 import os
 import sys
 import traceback
 
-# Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
-# Myokit
 import myokit
 import myokit.gui
-
-# Myokit components
 import myokit.formats.axon
 import myokit.formats.wcp
 
@@ -38,12 +31,6 @@ try:
     has_scipy = True
 except ImportError:
     has_scipy = False
-
-# ConfigParser in Python 2 and 3
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
 
 
 # Application title
@@ -115,7 +102,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
     Graphical interface for viewing DataLog data.
     """
     def __init__(self, *filenames):
-        super(DataLogViewer, self).__init__()
+        super().__init__()
 
         # Set Title, icon
         self.setWindowTitle(TITLE + ' ' + myokit.__version__)
@@ -508,7 +495,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         """
         Shows this viewer.
         """
-        super(DataLogViewer, self).show()
+        super().show()
         QtWidgets.QApplication.processEvents()
 
     def fileTabChangeEvent(self, index):
@@ -555,7 +542,7 @@ class AbfTab(TabWidget):
     A widget displaying an ABF file.
     """
     def __init__(self, parent, abf):
-        super(AbfTab, self).__init__(parent)
+        super().__init__(parent)
         self.setTabsClosable(False)
         self.setTabPosition(self.East)
         self._abf = abf
@@ -649,7 +636,7 @@ class AbfTab(TabWidget):
             axes.cla()
         del self._figures, self._axes
         gc.collect()
-        super(AbfTab, self).deleteLater()
+        super().deleteLater()
 
 
 class AtfTab(TabWidget):
@@ -657,7 +644,7 @@ class AtfTab(TabWidget):
     A widget displaying an AGF file.
     """
     def __init__(self, parent, atf):
-        super(AtfTab, self).__init__(parent)
+        super().__init__(parent)
         self._atf = atf
 
         self.setTabsClosable(False)
@@ -720,7 +707,7 @@ class AtfTab(TabWidget):
             axes.cla()
         del self._figures, self._axes
         gc.collect()
-        super(AtfTab, self).deleteLater()
+        super().deleteLater()
 
 
 class CsvTab(TabWidget):
@@ -730,7 +717,7 @@ class CsvTab(TabWidget):
     The given log must have a time variable set.
     """
     def __init__(self, parent, log, filename):
-        super(CsvTab, self).__init__(parent)
+        super().__init__(parent)
         self.setTabsClosable(False)
         self.setTabPosition(self.East)
         self._log = log.npview()
@@ -819,7 +806,7 @@ class CsvTab(TabWidget):
             axes.cla()
         del self._figures, self._axes
         gc.collect()
-        super(CsvTab, self).deleteLater()
+        super().deleteLater()
 
 
 class MatTab(TabWidget):
@@ -827,7 +814,7 @@ class MatTab(TabWidget):
     A widget displaying a MAT file.
     """
     def __init__(self, parent, mat, filename):
-        super(MatTab, self).__init__(parent)
+        super().__init__(parent)
         self.setTabsClosable(False)
         self.setTabPosition(self.East)
         self._figures = []
@@ -907,7 +894,7 @@ class MatTab(TabWidget):
             axes.cla()
         del self._figures, self._axes
         gc.collect()
-        super(MatTab, self).deleteLater()
+        super().deleteLater()
 
 
 class TxtTab(TabWidget):
@@ -915,7 +902,7 @@ class TxtTab(TabWidget):
     A widget displaying a TXT file (with lots of heuristics!).
     """
     def __init__(self, parent, data, filename):
-        super(TxtTab, self).__init__(parent)
+        super().__init__(parent)
         self.setTabsClosable(False)
         self.setTabPosition(self.East)
         self._figures = []
@@ -989,7 +976,7 @@ class TxtTab(TabWidget):
             axes.cla()
         del self._figures, self._axes
         gc.collect()
-        super(TxtTab, self).deleteLater()
+        super().deleteLater()
 
 
 class WcpTab(TabWidget):
@@ -997,7 +984,7 @@ class WcpTab(TabWidget):
     A widget displaying a WCP file.
     """
     def __init__(self, parent, wcp):
-        super(WcpTab, self).__init__(parent)
+        super().__init__(parent)
         self.setTabsClosable(False)
         self.setTabPosition(self.East)
         self._wcp = wcp
@@ -1044,5 +1031,5 @@ class WcpTab(TabWidget):
             axes.cla()
         del self._figures, self._axes
         gc.collect()
-        super(WcpTab, self).deleteLater()
+        super().deleteLater()
 

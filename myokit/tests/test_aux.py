@@ -5,24 +5,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import io
 import os
 import re
 import unittest
-
-# StringIO in Python 2 and 3
-try:
-    from cStringIO import StringIO
-except ImportError:  # pragma: no python 2 cover
-    from io import StringIO
-
-# Strings in Python2 and Python3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
 
 import myokit
 
@@ -87,7 +73,7 @@ class AuxTest(unittest.TestCase):
 
         # Test without a model
         script = myokit.default_script()
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1000)', script)
 
         # Test adapting the time unit
@@ -95,29 +81,29 @@ class AuxTest(unittest.TestCase):
         t = model.add_component('c').add_variable('t')
         t.set_rhs(0)
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1000)', script)
 
         t.set_binding('time')
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1000)', script)
 
         t.set_unit('s')
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1.0)', script)
 
         t.set_unit('ms')
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1000)', script)
 
         # Test plotting membrane potential
         v = model.get('c').add_variable('v')
         v.set_label('membrane_potential')
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn("var = 'c.v'", script)
 
         # TODO: Run with tiny model?
@@ -283,7 +269,7 @@ class AuxTest(unittest.TestCase):
 
         # Test with stringio
         x = "print('Hi there')"
-        s = StringIO()
+        s = io.StringIO()
         with myokit.tools.capture() as c:
             myokit.run(m, p, x, stderr=s, stdout=s)
         self.assertEqual(c.text(), '')
@@ -563,7 +549,7 @@ class AuxTest(unittest.TestCase):
 
         # Raw version
         raw = myokit.version(raw=True)
-        self.assertIsInstance(raw, basestring)
+        self.assertIsInstance(raw, str)
         parts = raw.split('.')
         self.assertTrue(len(parts) in [3, 4])
 

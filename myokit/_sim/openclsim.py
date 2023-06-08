@@ -5,14 +5,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
-import myokit
-import numpy as np
 import platform
+
 from collections import OrderedDict
+
+import numpy as np
+
+import myokit
 
 
 # Location of C and OpenCL sources
@@ -148,7 +148,7 @@ class SimulationOpenCL(myokit.CModule):
     def __init__(
             self, model, protocol=None, ncells=256, diffusion=True,
             precision=myokit.SINGLE_PRECISION, native_maths=False, rl=False):
-        super(SimulationOpenCL, self).__init__()
+        super().__init__()
 
         # Require a valid model
         if not model.is_valid():

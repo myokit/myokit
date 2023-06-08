@@ -5,12 +5,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-import random
 import collections
+import random
+
 import myokit
+
 # Don't import pyplot yet, this will crash if no window environment is loaded
 
 
@@ -174,7 +173,7 @@ def plot_state_dependency_matrix(
     return a
 
 
-class DiGraph(object):
+class DiGraph:
     """
     A simple directed graph implementation.
 
@@ -182,7 +181,7 @@ class DiGraph(object):
     for example ``matrix=[[0, 1, 1], [0, 1, 0], [0, 0, 0]]``
     """
     def __init__(self, matrix=None):
-        super(DiGraph, self).__init__()
+        super().__init__()
         if isinstance(matrix, DiGraph):
             # Clone
             self.nodes = collections.OrderedDict()
@@ -526,7 +525,7 @@ class DiGraph(object):
         return test
 
 
-class Node(object):
+class Node:
     """
     Defines a node in a graph
     """
@@ -534,7 +533,7 @@ class Node(object):
         """
         Creates a new, graphless node with the given identifier
         """
-        super(Node, self).__init__()
+        super().__init__()
         self.graph = None
         self.uid = uid
         self.edgo = set()

@@ -4,25 +4,16 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Standard library imports
-
-# Myokit
 import myokit
-
-# Qt imports
-from myokit.gui import QtCore, QtGui, QtWidgets
-
-# GUI components
 import myokit.gui
+
+from myokit.gui import QtCore, QtGui, QtWidgets
+from myokit.gui import matplotlib_backend as backend
 from . import progress
 
 # Matplotlib (must be imported _after_ gui has had chance to set backend)
 import matplotlib
 import matplotlib.figure
-from myokit.gui import matplotlib_backend as backend
 
 
 # Constants
@@ -44,7 +35,7 @@ class Explorer(QtWidgets.QDialog):
     *Extends:* ``QtWidgets.QDialog``
     """
     def __init__(self, parent, sim_method, output_stream, duration=1000):
-        super(Explorer, self).__init__(parent)
+        super().__init__(parent)
         self.setWindowTitle('Myokit Explorer')
         self._sim_method = sim_method
         self._stream = output_stream

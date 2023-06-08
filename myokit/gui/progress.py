@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
 from myokit.gui import Qt, QtCore, QtWidgets
 
@@ -22,7 +19,7 @@ class ProgressBar(QtWidgets.QProgressDialog):
     and other tasks implementing the ``ProgressReporter`` interface.
     """
     def __init__(self, parent, message):
-        super(ProgressBar, self).__init__(
+        super().__init__(
             message, 'Cancel', 0, N, parent=parent)
         self.setWindowModality(Qt.WindowModal)
         self.setAutoClose(False)
@@ -51,7 +48,7 @@ class ProgressBarReporter(myokit.ProgressReporter):
     """
 
     def __init__(self, pd):
-        super(ProgressBarReporter, self).__init__()
+        super().__init__()
         self._pd = pd
 
     def enter(self, msg=None):

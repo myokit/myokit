@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit.formats
 
 
@@ -16,7 +13,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
     Myokit :class:`expressions <myokit.Expression>` to their Tex equivalent.
     """
     def __init__(self):
-        super(LatexExpressionWriter, self).__init__()
+        super().__init__()
 
         # Default time variable
         self._time = None

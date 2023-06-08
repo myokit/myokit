@@ -4,10 +4,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
+
 from myokit.formats.xml import split
 
 
@@ -63,10 +61,10 @@ class MathMLError(myokit.ImportError):
                 message = 'Error on line ' + line + '. ' + message
             except AttributeError:
                 pass
-        super(MathMLError, self).__init__(message)
+        super().__init__(message)
 
 
-class MathMLParser(object):
+class MathMLParser:
     """
     Parses MathML expressions into :class:`myokit.Expression` objects.
 

@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
 
 import numpy as np
@@ -14,7 +11,7 @@ import numpy as np
 from bisect import bisect_right
 
 
-class Protocol(object):
+class Protocol:
     """
     Represents a pacing protocol as a sequence of :class:`events
     <ProtocolEvent>`.
@@ -49,7 +46,7 @@ class Protocol(object):
     ``pickle``.
     """
     def __init__(self):
-        super(Protocol, self).__init__()
+        super().__init__()
         self._head = None
 
     def add(self, e):
@@ -536,7 +533,7 @@ class Protocol(object):
         return [p.advance(t) for t in times]
 
 
-class ProtocolEvent(object):
+class ProtocolEvent:
     """
     Describes an event occurring as part of a protocol.
     """
@@ -719,7 +716,7 @@ class ProtocolEvent(object):
         return self.in_words()
 
 
-class PacingSystem(object):
+class PacingSystem:
     """
     This class uses a :class:`myokit.Protocol` to update the value of a
     pacing variable over time.
@@ -853,7 +850,7 @@ class NotAnUnbrokenSequenceError(myokit.MyokitError):
     pass
 
 
-class TimeSeriesProtocol(object):
+class TimeSeriesProtocol:
     """
     Represents a pacing protocol as a sequence of time value pairs and an
     interpolation method (currently only linear interpolation is supported).
@@ -870,7 +867,7 @@ class TimeSeriesProtocol(object):
     """
 
     def __init__(self, times, values, method=None):
-        super(TimeSeriesProtocol, self).__init__()
+        super().__init__()
 
         if len(times) != len(values):
             raise ValueError('Times and values array must have same size.')

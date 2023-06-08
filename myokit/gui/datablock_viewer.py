@@ -4,24 +4,18 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import collections
+import configparser
 import os
 import sys
-import numpy as np
 import traceback
-import collections
+
+import numpy as np
 
 import myokit
 import myokit.gui
-from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
-# ConfigParser in Python 2 and 3
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
+from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
 
 # Application title
@@ -92,7 +86,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
     """
 
     def __init__(self, filename=None):
-        super(DataBlockViewer, self).__init__()
+        super().__init__()
         # Set application icon
         self.setWindowIcon(icon())
         # Set size, center
@@ -951,7 +945,7 @@ class VideoScene(QtWidgets.QGraphicsScene):
     double_click = QtCore.Signal(float, float)
 
     def __init__(self, *args):
-        super(VideoScene, self).__init__(*args)
+        super().__init__(*args)
         self.setBackgroundBrush(QtGui.QColor(192, 192, 192))
         self._w = None
         self._h = None
@@ -1008,7 +1002,7 @@ class VideoView(QtWidgets.QGraphicsView):
     resize_event = QtCore.Signal()
 
     def __init__(self, scene):
-        super(VideoView, self).__init__(scene)
+        super().__init__(scene)
         # Disable scrollbars
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -1091,7 +1085,7 @@ class GraphArea(QtWidgets.QWidget):
     mouse_moved = QtCore.Signal(float, float)
 
     def __init__(self):
-        super(GraphArea, self).__init__()
+        super().__init__()
         # DataBlock 2d, and its time vector
         self._data = None
         self._time = None

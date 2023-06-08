@@ -7,9 +7,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit.formats
 
 
@@ -22,7 +19,7 @@ class SBMLImporter(myokit.formats.Importer):
     :class:`myokit.formats.sbml.SBMLParser`.
     """
     def __init__(self):
-        super(SBMLImporter, self).__init__()
+        super().__init__()
 
     def supports_model(self):
         """Returns ``True``."""

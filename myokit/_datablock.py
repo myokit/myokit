@@ -4,14 +4,13 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import array
 import os
 import sys
-import array
-import numpy as np
+
 import myokit
+
+import numpy as np
 
 
 # Readme file for DataBlock1d binary files
@@ -85,7 +84,7 @@ header, and little-endian:
 ENC = 'utf-8'
 
 
-class DataBlock1d(object):
+class DataBlock1d:
     """
     Container for time-series of 1d rectangular data arrays.
 
@@ -476,17 +475,10 @@ class DataBlock1d(object):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Get size of single and double types on this machine
-        try:
-            dsize = {
-                'd': len(array.array('d', [1]).tobytes()),
-                'f': len(array.array('f', [1]).tobytes()),
-            }
-        except (AttributeError, TypeError):  # pragma: no python 3 cover
-            # List dtype as str for Python 2.7.10 (see #225)
-            dsize = {
-                b'd': len(array.array(b'd', [1]).tostring()),
-                b'f': len(array.array(b'f', [1]).tostring()),
-            }
+        dsize = {
+            'd': len(array.array('d', [1]).tobytes()),
+            'f': len(array.array('f', [1]).tobytes()),
+        }
 
         # Read data from file
         try:
@@ -544,8 +536,6 @@ class DataBlock1d(object):
             nt = int(next(head))
             nx = int(next(head))
             dtype = next(head)[1:-1]
-            # Convert dtype to str for Python 2.7.10 (see #225)
-            dtype = str(dtype)
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
                     'Unable to read DataBlock1d: Unrecognized data type "'
@@ -573,10 +563,7 @@ class DataBlock1d(object):
                     'Unable to read DataBlock1d: Header indicates larger data'
                     ' than found in the body.')
             data = array.array(dtype)
-            try:
-                data.frombytes(body[start:end])
-            except AttributeError:  # pragma: no python 3 cover
-                data.fromstring(body[start:end])
+            data.frombytes(body[start:end])
             if sys.byteorder == 'big':  # pragma: no cover
                 data.byteswap()
             data = np.array(data)
@@ -597,10 +584,7 @@ class DataBlock1d(object):
                         'Unable to read DataBlock1d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
-                try:
-                    data.frombytes(body[start:end])
-                except AttributeError:  # pragma: no python 3 cover
-                    data.fromstring(body[start:end])
+                data.frombytes(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data)
@@ -619,10 +603,7 @@ class DataBlock1d(object):
                         'Unable to read DataBlock1d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
-                try:
-                    data.frombytes(body[start:end])
-                except AttributeError:  # pragma: no python 3 cover
-                    data.fromstring(body[start:end])
+                data.frombytes(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data).reshape(nt, nx, order='C')
@@ -680,8 +661,7 @@ class DataBlock1d(object):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Data type
-        # Create dtype as str for Python 2.7.10 (see #225)
-        dtype = str('d')     # Only supporting doubles right now
+        dtype = 'd'     # Only supporting doubles right now
 
         # Create header
         head_str = []
@@ -706,10 +686,7 @@ class DataBlock1d(object):
         if sys.byteorder == 'big':  # pragma: no cover
             for ar in body_str:
                 ar.byteswap()
-        try:
-            body_str = b''.join([ar.tobytes() for ar in body_str])
-        except AttributeError:  # pragma: no python 3 cover
-            body_str = b''.join([ar.tostring() for ar in body_str])
+        body_str = b''.join([ar.tobytes() for ar in body_str])
 
         # Write
         head = zipfile.ZipInfo('header_block1d.txt')
@@ -803,7 +780,7 @@ class DataBlock1d(object):
         return self._1d[variable][:, x]
 
 
-class DataBlock2d(object):
+class DataBlock2d:
     """
     Container for time-series of 2d rectangular data arrays.
 
@@ -1274,17 +1251,10 @@ class DataBlock2d(object):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Get size of single and double types on this machine
-        try:
-            dsize = {
-                'd': len(array.array('d', [1]).tobytes()),
-                'f': len(array.array('f', [1]).tobytes()),
-            }
-        except (AttributeError, TypeError):  # pragma: no python 3 cover
-            # List dtype as str for Python 2.7.10 (see #225)
-            dsize = {
-                b'd': len(array.array(b'd', [1]).tostring()),
-                b'f': len(array.array(b'f', [1]).tostring()),
-            }
+        dsize = {
+            'd': len(array.array('d', [1]).tobytes()),
+            'f': len(array.array('f', [1]).tobytes()),
+        }
 
         # Read data from file
         try:
@@ -1353,8 +1323,7 @@ class DataBlock2d(object):
             nx = int(next(head))
 
             # Get dtype
-            # Convert dtype to str for Python 2.7.10 (see #225)
-            dtype = str(next(head))[1:-1]
+            dtype = next(head)[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
                     'Unable to read DataBlock2d: Unrecognized data type "'
@@ -1384,10 +1353,7 @@ class DataBlock2d(object):
                     ' than found in the body.')
 
             data = array.array(dtype)
-            try:
-                data.frombytes(body[start:end])
-            except AttributeError:  # pragma: no python 3 cover
-                data.fromstring(body[start:end])
+            data.frombytes(body[start:end])
             if sys.byteorder == 'big':  # pragma: no cover
                 data.byteswap()
             data = np.array(data)
@@ -1408,10 +1374,7 @@ class DataBlock2d(object):
                         'Unable to read DataBlock2d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
-                try:
-                    data.frombytes(body[start:end])
-                except AttributeError:  # pragma: no python 3 cover
-                    data.fromstring(body[start:end])
+                data.frombytes(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data)
@@ -1430,10 +1393,7 @@ class DataBlock2d(object):
                         'Unable to read DataBlock2d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
-                try:
-                    data.frombytes(body[start:end])
-                except AttributeError:  # pragma: no python 3 cover
-                    data.fromstring(body[start:end])
+                data.frombytes(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data).reshape(nt, ny, nx, order='C')
@@ -1496,8 +1456,7 @@ class DataBlock2d(object):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Data type
-        # Create dtype as str for Python 2.7.10 (see #225)
-        dtype = str('d')  # Only supporting doubles right now
+        dtype = 'd'     # Only supporting doubles right now
 
         # Create header
         head_str = []
@@ -1523,10 +1482,7 @@ class DataBlock2d(object):
         if sys.byteorder == 'big':  # pragma: no cover
             for ar in body_str:
                 ar.byteswap()
-        try:
-            body_str = b''.join([ar.tobytes() for ar in body_str])
-        except AttributeError:  # pragma: no python 3 cover
-            body_str = b''.join([ar.tostring() for ar in body_str])
+        body_str = b''.join([ar.tobytes() for ar in body_str])
 
         # Write
         head = zipfile.ZipInfo('header_block2d.txt')
@@ -1671,7 +1627,7 @@ class DataBlock2d(object):
         return self._2d[variable][:, y, x]
 
 
-class ColorMap(object):
+class ColorMap:
     """
     *Abstract class*
 

@@ -4,13 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
-import myokit
-import numpy as np
 import platform
+
+import numpy as np
+
+import myokit
 
 # Location of C source file
 SOURCE_FILE = 'jacobian.cpp'
@@ -45,7 +44,7 @@ class JacobianTracer(myokit.CppModule):
     _index = 0  # Unique id
 
     def __init__(self, model):
-        super(JacobianTracer, self).__init__()
+        super().__init__()
 
         # Require a valid model
         model.validate()
@@ -216,7 +215,7 @@ class JacobianCalculator(myokit.CppModule):
     _index = 0  # Unique id
 
     def __init__(self, model):
-        super(JacobianCalculator, self).__init__()
+        super().__init__()
         # Require a valid model
         model.validate()
 

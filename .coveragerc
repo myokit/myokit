@@ -4,14 +4,12 @@ omit =
     myokit/gui/*
     myokit/tests/*
     myokit/__main__.py
-    myokit/_exec_old.py
     myokit/lib/common.py
 
 [report]
 exclude_lines =
     pragma: no cover
     pragma: no linux cover
-    pragma: no python 3 cover
     def __repr__
     raise AssertionError
     raise NotImplementedError

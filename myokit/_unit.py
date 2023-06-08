@@ -5,21 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import math
 
 import myokit
 
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
 
-
-class Unit(object):
+class Unit:
     """
     Represents a unit.
 
@@ -522,7 +513,7 @@ class Unit(object):
             preferred representation format.
 
         """
-        if not isinstance(name, basestring):
+        if not isinstance(name, str):
             raise TypeError('Given name must be a string.')
         if not isinstance(unit, Unit):
             raise TypeError('Given unit must be myokit.Unit')
@@ -679,7 +670,7 @@ class Unit(object):
             self._m - other._m)
 
 
-class Quantity(object):
+class Quantity:
     """
     Represents a quantity with a :class:`unit <myokit.Unit>`. Can be used to
     perform unit-safe arithmetic.

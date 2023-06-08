@@ -5,26 +5,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import io
 import math
 import numpy
 
 import myokit
+
 from myokit import IntegrityError
 
-# StringIO in Python 2 and 3
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
 
 # Expression precedence levels
 FUNCTION_CALL = 70
@@ -37,7 +25,7 @@ CONDITION_AND = 10
 LITERAL = 0
 
 
-class Expression(object):
+class Expression:
     """
     Myokit's most generic interface for expressions. All expressions extend
     this class.
@@ -85,8 +73,8 @@ class Expression(object):
         self._cached_unit_tolerant = None
         self._cached_unit_strict = None
 
-    def __bool__(self):     # pragma: no python 2 cover
-        """ Python 3 method to determine the outcome of "if expression". """
+    def __bool__(self):
+        # Determines the outcome of "if expression".
         return True
 
     def bracket(self, op=None):
@@ -142,7 +130,7 @@ class Expression(object):
         """
         # Note: Because variable and component names can change, the output of
         # code can not be cached (for non-literal expressions).
-        b = StringIO()
+        b = io.StringIO()
         self._code(b, component)
         return b.getvalue()
 
@@ -540,8 +528,6 @@ class Expression(object):
         raise NotImplementedError
 
     def __float__(self):
-        # Cast to float is required in Python 3: numpy float etc. are ok, but
-        # this is deprecated.
         return float(self.eval())
 
     def __getitem__(self, key):
@@ -551,9 +537,7 @@ class Expression(object):
         if self._cached_hash is None:
             self._cached_hash = hash(self._polish())
         return self._cached_hash
-        # Note for Python3:
-        #   In Python3, anything that has an __eq__ stops inheriting this hash
-        #   method!
+        # Note: anything that has an __eq__ stops inheriting this hash method!
         # From: https://docs.python.org/3.1/reference/datamodel.html
         # > If a class that overrides __eq__() needs to retain the
         #   implementation of __hash__() from a parent class, the interpreter
@@ -631,10 +615,6 @@ class Expression(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def __nonzero__(self):  # pragma: no python 3 cover
-        """ Python 2 method to determine the outcome of "if expression". """
-        return True
-
     def operator_rep(self):
         """
         Returns a representation of this expression's type. (For example '+' or
@@ -653,7 +633,7 @@ class Expression(object):
         variable id is immutable in the expression's lifetime.
         """
         if self._cached_polish is None:
-            b = StringIO()
+            b = io.StringIO()
             self._polishb(b)
             self._cached_polish = b.getvalue()
         return self._cached_polish
@@ -670,7 +650,7 @@ class Expression(object):
 
     def pyfunc(self, use_numpy=True):
         """
-        Converts this expression to python and returns the new function's
+        Converts this expression to Python and returns the new function's
         handle.
 
         By default, when converting mathematical functions such as ``log``, the
@@ -691,19 +671,19 @@ class Expression(object):
         # Create function
         local = {}
         if use_numpy:
-            myokit._exec(c, {'numpy': numpy}, local)
+            exec(c, {'numpy': numpy}, local)
         else:
-            myokit._exec(c, {'math': math}, local)
+            exec(c, {'math': math}, local)
 
         # Return
         return local['ex_pyfunc_generated']
 
     def pystr(self, use_numpy=False):
         """
-        Returns a string representing this expression in python syntax.
+        Returns a string representing this expression in Python syntax.
 
         By default, built-in functions such as 'exp' are converted to the
-        python version 'math.exp'. To use the numpy versions, set
+        Python version 'math.exp'. To use the numpy versions, set
         ``numpy=True``.
         """
         # Get expression writer
@@ -742,7 +722,7 @@ class Expression(object):
         Returns a string representing the parse tree corresponding to this
         expression.
         """
-        b = StringIO()
+        b = io.StringIO()
         self._tree_str(b, 0)
         return b.getvalue()
 
@@ -855,7 +835,7 @@ class Number(Expression):
     _rbp = LITERAL
 
     def __init__(self, value, unit=None):
-        super(Number, self).__init__()
+        super().__init__()
         if isinstance(value, myokit.Quantity):
             # Conversion from Quantity class
             if unit is not None:
@@ -869,7 +849,7 @@ class Number(Expression):
             self._value = float(value) if value else 0.0
             if unit is None or isinstance(unit, myokit.Unit):
                 self._unit = unit
-            elif isinstance(unit, basestring):
+            elif isinstance(unit, str):
                 self._unit = myokit.parse_unit(unit)
             else:
                 raise ValueError(
@@ -1013,10 +993,10 @@ class Name(LhsExpression):
     *Extends:* :class:`LhsExpression`
     """
     _rbp = LITERAL
-    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+    __hash__ = LhsExpression.__hash__
 
     def __init__(self, value):
-        super(Name, self).__init__()
+        super().__init__()
         self._value = value
         self._references = set([self])
         self._proper = isinstance(self._value, myokit.Variable)
@@ -1054,7 +1034,7 @@ class Name(LhsExpression):
                     except KeyError:
                         pass
                 b.write(self._value.qname(c))
-        elif isinstance(self._value, basestring):
+        elif isinstance(self._value, str):
             # Allow strings for debugging
             b.write('str:' + str(self._value))
         else:
@@ -1125,7 +1105,7 @@ class Name(LhsExpression):
         return self._proper and self._value.is_state()
 
     def _polishb(self, b):
-        if isinstance(self._value, basestring):
+        if isinstance(self._value, str):
             # Allow an exception for strings
             b.write('str:')
             b.write(self._value)
@@ -1153,7 +1133,7 @@ class Name(LhsExpression):
         b.write(' ' * n + str(self._value) + '\n')
 
     def _validate(self, trail):
-        super(Name, self)._validate(trail)
+        super()._validate(trail)
         # Check value: String is allowed at construction for debugging, but
         # not here!
         if not self._proper:
@@ -1174,10 +1154,10 @@ class Derivative(LhsExpression):
     """
     _rbp = FUNCTION_CALL
     _nargs = [1]    # Allows parsing as a function
-    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+    __hash__ = LhsExpression.__hash__
 
     def __init__(self, op):
-        super(Derivative, self).__init__((op,))
+        super().__init__((op,))
         if not isinstance(op, Name):
             raise IntegrityError(
                 'The dot() operator can only be used on variables.',
@@ -1274,7 +1254,7 @@ class Derivative(LhsExpression):
         return self._op._value
 
     def _validate(self, trail):
-        super(Derivative, self)._validate(trail)
+        super()._validate(trail)
         # Check that value is a variable has already been performed by name
         # Check if value is the name of a state variable
         if not self._op._value.is_state():
@@ -1295,7 +1275,7 @@ class PartialDerivative(LhsExpression):
     """
     _rbp = FUNCTION_CALL
     _nargs = [2]    # Allows parsing as a function
-    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+    __hash__ = LhsExpression.__hash__
 
     def __init__(self, var1, var2):
         if not isinstance(var1, (Name, Derivative)):
@@ -1306,7 +1286,7 @@ class PartialDerivative(LhsExpression):
             raise IntegrityError(
                 'The second argument to a partial derivative must be a'
                 ' variable name or an initial value.')
-        super(PartialDerivative, self).__init__((var1, var2))
+        super().__init__((var1, var2))
 
         self._var1 = var1
         self._var2 = var2
@@ -1406,10 +1386,10 @@ class InitialValue(LhsExpression):
     """
     _rbp = FUNCTION_CALL
     _nargs = [1]    # Allows parsing as a function
-    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+    __hash__ = LhsExpression.__hash__
 
     def __init__(self, var):
-        super(InitialValue, self).__init__((var, ))
+        super().__init__((var, ))
         if not isinstance(var, Name):
             raise IntegrityError(
                 'The first argument to an initial value must be a variable'
@@ -1468,7 +1448,7 @@ class InitialValue(LhsExpression):
         return self._var._value
 
     def _validate(self, trail):
-        super(InitialValue, self)._validate(trail)
+        super()._validate(trail)
         # Check if value is the name of a state variable
         var = self._var._value
         if not (isinstance(var, myokit.Variable) and var.is_state()):
@@ -1487,7 +1467,7 @@ class PrefixExpression(Expression):
     _rep = None
 
     def __init__(self, op):
-        super(PrefixExpression, self).__init__((op,))
+        super().__init__((op,))
         self._op = op
 
     def bracket(self, op):
@@ -1586,7 +1566,7 @@ class InfixExpression(Expression):
     _spaces_round_operator = True
 
     def __init__(self, left, right):
-        super(InfixExpression, self).__init__((left, right))
+        super().__init__((left, right))
         self._op1 = left
         self._op2 = right
 
@@ -2089,7 +2069,7 @@ class Function(Expression):
     _rbp = FUNCTION_CALL
 
     def __init__(self, *ops):
-        super(Function, self).__init__(ops)
+        super().__init__(ops)
         if self._nargs is not None:
             if not len(ops) in self._nargs:
                 raise IntegrityError(
@@ -2660,7 +2640,7 @@ class If(Function):
     _fname = 'if'
 
     def __init__(self, i, t, e):
-        super(If, self).__init__(i, t, e)
+        super().__init__(i, t, e)
         self._i = i     # if
         self._t = t     # then
         self._e = e     # else
@@ -2766,7 +2746,7 @@ class Piecewise(Function):
     _fname = 'piecewise'
 
     def __init__(self, *ops):
-        super(Piecewise, self).__init__(*ops)
+        super().__init__(*ops)
 
         # Check number of arguments
         n = len(self._operands)
@@ -2854,7 +2834,7 @@ class Piecewise(Function):
         return iter(self._e)
 
 
-class Condition(object):
+class Condition:
     """
     *Abstract class*
 

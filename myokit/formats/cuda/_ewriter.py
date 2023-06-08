@@ -4,10 +4,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
+
 from myokit.formats.python import PythonExpressionWriter
 
 
@@ -17,7 +15,7 @@ class CudaExpressionWriter(PythonExpressionWriter):
     Myokit :class:`expressions <myokit.Expression>` to their CUDA equivalents.
     """
     def __init__(self, precision=myokit.SINGLE_PRECISION):
-        super(CudaExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = ''
         self._sp = (precision == myokit.SINGLE_PRECISION)
 

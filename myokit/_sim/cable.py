@@ -4,12 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
-import myokit
 import platform
+
+import myokit
 
 # Location of source file
 SOURCE_FILE = 'cable.c'
@@ -101,7 +99,7 @@ class Simulation1d(myokit.CModule):
     _index = 0      # Unique id for generated module
 
     def __init__(self, model, protocol=None, ncells=50, rl=False):
-        super(Simulation1d, self).__init__()
+        super().__init__()
 
         # Require a valid model
         model.validate()

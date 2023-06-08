@@ -4,12 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 
 import myokit
+
 from ._ewriter import LatexExpressionWriter
 
 
@@ -19,7 +17,7 @@ class PdfExporter(myokit.formats.Exporter):
     a simple latex document.
     """
     def __init__(self):
-        super(PdfExporter, self).__init__()
+        super().__init__()
 
     def _clean(self, text):
         """
@@ -111,7 +109,7 @@ class PosterExporter(myokit.formats.Exporter):
     beholders.
     """
     def __init__(self):
-        super(PosterExporter, self).__init__()
+        super().__init__()
 
     def post_export_info(self):
         return '\n'.join((

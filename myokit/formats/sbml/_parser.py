@@ -8,9 +8,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import re
 import warnings
 
@@ -76,10 +73,10 @@ class SBMLParsingError(myokit.ImportError):
                 message = 'Error on line ' + line + '. ' + message
             except AttributeError:  # pragma: no cover
                 pass
-        super(SBMLParsingError, self).__init__(message)
+        super().__init__(message)
 
 
-class SBMLParser(object):
+class SBMLParser:
     """
     Parses SBML models, creating an SBML Model structure that can be converted
     to a :class:`myokit.Model` object.

@@ -8,23 +8,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
 import unittest
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:
-    basestring = str
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 # Further model API tests are found in:
 #  - test_dependency_checking.py
@@ -300,10 +285,10 @@ class ModelBuildTest(unittest.TestCase):
 
         # Test dependency mapping
         def has(var, *dps):
-            lst = vrs[m.get(var).lhs() if isinstance(var, basestring) else var]
+            lst = vrs[m.get(var).lhs() if isinstance(var, str) else var]
             self.assertEqual(len(lst), len(dps))
             for d in dps:
-                d = m.get(d).lhs() if isinstance(d, basestring) else d
+                d = m.get(d).lhs() if isinstance(d, str) else d
                 self.assertIn(d, lst)
 
         vrs = m.map_shallow_dependencies(omit_states=False)

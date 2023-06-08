@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#980](https://github.com/myokit/myokit/pull/980) Python 2 is no longer supported. The minimum Python version is 3.6.
 - Deprecated
 - Removed
 - Fixed

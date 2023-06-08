@@ -6,9 +6,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
 
@@ -16,18 +13,6 @@ import myokit
 import myokit.units
 
 from myokit.tests import DIR_DATA, TemporaryDirectory
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
 
 
 class TokenizerTest(unittest.TestCase):
@@ -908,29 +893,29 @@ class PhasedParseTest(unittest.TestCase):
             '[[script]]',
         )
         script = parse_script(code)
-        self.assertIsInstance(script, basestring)
+        self.assertIsInstance(script, str)
         script = parse_script(''.join(code))
-        self.assertIsInstance(script, basestring)
+        self.assertIsInstance(script, str)
 
         code = (
             '[[script]]\n',
         )
         script = parse_script(code)
-        self.assertIsInstance(script, basestring)
+        self.assertIsInstance(script, str)
 
         code = (
             '[[script]]\n',
             'print("hi")',
         )
         script = parse_script(code)
-        self.assertIsInstance(script, basestring)
+        self.assertIsInstance(script, str)
 
         code = (
             '[[script]]\n',
             'print("hi")\n',
         )
         script = parse_script(code)
-        self.assertIsInstance(script, basestring)
+        self.assertIsInstance(script, str)
 
         # Not a script
         code = (

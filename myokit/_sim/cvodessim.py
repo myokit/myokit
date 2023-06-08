@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import platform
 import tempfile
@@ -152,7 +149,7 @@ class Simulation(myokit.CModule):
     _index = 0  # Simulation id
 
     def __init__(self, model, protocol=None, sensitivities=None, path=None):
-        super(Simulation, self).__init__()
+        super().__init__()
 
         # Require a valid model
         if not model.is_valid():

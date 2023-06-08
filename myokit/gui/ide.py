@@ -5,10 +5,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Standard library imports
+import configparser
 import gc
 import os
 import sys
@@ -16,17 +13,14 @@ import textwrap
 import traceback
 import warnings
 
-# Myokit
 import myokit
 import myokit.formats
+import myokit.gui
 import myokit.lib.deps
 import myokit.lib.guess
 
-# Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
-# GUI components
-import myokit.gui
 from . import source
 from . import explorer
 from . import progress
@@ -36,12 +30,6 @@ from . import vargrapher
 # Matplotlib.pyplot must be imported _after_ myokit.gui has set the backend
 import matplotlib
 matplotlib.interactive(True)        # Allows plt.show()
-
-# ConfigParser in Python 2 and 3
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
 
 
 # Application title
@@ -110,7 +98,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
     New GUI for editing ``.mmt`` files.
     """
     def __init__(self, filename=None):
-        super(MyokitIDE, self).__init__()
+        super().__init__()
 
         # Set application icon
         self.setWindowIcon(icon())
@@ -2637,7 +2625,7 @@ class TabbedToolBar(QtWidgets.QTabWidget):
     tab_toggled = QtCore.Signal(QtWidgets.QWidget, bool)
 
     def __init__(self, parent=None):
-        super(TabbedToolBar, self).__init__(parent)
+        super().__init__(parent)
 
         self.setTabsClosable(True)
         self.tabCloseRequested.connect(self._close_button_hit)
@@ -2666,7 +2654,7 @@ class TabbedToolBar(QtWidgets.QTabWidget):
             self.setFocus()
             self.focusPreviousChild()
         else:
-            super(TabbedToolBar, self).keyPressEvent(event)
+            super().keyPressEvent(event)
 
     def toggle(self, widget, new_status=None):
         """
@@ -2720,7 +2708,7 @@ class ModelNavigator(QtWidgets.QWidget):
     item_changed = QtCore.Signal(int)
 
     def __init__(self, parent=None):
-        super(ModelNavigator, self).__init__(parent)
+        super().__init__(parent)
 
         # List widget
         self._list_widget = QtWidgets.QListWidget()
@@ -2764,7 +2752,7 @@ class Console(QtWidgets.QPlainTextEdit):
     *Extends*: ``QtWidgets.QPlainTextEdit``
     """
     def __init__(self, parent=None):
-        super(Console, self).__init__(parent)
+        super().__init__(parent)
         self.setReadOnly(True)
         font = myokit.gui.qtMonospaceFont()
         font.setPointSize(10)

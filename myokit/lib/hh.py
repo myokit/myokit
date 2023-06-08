@@ -4,14 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import numpy as np
+
 import myokit
 
 
-class HHModel(object):
+class HHModel:
     """
     Represents a Hodgkin-Huxley (HH)-style model of an ion channel, extracted
     from a :class:`myokit.Model`.
@@ -94,7 +92,7 @@ class HHModel(object):
     # A HHModel can return a function to calculate state values, but it never
     # updates its internal state in any way.
     def __init__(self, model, states, parameters=None, current=None, vm=None):
-        super(HHModel, self).__init__()
+        super().__init__()
 
         #
         # Check input
@@ -533,7 +531,7 @@ class HHModel(object):
         return self._steady_state_function(*inputs)
 
 
-class AnalyticalSimulation(object):
+class AnalyticalSimulation:
     """
     Analytically evaluates a :class:`HHModel`'s state for a given set of points
     in time.
@@ -583,7 +581,7 @@ class AnalyticalSimulation(object):
 
     """
     def __init__(self, model, protocol=None):
-        super(AnalyticalSimulation, self).__init__()
+        super().__init__()
 
         # Check model
         if not isinstance(model, HHModel):

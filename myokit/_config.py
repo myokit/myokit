@@ -5,27 +5,18 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Load Myokit, at least, the bit that's been setup so far. This just means
-# this method will add a link to the myokit module already being loaded
-# into this method's namespace. This allows us to use the constants defined
-# before this method was called.
-import myokit
-
-# Load standard library modules
+import configparser
 import logging
 import os
 import platform
 import sys
 import warnings
 
-# ConfigParser in Python 2 and 3
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import RawConfigParser as ConfigParser
+# Load Myokit, at least, the bit that's been setup so far. This just means
+# this method will add a link to the myokit module already being loaded
+# into this method's namespace. This allows us to use the constants defined
+# before this method was called.
+import myokit
 
 
 def _create(path):
@@ -37,7 +28,7 @@ def _create(path):
     system = platform.system()
 
     # Create config parser
-    config = ConfigParser(allow_no_value=True)
+    config = configparser.RawConfigParser(allow_no_value=True)
 
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str
@@ -223,7 +214,7 @@ def _load():
         del lines, inline_comment
 
     # Create the config parser (no value allows comments)
-    config = ConfigParser(allow_no_value=True)
+    config = configparser.RawConfigParser(allow_no_value=True)
 
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str

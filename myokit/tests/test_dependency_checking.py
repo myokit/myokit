@@ -6,27 +6,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
 
 import myokit
 
 from myokit.tests import DIR_DATA
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
 
 
 # Extra output
@@ -55,7 +40,7 @@ class DepTest(unittest.TestCase):
         """
         # If a string lhs is given, interpret it as a variable name and get
         # the lhs of its defining equation
-        if isinstance(key, basestring):
+        if isinstance(key, str):
             key = self.m.get(key)
             if isinstance(key, myokit.Variable):
                 key = key.lhs()
@@ -64,7 +49,7 @@ class DepTest(unittest.TestCase):
         # convert it to a Name. Ensure no duplicates are given.
         deps = list(set(deps))
         for k, dep in enumerate(deps):
-            if isinstance(dep, basestring):
+            if isinstance(dep, str):
                 deps[k] = self.n(dep)
 
         # Get dep map
@@ -449,7 +434,7 @@ class DeepDepTest(DepTest):
             return self.has_lhs(depmap, lhs, *deps)
 
         def nhas(lhs):
-            if isinstance(lhs, basestring):
+            if isinstance(lhs, str):
                 lhs = self.m.get(lhs).lhs()
             self.assertNotIn(lhs, depmap)
 
@@ -594,7 +579,7 @@ class DeepDepTest(DepTest):
             return self.has_lhs(depmap, lhs, *deps)
 
         def nhas(lhs):
-            if isinstance(lhs, basestring):
+            if isinstance(lhs, str):
                 lhs = self.m.get(lhs).lhs()
             self.assertNotIn(lhs, depmap)
 
@@ -1360,10 +1345,10 @@ class SolvableOrderTest(DepTest):
 
         def before(lhs1, *lhs2s):
             """ Asserts lhs1 comes before lhs2 in the current component """
-            if isinstance(lhs1, basestring):
+            if isinstance(lhs1, str):
                 lhs1 = self.m.get(self.ccomp + '.' + lhs1).lhs()
             for lhs2 in lhs2s:
-                if isinstance(lhs2, basestring):
+                if isinstance(lhs2, str):
                     lhs2 = self.m.get(self.ccomp + '.' + lhs2).lhs()
                 i1 = i2 = None
                 for i, eq in enumerate(self.order[self.ccomp]):
@@ -1508,14 +1493,14 @@ class SolvableOrderTest(DepTest):
 
         def before(lhs1, *lhs2s):
             """ Asserts lhs2 comes before lhs1 """
-            if isinstance(lhs1, basestring):
+            if isinstance(lhs1, str):
                 if lhs1.startswith('dot('):
                     lhs1 = myokit.Derivative(myokit.Name(
                         self.m.get(lhs1[4:-1])))
                 else:
                     lhs1 = myokit.Name(self.m.get(lhs1))
             for lhs2 in lhs2s:
-                if isinstance(lhs2, basestring):
+                if isinstance(lhs2, str):
                     if lhs2.startswith('dot('):
                         lhs2 = myokit.Derivative(myokit.Name(
                             self.m.get(lhs2[4:-1])))

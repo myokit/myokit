@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -24,7 +22,7 @@ class MyokitError(Exception):
     *Extends:* ``Exception``
     """
     def __init__(self, message):
-        super(MyokitError, self).__init__(message)
+        super().__init__(message)
 
 
 class IntegrityError(MyokitError):
@@ -37,7 +35,7 @@ class IntegrityError(MyokitError):
     *Extends:* :class:`myokit.MyokitError`
     """
     def __init__(self, message, token=None):
-        super(IntegrityError, self).__init__(message)
+        super().__init__(message)
         self._token = token
 
     def token(self):
@@ -77,7 +75,7 @@ class CyclicalDependencyError(IntegrityError):
         # Set token: First item in cycle is model's defining lhs
         tok = cycle[0].var()._token
         # Raise
-        super(CyclicalDependencyError, self).__init__(msg, tok)
+        super().__init__(msg, tok)
 
 
 class DataBlockReadError(MyokitError):
@@ -167,7 +165,7 @@ class IllegalReferenceError(IntegrityError):
     *Extends:* :class:`myokit.IntegrityError`
     """
     def __init__(self, reference, owner):
-        super(IllegalReferenceError, self).__init__(
+        super().__init__(
             'Illegal reference: The referenced variable <' + reference.qname()
             + '> is outside the scope of <' + owner.qname() + '>.')
 
@@ -179,7 +177,7 @@ class IllegalReferenceInInitialValueError(IllegalReferenceError):
     The only way this can occur is if the reference is to a nested variable.
     """
     def __init__(self, reference, owner):
-        super(IllegalReferenceError, self).__init__(
+        super(IntegrityError, self).__init__(
             'Illegal reference made in initial value: The referenced variable'
             ' <' + reference.qname() + '> is nested.')
 
@@ -203,7 +201,7 @@ class IncompatibleModelError(MyokitError):
         if model_name:
             msg += ' <' + str(model_name) + '>'
         msg += ': ' + str(message)
-        super(IncompatibleModelError, self).__init__(msg)
+        super().__init__(msg)
 
 
 class IncompatibleUnitError(MyokitError):
@@ -213,7 +211,7 @@ class IncompatibleUnitError(MyokitError):
     *Extends:* :class:`myokit.MyokitError`.
     """
     def __init__(self, message, token=None):
-        super(MyokitError, self).__init__(message)
+        super().__init__(message)
         self._token = token
 
     def token(self):
@@ -288,7 +286,7 @@ class MissingRhsError(IntegrityError):
     def __init__(self, var):
         msg = 'No rhs set for <' + var.qname() + '>.'
         tok = var._token
-        super(MissingRhsError, self).__init__(msg, tok)
+        super().__init__(msg, tok)
 
 
 class MissingTimeVariableError(IntegrityError):
@@ -300,7 +298,7 @@ class MissingTimeVariableError(IntegrityError):
     def __init__(self):
         msg = 'No variable bound to time. At least one of the model\'s' \
               ' variables must be bound to "time".'
-        super(MissingTimeVariableError, self).__init__(msg)
+        super().__init__(msg)
 
 
 class NumericalError(MyokitError):
@@ -339,7 +337,7 @@ class ParseError(MyokitError):
         self.desc = str(desc)
         self.value += ': ' + self.desc
         self.cause = cause
-        super(ParseError, self).__init__(self.value)
+        super().__init__(self.value)
 
 
 class ProtocolEventError(MyokitError):
@@ -383,7 +381,7 @@ class SimulationCancelledError(MyokitError):
     *Extends:* :class:`myokit.MyokitError`
     """
     def __init__(self, message='Operation cancelled by user.'):
-        super(SimulationCancelledError, self).__init__(message)
+        super().__init__(message)
 
 
 class SimultaneousProtocolEventError(MyokitError):
@@ -402,7 +400,7 @@ class UnresolvedReferenceError(IntegrityError):
     *Extends:* :class:`myokit.IntegrityError`
     """
     def __init__(self, reference, extra_message=None):
-        super(UnresolvedReferenceError, self).__init__(
+        super().__init__(
             'Unknown variable: <' + reference + '>.'
             + ((' ' + extra_message) if extra_message else '')
         )
@@ -419,7 +417,7 @@ class UnusedVariableError(IntegrityError):
     def __init__(self, var):
         msg = 'Unused variable: <' + var.qname() + '>.'
         tok = var.lhs()._token
-        super(UnusedVariableError, self).__init__(msg, tok)
+        super().__init__(msg, tok)
 
 
 class VariableMappingError(MyokitError):

@@ -139,23 +139,22 @@
 # Information - but no direct code - from the matlab script get_abf_header.m
 # was also used: http://neurodata.hg.sourceforge.net/hgweb/neurodata/neurodata/
 #------------------------------------------------------------------------------
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-from collections import OrderedDict
-import numpy as np
-import traceback
 import datetime
 import logging
-import struct
 import os
+import struct
+import traceback
+
+import numpy as np
+
+from collections import OrderedDict
 
 
 # Encoding for text parts of files
 _ENC = 'latin-1'
 
 
-class AbfFile(object):
+class AbfFile:
     """
     Represents a read-only Axon Binary Format file (``.abf``), stored at the
     location pointed to by ``filepath``.
@@ -199,7 +198,6 @@ class AbfFile(object):
     """
     def __init__(self, filepath, is_protocol_file=None):
         # The path to the file and its basename
-        # Ensure it's a `str` for Python2/3 compatibility
         filepath = str(filepath)
         self._filepath = os.path.abspath(filepath)
         self._filename = os.path.basename(filepath)
@@ -702,7 +700,6 @@ class AbfFile(object):
             """
             Read and unpack a file section using the given format ``form``.
             """
-            # Form must be a str (so bytes on Python 2)
             form = str(form)
             if offset is not None:
                 f.seek(offset)
@@ -1306,14 +1303,14 @@ class AbfFile(object):
                 self._adc_offsets.append(s)
 
 
-class Sweep(object):
+class Sweep:
     """
     Represents a single sweep (also called an 'episode')
 
     A sweep is represented as a fixed-size list of channels.
     """
     def __init__(self, n):
-        super(Sweep, self).__init__()
+        super().__init__()
         n = int(n)
         if n < 0:   # pragma: no cover
             raise ValueError('Number channels cannot be negative.')
@@ -1336,14 +1333,14 @@ class Sweep(object):
         self._channels[key] = value
 
 
-class Channel(object):
+class Channel:
     """
     Represents an analog signal for a single channel.
 
     To obtain this channel's formatted data, use times() and trace()
     """
     def __init__(self, parent_file):
-        super(Channel, self).__init__()
+        super().__init__()
         self._parent_file = parent_file  # The abf file this channel is from
         self._type = TYPE_UNKNOWN   # Type of recording
 
@@ -1386,7 +1383,7 @@ class Channel(object):
     def number(self):
         """
         Returns the channel index used by pClamp. Note that this does not
-        necessarily equal its index in the python sweep data!
+        necessarily equal its index in the Python sweep data!
         """
         return self._numb
 

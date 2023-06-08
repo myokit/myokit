@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 
 import myokit
@@ -26,7 +23,7 @@ class AnsicEventBasedPacing(myokit.CModule):
     _index = 0
 
     def __init__(self, protocol):
-        super(AnsicEventBasedPacing, self).__init__()
+        super().__init__()
 
         # Unique id
         AnsicEventBasedPacing._index += 1

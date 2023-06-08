@@ -4,20 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 from lxml import etree
+from urllib.parse import quote
 
 import myokit
 import myokit.formats.cellml as cellml
-
-# Quoting URI strings in Python2 and Python3
-try:
-    from urllib.parse import quote
-except ImportError:     # pragma: no python 3 cover
-    # Python 2
-    from urllib import quote
 
 
 # Left-over from old exporter. Not sure if this had any function.
@@ -45,7 +36,7 @@ def write_string(model):
     return CellMLWriter().write_string(model)
 
 
-class CellMLWriter(object):
+class CellMLWriter:
     """
     Writes CellML 1.0 or 1.1 documents.
     """

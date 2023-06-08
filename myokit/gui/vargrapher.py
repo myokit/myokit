@@ -4,22 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Standard library imports
-
-# Myokit
 import myokit
+import myokit.gui
 
-# Qt imports
 from myokit.gui import QtGui, QtWidgets
 
-# NumPy
 import numpy as np
-
-# GUI components
-import myokit.gui
 
 # Matplotlib (must be imported _after_ gui has had chance to set backend)
 import matplotlib
@@ -50,7 +40,7 @@ class VarGrapher(QtWidgets.QDialog):
     *Extends:* ``QtWidgets.QDialog``
     """
     def __init__(self, parent, title, var, func, args):
-        super(VarGrapher, self).__init__(parent)
+        super().__init__(parent)
         self.setFixedSize(700, 600)
         self.setWindowTitle(title)
 

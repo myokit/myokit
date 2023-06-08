@@ -20,16 +20,11 @@ and then a myokit.Simulation which you can .run() to obtain simulated results.
 # Without an explicit __all__, importing * will result in importing all
 # functions and classes described below. No submodules of myokit will be
 # loaded!
-
-
 #
 # GUI and graphical modules should not be auto-included because they define a
 # matplotlib backend to use. If the user requires a different backend, this
 # will generate an error.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 
 #
 # Check python version
@@ -44,27 +39,14 @@ from __future__ import print_function, unicode_literals
 #
 import sys  # noqa
 if sys.hexversion < 0x03000000:  # pragma: no cover
+    raise Exception('This version of Myokit does not support Python 2.')
+elif sys.hexversion < 0x03070000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit support for Python 2.7 is nearing the end of its lifetime.'
-        ' Please upgrade as soon as possible! Detected Python version: '
-        + sys.version)
-    del logging, log
-elif sys.hexversion < 0x03060000:  # pragma: no cover
-    import logging  # noqa
-    log = logging.getLogger(__name__)
-    log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.6. Detected'
+        'Myokit is not tested on Python 3 versions older than 3.7. Detected'
         ' Python version: ' + sys.version)
     del logging, log
-
-
-# Exec() that works with Python 2 versions before 2.7.9
-if sys.hexversion < 0x020709F0:     # pragma: no python 3 cover
-    from ._exec_old import _exec    # noqa
-else:
-    from ._exec_new import _exec    # noqa
 del sys
 
 

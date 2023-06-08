@@ -4,14 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-import myokit
 import os
 import sys
 import traceback
 import warnings
+
+import myokit
 
 # Constants
 DIR_FORMATS = os.path.join(myokit.DIR_MYOKIT, 'formats')
@@ -23,12 +21,12 @@ _EWRITERS = None
 
 
 # Classes & methods
-class Exporter(object):
+class Exporter:
     """
     Abstract base class for exporters.
     """
     def __init__(self):
-        super(Exporter, self).__init__()
+        super().__init__()
 
     def post_export_info(self):
         """
@@ -106,7 +104,7 @@ def exporters():
     return sorted(_EXPORTERS.keys())
 
 
-class ExpressionWriter(object):
+class ExpressionWriter:
     """
     Base class for expression writers, that take myokit expressions as input
     and convert them to text or other formats.
@@ -322,12 +320,12 @@ def ewriters():
     return sorted(_EWRITERS.keys())
 
 
-class Importer(object):
+class Importer:
     """
     Abstract base class for importers.
     """
     def __init__(self):
-        super(Importer, self).__init__()
+        super().__init__()
 
     def component(self, path, model):
         """
@@ -411,7 +409,7 @@ class TemplatedRunnableExporter(Exporter):
     protocol) into a runnable chunk of code.
     """
     def __init__(self):
-        super(TemplatedRunnableExporter, self).__init__()
+        super().__init__()
 
     def runnable(self, path, model, protocol=None, *args):
         """

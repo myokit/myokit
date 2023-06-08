@@ -5,11 +5,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
+
 import numpy as np
 
 import myokit
@@ -22,21 +20,6 @@ from myokit.tests import (
     CancellingReporter,
     WarningCollector,
 )
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-
-# Universal newline mode in Python 2 and 3
-def uopen(filename):
-    try:
-        return open(filename, 'r', newline=None)
-    except TypeError:
-        return open(filename, 'U')
-
 
 # Extra output
 debug = False
@@ -1395,12 +1378,12 @@ class DataLogTest(unittest.TestCase):
         with TemporaryDirectory() as td:
             fname = td.path('test.csv')
             d.save_csv(fname, order=['a.b', 'c.d', 'e.f'])
-            with uopen(fname) as f:
+            with open(fname, 'r', newline=None) as f:
                 header = f.readline()
             self.assertEqual(header, '"a.b","c.d","e.f"\n')
 
             d.save_csv(fname, order=['e.f', 'a.b', 'c.d'])
-            with uopen(fname) as f:
+            with open(fname, 'r', newline=None) as f:
                 header = f.readline()
             self.assertEqual(header, '"e.f","a.b","c.d"\n')
 
@@ -1422,7 +1405,7 @@ class DataLogTest(unittest.TestCase):
         with TemporaryDirectory() as td:
             fname = td.path('test.csv')
             d.save_csv(fname)
-            with uopen(fname) as f:
+            with open(fname, 'r', newline=None) as f:
                 order = [x[1:-1] for x in f.readline().strip().split(',')]
             self.assertEqual(len(order), 9)
             self.assertEqual(order[0], 'e.t')
