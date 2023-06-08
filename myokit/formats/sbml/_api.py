@@ -128,7 +128,7 @@ class Compartment(Quantity):
 
     """
     def __init__(self, model, sid):
-        super(Compartment, self).__init__()
+        super().__init__()
 
         if not isinstance(model, Model):
             raise SBMLError(
@@ -587,7 +587,7 @@ class Parameter(Quantity):
 
     """
     def __init__(self, model, sid):
-        super(Parameter, self).__init__()
+        super().__init__()
 
         if not isinstance(model, Model):
             raise SBMLError(
@@ -778,7 +778,7 @@ class Species(Quantity):
 
     """
     def __init__(self, compartment, sid, is_amount, is_constant, is_boundary):
-        super(Species, self).__init__()
+        super().__init__()
 
         if not isinstance(compartment, Compartment):
             raise SBMLError(
@@ -920,7 +920,7 @@ class SpeciesReference(Quantity):
     MODIFIER = 2
 
     def __init__(self, species, sid=None):
-        super(SpeciesReference, self).__init__()
+        super().__init__()
 
         if not isinstance(species, Species):
             raise SBMLError(
@@ -946,7 +946,7 @@ class ModifierSpeciesReference:
     """Represents a reference to a modifier species in an SBML reaction."""
 
     def __init__(self, species, sid=None):
-        super(ModifierSpeciesReference, self).__init__()
+        super().__init__()
 
         if not isinstance(species, Species):
             raise SBMLError(

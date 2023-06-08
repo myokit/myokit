@@ -20,7 +20,7 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
     The returned type is a SymPy object, not a string!
     """
     def __init__(self):
-        super(SymPyExpressionWriter, self).__init__()
+        super().__init__()
 
         self._flhs = None
         self.set_lhs_function(lambda lhs: str(lhs))

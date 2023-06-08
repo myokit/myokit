@@ -33,7 +33,7 @@ class RhsBenchmarker(myokit.CModule):
     _index = 0  # Unique id for the generated module
 
     def __init__(self, model, variables=None, exclude_selected=False):
-        super(RhsBenchmarker, self).__init__()
+        super().__init__()
 
         # Require a valid model
         model.validate()

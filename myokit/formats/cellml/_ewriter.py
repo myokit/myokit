@@ -21,8 +21,8 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
     unit names with :meth:`set_unit_function()`.
     """
     def __init__(self, version='1.0'):
-        super(CellMLExpressionWriter, self).__init__()
-        super(CellMLExpressionWriter, self).set_mode(presentation=False)
+        super().__init__()
+        super().set_mode(presentation=False)
 
         # Units lookup method
         self._funits = None
@@ -51,7 +51,7 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
         self._funits = f
 
     def _ex_number(self, e, t):
-        x = super(CellMLExpressionWriter, self)._ex_number(e, t)
+        x = super()._ex_number(e, t)
         unit = e.unit()
         if self._funits is not None and unit is not None:
             units = self._funits(e.unit())

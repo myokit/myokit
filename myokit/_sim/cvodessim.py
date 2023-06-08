@@ -149,7 +149,7 @@ class Simulation(myokit.CModule):
     _index = 0  # Simulation id
 
     def __init__(self, model, protocol=None, sensitivities=None, path=None):
-        super(Simulation, self).__init__()
+        super().__init__()
 
         # Require a valid model
         if not model.is_valid():

@@ -17,7 +17,7 @@ class StanExpressionWriter(PythonExpressionWriter):
     Myokit:class:`expressions <myokit.Expression>` to a Stan syntax.
     """
     def __init__(self):
-        super(StanExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = ''
 
         self._fcond = None

@@ -23,7 +23,7 @@ class AnsicEventBasedPacing(myokit.CModule):
     _index = 0
 
     def __init__(self, protocol):
-        super(AnsicEventBasedPacing, self).__init__()
+        super().__init__()
 
         # Unique id
         AnsicEventBasedPacing._index += 1

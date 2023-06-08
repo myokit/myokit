@@ -148,7 +148,7 @@ class SimulationOpenCL(myokit.CModule):
     def __init__(
             self, model, protocol=None, ncells=256, diffusion=True,
             precision=myokit.SINGLE_PRECISION, native_maths=False, rl=False):
-        super(SimulationOpenCL, self).__init__()
+        super().__init__()
 
         # Require a valid model
         if not model.is_valid():

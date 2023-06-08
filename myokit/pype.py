@@ -29,7 +29,7 @@ class TemplateEngine:
     stream specified by the user.
     """
     def __init__(self):
-        super(TemplateEngine, self).__init__()
+        super().__init__()
         self.stream = None
         self.error = None
 
@@ -234,5 +234,5 @@ class PypeError(Exception):
     *Extends:* Exception
     """
     def __init__(self, message):
-        super(PypeError, self).__init__(message)
+        super().__init__(message)
 

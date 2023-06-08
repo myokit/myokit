@@ -92,7 +92,7 @@ class HHModel:
     # A HHModel can return a function to calculate state values, but it never
     # updates its internal state in any way.
     def __init__(self, model, states, parameters=None, current=None, vm=None):
-        super(HHModel, self).__init__()
+        super().__init__()
 
         #
         # Check input
@@ -581,7 +581,7 @@ class AnalyticalSimulation:
 
     """
     def __init__(self, model, protocol=None):
-        super(AnalyticalSimulation, self).__init__()
+        super().__init__()
 
         # Check model
         if not isinstance(model, HHModel):

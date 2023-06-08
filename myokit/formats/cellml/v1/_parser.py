@@ -57,7 +57,7 @@ class CellMLParsingError(myokit.ImportError):
                 message = 'Error on line ' + line + '. ' + message
             except AttributeError:
                 pass
-        super(CellMLParsingError, self).__init__(message)
+        super().__init__(message)
 
 
 class CellMLParser:

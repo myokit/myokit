@@ -15,7 +15,7 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
     equations for variables in a C-style syntax.
     """
     def __init__(self):
-        super(AnsiCExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = ''
         self._fcond = None
 

@@ -31,7 +31,7 @@ class OpenCL(myokit.CModule):
     _message = None
 
     def __init__(self):
-        super(OpenCL, self).__init__()
+        super().__init__()
         # Create back-end and cache it
         OpenCL._index += 1
         mname = 'myokit_opencl_info_' + str(OpenCL._index)

@@ -73,7 +73,7 @@ class SBMLParsingError(myokit.ImportError):
                 message = 'Error on line ' + line + '. ' + message
             except AttributeError:  # pragma: no cover
                 pass
-        super(SBMLParsingError, self).__init__(message)
+        super().__init__(message)
 
 
 class SBMLParser:

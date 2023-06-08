@@ -61,7 +61,7 @@ class MathMLError(myokit.ImportError):
                 message = 'Error on line ' + line + '. ' + message
             except AttributeError:
                 pass
-        super(MathMLError, self).__init__(message)
+        super().__init__(message)
 
 
 class MathMLParser:

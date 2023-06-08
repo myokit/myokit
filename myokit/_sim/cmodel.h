@@ -918,9 +918,7 @@ for eqs in s_output_equations:
  * Private method: Add a variable to the logging lists. Returns 1 if
  * successful.
  *
- * Note: The variable names are all ascii compatible. In Python2, the strings
- * inside log_dict are either unicode or bytes, but they can be matched
- * without conversion.
+ * Note: The variable names are all ascii compatible.
  *
  * Arguments
  *  log_dict : A dictionary mapping variable names to sequences.

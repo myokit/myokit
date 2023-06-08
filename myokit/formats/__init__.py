@@ -26,7 +26,7 @@ class Exporter:
     Abstract base class for exporters.
     """
     def __init__(self):
-        super(Exporter, self).__init__()
+        super().__init__()
 
     def post_export_info(self):
         """
@@ -325,7 +325,7 @@ class Importer:
     Abstract base class for importers.
     """
     def __init__(self):
-        super(Importer, self).__init__()
+        super().__init__()
 
     def component(self, path, model):
         """
@@ -409,7 +409,7 @@ class TemplatedRunnableExporter(Exporter):
     protocol) into a runnable chunk of code.
     """
     def __init__(self):
-        super(TemplatedRunnableExporter, self).__init__()
+        super().__init__()
 
     def runnable(self, path, model, protocol=None, *args):
         """

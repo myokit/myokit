@@ -17,7 +17,7 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     equations for variables in EasyML syntax.
     """
     def __init__(self):
-        super(EasyMLExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = ''
 
     #def _ex_name(self, e):
@@ -37,7 +37,7 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
         if isinstance(e[1], myokit.Exp) and isinstance(e[0], myokit.Number):
             if e[0].eval() == 1:
                 return '-expm1(' + self.ex(e[1][0]) + ')'
-        return super(EasyMLExpressionWriter, self)._ex_minus(e)
+        return super()._ex_minus(e)
 
     #def _ex_multiply(self, e):
     #def _ex_divide(self, e):
@@ -56,23 +56,23 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
 
     def _ex_sin(self, e):
         warnings.warn('Potentially unsupported function: sin()')
-        return super(EasyMLExpressionWriter, self)._ex_sin(e)
+        return super()._ex_sin(e)
 
     #def _ex_cos(self, e):
 
     def _ex_tan(self, e):
         warnings.warn('Potentially unsupported function: tan()')
-        return super(EasyMLExpressionWriter, self)._ex_tan(e)
+        return super()._ex_tan(e)
 
     def _ex_asin(self, e):
         warnings.warn('Potentially unsupported function: asin()')
-        return super(EasyMLExpressionWriter, self)._ex_asin(e)
+        return super()._ex_asin(e)
 
     #def _ex_acos(self, e):
 
     def _ex_atan(self, e):
         warnings.warn('Potentially unsupported function: atan()')
-        return super(EasyMLExpressionWriter, self)._ex_atan(e)
+        return super()._ex_atan(e)
 
     #def _ex_exp(self, e):
 
@@ -85,11 +85,11 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
 
     def _ex_floor(self, e):
         warnings.warn('Potentially unsupported function: floor()')
-        return super(EasyMLExpressionWriter, self)._ex_floor(e)
+        return super()._ex_floor(e)
 
     def _ex_ceil(self, e):
         warnings.warn('Potentially unsupported function: ceil()')
-        return super(EasyMLExpressionWriter, self)._ex_ceil(e)
+        return super()._ex_ceil(e)
 
     def _ex_abs(self, e):
         return self._ex_function(e, 'fabs')

@@ -29,7 +29,7 @@ class Sundials(myokit.CModule):
     _version = None
 
     def __init__(self):
-        super(Sundials, self).__init__()
+        super().__init__()
         # Create and cache back-end
         Sundials._index += 1
 

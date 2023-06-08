@@ -61,7 +61,7 @@ class ChannelMLImporter(formats.Importer):
     from the ChannelML format.
     """
     def __init__(self, verbose=False):
-        super(ChannelMLImporter, self).__init__()
+        super().__init__()
         self.generated_name_index = 0
 
     def component(self, path, model):

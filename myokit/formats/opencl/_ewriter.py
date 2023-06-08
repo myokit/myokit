@@ -15,7 +15,7 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
     Myokit :class:`expressions <myokit.Expression>` to OpenCL syntax.
     """
     def __init__(self, precision=myokit.SINGLE_PRECISION, native_math=True):
-        super(OpenCLExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = ''
         self._sp = (precision == myokit.SINGLE_PRECISION)
         self._nm = bool(native_math)

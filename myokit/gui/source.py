@@ -96,7 +96,7 @@ class Editor(QtWidgets.QPlainTextEdit):
     status bar.
     """
     def __init__(self, parent=None):
-        super(Editor, self).__init__(parent)
+        super().__init__(parent)
 
         # Current style
         self._palette = QtGui.QGuiApplication.palette()
@@ -490,7 +490,7 @@ class Editor(QtWidgets.QPlainTextEdit):
             # Reset smart up/down behavior
             self._last_column = None
             # Pass to parent class
-            super(Editor, self).keyPressEvent(event)
+            super().keyPressEvent(event)
 
         elif key == Qt.Key_Insert and mod == Qt.NoModifier:
             # Insert/replace
@@ -538,7 +538,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 pass
             else:
                 # Let parent class handle it
-                super(Editor, self).keyPressEvent(event)
+                super().keyPressEvent(event)
 
     def _line_number_area_width(self):
         """ Returns the required width for the number area. """
@@ -582,7 +582,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         """ Paints this editor. """
 
         # Paint the editor
-        super(Editor, self).paintEvent(e)
+        super().paintEvent(e)
 
         # Paint a line between the editor and the line number area
         x = int(
@@ -609,7 +609,7 @@ class Editor(QtWidgets.QPlainTextEdit):
 
     def resizeEvent(self, event):
         """ Qt event: Editor is resized. """
-        super(Editor, self).resizeEvent(event)
+        super().resizeEvent(event)
         # Update line number area
         rect = self.contentsRect()
         self._line_number_area.setGeometry(
@@ -721,7 +721,7 @@ class LineNumberArea(QtWidgets.QWidget):
     """
 
     def __init__(self, editor):
-        super(LineNumberArea, self).__init__(editor)
+        super().__init__(editor)
         self._editor = editor
         self._editor.blockCountChanged.connect(self.update_width)
         self._editor.updateRequest.connect(self.update_contents)
@@ -765,7 +765,7 @@ class FindReplaceWidget(QtWidgets.QWidget):
     find_action = QtCore.Signal(str)
 
     def __init__(self, parent, editor):
-        super(FindReplaceWidget, self).__init__(parent)
+        super().__init__(parent)
         self._editor = editor
 
         # Create widgets
@@ -919,7 +919,7 @@ class FindReplaceWidget(QtWidgets.QWidget):
         if key == Qt.Key_Enter or key == Qt.Key_Return:
             self.action_find()
         else:
-            super(FindReplaceWidget, self).keyPressEvent(event)
+            super().keyPressEvent(event)
 
     def load_config(self, config, section):
         """
@@ -955,7 +955,7 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
     ANNOT_KEYS = ['in', 'bind', 'label']
 
     def __init__(self, document):
-        super(ModelHighlighter, self).__init__(document)
+        super().__init__(document)
 
         # Expressions used to find strings & comments
         self._string_start = QtCore.QRegExp(r'"""')
@@ -1100,7 +1100,7 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
     Syntax highlighter for ``mmt`` protocol definitions.
     """
     def __init__(self, document):
-        super(ProtocolHighlighter, self).__init__(document)
+        super().__init__(document)
 
         # Headers and units
         self._rule_head = QtCore.QRegExp(r'^(\s*)\[\[[a-zA-Z0-9_]+\]\]')
@@ -1144,7 +1144,7 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
     Syntax highlighter for ``mmt`` script files.
     """
     def __init__(self, document):
-        super(ScriptHighlighter, self).__init__(document)
+        super().__init__(document)
 
         # Headers and units
         self._rule_head = QtCore.QRegExp(r'^(\s*)\[\[[a-zA-Z0-9_]+\]\]')

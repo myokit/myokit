@@ -47,7 +47,7 @@ class TemporaryDirectory:
     exited.
     """
     def __init__(self):
-        super(TemporaryDirectory, self).__init__()
+        super().__init__()
         self._dir = None
 
     def __enter__(self):

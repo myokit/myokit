@@ -19,7 +19,7 @@ class ProgressBar(QtWidgets.QProgressDialog):
     and other tasks implementing the ``ProgressReporter`` interface.
     """
     def __init__(self, parent, message):
-        super(ProgressBar, self).__init__(
+        super().__init__(
             message, 'Cancel', 0, N, parent=parent)
         self.setWindowModality(Qt.WindowModal)
         self.setAutoClose(False)
@@ -48,7 +48,7 @@ class ProgressBarReporter(myokit.ProgressReporter):
     """
 
     def __init__(self, pd):
-        super(ProgressBarReporter, self).__init__()
+        super().__init__()
         self._pd = pd
 
     def enter(self, msg=None):

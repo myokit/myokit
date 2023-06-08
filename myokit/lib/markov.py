@@ -118,7 +118,7 @@ class LinearModel:
     # for its default values or newly passed in values, but it never updates
     # its internal state in any way!
     def __init__(self, model, states, parameters=None, current=None, vm=None):
-        super(LinearModel, self).__init__()
+        super().__init__()
 
         # Get a clone of the model, with all markov models written in full ODE
         # form.
@@ -687,7 +687,7 @@ class AnalyticalSimulation:
 
     """
     def __init__(self, model, protocol=None):
-        super(AnalyticalSimulation, self).__init__()
+        super().__init__()
         # Check model
         if not isinstance(model, LinearModel):
             raise ValueError('First parameter must be a `LinearModel`.')

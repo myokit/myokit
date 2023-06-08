@@ -15,7 +15,7 @@ class CellMLExporter(myokit.formats.Exporter):
     This:class:`Exporter <myokit.formats.Exporter>` creates a CellML model.
     """
     def __init__(self):
-        super(CellMLExporter, self).__init__()
+        super().__init__()
 
     def model(self, path, model, protocol=None, version='1.0'):
         """
@@ -66,7 +66,7 @@ class CellML1Exporter(CellMLExporter):
     This:class:`Exporter <myokit.formats.Exporter>` creates a CellML 1.0 model.
     """
     def model(self, path, model, protocol=None):
-        super(CellML1Exporter, self).model(path, model, protocol, '1.0')
+        super().model(path, model, protocol, '1.0')
 
 
 class CellML2Exporter(CellMLExporter):
@@ -74,5 +74,5 @@ class CellML2Exporter(CellMLExporter):
     This:class:`Exporter <myokit.formats.Exporter>` creates a CellML 2.0 model.
     """
     def model(self, path, model, protocol=None):
-        super(CellML2Exporter, self).model(path, model, protocol, '2.0')
+        super().model(path, model, protocol, '2.0')
 

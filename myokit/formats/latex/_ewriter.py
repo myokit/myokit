@@ -13,7 +13,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
     Myokit :class:`expressions <myokit.Expression>` to their Tex equivalent.
     """
     def __init__(self):
-        super(LatexExpressionWriter, self).__init__()
+        super().__init__()
 
         # Default time variable
         self._time = None

@@ -40,7 +40,7 @@ class VarGrapher(QtWidgets.QDialog):
     *Extends:* ``QtWidgets.QDialog``
     """
     def __init__(self, parent, title, var, func, args):
-        super(VarGrapher, self).__init__(parent)
+        super().__init__(parent)
         self.setFixedSize(700, 600)
         self.setWindowTitle(title)
 

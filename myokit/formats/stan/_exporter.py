@@ -58,7 +58,7 @@ class StanExporter(myokit.formats.TemplatedRunnableExporter):
             ion current).
 
         """
-        super(StanExporter, self).runnable(
+        super().runnable(
             path, model, protocol, parameters, output)
 
     def _vars(self, model, protocol, parameters, output):

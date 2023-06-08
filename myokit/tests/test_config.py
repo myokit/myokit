@@ -40,22 +40,12 @@ str=String value
 """
 
 # Config with empty paths and spaces
-config_paths_1 = """
+config_paths = """
 [sundials]
 lib = five
 inc = three;four;
 [opencl]
 lib = one;;   two point five;three;
-inc =
-"""
-
-# Config with empty paths and " ;", which in Python 2 is ignored
-config_paths_2 = """
-[sundials]
-lib = five ; six
-inc = three;four;
-[opencl]
-lib = one ;;   two point five ;three;
 inc =
 """
 
@@ -201,7 +191,7 @@ class TestConfig(unittest.TestCase):
         myokit.OPENCL_LIB = []
         myokit.OPENCL_INC = []
         with open(self._temp_dir.path('myokit.ini'), 'w') as f:
-            f.write(config_paths_1)
+            f.write(config_paths)
         self._config_module._load()
         self.assertEqual(myokit.SUNDIALS_LIB, ['five'])
         self.assertEqual(myokit.SUNDIALS_INC, ['three', 'four'])
@@ -209,25 +199,6 @@ class TestConfig(unittest.TestCase):
             myokit.OPENCL_LIB,
             ['one', 'two point five', 'three'])
         self.assertEqual(myokit.OPENCL_INC, [])
-
-        # Even if the list contains " ;", which Python 2's config parser treats
-        # as a comment
-        myokit.SUNDIALS_LIB = []
-        myokit.SUNDIALS_INC = []
-        myokit.OPENCL_LIB = []
-        myokit.OPENCL_INC = []
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
-            f.write(config_paths_2)
-        if sys.hexversion < 0x03020000:
-            self.assertRaises(ImportError, self._config_module._load)
-        else:
-            self._config_module._load()
-            self.assertEqual(myokit.SUNDIALS_LIB, ['five', 'six'])
-            self.assertEqual(myokit.SUNDIALS_INC, ['three', 'four'])
-            self.assertEqual(
-                myokit.OPENCL_LIB,
-                ['one', 'two point five', 'three'])
-            self.assertEqual(myokit.OPENCL_INC, [])
 
     def test_load_gui_backend(self):
         # Tests setting the GUI back end

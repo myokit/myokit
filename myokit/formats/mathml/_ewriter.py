@@ -16,7 +16,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
     Presentation MathML.
     """
     def __init__(self):
-        super(MathMLExpressionWriter, self).__init__()
+        super().__init__()
 
         # Default mode
         self._pres = False

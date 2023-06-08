@@ -13,7 +13,7 @@ class MatlabExpressionWriter(PythonExpressionWriter):
     Myokit :class:`expressions <myokit.Expression>` to a Matlab syntax.
     """
     def __init__(self):
-        super(MatlabExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = ''
         self._fcond = 'ifthenelse'
 

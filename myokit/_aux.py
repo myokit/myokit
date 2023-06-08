@@ -26,7 +26,7 @@ class Benchmarker(myokit.tools.Benchmarker):
         warnings.warn(
             'The class `myokit.Benchmarker` is deprecated.'
             ' Please use `myokit.tools.Benchmarker` instead.')
-        super(Benchmarker, self).__init__()
+        super().__init__()
 
 
 def date():
@@ -519,7 +519,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     # Class to run scripts
     class Runner:
         def __init__(self, model, protocol, script, stdout, stderr, progress):
-            super(Runner, self).__init__()
+            super().__init__()
             self.model = model
             self.protocol = protocol
             self.script = script

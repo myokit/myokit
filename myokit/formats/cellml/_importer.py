@@ -25,7 +25,7 @@ class CellMLImporter(myokit.formats.Importer):
     from CellML.
     """
     def __init__(self, verbose=False):
-        super(CellMLImporter, self).__init__()
+        super().__init__()
 
     def model(self, path):
         """

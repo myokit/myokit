@@ -95,11 +95,11 @@ class DataLog(OrderedDict):
     def __init__(self, other=None, time=None):
         if other is None:
             # Create new
-            super(DataLog, self).__init__()
+            super().__init__()
             self._time = None
         else:
             # Clone
-            super(DataLog, self).__init__(other)
+            super().__init__(other)
             try:
                 self._time = str(other._time)
             except Exception:
@@ -210,10 +210,10 @@ class DataLog(OrderedDict):
         return log
 
     def __contains__(self, key):
-        return super(DataLog, self).__contains__(self._parse_key(key))
+        return super().__contains__(self._parse_key(key))
 
     def __delitem__(self, key):
-        return super(DataLog, self).__delitem__(self._parse_key(key))
+        return super().__delitem__(self._parse_key(key))
 
     def extend(self, other):
         """
@@ -322,7 +322,7 @@ class DataLog(OrderedDict):
         return out
 
     def __getitem__(self, key):
-        return super(DataLog, self).__getitem__(self._parse_key(key))
+        return super().__getitem__(self._parse_key(key))
 
     def has_nan(self):
         """
@@ -1079,7 +1079,7 @@ class DataLog(OrderedDict):
         self._time = None if key is None else str(key)
 
     def __setitem__(self, key, value):
-        return super(DataLog, self).__setitem__(
+        return super().__setitem__(
             self._parse_key(key), value)
 
     def split(self, value):

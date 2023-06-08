@@ -52,7 +52,7 @@ class MetaDataContainer(dict):
             raise myokit.InvalidMetaDataNameError(
                 'The key <' + str(key) + '>'
                 ' is not a valid meta-data property identifier.')
-        return super(MetaDataContainer, self).__getitem__(key)
+        return super().__getitem__(key)
 
     def __setitem__(self, key, item):
         # Check item
@@ -62,7 +62,7 @@ class MetaDataContainer(dict):
             raise myokit.InvalidMetaDataNameError(
                 'The key <' + str(key) + '>'
                 ' is not a valid meta-data property identifier.')
-        super(MetaDataContainer, self).__setitem__(key, item)
+        super().__setitem__(key, item)
 
 
 class ObjectWithMeta:
@@ -74,7 +74,7 @@ class ObjectWithMeta:
     """
 
     def __init__(self):
-        super(ObjectWithMeta, self).__init__()
+        super().__init__()
         self.meta = MetaDataContainer()
 
     def _clone_metadata(self, clone):
@@ -122,7 +122,7 @@ class ModelPart(ObjectWithMeta):
         The given parent should be a ModelPart or None. The name should be
         unique within the set of children for the given parent.
         """
-        super(ModelPart, self).__init__()
+        super().__init__()
         self._parent = parent   # This object's parent
         self._model = None      # The model this object belongs to
         self._name = str(name)  # Local name
@@ -450,7 +450,7 @@ class VarOwner(ModelPart, VarProvider):
     """
 
     def __init__(self, parent, name):
-        super(VarOwner, self).__init__(parent, name)
+        super().__init__(parent, name)
         self._variables = {}
         # Set component
         self._component = self
@@ -776,7 +776,7 @@ class Model(ObjectWithMeta, VarProvider):
     """
 
     def __init__(self, name=None):
-        super(Model, self).__init__()
+        super().__init__()
 
         # A dictionary of components
         self._components = {}
@@ -3642,7 +3642,7 @@ class Component(VarOwner):
     """
 
     def __init__(self, model, name):
-        super(Component, self).__init__(model, name)
+        super().__init__(model, name)
         self._alias_map = {}    # Maps variable names to other variables names
 
     def _clone1(self, model, new_name=None):
@@ -3728,7 +3728,7 @@ class Component(VarOwner):
             var._delete(recursive=True, ignore_siblings=True)
 
         # Delete links to parent
-        super(Component, self)._delete()
+        super()._delete()
 
     def alias(self, name):
         """
@@ -3860,7 +3860,7 @@ class Variable(VarOwner):
     """
 
     def __init__(self, parent, name):
-        super(Variable, self).__init__(parent, name)
+        super().__init__(parent, name)
 
         # Index, only set if this is a state variable
         self._index = None
@@ -4267,7 +4267,7 @@ class Variable(VarOwner):
                 self._remove_variable_internal(kid)
 
         # Remove parent links
-        super(Variable, self)._delete()
+        super()._delete()
 
     def demote(self):
         """

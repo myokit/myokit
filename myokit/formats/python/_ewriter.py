@@ -14,7 +14,7 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
     equivalent.
     """
     def __init__(self):
-        super(PythonExpressionWriter, self).__init__()
+        super().__init__()
 
         self._flhs = None
         self.set_lhs_function(lambda v: str(v))
@@ -189,7 +189,7 @@ class NumPyExpressionWriter(PythonExpressionWriter):
     intended for use in NumPy arrays.
     """
     def __init__(self):
-        super(NumPyExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = 'numpy.'
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):

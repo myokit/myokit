@@ -35,7 +35,7 @@ class Explorer(QtWidgets.QDialog):
     *Extends:* ``QtWidgets.QDialog``
     """
     def __init__(self, parent, sim_method, output_stream, duration=1000):
-        super(Explorer, self).__init__(parent)
+        super().__init__(parent)
         self.setWindowTitle('Myokit Explorer')
         self._sim_method = sim_method
         self._stream = output_stream

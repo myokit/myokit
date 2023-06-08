@@ -2076,7 +2076,7 @@ class FunctionParser(NudParser):
     Parser for function calls.
     """
     def __init__(self):
-        super(FunctionParser, self).__init__()
+        super().__init__()
         self._rbp = myokit.Function._rbp
 
     def parse(self, stream, info):

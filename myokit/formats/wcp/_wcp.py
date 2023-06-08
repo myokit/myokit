@@ -32,7 +32,6 @@ class WcpFile:
     """
     def __init__(self, filepath):
         # The path to the file and its basename
-        # Ensure it's a `str` for Python2/3 compatibility
         filepath = str(filepath)
         self._filepath = os.path.abspath(filepath)
         self._filename = os.path.basename(filepath)
@@ -157,8 +156,6 @@ class WcpFile:
             rtype = f.read(4)
 
             # Group number (float set by the user)
-            # Note: First argument to struct.unpack must be a str (so bytes on
-            # Python 2).
             group_number = struct.unpack(str('<f'), f.read(4))[0]
 
             # Time of recording, as float, not sure how to interpret

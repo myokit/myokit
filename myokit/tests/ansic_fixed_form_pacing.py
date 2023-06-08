@@ -22,7 +22,7 @@ class AnsicFixedFormPacing(myokit.CModule):
     _index = 0
 
     def __init__(self, protocol):
-        super(AnsicFixedFormPacing, self).__init__()
+        super().__init__()
 
         # Unique id
         AnsicFixedFormPacing._index += 1

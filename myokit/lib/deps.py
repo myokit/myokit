@@ -181,7 +181,7 @@ class DiGraph:
     for example ``matrix=[[0, 1, 1], [0, 1, 0], [0, 0, 0]]``
     """
     def __init__(self, matrix=None):
-        super(DiGraph, self).__init__()
+        super().__init__()
         if isinstance(matrix, DiGraph):
             # Clone
             self.nodes = collections.OrderedDict()
@@ -533,7 +533,7 @@ class Node:
         """
         Creates a new, graphless node with the given identifier
         """
-        super(Node, self).__init__()
+        super().__init__()
         self.graph = None
         self.uid = uid
         self.edgo = set()

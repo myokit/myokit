@@ -184,7 +184,7 @@ class UnsupportedBaseUnitsError(UnitsError):
     """
     def __init__(self, units):
         self.units = units
-        super(UnsupportedBaseUnitsError, self).__init__(
+        super().__init__(
             'Unsupported base units "' + units + '".')
 
 
@@ -193,7 +193,7 @@ class UnsupportedUnitOffsetError(UnitsError):
     Raised when units with non-zero offsets are used.
     """
     def __init__(self):
-        super(UnsupportedUnitOffsetError, self).__init__(
+        super().__init__(
             'Units with non-zero offsets are not supported.')
 
 
@@ -203,7 +203,7 @@ class Component(AnnotatableElement):
     :meth:`Model.add_component()`.
     """
     def __init__(self, model, name):
-        super(Component, self).__init__(model)
+        super().__init__(model)
 
         # Store model
         self._model = model
@@ -471,7 +471,7 @@ class Model(AnnotatableElement):
 
     """
     def __init__(self, name, version='1.0'):
-        super(Model, self).__init__(self)
+        super().__init__(self)
 
         # Check and store name
         if not is_valid_identifier(name):
@@ -1467,7 +1467,7 @@ class Variable(AnnotatableElement):
     """
     def __init__(self, component, name, units, public_interface='none',
                  private_interface='none'):
-        super(Variable, self).__init__(component.model())
+        super().__init__(component.model())
 
         # Store component
         self._component = component

@@ -835,7 +835,7 @@ class Number(Expression):
     _rbp = LITERAL
 
     def __init__(self, value, unit=None):
-        super(Number, self).__init__()
+        super().__init__()
         if isinstance(value, myokit.Quantity):
             # Conversion from Quantity class
             if unit is not None:
@@ -996,7 +996,7 @@ class Name(LhsExpression):
     __hash__ = LhsExpression.__hash__
 
     def __init__(self, value):
-        super(Name, self).__init__()
+        super().__init__()
         self._value = value
         self._references = set([self])
         self._proper = isinstance(self._value, myokit.Variable)
@@ -1133,7 +1133,7 @@ class Name(LhsExpression):
         b.write(' ' * n + str(self._value) + '\n')
 
     def _validate(self, trail):
-        super(Name, self)._validate(trail)
+        super()._validate(trail)
         # Check value: String is allowed at construction for debugging, but
         # not here!
         if not self._proper:
@@ -1157,7 +1157,7 @@ class Derivative(LhsExpression):
     __hash__ = LhsExpression.__hash__
 
     def __init__(self, op):
-        super(Derivative, self).__init__((op,))
+        super().__init__((op,))
         if not isinstance(op, Name):
             raise IntegrityError(
                 'The dot() operator can only be used on variables.',
@@ -1254,7 +1254,7 @@ class Derivative(LhsExpression):
         return self._op._value
 
     def _validate(self, trail):
-        super(Derivative, self)._validate(trail)
+        super()._validate(trail)
         # Check that value is a variable has already been performed by name
         # Check if value is the name of a state variable
         if not self._op._value.is_state():
@@ -1286,7 +1286,7 @@ class PartialDerivative(LhsExpression):
             raise IntegrityError(
                 'The second argument to a partial derivative must be a'
                 ' variable name or an initial value.')
-        super(PartialDerivative, self).__init__((var1, var2))
+        super().__init__((var1, var2))
 
         self._var1 = var1
         self._var2 = var2
@@ -1389,7 +1389,7 @@ class InitialValue(LhsExpression):
     __hash__ = LhsExpression.__hash__
 
     def __init__(self, var):
-        super(InitialValue, self).__init__((var, ))
+        super().__init__((var, ))
         if not isinstance(var, Name):
             raise IntegrityError(
                 'The first argument to an initial value must be a variable'
@@ -1448,7 +1448,7 @@ class InitialValue(LhsExpression):
         return self._var._value
 
     def _validate(self, trail):
-        super(InitialValue, self)._validate(trail)
+        super()._validate(trail)
         # Check if value is the name of a state variable
         var = self._var._value
         if not (isinstance(var, myokit.Variable) and var.is_state()):
@@ -1467,7 +1467,7 @@ class PrefixExpression(Expression):
     _rep = None
 
     def __init__(self, op):
-        super(PrefixExpression, self).__init__((op,))
+        super().__init__((op,))
         self._op = op
 
     def bracket(self, op):
@@ -1566,7 +1566,7 @@ class InfixExpression(Expression):
     _spaces_round_operator = True
 
     def __init__(self, left, right):
-        super(InfixExpression, self).__init__((left, right))
+        super().__init__((left, right))
         self._op1 = left
         self._op2 = right
 
@@ -2069,7 +2069,7 @@ class Function(Expression):
     _rbp = FUNCTION_CALL
 
     def __init__(self, *ops):
-        super(Function, self).__init__(ops)
+        super().__init__(ops)
         if self._nargs is not None:
             if not len(ops) in self._nargs:
                 raise IntegrityError(
@@ -2640,7 +2640,7 @@ class If(Function):
     _fname = 'if'
 
     def __init__(self, i, t, e):
-        super(If, self).__init__(i, t, e)
+        super().__init__(i, t, e)
         self._i = i     # if
         self._t = t     # then
         self._e = e     # else
@@ -2746,7 +2746,7 @@ class Piecewise(Function):
     _fname = 'piecewise'
 
     def __init__(self, *ops):
-        super(Piecewise, self).__init__(*ops)
+        super().__init__(*ops)
 
         # Check number of arguments
         n = len(self._operands)

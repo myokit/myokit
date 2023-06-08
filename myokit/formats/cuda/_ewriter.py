@@ -15,7 +15,7 @@ class CudaExpressionWriter(PythonExpressionWriter):
     Myokit :class:`expressions <myokit.Expression>` to their CUDA equivalents.
     """
     def __init__(self, precision=myokit.SINGLE_PRECISION):
-        super(CudaExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = ''
         self._sp = (precision == myokit.SINGLE_PRECISION)
 

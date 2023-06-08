@@ -198,7 +198,6 @@ class AbfFile:
     """
     def __init__(self, filepath, is_protocol_file=None):
         # The path to the file and its basename
-        # Ensure it's a `str` for Python2/3 compatibility
         filepath = str(filepath)
         self._filepath = os.path.abspath(filepath)
         self._filename = os.path.basename(filepath)
@@ -701,7 +700,6 @@ class AbfFile:
             """
             Read and unpack a file section using the given format ``form``.
             """
-            # Form must be a str (so bytes on Python 2)
             form = str(form)
             if offset is not None:
                 f.seek(offset)
@@ -1312,7 +1310,7 @@ class Sweep:
     A sweep is represented as a fixed-size list of channels.
     """
     def __init__(self, n):
-        super(Sweep, self).__init__()
+        super().__init__()
         n = int(n)
         if n < 0:   # pragma: no cover
             raise ValueError('Number channels cannot be negative.')
@@ -1342,7 +1340,7 @@ class Channel:
     To obtain this channel's formatted data, use times() and trace()
     """
     def __init__(self, parent_file):
-        super(Channel, self).__init__()
+        super().__init__()
         self._parent_file = parent_file  # The abf file this channel is from
         self._type = TYPE_UNKNOWN   # Type of recording
 
@@ -1385,7 +1383,7 @@ class Channel:
     def number(self):
         """
         Returns the channel index used by pClamp. Note that this does not
-        necessarily equal its index in the python sweep data!
+        necessarily equal its index in the Python sweep data!
         """
         return self._numb
 

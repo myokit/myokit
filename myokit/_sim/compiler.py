@@ -29,7 +29,7 @@ class Compiler(myokit.CModule):
     _compiler = None
 
     def __init__(self):
-        super(Compiler, self).__init__()
+        super().__init__()
         # Create and cache back-end
         Compiler._index += 1
 

@@ -46,7 +46,7 @@ class Protocol:
     ``pickle``.
     """
     def __init__(self):
-        super(Protocol, self).__init__()
+        super().__init__()
         self._head = None
 
     def add(self, e):
@@ -867,7 +867,7 @@ class TimeSeriesProtocol:
     """
 
     def __init__(self, times, values, method=None):
-        super(TimeSeriesProtocol, self).__init__()
+        super().__init__()
 
         if len(times) != len(values):
             raise ValueError('Times and values array must have same size.')

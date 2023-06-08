@@ -158,7 +158,7 @@ class Component(AnnotatableElement):
     :meth:`Model.add_component()`.
     """
     def __init__(self, model, name):
-        super(Component, self).__init__()
+        super().__init__()
 
         # Store model
         self._model = model
@@ -314,7 +314,7 @@ class Model(AnnotatableElement):
 
     """
     def __init__(self, name, version='2.0'):
-        super(Model, self).__init__()
+        super().__init__()
 
         # Check and store name
         if not is_identifier(name):
@@ -1350,7 +1350,7 @@ class Variable(AnnotatableElement):
 
     """
     def __init__(self, component, name, units, interface='none'):
-        super(Variable, self).__init__()
+        super().__init__()
 
         # Store model and component
         self._model = component.model()

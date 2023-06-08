@@ -94,7 +94,7 @@ class ProgressPrinter(ProgressReporter):
     status every ten percent.
     """
     def __init__(self, digits=1):
-        super(ProgressPrinter, self).__init__()
+        super().__init__()
         self._b = myokit.tools.Benchmarker()
         self._f = None
         self._d = int(digits)
@@ -135,7 +135,7 @@ class Timeout(ProgressReporter):
     Progress reporter that cancels a simulation after ``timeout`` seconds.
     """
     def __init__(self, timeout):
-        super(Timeout, self).__init__()
+        super().__init__()
         self._timeout = float(timeout)
 
     def enter(self, msg=None):

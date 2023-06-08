@@ -44,7 +44,7 @@ class JacobianTracer(myokit.CppModule):
     _index = 0  # Unique id
 
     def __init__(self, model):
-        super(JacobianTracer, self).__init__()
+        super().__init__()
 
         # Require a valid model
         model.validate()
@@ -215,7 +215,7 @@ class JacobianCalculator(myokit.CppModule):
     _index = 0  # Unique id
 
     def __init__(self, model):
-        super(JacobianCalculator, self).__init__()
+        super().__init__()
         # Require a valid model
         model.validate()
 

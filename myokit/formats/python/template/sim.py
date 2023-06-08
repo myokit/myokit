@@ -216,7 +216,7 @@ def test_step():
 class Protocol:
     """ Holds an ordered set of ProtocolEvent objects """
     def __init__(self):
-        super(Protocol, self).__init__()
+        super().__init__()
         self.head = None
     def add(self, e):
         """ Schedules an event """
@@ -238,9 +238,11 @@ class Protocol:
         if self.head is not None:
             self.head = self.head.next
         return e
+
+
 class ProtocolEvent:
     def __init__(self, level, start, duration, period=0, multiplier=0):
-        super(ProtocolEvent, self).__init__()
+        super().__init__()
         self.level = float(level)
         self.start = float(start)
         self.duration = float(duration)
@@ -255,6 +257,7 @@ class ProtocolEvent:
         if self.period == 0 and self.multiplier > 0:
             raise Exception('Non-periodic event cannot occur more than once')
         self.next = None
+
 
 def pacing_protocol():
     pacing = Protocol()

@@ -19,7 +19,7 @@ class SBMLImporter(myokit.formats.Importer):
     :class:`myokit.formats.sbml.SBMLParser`.
     """
     def __init__(self):
-        super(SBMLImporter, self).__init__()
+        super().__init__()
 
     def supports_model(self):
         """Returns ``True``."""

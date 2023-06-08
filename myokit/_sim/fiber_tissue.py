@@ -120,7 +120,7 @@ class FiberTissueSimulation(myokit.CModule):
             ncells_fiber=(128, 2), ncells_tissue=(128, 128), nx_paced=5,
             g_fiber=(9, 6), g_tissue=(9, 6), g_fiber_tissue=9,
             dt=0.005, precision=myokit.SINGLE_PRECISION, native_maths=False):
-        super(FiberTissueSimulation, self).__init__()
+        super().__init__()
 
         # Deprecated since 2021-05-28
         # Un-deprecated on 2022-04-20, following Adam's request
