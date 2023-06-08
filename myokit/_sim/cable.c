@@ -367,9 +367,7 @@ sim_init(PyObject *self, PyObject *args)
     for(i_state=0; i_state<ncells * N_STATE; i_state++) {
         flt = PyList_GetItem(state_in, i_state);    /* Borrowed reference */
         if (!PyFloat_Check(flt)) {
-            char errstr[200];
-            sprintf(errstr, "Item %d in state vector is not a float.", i_state);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in state vector is not a float.", i_state);
             return sim_clean();
         }
     }

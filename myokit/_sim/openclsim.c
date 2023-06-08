@@ -515,9 +515,7 @@ sim_init(PyObject* self, PyObject* args)
     for(i=0; i<nx * ny * n_state; i++) {
         flt = PyList_GetItem(state_in, (Py_ssize_t)i);    // Don't decref!
         if(!PyFloat_Check(flt)) {
-            char errstr[200];
-            sprintf(errstr, "Item %u in state vector is not a float.", (unsigned int)i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %u in state vector is not a float.", (unsigned int)i);
             return sim_clean();
         }
         rvec_state[i] = (Real)PyFloat_AsDouble(flt);
@@ -552,9 +550,7 @@ sim_init(PyObject* self, PyObject* args)
         for(i=0; i<n_field_data; i++) {
             flt = PyList_GetItem(field_data, (Py_ssize_t)i);    // No need to decref
             if(!PyFloat_Check(flt)) {
-                char errstr[200];
-                sprintf(errstr, "Item %u in field data is not a float.", (unsigned int)i);
-                PyErr_SetString(PyExc_Exception, errstr);
+                PyErr_Format(PyExc_Exception, "Item %u in field data is not a float.", (unsigned int)i);
                 return sim_clean();
             }
             rvec_field_data[i] = (Real)PyFloat_AsDouble(flt);
