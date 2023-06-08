@@ -173,11 +173,8 @@ void
 ErrorHandler(int error_code, const char *module, const char *function,
              char *msg, void *eh_data)
 {
-    char errstr[1024];
     if (error_code > 0) {
-        sprintf(errstr, "CVODES: %s", msg);
-        PyErr_WarnEx(PyExc_RuntimeWarning, errstr, 1);
-        /* Python 3.2+: PyErr_WarnFormat(PyExc_RuntimeWarning, 1, "CVODES: %s", msg); */
+        PyErr_WarnFormat(PyExc_RuntimeWarning, 1, "CVODES: %s", msg);
     }
 }
 

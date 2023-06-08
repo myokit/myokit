@@ -542,9 +542,7 @@ sim_init(PyObject* self, PyObject* args)
     for(i=0; i < nfx * nfy * n_state_f; i++) {
         flt = PyList_GetItem(state_in_f, i);    // Don't decref!
         if(!PyFloat_Check(flt)) {
-            char errstr[200];
-            sprintf(errstr, "Item %u in fiber state vector is not a float.", (unsigned int)i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %u in fiber state vector is not a float.", (unsigned int)i);
             return sim_clean();
         }
         rvec_state_f[i] = (Real)PyFloat_AsDouble(flt);
@@ -558,9 +556,7 @@ sim_init(PyObject* self, PyObject* args)
     for(i=0; i < ntx * nty * n_state_t; i++) {
         flt = PyList_GetItem(state_in_t, i);
         if(!PyFloat_Check(flt)) {
-            char errstr[200];
-            sprintf(errstr, "Item %u in tissue state vector is not a float.", (unsigned int)i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %u in tissue state vector is not a float.", (unsigned int)i);
             return sim_clean();
         }
         rvec_state_t[i] = (Real)PyFloat_AsDouble(flt);

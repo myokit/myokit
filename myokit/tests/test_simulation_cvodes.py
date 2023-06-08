@@ -288,13 +288,14 @@ class SimulationTest(unittest.TestCase):
         d = self.sim.run(n, log_interval=1)
         self.assertEqual(list(d.time()), times)
         self.assertEqual(list(d['engine.pace']), values)
-        self.assertRaisesRegex(
-            ValueError, 'No times',
-            self.sim.set_fixed_form_protocol, values=values)
-        self.assertRaisesRegex(
-            ValueError, 'No values',
-            self.sim.set_fixed_form_protocol, times=times)
-        self.sim.set_fixed_form_protocol(None)
+        with WarningCollector() as w:
+            self.assertRaisesRegex(
+                ValueError, 'No times',
+                self.sim.set_fixed_form_protocol, values=values)
+            self.assertRaisesRegex(
+                ValueError, 'No values',
+                self.sim.set_fixed_form_protocol, times=times)
+            self.sim.set_fixed_form_protocol(None)
         self.sim.reset()
         d = self.sim.run(n, log_interval=1)
         self.assertEqual(list(d['engine.pace']), [0] * n)
