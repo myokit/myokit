@@ -147,13 +147,14 @@ class Editor(QtWidgets.QPlainTextEdit):
             pos = cursor.position()
             bracket = None
             if not cursor.atEnd():
-                cursor.setPosition(pos + 1, QtGui.QTextCursor.KeepAnchor)
+                cursor.setPosition(
+                    pos + 1, QtGui.QTextCursor.MoveMode.KeepAnchor)
                 text = cursor.selectedText()
                 if text in BRACKETS:
                     bracket = cursor
             elif bracket is None and not cursor.atStart():
                 cursor.setPosition(pos - 1)
-                cursor.setPosition(pos, QtGui.QTextCursor.KeepAnchor)
+                cursor.setPosition(pos, QtGui.QTextCursor.MoveMode.KeepAnchor)
                 text = cursor.selectedText()
                 if text in BRACKETS:
                     bracket = cursor
@@ -167,10 +168,10 @@ class Editor(QtWidgets.QPlainTextEdit):
                     if text in BRACKETS_CLOSE:
                         other = doc.find(
                             text, start - 1,
-                            QtGui.QTextDocument.FindBackward)
+                            QtGui.QTextDocument.FindFlag.FindBackward)
                         match = doc.find(
                             BRACKETS[text], start - 1,
-                            QtGui.QTextDocument.FindBackward)
+                            QtGui.QTextDocument.FindFlag.FindBackward)
                     else:
                         other = doc.find(text, start)
                         match = doc.find(BRACKETS[text], start)
@@ -255,22 +256,27 @@ class Editor(QtWidgets.QPlainTextEdit):
 
     def keyPressEvent(self, event):
         """ Qt event: A key was pressed. """
+        K = Qt.Key
+        KM = Qt.KeyboardModifier
+        MM = QtGui.QTextCursor.MoveMode
+        MO = QtGui.QTextCursor.MoveOperation
+
         # Get key and modifiers
         key = event.key()
         mod = event.modifiers()
-        K = Qt.Key
-        M = Qt.KeyBoardModifier
         # Possible modifiers:
         #  NoModifier
         #  ShiftModifier, ControlModifier, AltModifiier
         #  MetaModifier (i.e. super key)
         #  KeyPadModifier (button is part of keypad)
         #  GroupSwitchModifier (x11 thing)
+
         # Ignore the keypad modifier, we don't care!
-        if mod & Qt.KeypadModifier:
-            mod = mod ^ Qt.KeypadModifier   # xor!
+        if mod & KM.KeypadModifier:
+            mod = mod ^ KM.KeypadModifier   # xor!
+
         # Actions per key/modifier combination
-        if key == K.Key_Tab and mod == M.NoModifier:
+        if key == K.Key_Tab and mod == KM.NoModifier:
             # Indent
             cursor = self.textCursor()
             start, end = cursor.selectionStart(), cursor.selectionEnd()
@@ -290,7 +296,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 pos = cursor.positionInBlock()
                 cursor.insertText((TABS - pos % TABS) * SPACE)
 
-        elif key == K.Key_Backtab and mod == M.ShiftModifier:
+        elif key == K.Key_Backtab and mod == KM.ShiftModifier:
             # Dedent all lines in selection (or single line if no selection)
             '''
             cursor = self.textCursor()
@@ -310,7 +316,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 p2 = p1 + min(4, len(t) - len(t.lstrip()))
                 c = self.textCursor()
                 c.setPosition(p1)
-                c.setPosition(p2, QtGui.QTextCursor.KeepAnchor)
+                c.setPosition(p2, MM.KeepAnchor)
                 c.removeSelectedText()
             cursor.endEditBlock()
             '''
@@ -339,14 +345,13 @@ class Editor(QtWidgets.QPlainTextEdit):
                 cursor.beginEditBlock()
                 cursor.setPosition(first.position())
                 cursor.setPosition(
-                    last.position() + last.length() - 1,
-                    QtGui.QTextCursor.KeepAnchor)
+                    last.position() + last.length() - 1, MM.KeepAnchor)
                 cursor.removeSelectedText()
                 cursor.insertText('\n'.join(new_text))
                 cursor.endEditBlock()
                 # Set new cursor
                 cursor.setPosition(new_start)
-                cursor.setPosition(new_end, QtGui.QTextCursor.KeepAnchor)
+                cursor.setPosition(new_end, MM.KeepAnchor)
                 self.setTextCursor(cursor)
 
         elif key == K.Key_Enter or key == K.Key_Return:
@@ -354,7 +359,7 @@ class Editor(QtWidgets.QPlainTextEdit):
             # This is very important as the default for shift-enter is to
             # start a new line within the same block (this can't happen with
             # copy-pasting, so it's safe to just catch it here).
-            if mod == M.NoModifier:
+            if mod == KM.NoModifier:
                 # "Smart" enter:
                 #   - If selection, selection is deleted
                 #   - Else, autoindenting is performed
@@ -377,7 +382,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 self.ensureCursorVisible()
 
         elif key == K.Key_Home and (
-                mod == M.NoModifier or mod == M.ShiftModifier):
+                mod == KM.NoModifier or mod == KM.ShiftModifier):
             # Plain home button: move to start of line
             # If Control is used: Jump to start of document
             # Ordinary home button: Jump to first column or first
@@ -400,25 +405,21 @@ class Editor(QtWidgets.QPlainTextEdit):
                 # Smart up/down:
                 self._last_column = indent
             # If Shift is used: only move position (keep anchor, i.e. select)
-            anchor = (
-                QtGui.QTextCursor.KeepAnchor if mod == M.ShiftModifier
-                else QtGui.QTextCursor.MoveAnchor)
-            cursor.setPosition(newpos, anchor)
+            cursor.setPosition(newpos,
+                MM.KeepAnchor if mod == KM.ShiftModifier else MM.MoveAnchor)
             self.setTextCursor(cursor)
 
         elif key == K.Key_Home and (
-                mod == M.ControlModifier
-                or mod == M.ControlModifier & M.ShiftModifier):
+                mod == KM.ControlModifier
+                or mod == KM.ControlModifier & KM.ShiftModifier):
             # Move to start of document
             # If Shift is used: only move position (keep anchor, i.e. select)
-            anchor = (
-                QtGui.QTextCursor.KeepAnchor if mod == M.ShiftModifier
-                else QtGui.QTextCursor.MoveAnchor)
             cursor = self.textCursor()
-            cursor.setPosition(0, anchor)
+            cursor.setPosition(
+                0, MM.KeepAnchor if mod == KM.ShiftModifier else MM.MoveAnchor)
             self.setTextCursor(cursor)
 
-        elif key in (K.Key_Up, K.Key_Down) and mod == M.AltModifier:
+        elif key in (K.Key_Up, K.Key_Down) and mod == KM.AltModifier:
             # Move selected lines up or down
             # Get current selection
             doc = self.document()
@@ -444,30 +445,28 @@ class Editor(QtWidgets.QPlainTextEdit):
             b1pos = block1.position()
             cursor.beginEditBlock()
             cursor.setPosition(b1pos)
-            cursor.setPosition(end, QtGui.QTextCursor.KeepAnchor)
-            cursor.movePosition(
-                QtGui.QTextCursor.EndOfLine, QtGui.QTextCursor.KeepAnchor)
+            cursor.setPosition(end, MM.KeepAnchor)
+            cursor.movePosition(MO.EndOfLine, MM.KeepAnchor)
             line = cursor.selectedText()
             size = cursor.selectionEnd() - cursor.selectionStart()
             cursor.removeSelectedText()
             if key == K.Key_Up:
                 cursor.deletePreviousChar()
-                cursor.movePosition(QtGui.QTextCursor.StartOfLine)
+                cursor.movePosition(MO.StartOfLine)
                 cursor.insertText(line + '\n')
-                cursor.movePosition(QtGui.QTextCursor.Left)
+                cursor.movePosition(MO.Left)
             else:
                 cursor.deleteChar()
-                cursor.movePosition(QtGui.QTextCursor.EndOfLine)
+                cursor.movePosition(MO.EndOfLine)
                 cursor.insertText('\n' + line)
             cursor.endEditBlock()
             # Cursor is at the end of the moved lines.
             # Set moved lines as selection
-            cursor.movePosition(
-                QtGui.QTextCursor.Left, QtGui.QTextCursor.KeepAnchor, size)
+            cursor.movePosition(MO.Left, MM.KeepAnchor, size)
             self.setTextCursor(cursor)
 
         elif key in (K.Key_Up, K.Key_Down, K.Key_PageUp, K.Key_PageDown) \
-                and (mod == M.NoModifier or mod == M.ShiftModifier):
+                and (mod == KM.NoModifier or mod == KM.ShiftModifier):
             # Move cursor up/down
             # Maintain the column position, even when the current row doesn't
             # have as many characters. Reset this behavior as soon as a
@@ -475,13 +474,12 @@ class Editor(QtWidgets.QPlainTextEdit):
             # changed.
             # Set up operation
             anchor = (
-                QtGui.QTextCursor.KeepAnchor if mod == M.ShiftModifier
-                else QtGui.QTextCursor.MoveAnchor)
-            operation = \
-                QtGui.QTextCursor.PreviousBlock if key in (
-                    K.Key_Up, K.Key_PageUp) else QtGui.QTextCursor.NextBlock
+                MM.KeepAnchor if mod == KM.ShiftModifier else MM.MoveAnchor)
+            operation = MO.PreviousBlock if key in (K.Key_Up, K.Key_PageUp) \
+                        else MO.NextBlock
             n = 1 if key in (K.Key_Up, K.Key_Down) else (
                 self._blocks_per_page - 3)
+
             # Move
             cursor = self.textCursor()
             if self._last_column is None:
@@ -493,22 +491,22 @@ class Editor(QtWidgets.QPlainTextEdit):
             else:
                 # Up/Down beyond document start/end? Move cursor to document
                 # start/end and update last column
-                if operation == QtGui.QTextCursor.NextBlock:
-                    cursor.movePosition(QtGui.QTextCursor.EndOfBlock, anchor)
+                if operation == MO.NextBlock:
+                    cursor.movePosition(MO.EndOfBlock, anchor)
                 else:
-                    cursor.movePosition(QtGui.QTextCursor.StartOfBlock, anchor)
+                    cursor.movePosition(MO.StartOfBlock, anchor)
                 self._last_column = cursor.positionInBlock()
             self.setTextCursor(cursor)
 
         elif key in (K.Key_Left, K.Key_Right, K.Key_End) and not (
-                mod & M.AltModifier):
+                mod & KM.AltModifier):
             # Allow all modifiers except alt
             # Reset smart up/down behavior
             self._last_column = None
             # Pass to parent class
             super().keyPressEvent(event)
 
-        elif key == K.Key_Insert and mod == M.NoModifier:
+        elif key == K.Key_Insert and mod == KM.NoModifier:
             # Insert/replace
             self.setOverwriteMode(not self.overwriteMode())
 
@@ -546,7 +544,7 @@ class Editor(QtWidgets.QPlainTextEdit):
             #                       Definitely removed
             # Ctrl-i                Undocumented, but inserts tab...
             ctrl_ignore = (K.Key_K, K.Key_I)
-            if mod == M.ControlModifier and key in ctrl_ignore:
+            if mod == KM.ControlModifier and key in ctrl_ignore:
                 # Control-K: ignore
                 pass
             elif key == K.Key_Up or key == K.Key_Down:
@@ -698,7 +696,8 @@ class Editor(QtWidgets.QPlainTextEdit):
             for block in blocks:
                 p = block.position() + indent
                 cursor.setPosition(p)
-                cursor.setPosition(p + 1, QtGui.QTextCursor.KeepAnchor)
+                cursor.setPosition(
+                    p + 1, QtGui.QTextCursor.MoveMode.KeepAnchor)
                 cursor.removeSelectedText()
         else:
 
@@ -707,7 +706,8 @@ class Editor(QtWidgets.QPlainTextEdit):
                 n = len(block.text())
                 if len(block.text()) < indent:
                     cursor.setPosition(p)
-                    cursor.setPosition(p + n, QtGui.QTextCursor.KeepAnchor)
+                    cursor.setPosition(
+                        p + n, QtGui.QTextCursor.MoveMode.KeepAnchor)
                     cursor.removeSelectedText()
                     cursor.insertText(' ' * indent + '#')
                 else:
@@ -726,8 +726,8 @@ class Editor(QtWidgets.QPlainTextEdit):
             b = len(t.rstrip())
             if a > b:
                 cursor.setPosition(block.position() + b)
-                cursor.setPosition(
-                    block.position() + a, QtGui.QTextCursor.KeepAnchor)
+                cursor.setPosition(block.position() + a,
+                                   QtGui.QTextCursor.MoveMode.KeepAnchor)
                 cursor.removeSelectedText()
             block = block.next()
         cursor.endEditBlock()
@@ -810,7 +810,8 @@ class FindReplaceWidget(QtWidgets.QWidget):
         text_layout.addWidget(self._search_field, 0, 1)
         text_layout.addWidget(self._replace_label, 1, 0)
         text_layout.addWidget(self._replace_field, 1, 1)
-        check_layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
+        check_layout = QtWidgets.QBoxLayout(
+            QtWidgets.QBoxLayout.Direction.TopToBottom)
         check_layout.addWidget(self._case_check)
         check_layout.addWidget(self._whole_check)
         button_layout = QtWidgets.QGridLayout()
@@ -818,7 +819,8 @@ class FindReplaceWidget(QtWidgets.QWidget):
         button_layout.addWidget(self._replace_button, 0, 2)
         button_layout.addWidget(self._find_button, 0, 3)
 
-        layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
+        layout = QtWidgets.QBoxLayout(
+            QtWidgets.QBoxLayout.Direction.TopToBottom)
         layout.addLayout(text_layout)
         layout.addLayout(check_layout)
         layout.addLayout(button_layout)
@@ -835,11 +837,11 @@ class FindReplaceWidget(QtWidgets.QWidget):
         if query == '':
             self.find_action.emit('No query set')
             return
-        flags = 0x0
+        flags = QtGui.QTextDocument.FindFlag(0)
         if self._case_check.isChecked():
-            flags |= QtGui.QTextDocument.FindCaseSensitively
+            flags |= QtGui.QTextDocument.FindFlag.FindCaseSensitively
         if self._whole_check.isChecked():
-            flags |= QtGui.QTextDocument.FindWholeWords
+            flags |= QtGui.QTextDocument.FindFlag.FindWholeWords
         if flags:
             found = self._editor.find(query, flags)
         else:
@@ -888,11 +890,11 @@ class FindReplaceWidget(QtWidgets.QWidget):
         if query == '':
             self.find_action.emit('No query set')
             return
-        flags = 0x0
+        flags = QtGui.QTextDocument.FindFlag(0)
         if self._case_check.isChecked():
-            flags |= QtGui.QTextDocument.FindCaseSensitively
+            flags |= QtGui.QTextDocument.FindFlag.FindCaseSensitively
         if self._whole_check.isChecked():
-            flags |= QtGui.QTextDocument.FindWholeWords
+            flags |= QtGui.QTextDocument.FindFlag.FindWholeWords
         n = 0
         found = True
         scrollpos = self._editor.verticalScrollBar().value()
@@ -980,141 +982,135 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
         super().__init__(document)
 
         # Expressions used to find strings & comments
-        self._string_start = QtCore.QRegExp(r'"""')
-        self._string_stop = QtCore.QRegExp(r'"""')
-        self._comment_start = QtCore.QRegExp(r'#[^\n]*')
+        R = QtCore.QRegularExpression
+        self._string_delim = R(r'"""')
 
         # Headers
         name = r'[a-zA-Z]+[a-zA-Z0-9_]*'
-        self._rule_head = QtCore.QRegExp(r'^(\s*)\[{1,2}' + name + '\]{1,2}')
+        self._rule_head = R(r'^\s*(\[{1,2}' + name + '\]{1,2})')
 
         # Simple rules
         self._rules = []
 
         # Numbers
-        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
+        pattern = R(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
         self._rules.append((pattern, STYLE_LITERAL))
-        unit = r'\[[a-zA-Z0-9/^-*]+\]'
-        self._rules.append((QtCore.QRegExp(unit), STYLE_INLINE_UNIT))
+        unit = r'\[([a-zA-Z0-9/^-]|\*)+\]'
+        self._rules.append((R(unit), STYLE_INLINE_UNIT))
 
         # Keywords
         for keyword in self.KEYWORD_1:
-            pattern = QtCore.QRegExp(r'\b' + keyword + r'\b')
-            self._rules.append((pattern, STYLE_KEYWORD_1))
+            self._rules.append((R(r'\b' + keyword + r'\b'), STYLE_KEYWORD_1))
         for keyword in self.KEYWORD_2:
-            pattern = QtCore.QRegExp(r'\b' + keyword + r'\b')
-            self._rules.append((pattern, STYLE_KEYWORD_2))
+            self._rules.append((R(r'\b' + keyword + r'\b'), STYLE_KEYWORD_2))
 
         # Meta-data coloring
         self._rules_labels = [
-            QtCore.QRegExp(r'(\s*)(bind)\s+(' + name + ')'),
-            QtCore.QRegExp(r'(\s*)(label)\s+(' + name + ')'),
+            R(r'(\s*)(bind)\s+(' + name + ')'),
+            R(r'(\s*)(label)\s+(' + name + ')'),
         ]
-        self._rule_meta_key = QtCore.QRegExp(name + r':')
-        self._rule_meta_val = QtCore.QRegExp(r':(\s*)(.+)')
-        self._rule_var_unit = QtCore.QRegExp(r'^(\s*)(in)(\s*)(' + unit + ')')
+        self._rule_meta_key = R(r'^\s*(' + name + r':)')
+        self._rule_meta_val = R(r':(\s*)(.+)')
+        self._rule_var_unit = R(r'^(\s*)(in)(\s*)(' + unit + ')')
 
-        # Comments
-        # Note: For some reason this can _not_ use self._comment_start
-        self._comments = QtCore.QRegExp(r'#[^\n]*')
+        # Comment
+        self._comment = R(r'#[^\n]*')
 
     def highlightBlock(self, text):
         """ Qt: Called whenever a block should be highlighted. """
-        # Simple rules
-        for (pattern, style) in self._rules:
-            i = pattern.indexIn(text)
-            while i >= 0:
-                # Note: Can't use matchedLength() here because it does quirky
-                # things with the subgroup for the numbers regex.
-                n = len(pattern.cap(0))
-                self.setFormat(i, n, style)
-                i = pattern.indexIn(text, i + n)
 
-        # Model and component headers
-        i = self._rule_head.indexIn(text)
-        while i >= 0:
-            m = len(self._rule_head.cap(1))
-            n = len(self._rule_head.cap(0))
-            self.setFormat(i + m, n - m, STYLE_HEADER)
-            i = self._rule_head.indexIn(text, i + n)
-
-        # Annotations
-        # Labels
-        for pattern in self._rules_labels:
-            i = pattern.indexIn(text)
-            while i >= 0:
-                n0 = len(pattern.cap(0))
-                n1 = len(pattern.cap(1))
-                n2 = len(pattern.cap(2))
-                n3 = len(pattern.cap(3))
-                self.setFormat(i + n1, n2, STYLE_ANNOT_KEY)
-                self.setFormat(i + n0 - n3, n3, STYLE_ANNOT_VAL)
-                i = pattern.indexIn(text, i + n0)
-
-        # Units
-        i = self._rule_var_unit.indexIn(text)
-        if i == 0:
-            n1 = len(self._rule_var_unit.cap(1))
-            n2 = len(self._rule_var_unit.cap(2))
-            n3 = len(self._rule_var_unit.cap(3))
-            n4 = len(self._rule_var_unit.cap(4))
-            self.setFormat(n1, n2, STYLE_ANNOT_KEY)
-            self.setFormat(n1 + n2 + n3, n4, STYLE_ANNOT_VAL)
-
-        # Meta properties
-        i = self._rule_meta_key.indexIn(text)
-        if i >= 0:
-            n0 = len(self._rule_meta_key.cap(0))
-            self.setFormat(i, n0, STYLE_ANNOT_KEY)
-        i = self._rule_meta_val.indexIn(text)
-        if i >= 0:
-            n1 = len(self._rule_meta_val.cap(1))
-            n2 = len(self._rule_meta_val.cap(2))
-            self.setFormat(i, 1, STYLE_ANNOT_KEY)
-            self.setFormat(1 + i + n1, n2, STYLE_ANNOT_VAL)
-
-        # Comments (overrule all other formatting except multi-line strings)
-        i = self._comments.indexIn(text)
-        while i >= 0:
-            n = len(self._comments.cap(0))
-            self.setFormat(i, n, STYLE_COMMENT)
-            i = self._comments.indexIn(text, i + n)
-
-        # Multi-line strings
-        # Block states:
-        #  0 Normal
-        #  1 Multi-line string (meta)
+        # Multi-line strings: Do these first, so that we can ignore other
+        #                     formatting
+        # Block states: 0 = Normal, 1 = In a multi-line string
+        offset = 0
         self.setCurrentBlockState(0)
 
-        # Check state of previous block
-        if self.previousBlockState() != 1:
-            # Normal block
-            next = start = self._string_start.indexIn(text)
-            comment = self._comment_start.indexIn(text)
-            if next >= 0 and (comment < 0 or comment > next):
-                next += self._string_start.matchedLength()
+        # In a multi-line string?
+        if self.previousBlockState() == 1:
+            # Search for string stop
+            ms = self._string_delim.match(text)
+            if ms.hasMatch():
+                # Terminate the multi-line string
+                offset = ms.capturedEnd(0)
+                self.setFormat(0, offset, STYLE_ANNOT_VAL)
             else:
-                start = next = -1
-        else:
-            start = next = 0
-
-        # Find any occurrences of string start / stop
-        while next >= 0:
-            stop = self._string_stop.indexIn(text, next)
-            if stop < 0:
-                # Continuing multi-line string
+                # Still in the string
                 self.setCurrentBlockState(1)
-                self.setFormat(start, len(text) - start, STYLE_ANNOT_VAL)
-                next = -1
-            else:
-                # Ending single-line or multi-line string
-                # Format until stop token
-                next = stop = stop + self._string_stop.matchedLength()
-                self.setFormat(start, stop - start, STYLE_ANNOT_VAL)
-                # Find next string in block, if any
-                next = start = self._string_start.indexIn(text, next)
-                if next >= 0:
-                    next += self._string_start.matchedLength()
+                self.setFormat(0, len(text), STYLE_ANNOT_VAL)
+                return
+
+        else:
+            # Search for string start
+            ms = self._string_delim.match(text)
+            if ms.hasMatch():
+                start = ms.capturedStart(0)
+                # Doesn't count inside a comment
+                mc = self._comment.match(text)
+                if not (mc.hasMatch() and mc.capturedStart() < start):
+                    # Definitely a string start. See if it ends on this line
+                    next = start + ms.capturedLength(0)
+                    me = self._string_delim.match(text, offset=next)
+                    if me.hasMatch():
+                        # Terminate the single-line string
+                        offset = me.capturedEnd(0)
+                        self.setFormat(start, offset - start, STYLE_ANNOT_VAL)
+                    else:
+                        # Multi-line string
+                        self.setCurrentBlockState(1)
+                        self.setFormat(start, len(text), STYLE_ANNOT_VAL)
+
+        # Simple rules
+        for (pattern, style) in self._rules:
+            i = pattern.globalMatch(text)
+            while i.hasNext():
+                m = i.next()
+                self.setFormat(m.capturedStart(0), m.capturedLength(0), style)
+
+        # Model and component headers
+        mi = self._rule_head.globalMatch(text)
+        while mi.hasNext():
+            m = mi.next()
+            self.setFormat(
+                m.capturedStart(1), m.capturedLength(1), STYLE_HEADER)
+
+        # Annotations
+
+        # Labels
+        for pattern in self._rules_labels:
+            mi = pattern.globalMatch(text)
+            while mi.hasNext():
+                m = mi.next()
+                self.setFormat(
+                    m.capturedStart(2), m.capturedLength(2), STYLE_ANNOT_KEY)
+                self.setFormat(
+                    m.capturedStart(3), m.capturedLength(3), STYLE_ANNOT_VAL)
+
+        # Variable units
+        mi = self._rule_var_unit.globalMatch(text)
+        while mi.hasNext():
+            m = mi.next()
+            self.setFormat(
+                m.capturedStart(2), m.capturedLength(2), STYLE_ANNOT_KEY)
+            self.setFormat(
+                m.capturedStart(4), m.capturedLength(4), STYLE_ANNOT_VAL)
+
+        # Meta properties
+        mi = self._rule_meta_key.globalMatch(text)
+        if mi.hasNext():
+            m = mi.next()
+            self.setFormat(
+                m.capturedStart(0), m.capturedLength(0), STYLE_ANNOT_KEY)
+        mi = self._rule_meta_val.globalMatch(text)
+        if mi.hasNext():
+            m = mi.next()
+            self.setFormat(
+                m.capturedStart(2), m.capturedLength(2), STYLE_ANNOT_VAL)
+
+        # Comment (overrule all other formatting except multi-line strings)
+        mc = self._comment.match(text, offset=offset)
+        if mc.hasMatch():
+            self.setFormat(
+                mc.capturedStart(0), mc.capturedLength(0), STYLE_COMMENT)
 
 
 class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
@@ -1125,40 +1121,38 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
         super().__init__(document)
 
         # Headers and units
-        self._rule_head = QtCore.QRegExp(r'^(\s*)\[\[[a-zA-Z0-9_]+\]\]')
+        R = QtCore.QRegularExpression
+        self._rule_head = R(r'^\s*(\[\[[a-zA-Z0-9_]+\]\])')
 
         # Highlighting rules
         self._rules = []
 
         # Numbers
-        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
-        self._rules.append((pattern, STYLE_LITERAL))
+        self._rules.append(
+            (R(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b'), STYLE_LITERAL))
 
         # Keyword "next"
-        pattern = QtCore.QRegExp(r'\bnext\b')
-        self._rules.append((pattern, STYLE_KEYWORD_1))
+        self._rules.append((R(r'\bnext\b'), STYLE_KEYWORD_1))
 
         # Comments
-        pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, STYLE_COMMENT))
+        self._rules.append((R(r'#[^\n]*'), STYLE_COMMENT))
 
     def highlightBlock(self, text):
         """ Qt: Called whenever a block should be highlighted. """
+
         # Rule based formatting
         for (pattern, style) in self._rules:
-            i = pattern.indexIn(text)
-            while i >= 0:
-                n = len(pattern.cap(0))
-                self.setFormat(i, n, style)
-                i = pattern.indexIn(text, i + n)
+            mi = pattern.globalMatch(text)
+            while mi.hasNext():
+                m = mi.next()
+                self.setFormat(m.capturedStart(0), m.capturedLength(0), style)
 
         # Protocol header
-        i = self._rule_head.indexIn(text)
-        while i >= 0:
-            m = len(self._rule_head.cap(1))
-            n = len(self._rule_head.cap(0))
-            self.setFormat(i + m, n - m, STYLE_HEADER)
-            i = self._rule_head.indexIn(text, i + n)
+        mi = self._rule_head.globalMatch(text)
+        while mi.hasNext():
+            m = mi.next()
+            self.setFormat(
+                m.capturedStart(1), m.capturedLength(1), STYLE_HEADER)
 
 
 class ScriptHighlighter(QtGui.QSyntaxHighlighter):
@@ -1169,7 +1163,8 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         super().__init__(document)
 
         # Headers and units
-        self._rule_head = QtCore.QRegExp(r'^(\s*)\[\[[a-zA-Z0-9_]+\]\]')
+        R = QtCore.QRegularExpression
+        self._rule_head = R(r'^\s*(\[\[[a-zA-Z0-9_]+\]\])')
 
         # Highlighting rules
         self._rules = []
@@ -1177,59 +1172,55 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         # Keywords
         import keyword
         for kw in keyword.kwlist:
-            pattern = QtCore.QRegExp(r'\b' + kw + r'\b')
-            self._rules.append((pattern, STYLE_KEYWORD_1))
+            self._rules.append((R(r'\b' + kw + r'\b'), STYLE_KEYWORD_1))
 
         # Built-in essential functions
         for func in _PYFUNC:
-            pattern = QtCore.QRegExp(r'\b' + str(func) + r'\b')
-            self._rules.append((pattern, STYLE_KEYWORD_2))
+            self._rules.append((R(r'\b' + str(func) + r'\b'), STYLE_KEYWORD_2))
 
         # Literals: numbers, True, False, None
         # Override some keywords
-        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
-        self._rules.append((pattern, STYLE_LITERAL))
-        pattern = QtCore.QRegExp(r'\bTrue\b')
-        self._rules.append((pattern, STYLE_LITERAL))
-        pattern = QtCore.QRegExp(r'\bFalse\b')
-        self._rules.append((pattern, STYLE_LITERAL))
-        pattern = QtCore.QRegExp(r'\bNone\b')
-        self._rules.append((pattern, STYLE_LITERAL))
+        self._rules.append((R(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b'),
+                            STYLE_LITERAL))
+        self._rules.append((R(r'\bTrue\b'), STYLE_LITERAL))
+        self._rules.append((R(r'\bFalse\b'), STYLE_LITERAL))
+        self._rules.append((R(r'\bNone\b'), STYLE_LITERAL))
 
         # Strings
-        pattern = QtCore.QRegExp(r'"([^"\\]|\\")*"')
-        self._rules.append((pattern, STYLE_LITERAL))
-        pattern = QtCore.QRegExp(r"'([^'\\]|\\')*'")
-        self._rules.append((pattern, STYLE_LITERAL))
+        self._rules.append((R(r'"([^"\\]|\\")*"'), STYLE_LITERAL))
+        self._rules.append((R(r"'([^'\\]|\\')*'"), STYLE_LITERAL))
 
         # Multi-line strings
-        self._string1 = QtCore.QRegExp(r"'''")
-        self._string2 = QtCore.QRegExp(r'"""')
+        self._string1 = R(r"'''")
+        self._string2 = R(r'"""')
 
         # Comments
-        pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, STYLE_COMMENT))
+        self._rules.append((R(r'#[^\n]*'), STYLE_COMMENT))
 
     def highlightBlock(self, text):
         """ Qt: Called whenever a block should be highlighted. """
+
+        #TODO
+
         # Rule based formatting
         for (pattern, style) in self._rules:
-            i = pattern.indexIn(text)
-            while i >= 0:
-                # Note: Can't use matchedLength() here because it does quirky
-                # things with the subgroup for the numbers regex.
-                n = len(pattern.cap(0))
-                self.setFormat(i, n, style)
-                i = pattern.indexIn(text, i + n)
+            i = pattern.globalMatch(text)
+            while i.hasNext():
+                m = i.next()
+                self.setFormat(m.capturedStart(0), m.capturedLength(0), style)
 
         # Script header
-        i = self._rule_head.indexIn(text)
-        while i >= 0:
-            m = len(self._rule_head.cap(1))
-            n = len(self._rule_head.cap(0))
-            self.setFormat(i + m, n - m, STYLE_HEADER)
-            i = self._rule_head.indexIn(text, i + n)
+        mi = self._rule_head.globalMatch(text)
+        while mi.hasNext():
+            m = mi.next()
+            self.setFormat(
+                m.capturedStart(1), m.capturedLength(1), STYLE_HEADER)
 
+        TODO
+
+        LOOK AT https://github.com/myokit/myokit/issues/158 too
+
+        '''
         # Block states:
         #  0 Normal
         #  1 Multi-line string 1
@@ -1290,6 +1281,7 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
                 # Find next string in block, if any
                 next = stop + 3
                 current, start, next = find_start(text, next)
+        '''
 
 
 # List of essential built-in python functions

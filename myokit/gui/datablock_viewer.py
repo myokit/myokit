@@ -561,7 +561,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # File menu
         self._menu_file = self._menu.addMenu('&File')
         # File > Open
-        self._tool_open = QtWidgets.QAction('&Open', self)
+        self._tool_open = QtGui.QAction('&Open', self)
         self._tool_open.setShortcut('Ctrl+O')
         self._tool_open.setStatusTip('Open a DataLog for inspection.')
         self._tool_open.setIcon(QtGui.QIcon.fromTheme('document-open'))
@@ -572,14 +572,14 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # File > Recent files
         self._recent_file_tools = []
         for i in range(N_RECENT_FILES):
-            tool = QtWidgets.QAction(self, visible=False)
+            tool = QtGui.QAction(self, visible=False)
             tool.triggered.connect(self.action_recent_file)
             self._recent_file_tools.append(tool)
             self._menu_file.addAction(tool)
         # File > ----
         self._menu_file.addSeparator()
         # File > Quit
-        self._tool_exit = QtWidgets.QAction('&Quit', self)
+        self._tool_exit = QtGui.QAction('&Quit', self)
         self._tool_exit.setShortcut('Ctrl+Q')
         self._tool_exit.setStatusTip('Exit application.')
         self._tool_exit.setIcon(QtGui.QIcon.fromTheme('application-exit'))
@@ -588,27 +588,26 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # Data menu
         self._menu_data = self._menu.addMenu('&Data')
         # Data > Extract frame
-        self._tool_exframe = QtWidgets.QAction('Extract &frame', self)
+        self._tool_exframe = QtGui.QAction('Extract &frame', self)
         self._tool_exframe.setStatusTip(
             'Extract the current frame as csv file.')
         self._tool_exframe.triggered.connect(self.action_extract_frame)
         self._menu_data.addAction(self._tool_exframe)
         # Data > Extract graphs
-        self._tool_exgraph = QtWidgets.QAction('Extract &graphs', self)
+        self._tool_exgraph = QtGui.QAction('Extract &graphs', self)
         self._tool_exgraph.setStatusTip('Extract the current graphs.')
         self._tool_exgraph.triggered.connect(self.action_extract_graphs)
         self._menu_data.addAction(self._tool_exgraph)
         # Data > ----
         self._menu_data.addSeparator()
         # Data > Extract frame as image
-        self._tool_imgframe = QtWidgets.QAction('Save frame as &image', self)
+        self._tool_imgframe = QtGui.QAction('Save frame as &image', self)
         self._tool_imgframe.setStatusTip(
             'Save the current frame as an image file.')
         self._tool_imgframe.triggered.connect(self.action_extract_frame_image)
         self._menu_data.addAction(self._tool_imgframe)
         # Data > Extract colormap as image
-        self._tool_imgcolor = QtWidgets.QAction(
-            'Save &colormap as image', self)
+        self._tool_imgcolor = QtGui.QAction('Save &colormap as image', self)
         self._tool_imgcolor.setStatusTip('Save the colormap as an image file.')
         self._tool_imgcolor.triggered.connect(
             self.action_extract_colormap_image)
@@ -616,11 +615,11 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # Help menu
         self._menu_help = self._menu.addMenu('&Help')
         # Help > About
-        self._tool_about = QtWidgets.QAction('&About', self)
+        self._tool_about = QtGui.QAction('&About', self)
         self._tool_about.setStatusTip('View information about this program.')
         self._tool_about.triggered.connect(self.action_about)
         self._menu_help.addAction(self._tool_about)
-        self._tool_license = QtWidgets.QAction('&License', self)
+        self._tool_license = QtGui.QAction('&License', self)
         self._tool_license.setStatusTip('View this program\'s license info.')
         self._tool_license.triggered.connect(self.action_license)
         self._menu_help.addAction(self._tool_license)
@@ -772,7 +771,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self.statusBar().showMessage('Loading ' + str(fname))
         n = 1000000
         pd = QtWidgets.QProgressDialog('Loading data file...', 'Cancel', 0, n)
-        pd.setWindowModality(Qt.WindowModal)
+        pd.setWindowModality(Qt.WindowModality.WindowModal)
         pd.setValue(0)
 
         class Reporter(myokit.ProgressReporter):

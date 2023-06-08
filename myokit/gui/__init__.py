@@ -54,8 +54,6 @@ else:
 
 # Import and configure Qt
 if pyqt6:
-
-    # Load PyQt5
     from PyQt6 import QtGui, QtWidgets, QtCore
     from PyQt6.QtCore import Qt
 
@@ -64,40 +62,20 @@ if pyqt6:
     QtCore.Slot = QtCore.pyqtSlot
     QtCore.Property = QtCore.pyqtProperty
 
-
-
     # Set backend variables
     backend = 'PyQt6'
     qtversion = 6
 
-elif pyside6:
-
-    # Load PySide6
-    # Load main classes
-    from PySide6 import QtGui, QtWidgets, QtCore
-    from PySide6.QtCore import Qt
-
-    # Mimic PyQt6 API changes
-    # https://doc.qt.io/qt-6/widgets-changes-qt6.html
-    QtWidgets.QApplication.exec = QtWidgets.QApplication.exec_
-
-    # Set backend variables
-    backend = 'PySide6'
-    qtversion = 6
-
 elif pyqt5:
-
-    # Load PyQt5
     from PyQt5 import QtGui, QtWidgets, QtCore
     from PyQt5.QtCore import Qt
 
-    # Mimic Qt6 API changes
+    # Mimic PyQt6 API changes
     # https://doc.qt.io/qt-6/widgets-changes-qt6.html
-    QtGui.QAction = QWidgets.QAction
+    QtGui.QAction = QtWidgets.QAction
     QtWidgets.QApplication.exec = QtWidgets.QApplication.exec_
 
-    #TODO
-    # Fix PyQt naming issues
+    # Use PySide signal names
     QtCore.Signal = QtCore.pyqtSignal
     QtCore.Slot = QtCore.pyqtSlot
     QtCore.Property = QtCore.pyqtProperty
@@ -106,14 +84,23 @@ elif pyqt5:
     backend = 'PyQt5'
     qtversion = 5
 
-elif pyside2:
+elif pyside6:
+    from PySide6 import QtGui, QtWidgets, QtCore
+    from PySide6.QtCore import Qt
 
-    # Load PySide2
+    # Mimic PyQt6 API changes
+    QtWidgets.QApplication.exec = QtWidgets.QApplication.exec_
+
+    # Set backend variables
+    backend = 'PySide6'
+    qtversion = 6
+
+elif pyside2:
     from PySide2 import QtGui, QtWidgets, QtCore
     from PySide2.QtCore import Qt
 
-    # Mimic Qt6 API changes
-    QtGui.QAction = QWidgets.QAction
+    # Mimic PyQt6 API changes
+    QtGui.QAction = QtWidgets.QAction
     QtWidgets.QApplication.exec = QtWidgets.QApplication.exec_
 
     # Set backend variables
@@ -250,5 +237,5 @@ def run(app, *args):
     timer.timeout.connect(lambda: None)
 
     # Wait for app to exit
-    sys.exit(a.exec_())
+    sys.exit(a.exec())
 

@@ -75,7 +75,8 @@ class Explorer(QtWidgets.QDialog):
         self._close_button = QtWidgets.QPushButton('Close')
         self._close_button.clicked.connect(self.action_close)
         # Create button layout
-        button_layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
+        button_layout = QtWidgets.QBoxLayout(
+            QtWidgets.QBoxLayout.Direction.LeftToRight)
         button_layout.addWidget(label1)
         button_layout.addWidget(self._pre_field)
         button_layout.addWidget(label2)
@@ -84,14 +85,16 @@ class Explorer(QtWidgets.QDialog):
         button_layout.addWidget(self._run_button)
         # Create graph options layout
         graph_option_layout = QtWidgets.QBoxLayout(
-            QtWidgets.QBoxLayout.LeftToRight)
+            QtWidgets.QBoxLayout.Direction.LeftToRight)
         graph_option_layout.addWidget(self._select_x)
         graph_option_layout.addWidget(self._select_y)
         # Create bottom layout
-        bottom_layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
+        bottom_layout = QtWidgets.QBoxLayout(
+            QtWidgets.QBoxLayout.Direction.LeftToRight)
         bottom_layout.addWidget(self._close_button)
         # Create central layout
-        layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
+        layout = QtWidgets.QBoxLayout(
+            QtWidgets.QBoxLayout.Direction.TopToBottom)
         layout.addLayout(button_layout)
         layout.addLayout(graph_option_layout)
         layout.addWidget(self._canvas)
@@ -146,11 +149,11 @@ class Explorer(QtWidgets.QDialog):
         """
         pbar = progress.ProgressBar(self, 'Creating simulation')
         QtWidgets.QApplication.processEvents(
-            QtCore.QEventLoop.ExcludeUserInputEvents)
+            QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         try:
             pbar.show()
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             # Create and run simulation
             out = self._sim_method()
             if type(out) == str:
@@ -159,7 +162,7 @@ class Explorer(QtWidgets.QDialog):
             else:
                 m, p, s = out
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             pre = float(self._pre_field.text())
             run = float(self._run_field.text())
             if pre:
@@ -167,7 +170,7 @@ class Explorer(QtWidgets.QDialog):
             d = s.run(run, progress=pbar.reporter()).npview()
             self._stream.write('Final state: \n' + m.format_state(s.state()))
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         except myokit.SimulationCancelledError:
             return
         except myokit.MyokitError as e:
@@ -180,7 +183,7 @@ class Explorer(QtWidgets.QDialog):
             pbar.close()
             pbar.deleteLater()
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         # Reset combo-box keys?
         reset_keys = True
         if self._keys:
