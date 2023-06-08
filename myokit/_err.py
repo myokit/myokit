@@ -177,7 +177,7 @@ class IllegalReferenceInInitialValueError(IllegalReferenceError):
     The only way this can occur is if the reference is to a nested variable.
     """
     def __init__(self, reference, owner):
-        super().__init__(
+        super(IntegrityError, self).__init__(
             'Illegal reference made in initial value: The referenced variable'
             ' <' + reference.qname() + '> is nested.')
 
