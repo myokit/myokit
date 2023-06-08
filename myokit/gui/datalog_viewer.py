@@ -110,7 +110,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # Set size, center
         self.resize(800, 600)
         qr = self.frameGeometry()
-        cp = QtGui.QGuiApplication.primaryScreen().center()
+        cp = QtGui.QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -329,7 +329,8 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._toolbar = self.addToolBar('tools')
         self._toolbar.setFloatable(False)
         self._toolbar.setMovable(False)
-        self._toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self._toolbar.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self._toolbar.addAction(self._tool_open)
         #self._toolbar.addSeparator()
 

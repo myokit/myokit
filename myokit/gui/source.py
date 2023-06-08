@@ -67,7 +67,7 @@ def _check_for_dark_mode(palette):
         STYLE_ANNOT_KEY.setForeground(QtGui.QColor(0, 31, 231))
         STYLE_ANNOT_VAL.setForeground(QtGui.QColor(57, 115, 214))
         STYLE_KEYWORD_1.setForeground(QtGui.QColor(0, 128, 0))
-        STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
+        STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Weight.Bold)
         STYLE_KEYWORD_2.setForeground(QtGui.QColor(0, 128, 128))
         STYLE_LITERAL.setForeground(QtGui.QColor(255, 20, 215))
         STYLE_INLINE_UNIT.setForeground(QtGui.QColor(128, 0, 128))
@@ -77,7 +77,7 @@ def _check_for_dark_mode(palette):
         STYLE_ANNOT_KEY.setForeground(QtGui.QColor(179, 179, 179))
         STYLE_ANNOT_VAL.setForeground(QtGui.QColor(171, 177, 205))
         STYLE_KEYWORD_1.setForeground(QtGui.QColor(10, 195, 87))
-        STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
+        STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Weight.Bold)
         STYLE_KEYWORD_2.setForeground(QtGui.QColor(10, 195, 87))
         STYLE_LITERAL.setForeground(QtGui.QColor(255, 223, 12))
         STYLE_INLINE_UNIT.setForeground(QtGui.QColor(168, 152, 33))
@@ -114,7 +114,12 @@ class Editor(QtWidgets.QPlainTextEdit):
         self.cursor_changed()
 
         # Line position
-        self._line_offset = self.fontMetrics().width(' ' * 79)
+        try:
+            # https://doc.qt.io/qt-5/qfontmetrics.html#horizontalAdvance
+            # Qt 5.5.11 and onwards
+            self._line_offset = self.fontMetrics().horizontalAdvance(' ' * 79)
+        except AttributeError:
+            self._line_offset = self.fontMetrics().width(' ' * 79)
 
         # Number of blocks in page up/down
         self._blocks_per_page = 1
@@ -130,7 +135,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         selection = QtWidgets.QTextEdit.ExtraSelection()
         selection.format.setBackground(COLOR_SELECTED_LINE)
         selection.format.setProperty(
-            QtGui.QTextFormat.FullWidthSelection, True)
+            QtGui.QTextFormat.Property.FullWidthSelection, True)
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
         extra_selections.append(selection)
@@ -221,11 +226,20 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Set font
         self.setFont(FONT)
         # Set frame
-        self.setFrameStyle(QtWidgets.QFrame.WinPanel | QtWidgets.QFrame.Sunken)
+        self.setFrameStyle(
+            QtWidgets.QFrame.Shape.WinPanel | QtWidgets.QFrame.Shadow.Sunken)
         # Disable wrapping
-        self.setLineWrapMode(self.NoWrap)
+        self.setLineWrapMode(QtWidgets.QPlainTextEdit.LineWrapMode.NoWrap)
         # Set tab width (if ever seen) to 4 spaces
-        self.setTabStopWidth(self.fontMetrics().width(' ' * 4))
+        try:
+            # https://doc.qt.io/qt-5/qtextedit-obsolete.html
+            # https://doc.qt.io/qt-5/qfontmetrics.html#horizontalAdvance
+            # Qt 5.10/5.11 and onwards
+            ts = self.fontMetrics().horizontalAdvance(' ' * 4)
+            self.setTabStopDistance(ts)
+        except AttributeError:
+            ts = self.fontMetrics().width(' ' * 4)
+            self.setTabStopWidth(ts)
 
     def get_text(self):
         """ Returns the text in this editor. """
@@ -544,7 +558,13 @@ class Editor(QtWidgets.QPlainTextEdit):
 
     def _line_number_area_width(self):
         """ Returns the required width for the number area. """
-        return 8 + self.fontMetrics().width(str(max(1, self.blockCount())))
+        text = str(max(1, self.blockCount()))
+        try:
+            # https://doc.qt.io/qt-5/qfontmetrics.html#horizontalAdvance
+            # Qt 5.5.11 and onwards
+            return 8 + self.fontMetrics().horizontalAdvance(text)
+        except AttributeError:
+            return 8 + self.fontMetrics().width(text)
 
     def _line_number_area_paint(self, area, event):
         """ Repaints the line number area. """

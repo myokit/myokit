@@ -89,19 +89,23 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         super().__init__()
         # Set application icon
         self.setWindowIcon(icon())
+
         # Set size, center
         self.resize(800, 600)
         self.setMinimumSize(600, 400)
         qr = self.frameGeometry()
-        cp = QtGui.QGuiApplication.primaryScreen().center()
+        cp = QtGui.QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
         # Status bar
         self._label_cursor = QtWidgets.QLabel()
         self.statusBar().addPermanentWidget(self._label_cursor)
         self.statusBar().showMessage('Ready')
+
         # Menu bar
         self.create_menu()
+
         # Timer
         self._timer_interval = 50
         self._timer = QtCore.QTimer(self)
@@ -109,10 +113,8 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._timer.setSingleShot(False)
         self._timer.timeout.connect(self.action_next_frame)
         self._timer_paused = False
-        try:
-            self._timer.setTimerType(Qt.PreciseTimer)
-        except AttributeError:
-            pass    # Qt4 uses precise timer by default
+        self._timer.setTimerType(Qt.PreciseTimer)
+
         # Video widget
         self._video_scene = VideoScene()
         self._video_scene.mouse_moved.connect(self.event_video_mouse_move)
@@ -126,6 +128,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._video_item = None
         self._video_frames = None
         self._video_iframe = None
+
         # Colorbar widget
         self._colorbar_width = 20
         self._colorbar_height = 256
@@ -134,6 +137,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._colorbar_view.setMaximumWidth(self._colorbar_width)
         self._colorbar_pixmap = None
         self._colorbar_item = None
+
         # Video slider
         self._slider = QtWidgets.QSlider(Qt.Orientation.Horizontal)
         self._slider.setTickPosition(QtWidgets.QSlider.NoTicks)
@@ -144,14 +148,17 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._slider.sliderPressed.connect(self.action_pause_timer)
         self._slider.sliderReleased.connect(self.action_depause_timer)
         self._slider.valueChanged.connect(self.action_set_frame)
+
         # Controls
         style = QtWidgets.QApplication.style()
+
         # Play button
         self._play_icon_play = style.standardIcon(style.SP_MediaPlay)
         self._play_icon_pause = style.standardIcon(style.SP_MediaPause)
         self._play_button = QtWidgets.QPushButton()
         self._play_button.setIcon(self._play_icon_play)
         self._play_button.pressed.connect(self.action_start_stop)
+
         # Frame indicator
         self._frame_label = QtWidgets.QLabel('Frame')
         self._frame_field = QtWidgets.QLineEdit('0')
@@ -160,6 +167,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._frame_field.setMaximumWidth(100)
         self._frame_label.setAlignment(
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
         # Time indicator
         self._time_label = QtWidgets.QLabel('Time')
         self._time_field = QtWidgets.QLineEdit('0')
@@ -168,6 +176,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._time_field.setMaximumWidth(100)
         self._time_label.setAlignment(
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
         # Speed indicator
         self._rate_label = QtWidgets.QLabel('Delay')
         self._rate_field = QtWidgets.QLineEdit(str(self._timer_interval))
@@ -176,13 +185,16 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._rate_field.setMaximumWidth(100)
         self._rate_label.setAlignment(
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
         # Graph controls
         self._graph_clear_button = QtWidgets.QPushButton('Clear graphs')
         self._graph_clear_button.pressed.connect(self.action_clear_graphs)
+
         # Variable selection
         self._variable_select = QtWidgets.QComboBox()
         self._variable_select.activated.connect(self.event_variable_selected)
         self._variable_select.setMinimumWidth(120)
+
         # Colormap selection
         self._colormap = next(iter(myokit.ColorMap.names()))
         self._colormap_select = QtWidgets.QComboBox()
@@ -190,6 +202,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             self._colormap_select.addItem(cmap)
         self._colormap_select.activated.connect(self.event_colormap_selected)
         self._colormap_select.setMinimumWidth(120)
+
         # Control layout
         self._control_layout = QtWidgets.QHBoxLayout()
         self._control_layout.addWidget(self._play_button)
@@ -202,15 +215,18 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._control_layout.addWidget(self._graph_clear_button)
         self._control_layout.addWidget(self._variable_select)
         self._control_layout.addWidget(self._colormap_select)
+
         # Graph area
         self._graph_area = GraphArea()
         self._graph_area.mouse_moved.connect(self.event_graph_mouse_move)
         self._graph_area.setMouseTracking(True)
         self._graph_area.setCursor(Qt.CursorShape.CrossCursor)
+
         # Video and colorbar layout
         self._video_plus_layout = QtWidgets.QHBoxLayout()
         self._video_plus_layout.addWidget(self._video_view)
         self._video_plus_layout.addWidget(self._colorbar_view)
+
         # Video Layout
         self._video_layout = QtWidgets.QVBoxLayout()
         self._video_layout.addLayout(self._video_plus_layout)
@@ -218,34 +234,42 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._video_layout.addLayout(self._control_layout)
         self._video_widget = QtWidgets.QWidget()
         self._video_widget.setLayout(self._video_layout)
+
         # Central layout
         self._central_widget = QtWidgets.QSplitter(Qt.Orientation.Vertical)
         self._central_widget.addWidget(self._video_widget)
         self._central_widget.addWidget(self._graph_area)
         self.setCentralWidget(self._central_widget)
+
         # Current path, current file, recent files
         self._path = QtCore.QDir.currentPath()
         self._file = None
         self._recent_files = []
+
         # Current data block, display variable
         self._data = None
         self._variable = None
+
         # Load settings from ini file
         self.load_config()
         self.update_window_title()
+
         # Set controls to correct values
         self._colormap_select.setCurrentIndex(self._colormap_select.findText(
             self._colormap))
         self._rate_field.setText(str(self._timer_interval))
         self._timer.setInterval(self._timer_interval)
+
         # Pause video playback during resize
         self._resize_timer = QtCore.QTimer()
         self._resize_timer.timeout.connect(self._resize_timeout)
         self._video_view.resize_event.connect(self._resize_started)
         self._colorbar_view.resize_event.connect(self._resize_started)
+
         # Attempt to load selected file
         if filename and os.path.isfile(filename):
             self.load_data_file(filename)
+
         # Focus on play button
         self._play_button.setFocus()
 
@@ -1035,22 +1059,13 @@ class VideoView(QtWidgets.QGraphicsView):
         https://bugreports.qt-project.org/browse/QTBUG-11945
         """
         # Reset the view scale
-        try:
-            # PyQt5 / PySide
-            unity = self.transform().mapRect(QtCore.QRectF(0, 0, 1, 1))
-        except AttributeError:
-            # PyQt4
-            unity = self.matrix().mapRect(QtCore.QRectF(0, 0, 1, 1))
+        unity = self.transform().mapRect(QtCore.QRectF(0, 0, 1, 1))
         w, h = max(1, unity.width()), max(1, unity.height())
         self.scale(1. / w, 1 / h)
 
         # Find the ideal scaling ratio
         viewRect = self.viewport().rect()
-        try:
-            sceneRect = self.transform().mapRect(rect)
-        except AttributeError:
-            # PyQt4
-            sceneRect = self.matrix().mapRect(rect)
+        sceneRect = self.transform().mapRect(rect)
         xr = viewRect.width() / sceneRect.width()
         yr = viewRect.height() / sceneRect.height()
         if keepAspect:

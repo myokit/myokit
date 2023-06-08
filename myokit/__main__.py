@@ -26,19 +26,16 @@ def colored(color, text):
     return colors[color] + str(text) + colors['normal']
 
 
-def qtforce(pyqt4=False, pyqt5=False, pyqt6=False,
-            pyside=False, pyside2=False, pyside6=False):
+def qtforce(pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """ Enforce a chosen Qt version. """
 
-    if pyqt6 or pyqt5 or pyqt4 or pyside6 or pyside2 or pyside:
+    if pyqt6 or pyqt5 or pyside6 or pyside2:
         import myokit
 
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT6 = False
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = False
+        myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYSIDE6 = False
+        myokit.FORCE_PYSIDE2 = False
 
         if pyqt6:
             myokit.FORCE_PYQT6 = True
@@ -48,10 +45,6 @@ def qtforce(pyqt4=False, pyqt5=False, pyqt6=False,
             myokit.FORCE_PYQT5 = True
         elif pyside2:
             myokit.FORCE_PYSIDE2 = True
-        elif pyqt4:
-            myokit.FORCE_PYQT4 = True
-        elif pyside:
-            myokit.FORCE_PYSIDE = True
 
         import myokit.gui
         print('Using backend: ' + myokit.gui.backend)
@@ -71,11 +64,6 @@ def add_qtforce_arguments(parser):
         help='Run using the PyQt5 backend.',
     )
     parser.add_argument(
-        '--pyqt4',
-        action='store_true',
-        help='Run using the PyQt4 backend.',
-    )
-    parser.add_argument(
         '--pyside6',
         action='store_true',
         help='Run using the PySide6 backend.',
@@ -84,11 +72,6 @@ def add_qtforce_arguments(parser):
         '--pyside2',
         action='store_true',
         help='Run using the PySide2 backend.',
-    )
-    parser.add_argument(
-        '--pyside',
-        action='store_true',
-        help='Run using the PySide backend.',
     )
 
 
@@ -151,12 +134,11 @@ def main():
 #
 # Data block viewer
 #
-def block(filename, pyqt4=False, pyqt5=False, pyqt6=False,
-          pyside=False, pyside2=False, pyside6=False):
+def block(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the DataBlock viewer.
     """
-    qtforce(pyqt4, pyqt5, pyqt6, pyside, pyside2, pyside6)
+    qtforce(pyqt6, pyqt5, pyside6, pyside5)
 
     import myokit.gui
     import myokit.gui.datablock_viewer
@@ -604,12 +586,11 @@ def add_icon_parser(subparsers):
 # IDE
 #
 
-def ide(filename, pyqt4=False, pyqt5=False, pyqt6=False,
-        pyside=False, pyside2=False, pyside6=False):
+def ide(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the Myokit IDE.
     """
-    qtforce(pyqt4, pyqt5, pyqt6, pyside, pyside2, pyside6)
+    qtforce(pyqt6, pyqt5, pyside6, pyside2)
 
     import os
     import myokit.gui.ide

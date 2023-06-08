@@ -16,10 +16,8 @@ import myokit
 platform = platform.system()
 
 # Select Qt library to use
-pyqt4 = False
 pyqt5 = False
 pyqt6 = False
-pyside = False
 pyside2 = False
 pyside6 = False
 
@@ -28,14 +26,10 @@ if myokit.FORCE_PYQT6:
     pyqt6 = True
 if myokit.FORCE_PYQT5:
     pyqt5 = True
-elif myokit.FORCE_PYQT4:
-    pyqt4 = True
 elif myokit.FORCE_PYSIDE6:
     pyside6 = True
 elif myokit.FORCE_PYSIDE2:
     pyside2 = True
-elif myokit.FORCE_PYSIDE:
-    pyside = True
 else:
     # Automatic selection
     try:
@@ -54,17 +48,8 @@ else:
                     import PySide2  # noqa
                     pyside2 = True
                 except ImportError:
-                    try:
-                        import PyQt4  # noqa
-                        pyqt4 = True
-                    except ImportError:
-                        try:
-                            import PySide  # noqa
-                            pyside = True
-                        except ImportError:
-                            raise ImportError(
-                                'Unable to find PyQt6, PyQt5, PyQt4, PySide6,',
-                                ' PySide2, or PySide.')
+                    raise ImportError(
+                        'Unable to find PyQt6, PyQt5, PySide6, or PySide2.')
 
 
 # Import and configure Qt
@@ -74,22 +59,12 @@ if pyqt6:
     from PyQt6 import QtGui, QtWidgets, QtCore
     from PyQt6.QtCore import Qt
 
-    # Fix PyQt naming issues
+    # Use PySide signal names
     QtCore.Signal = QtCore.pyqtSignal
     QtCore.Slot = QtCore.pyqtSlot
     QtCore.Property = QtCore.pyqtProperty
 
-    # Adapt to Qt6 API changes
-    QtWidgets.QAction = QtGui.QAction
-    QtWidgets.QApplication.exec_ = QtWidgets.QApplication.exec
 
-    # Configure Matplotlib for use with PyQt6
-    import matplotlib
-    try:
-        matplotlib.use('QtAgg')
-    except ImportError:
-        pass
-    import matplotlib.backends.backend_qt5agg as matplotlib_backend
 
     # Set backend variables
     backend = 'PyQt6'
@@ -102,13 +77,9 @@ elif pyside6:
     from PySide6 import QtGui, QtWidgets, QtCore
     from PySide6.QtCore import Qt
 
-    # Configure Matplotlib for use with PySide6
-    import matplotlib
-    try:
-        matplotlib.use('Qt6Agg')
-    except ImportError:
-        pass
-    import matplotlib.backends.backend_qt6agg as matplotlib_backend  # noqa
+    # Mimic PyQt6 API changes
+    # https://doc.qt.io/qt-6/widgets-changes-qt6.html
+    QtWidgets.QApplication.exec = QtWidgets.QApplication.exec_
 
     # Set backend variables
     backend = 'PySide6'
@@ -120,26 +91,16 @@ elif pyqt5:
     from PyQt5 import QtGui, QtWidgets, QtCore
     from PyQt5.QtCore import Qt
 
+    # Mimic Qt6 API changes
+    # https://doc.qt.io/qt-6/widgets-changes-qt6.html
+    QtGui.QAction = QWidgets.QAction
+    QtWidgets.QApplication.exec = QtWidgets.QApplication.exec_
+
+    #TODO
     # Fix PyQt naming issues
     QtCore.Signal = QtCore.pyqtSignal
     QtCore.Slot = QtCore.pyqtSlot
     QtCore.Property = QtCore.pyqtProperty
-
-    # Configure Matplotlib for use with PyQt5
-    import matplotlib
-    try:
-        matplotlib.use('Qt5Agg')
-    except ImportError:
-        # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
-        # was already set.
-        pass
-    else:   # pragma: no cover
-        # The method below was deprecated by matplotlib version 2.2, released
-        # in 2018. So probably fine to remove this (and similar) after 2023
-        v = [int(x) for x in matplotlib.__version__.split('.')]
-        if v[0] < 3 and v[1] < 3:
-            matplotlib.rcParams['backend.qt5'] = 'PyQt5'
-    import matplotlib.backends.backend_qt5agg as matplotlib_backend
 
     # Set backend variables
     backend = 'PyQt5'
@@ -148,216 +109,39 @@ elif pyqt5:
 elif pyside2:
 
     # Load PySide2
-    # Load main classes
     from PySide2 import QtGui, QtWidgets, QtCore
     from PySide2.QtCore import Qt
 
-    # Configure Matplotlib for use with PySide2
-    import matplotlib
-    try:
-        matplotlib.use('Qt5Agg')
-    except ImportError:
-        # In matplotlib 3.3.0 this raises ImportErrors if a previous backend
-        # was already set.
-        pass
-    else:   # pragma: no cover
-        v = [int(x) for x in matplotlib.__version__.split('.')]
-        if v[0] < 3 and v[1] < 3:
-            matplotlib.rcParams['backend.qt5'] = 'PySide2'
-    import matplotlib.backends.backend_qt5agg as matplotlib_backend  # noqa
+    # Mimic Qt6 API changes
+    QtGui.QAction = QWidgets.QAction
+    QtWidgets.QApplication.exec = QtWidgets.QApplication.exec_
 
     # Set backend variables
     backend = 'PySide2'
     qtversion = 5
 
-elif pyqt4:
-
-    # Load PyQt4
-
-    # Deprecated since 2019-09-11
-    logger = logging.getLogger('myokit')
-    logger.warning(
-        'PyQt4 support has been deprecated. Please upgrade to PyQt5 or'
-        ' Pyside2.'
-    )
-
-    # Set PyQt to "API 2"
-    import sip
-    sip.setapi('QString', 2)
-    sip.setapi('QVariant', 2)
-    sip.setapi('QDate', 2)
-    sip.setapi('QDateTime', 2)
-    sip.setapi('QTextStream', 2)
-    sip.setapi('QTime', 2)
-    sip.setapi('QUrl', 2)
-
-    # Load main classes
-    from PyQt4 import QtGui, QtCore
-    from PyQt4.QtCore import Qt
-
-    # Qt5 compatibility
-    QtWidgets = QtGui
-    QtCore.QItemSelection = QtGui.QItemSelection
-    QtCore.QItemSelectionModel = QtGui.QItemSelectionModel
-    QtCore.QItemSelectionRange = QtGui.QItemSelectionRange
-    QtCore.QSortFilterProxyModel = QtGui.QSortFilterProxyModel
-    QtWidgets.QStyleOptionViewItem = QtWidgets.QStyleOptionViewItemV4
-
-    # Fix Qt4 location issue
-    import PyQt4.Qt
-    QtGui.QKeySequence = PyQt4.Qt.QKeySequence
-    QtGui.QTextCursor = PyQt4.Qt.QTextCursor
-    del PyQt4.Qt
-
-    # Fix PyQt4 naming issues
-    QtCore.Signal = QtCore.pyqtSignal
-    QtCore.Slot = QtCore.pyqtSlot
-    QtCore.Property = QtCore.pyqtProperty
-
-    # Fix QFileDialog.getOpenFileName return type issues:
-    # Return type in PyQt4 is not a tuple (call ...AndFilter methods instead)
-    # Fix getOpenFileName
-    def gofn(parent=None, caption='', directory='', filter='',
-             initialFilter='', options=0):
-        if options == 0:
-            options = QtWidgets.QFileDialog.Options()
-        return QtWidgets.QFileDialog.getOpenFileNameAndFilter(
-            parent, caption, directory, filter, initialFilter, options)
-    QtWidgets.QFileDialog.getOpenFileName = staticmethod(gofn)
-    del gofn
-
-    # Fix getOpenFileNames
-    def gofns(parent=None, caption='', directory='', filter='',
-              initialFilter='', options=0):
-        if options == 0:
-            options = QtWidgets.QFileDialog.Options()
-        return QtWidgets.QFileDialog.getOpenFileNamesAndFilter(
-            parent, caption, directory, filter, initialFilter, options)
-    QtWidgets.QFileDialog.getOpenFileNames = staticmethod(gofns)
-    del gofns
-
-    # Fix getSaveFileName
-    def gsfn(parent=None, caption='', directory='', filter='',
-             initialFilter='', options=0):
-        if options == 0:
-            options = QtWidgets.QFileDialog.Options()
-        return QtWidgets.QFileDialog.getSaveFileNameAndFilter(
-            parent, caption, directory, filter, initialFilter, options)
-    QtWidgets.QFileDialog.getSaveFileName = staticmethod(gsfn)
-    del gsfn
-
-    # Configure Matplotlib for use with PyQt4
-    import matplotlib
-    try:
-        matplotlib.use('Qt4Agg')
-    except ImportError:
-        # In matplotlib 3.3.0 this raises ImportErrors if a previous backend
-        # was already set.
-        pass
-    else:   # pragma: no cover
-        v = [int(x) for x in matplotlib.__version__.split('.')]
-        if v[0] < 3 and v[1] < 3:
-            matplotlib.rcParams['backend.qt4'] = 'PyQt4'
-    import matplotlib.backends.backend_qt4agg as matplotlib_backend
-
-    # Set backend variables
-    backend = 'PyQt4'
-    qtversion = 4
-
-elif pyside:
-
-    # Load PySide
-
-    # Deprecated since 2019-09-11
-    logger = logging.getLogger('myokit')
-    logger.warning(
-        'PySide support has been deprecated. Please upgrade to PyQt5 or'
-        ' Pyside2.'
-    )
-
-    # Load main classes
-    from PySide import QtGui, QtCore
-    from PySide.QtCore import Qt
-
-    # Qt5 compatibility
-    QtWidgets = QtGui
-    QtCore.QItemSelection = QtGui.QItemSelection
-    QtCore.QItemSelectionModel = QtGui.QItemSelectionModel
-    QtCore.QItemSelectionRange = QtGui.QItemSelectionRange
-    QtCore.QSortFilterProxyModel = QtGui.QSortFilterProxyModel
-    QtWidgets.QStyleOptionViewItem = QtWidgets.QStyleOptionViewItemV4
-
-    # Fix QFileDialog.getOpenFileName signature issues (is different in PySide,
-    #  which causes issues when using keyword arguments. This is fixed simply
-    #  by simply wrapping the methods.)
-    # Signature in PySide
-    #  parent
-    #  caption
-    #  dir --> directory PyQt4/5
-    #  filter
-    #  selectedFilter --> initialFilter in PyQt4/5
-    #  options
-
-    # Fix getOpenFileName
-    gofn_org = QtWidgets.QFileDialog.getOpenFileName
-
-    def gofn(parent=None, caption='', directory='', filter='',
-             initialFilter='', options=0):
-        if options == 0:
-            options = QtWidgets.QFileDialog.Options()
-        return gofn_org(
-            parent, caption, directory, filter, initialFilter, options)
-    QtWidgets.QFileDialog.getOpenFileName = staticmethod(gofn)
-    del gofn
-
-    # Fix getOpenFileNames
-    gofns_org = QtWidgets.QFileDialog.getOpenFileNames
-
-    def gofns(parent=None, caption='', directory='', filter='',
-              initialFilter='', options=0):
-        if options == 0:
-            options = QtWidgets.QFileDialog.Options()
-        return gofns_org(
-            parent, caption, directory, filter, initialFilter, options)
-    QtWidgets.QFileDialog.getOpenFileNames = staticmethod(gofns)
-    del gofns
-
-    # Fix getSaveFileName
-    gsfn_org = QtWidgets.QFileDialog.getSaveFileName
-
-    def gsfn(parent=None, caption='', directory='', filter='',
-             initialFilter='', options=0):
-        if options == 0:
-            options = QtWidgets.QFileDialog.Options()
-        return gsfn_org(
-            parent, caption, directory, filter, initialFilter, options)
-    QtWidgets.QFileDialog.getSaveFileName = staticmethod(gsfn)
-    del gsfn
-
-    # Configure Matplotlib for use with PySide
-    import matplotlib
-    try:
-        matplotlib.use('Qt4Agg')
-    except ImportError:
-        # In matplotlib 3.3.0 this raises ImportErrors if a previous backend
-        # was already set.
-        pass
-    else:   # pragma: no cover
-        v = [int(x) for x in matplotlib.__version__.split('.')]
-        if v[0] < 3 and v[1] < 3:
-            matplotlib.rcParams['backend.qt4'] = 'PySide'
-    import matplotlib.backends.backend_qt4agg as matplotlib_backend  # noqa
-
-    # Set backend variables
-    backend = 'PySide'
-    qtversion = 4
-
 else:
-
     raise Exception('Selection of qt version failed.')
 
+
+# Configure Matplotlib for use with Qt
+import matplotlib
+try:
+    matplotlib.use('QtAgg')
+except ImportError:
+    # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
+    # was already set.
+    pass
+try:
+    # New Matplotlib no longer has qt4agg/qt5agg, but now uses qtagg for all
+    import matplotlib.backends.back_qtagg as matplotlib_backend  # noqa
+except ImportError:
+    # https://matplotlib.org/stable/api/backend_qt_api.html
+    import matplotlib.backends.backend_qt5agg as matplotlib_backend  # noqa
+
 # Delete temporary variables
-del pyqt4, pyqt5, pyqt6, pyside, pyside2, pyside6
+del pyqt5, pyqt6, pyside2, pyside6
+
 
 # Load Gnome theme on Wayland (for icons)
 if platform == 'Linux':
@@ -380,11 +164,11 @@ for k, v in ICONS.items():
     ICONS[k] = os.path.join(ICON_PATH, v)
 
 # Toolbar style suitable for platform
-TOOL_BUTTON_STYLE = Qt.ToolButtonTextUnderIcon
+TOOL_BUTTON_STYLE = Qt.ToolButtonStyle.ToolButtonTextUnderIcon
 if platform == 'Windows':   # pragma: no linux cover
-    TOOL_BUTTON_STYLE = Qt.ToolButtonIconOnly
+    TOOL_BUTTON_STYLE = Qt.ToolButtonStyle.ToolButtonIconOnly
 elif platform == 'Darwin':  # pragma: no linux cover
-    TOOL_BUTTON_STYLE = Qt.ToolButtonTextOnly
+    TOOL_BUTTON_STYLE = Qt.ToolButtonStyle.ToolButtonTextOnly
 
 
 # Stand alone applications
@@ -412,10 +196,11 @@ def qtMonospaceFont():
     """
     font = QtGui.QFont('monospace')
     if platform == 'Windows':   # pragma: no linux cover
-        font.setStyleHint(QtGui.QFont.TypeWriter)
+        font.setStyleHint(QtGui.QFont.StyleHint.TypeWriter)
     else:
-        font.setStyleHint(QtGui.QFont.Monospace)
-    font.setHintingPreference(QtGui.QFont.PreferVerticalHinting)  # Qt5
+        font.setStyleHint(QtGui.QFont.StyleHint.Monospace)
+    font.setHintingPreference(
+        QtGui.QFont.HintingPreference.PreferVerticalHinting)
     return font
 
 

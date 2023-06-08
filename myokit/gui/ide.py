@@ -107,7 +107,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self.resize(950, 720)
         self.setMinimumSize(600, 440)
         qr = self.frameGeometry()
-        cp = QtGui.QGuiApplication.primaryScreen().center()
+        cp = QtGui.QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -2757,7 +2757,8 @@ class Console(QtWidgets.QPlainTextEdit):
         font = myokit.gui.qtMonospaceFont()
         font.setPointSize(10)
         self.setFont(font)
-        self.setFrameStyle(QtWidgets.QFrame.WinPanel | QtWidgets.QFrame.Sunken)
+        self.setFrameStyle(
+            QtWidgets.QFrame.Shape.WinPanel | QtWidgets.QFrame.Shadow.Sunken)
 
     def clear(self):
         """
