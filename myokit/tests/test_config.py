@@ -68,10 +68,10 @@ class TestConfig(unittest.TestCase):
         cls._compat_no_fd_capture = myokit.COMPAT_NO_FD_CAPTURE
         cls._date_format = myokit.DATE_FORMAT
         cls._time_format = myokit.TIME_FORMAT
-        cls._force_pyside = myokit.FORCE_PYSIDE
-        cls._force_pyside2 = myokit.FORCE_PYSIDE2
-        cls._force_pyqt4 = myokit.FORCE_PYQT4
+        cls._force_pyqt6 = myokit.FORCE_PYQT6
         cls._force_pyqt5 = myokit.FORCE_PYQT5
+        cls._force_pyside6 = myokit.FORCE_PYSIDE6
+        cls._force_pyside2 = myokit.FORCE_PYSIDE2
         cls._sundials_lib = myokit.SUNDIALS_LIB
         cls._sundials_inc = myokit.SUNDIALS_INC
         cls._opencl_lib = myokit.OPENCL_LIB
@@ -100,10 +100,10 @@ class TestConfig(unittest.TestCase):
         myokit.COMPAT_NO_FD_CAPTURE = cls._compat_no_fd_capture
         myokit.DATE_FORMAT = cls._date_format
         myokit.TIME_FORMAT = cls._time_format
-        myokit.FORCE_PYSIDE = cls._force_pyside
-        myokit.FORCE_PYSIDE2 = cls._force_pyside2
-        myokit.FORCE_PYQT4 = cls._force_pyqt4
+        myokit.FORCE_PYQT6 = cls._force_pyqt6
         myokit.FORCE_PYQT5 = cls._force_pyqt5
+        myokit.FORCE_PYSIDE6 = cls._force_pyside6
+        myokit.FORCE_PYSIDE2 = cls._force_pyside2
         myokit.SUNDIALS_LIB = cls._sundials_lib
         myokit.SUNDIALS_INC = cls._sundials_inc
         myokit.OPENCL_LIB = cls._opencl_lib
@@ -117,10 +117,10 @@ class TestConfig(unittest.TestCase):
         assert myokit.COMPAT_NO_FD_CAPTURE == cls._compat_no_fd_capture
         assert myokit.DATE_FORMAT != 'TEST_DATE_FORMAT'
         assert myokit.TIME_FORMAT != 'TEST_TIME_FORMAT'
-        assert myokit.FORCE_PYSIDE == cls._force_pyside
-        assert myokit.FORCE_PYSIDE2 == cls._force_pyside2
-        assert myokit.FORCE_PYQT4 == cls._force_pyqt4
+        assert myokit.FORCE_PYQT6 == cls._force_pyqt6
         assert myokit.FORCE_PYQT5 == cls._force_pyqt5
+        assert myokit.FORCE_PYSIDE6 == cls._force_pyside6
+        assert myokit.FORCE_PYSIDE2 == cls._force_pyside2
         assert myokit.SUNDIALS_LIB != ['one', 'two']
         assert myokit.SUNDIALS_INC != ['three', 'four']
         assert myokit.OPENCL_LIB != ['five', 'six']
@@ -154,17 +154,17 @@ class TestConfig(unittest.TestCase):
         myokit.SUNDIALS_INC = []
         myokit.OPENCL_LIB = []
         myokit.OPENCL_INC = []
-        myokit.FORCE_PYSIDE = myokit.FORCE_PYSIDE2 = False
-        myokit.FORCE_PYQT4 = myokit.FORCE_PYQT5 = False
+        myokit.FORCE_PYSIDE6 = myokit.FORCE_PYSIDE2 = False
+        myokit.FORCE_PYQT6 = myokit.FORCE_PYQT5 = False
         with open(self._temp_dir.path('myokit.ini'), 'w') as f:
             f.write(config_basic)
         self._config_module._load()
         self.assertEqual(myokit.DATE_FORMAT, 'TEST_DATE_FORMAT')
         self.assertEqual(myokit.TIME_FORMAT, 'TEST_TIME_FORMAT')
-        self.assertFalse(myokit.FORCE_PYSIDE)
-        self.assertFalse(myokit.FORCE_PYSIDE2)
-        self.assertFalse(myokit.FORCE_PYQT4)
+        self.assertFalse(myokit.FORCE_PYQT6)
         self.assertFalse(myokit.FORCE_PYQT5)
+        self.assertFalse(myokit.FORCE_PYSIDE6)
+        self.assertFalse(myokit.FORCE_PYSIDE2)
         self.assertEqual(myokit.SUNDIALS_LIB, ['one', 'two'])
         self.assertEqual(myokit.SUNDIALS_INC, ['three', 'four'])
         self.assertEqual(myokit.OPENCL_LIB, ['five', 'six'])
@@ -205,36 +205,36 @@ class TestConfig(unittest.TestCase):
 
         # Qt gui options
         with open(self._temp_dir.path('myokit.ini'), 'w') as f:
-            f.write('[gui]\nbackend=pyqt4\n')
+            f.write('[gui]\nbackend=pyqt6\n')
         self._config_module._load()
-        self.assertFalse(myokit.FORCE_PYSIDE)
-        self.assertFalse(myokit.FORCE_PYSIDE2)
-        self.assertTrue(myokit.FORCE_PYQT4)
+        self.assertTrue(myokit.FORCE_PYQT6)
         self.assertFalse(myokit.FORCE_PYQT5)
+        self.assertFalse(myokit.FORCE_PYSIDE6)
+        self.assertFalse(myokit.FORCE_PYSIDE2)
 
         with open(self._temp_dir.path('myokit.ini'), 'w') as f:
             f.write('[gui]\nbackend=pyqt5\n')
         self._config_module._load()
-        self.assertFalse(myokit.FORCE_PYSIDE)
-        self.assertFalse(myokit.FORCE_PYSIDE2)
-        self.assertFalse(myokit.FORCE_PYQT4)
+        self.assertFalse(myokit.FORCE_PYQT6)
         self.assertTrue(myokit.FORCE_PYQT5)
+        self.assertFalse(myokit.FORCE_PYSIDE6)
+        self.assertFalse(myokit.FORCE_PYSIDE2)
 
         with open(self._temp_dir.path('myokit.ini'), 'w') as f:
-            f.write('[gui]\nbackend=pyside\n')
+            f.write('[gui]\nbackend=pyside6\n')
         self._config_module._load()
-        self.assertTrue(myokit.FORCE_PYSIDE)
-        self.assertFalse(myokit.FORCE_PYSIDE2)
-        self.assertFalse(myokit.FORCE_PYQT4)
+        self.assertFalse(myokit.FORCE_PYQT6)
         self.assertFalse(myokit.FORCE_PYQT5)
+        self.assertTrue(myokit.FORCE_PYSIDE6)
+        self.assertFalse(myokit.FORCE_PYSIDE2)
 
         with open(self._temp_dir.path('myokit.ini'), 'w') as f:
             f.write('[gui]\nbackend=pyside2\n')
         self._config_module._load()
-        self.assertFalse(myokit.FORCE_PYSIDE)
-        self.assertTrue(myokit.FORCE_PYSIDE2)
-        self.assertFalse(myokit.FORCE_PYQT4)
+        self.assertFalse(myokit.FORCE_PYQT6)
         self.assertFalse(myokit.FORCE_PYQT5)
+        self.assertFalse(myokit.FORCE_PYSIDE6)
+        self.assertTrue(myokit.FORCE_PYSIDE2)
 
         # Empty has no effect
         with open(self._temp_dir.path('myokit.ini'), 'w') as f:
@@ -242,10 +242,10 @@ class TestConfig(unittest.TestCase):
         with WarningCollector() as c:
             self._config_module._load()
         self.assertEqual(c.text(), '')
-        self.assertFalse(myokit.FORCE_PYSIDE)
-        self.assertTrue(myokit.FORCE_PYSIDE2)
-        self.assertFalse(myokit.FORCE_PYQT4)
+        self.assertFalse(myokit.FORCE_PYQT6)
         self.assertFalse(myokit.FORCE_PYQT5)
+        self.assertFalse(myokit.FORCE_PYSIDE6)
+        self.assertTrue(myokit.FORCE_PYSIDE2)
 
         # Invalid raises warning
         with open(self._temp_dir.path('myokit.ini'), 'w') as f:

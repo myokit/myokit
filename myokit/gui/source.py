@@ -320,7 +320,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 c.removeSelectedText()
             cursor.endEditBlock()
             '''
-            # This silly method is required because of a bug in qt4/qt5
+            # This silly method is required because of a bug in qt5 (and 6?)
             cursor = self.textCursor()
             start, end = cursor.selectionStart(), cursor.selectionEnd()
             first = self.document().findBlock(start)
