@@ -983,7 +983,7 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
 
         # Expressions used to find strings & comments
         R = QtCore.QRegularExpression
-        self._string_delim = R(r'"""')
+        self._string = R(r'"""')
 
         # Headers
         name = r'[a-zA-Z]+[a-zA-Z0-9_]*'
@@ -1009,108 +1009,123 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
             R(r'(\s*)(bind)\s+(' + name + ')'),
             R(r'(\s*)(label)\s+(' + name + ')'),
         ]
-        self._rule_meta_key = R(r'^\s*(' + name + r':)')
-        self._rule_meta_val = R(r':(\s*)(.+)')
+        self._rule_meta = R(r'^\s*(' + name + r':)(\s*)(.+)')
         self._rule_var_unit = R(r'^(\s*)(in)(\s*)(' + unit + ')')
 
         # Comment
-        self._comment = R(r'#[^\n]*')
+        self._comment = R(r'#')
+
+    def _highlight_ok(self, strings, start, length):
+        """ Checks if the string ``start`` to ``length`` needs formatted. """
+        for lo, hi in strings:
+            if lo <= start < hi or lo <= start + length < hi:
+                return False
+        return True
 
     def highlightBlock(self, text):
         """ Qt: Called whenever a block should be highlighted. """
 
-        # Multi-line strings: Do these first, so that we can ignore other
-        #                     formatting
-        # Block states: 0 = Normal, 1 = In a multi-line string
+        # To avoid formatting within strings each is stored as a (start, end).
+        strings = []
+        # If the start has been handled, set the offset.
         offset = 0
+        # If the end has been handled, chop it off the string
+
+        # Multi-line strings are done first, because they overrule a lot of
+        # things and we can skip formatting if we're inside one.
+        # Block states: 0=No string, 1=A """ string
         self.setCurrentBlockState(0)
 
-        # In a multi-line string?
+        # Continuing a multi-line string?
         if self.previousBlockState() == 1:
             # Search for string stop
-            ms = self._string_delim.match(text)
+            ms = self._string.match(text)
             if ms.hasMatch():
                 # Terminate the multi-line string
                 offset = ms.capturedEnd(0)
                 self.setFormat(0, offset, STYLE_ANNOT_VAL)
             else:
-                # Still in the string
+                # Whole line in the string
                 self.setCurrentBlockState(1)
                 self.setFormat(0, len(text), STYLE_ANNOT_VAL)
                 return
-
         else:
             # Search for string start
-            ms = self._string_delim.match(text)
+            ms = self._string.match(text)
             if ms.hasMatch():
-                start = ms.capturedStart(0)
-                # Doesn't count inside a comment
+                # Potential start, but check that it's not commented out
+                start = ms.capturedStart()
                 mc = self._comment.match(text)
                 if not (mc.hasMatch() and mc.capturedStart() < start):
                     # Definitely a string start. See if it ends on this line
-                    next = start + ms.capturedLength(0)
-                    me = self._string_delim.match(text, offset=next)
+                    me = self._string.match(text, offset=ms.capturedEnd())
                     if me.hasMatch():
                         # Terminate the single-line string
-                        offset = me.capturedEnd(0)
-                        self.setFormat(start, offset - start, STYLE_ANNOT_VAL)
+                        end = me.capturedEnd()
+                        self.setFormat(start, end - start, STYLE_ANNOT_VAL)
+                        strings.append((start, end))
                     else:
                         # Multi-line string
                         self.setCurrentBlockState(1)
                         self.setFormat(start, len(text), STYLE_ANNOT_VAL)
 
-        # Simple rules
+        # Comment
+        i = self._comment.globalMatch(text, offset=offset)
+        while i.hasNext():
+            m = i.next()
+            x = m.capturedStart()
+            if self._highlight_ok(strings, x, 1):
+                self.setFormat(x, len(text) - x, STYLE_COMMENT)
+                text = text[:x]
+                break
+
+        # Rule-based formatting
         for (pattern, style) in self._rules:
-            i = pattern.globalMatch(text)
+            i = pattern.globalMatch(text, offset=offset)
             while i.hasNext():
                 m = i.next()
-                self.setFormat(m.capturedStart(0), m.capturedLength(0), style)
+                x, w = m.capturedStart(), m.capturedLength()
+                if self._highlight_ok(strings, x, w):
+                    self.setFormat(x, w, style)
 
-        # Model and component headers
-        mi = self._rule_head.globalMatch(text)
-        while mi.hasNext():
-            m = mi.next()
-            self.setFormat(
-                m.capturedStart(1), m.capturedLength(1), STYLE_HEADER)
+        # Model and component headers (must be at start of string)
+        if offset == 0:
+            m = self._rule_head.match(text)
+            if m.hasMatch():
+                x, w = m.capturedStart(1), m.capturedLength(1)
+                self.setFormat(x, w, STYLE_HEADER)
 
-        # Annotations
-
-        # Labels
-        for pattern in self._rules_labels:
-            mi = pattern.globalMatch(text)
-            while mi.hasNext():
-                m = mi.next()
+        # Variable units (must be at start of string)
+        if offset == 0:
+            m = self._rule_var_unit.match(text)
+            if m.hasMatch():
                 self.setFormat(
                     m.capturedStart(2), m.capturedLength(2), STYLE_ANNOT_KEY)
                 self.setFormat(
-                    m.capturedStart(3), m.capturedLength(3), STYLE_ANNOT_VAL)
+                    m.capturedStart(4), m.capturedLength(4), STYLE_ANNOT_VAL)
 
-        # Variable units
-        mi = self._rule_var_unit.globalMatch(text)
-        while mi.hasNext():
-            m = mi.next()
-            self.setFormat(
-                m.capturedStart(2), m.capturedLength(2), STYLE_ANNOT_KEY)
-            self.setFormat(
-                m.capturedStart(4), m.capturedLength(4), STYLE_ANNOT_VAL)
+        # Binds and labels
+        for pattern in self._rules_labels:
+            i = pattern.globalMatch(text, offset=offset)
+            while i.hasNext():
+                m = i.next()
+                x, w = m.capturedStart(), m.capturedLength()
+                if self._highlight_ok(strings, x, w):
+                    self.setFormat(m.capturedStart(2), m.capturedLength(2),
+                                   STYLE_ANNOT_KEY)
+                    self.setFormat(m.capturedStart(3), m.capturedLength(3),
+                                   STYLE_ANNOT_VAL)
 
-        # Meta properties
-        mi = self._rule_meta_key.globalMatch(text)
-        if mi.hasNext():
-            m = mi.next()
-            self.setFormat(
-                m.capturedStart(0), m.capturedLength(0), STYLE_ANNOT_KEY)
-        mi = self._rule_meta_val.globalMatch(text)
-        if mi.hasNext():
-            m = mi.next()
-            self.setFormat(
-                m.capturedStart(2), m.capturedLength(2), STYLE_ANNOT_VAL)
-
-        # Comment (overrule all other formatting except multi-line strings)
-        mc = self._comment.match(text, offset=offset)
-        if mc.hasMatch():
-            self.setFormat(
-                mc.capturedStart(0), mc.capturedLength(0), STYLE_COMMENT)
+        # Meta properties (must be at start of string)
+        if offset == 0:
+            m = self._rule_meta.match(text)
+            if m.hasMatch():
+                self.setFormat(
+                    m.capturedStart(1), m.capturedLength(1), STYLE_ANNOT_KEY)
+                # Don't reformat strings (or bits after string end!)
+                if m.captured(3)[:3] != '"""':
+                    self.setFormat(m.capturedStart(3), m.capturedLength(3),
+                                   STYLE_ANNOT_VAL)
 
 
 class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
@@ -1142,15 +1157,14 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
 
         # Rule based formatting
         for (pattern, style) in self._rules:
-            mi = pattern.globalMatch(text)
-            while mi.hasNext():
-                m = mi.next()
-                self.setFormat(m.capturedStart(0), m.capturedLength(0), style)
+            i = pattern.globalMatch(text)
+            while i.hasNext():
+                m = i.next()
+                self.setFormat(m.capturedStart(), m.capturedLength(), style)
 
-        # Protocol header
-        mi = self._rule_head.globalMatch(text)
-        while mi.hasNext():
-            m = mi.next()
+        # Protocol header (must be at strart of string)
+        m = self._rule_head.match(text)
+        if m.hasMatch():
             self.setFormat(
                 m.capturedStart(1), m.capturedLength(1), STYLE_HEADER)
 
@@ -1162,7 +1176,7 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
     def __init__(self, document):
         super().__init__(document)
 
-        # Headers and units
+        # Script header
         R = QtCore.QRegularExpression
         self._rule_head = R(r'^\s*(\[\[[a-zA-Z0-9_]+\]\])')
 
@@ -1187,101 +1201,109 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         self._rules.append((R(r'\bNone\b'), STYLE_LITERAL))
 
         # Strings
-        self._rules.append((R(r'"([^"\\]|\\")*"'), STYLE_LITERAL))
-        self._rules.append((R(r"'([^'\\]|\\')*'"), STYLE_LITERAL))
-
-        # Multi-line strings
-        self._string1 = R(r"'''")
-        self._string2 = R(r'"""')
+        self._s1 = R(r'"')
+        self._s2 = R(r"'")
+        self._ms1 = R(r'"""')
+        self._ms2 = R(r"'''")
+        self._s_start = R(r'"""|\'\'\'|"|\'')
+        self._s_end = {
+            '"': self._s1, "'": self._s2, '"""': self._ms1, "'''": self._ms2}
 
         # Comments
-        self._rules.append((R(r'#[^\n]*'), STYLE_COMMENT))
+        self._comment = R(r'#')
+
+    def _highlight_ok(self, strings, start, length):
+        """ Checks if the string ``start`` to ``length`` needs formatted. """
+        for lo, hi in strings:
+            if lo <= start < hi or lo <= start + length < hi:
+                return False
+        return True
 
     def highlightBlock(self, text):
         """ Qt: Called whenever a block should be highlighted. """
 
-        #TODO
+        # To avoid formatting within strings each is stored as a (start, end).
+        strings = []
+        # If the start has been handled, set the offset.
+        offset = 0
+        # If the end has been handled, chop it off the string
+
+        # Multi-line strings are done first, because they overrule a lot of
+        # things and we can skip formatting if we're inside one.
+        # Block states: 0=No string, 1=A " " " string, 2=A ' ' ' string
+        self.setCurrentBlockState(0)
+
+        # Continuing a multi-line string?
+        previous = self.previousBlockState()
+        if previous == 1 or previous == 2:
+            # Search for string stop
+            r = self._ms1 if previous == 1 else self._ms2
+            ms = r.match(text)
+            if ms.hasMatch():
+                # Terminate the multi-line string, and increase global offset
+                offset = ms.capturedEnd(0)
+                self.setFormat(0, offset, STYLE_LITERAL)
+            else:
+                # Whole line in the string
+                self.setCurrentBlockState(previous)
+                self.setFormat(0, len(text), STYLE_LITERAL)
+                return
+
+        # Search for string starts (single or multi-line)
+        stroff = offset     # Offset for string start/end searching
+        m1 = self._s_start.match(text, offset=stroff)
+        while m1.hasMatch():
+            stroff = m1.capturedEnd()
+            start = m1.capturedStart()
+            # Are we in a comment?
+            mc = self._comment.match(text)
+            if (mc.hasMatch() and mc.capturedStart() < start):
+                # No point searching for further string starts
+                stroff = len(text)
+            else:
+                # Find string end
+                m2 = self._s_end[m1.captured()].match(text, offset=stroff)
+                if m2.hasMatch():
+                    stroff = m2.capturedEnd()
+                    # Ignore if escaped
+                    if text[m2.capturedStart() - 1] != '\\':
+                        # Terminate the single line string and move on
+                        self.setFormat(start, stroff - start, STYLE_LITERAL)
+                        strings.append((start, stroff))
+                elif m1.capturedLength() > 1:
+                    # Multi-line string start. Block finished!
+                    self.setCurrentBlockState(
+                        1 if m1.captured() == '"""' else 2)
+                    self.setFormat(start, len(text) - start, STYLE_LITERAL)
+                    return
+                # No Match? Then not a string so ignore and continue
+            m1 = self._s_start.match(text, offset=stroff)
+
+        # Comment
+        i = self._comment.globalMatch(text, offset=offset)
+        while i.hasNext():
+            m = i.next()
+            x = m.capturedStart()
+            if self._highlight_ok(strings, x, 1):
+                self.setFormat(x, len(text) - x, STYLE_COMMENT)
+                text = text[:x]
+                break
+
+        # Script header (must be at start of string)
+        if offset == 0:
+            m = self._rule_head.match(text)
+            if m.hasMatch():
+                self.setFormat(
+                    m.capturedStart(1), m.capturedLength(1), STYLE_HEADER)
 
         # Rule based formatting
         for (pattern, style) in self._rules:
-            i = pattern.globalMatch(text)
+            i = pattern.globalMatch(text, offset=offset)
             while i.hasNext():
                 m = i.next()
-                self.setFormat(m.capturedStart(0), m.capturedLength(0), style)
-
-        # Script header
-        mi = self._rule_head.globalMatch(text)
-        while mi.hasNext():
-            m = mi.next()
-            self.setFormat(
-                m.capturedStart(1), m.capturedLength(1), STYLE_HEADER)
-
-        TODO
-
-        LOOK AT https://github.com/myokit/myokit/issues/158 too
-
-        '''
-        # Block states:
-        #  0 Normal
-        #  1 Multi-line string 1
-        #  2 Multi-line string 2
-        self.setCurrentBlockState(0)
-
-        # Multi-line formats
-        def find_start(text, next):
-            s1 = self._string1.indexIn(text, next)
-            s2 = self._string2.indexIn(text, next)
-            if s1 < 0 and s2 < 0:
-                current = 0
-                start = -1
-                next = -1
-            else:
-                if s1 >= 0 and s2 >= 0:
-                    current = 1 if s1 < s2 else 2
-                    start = min(s1, s2)
-                elif s1 >= 0:
-                    current = 1
-                    start = s1
-                else:   # (s2 >= 0)
-                    current = 2
-                    start = s2
-                next = start + 3
-
-                # Check we're not in a comment
-                i = text.rfind('\n', start) + 1
-                if text[i:i + 1] == '#':
-                    current = 0
-                    start = next = -1
-
-            return current, start, next
-
-        # Check state of previous block
-        previous = self.previousBlockState()
-        if previous == 1 or previous == 2:
-            current, start, next = previous, 0, 0
-        else:
-            current, start, next = find_start(text, 0)
-
-        # Find any occurrences of string start / stop
-        while next >= 0:
-            if current == 1:
-                stop = self._string1.indexIn(text, next)
-            else:
-                stop = self._string2.indexIn(text, next)
-            if stop < 0:
-                # Continuing multi-line string
-                self.setCurrentBlockState(current)
-                self.setFormat(start, len(text) - start, STYLE_LITERAL)
-                next = -1
-            else:
-                # Ending single-line or multi-line string
-                # Format until stop token
-                stop += 3
-                self.setFormat(start, stop - start, STYLE_LITERAL)
-                # Find next string in block, if any
-                next = stop + 3
-                current, start, next = find_start(text, next)
-        '''
+                x, w = m.capturedStart(), m.capturedLength()
+                if self._highlight_ok(strings, x, w):
+                    self.setFormat(x, w, style)
 
 
 # List of essential built-in python functions
