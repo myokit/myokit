@@ -4,7 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import logging
 import os
 import platform
 import signal
@@ -112,7 +111,7 @@ else:
 
 
 # Configure Matplotlib for use with Qt
-import matplotlib
+import matplotlib  # noqa
 try:
     matplotlib.use('QtAgg')
 except ImportError:

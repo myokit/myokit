@@ -405,7 +405,8 @@ class Editor(QtWidgets.QPlainTextEdit):
                 # Smart up/down:
                 self._last_column = indent
             # If Shift is used: only move position (keep anchor, i.e. select)
-            cursor.setPosition(newpos,
+            cursor.setPosition(
+                newpos,
                 MM.KeepAnchor if mod == KM.ShiftModifier else MM.MoveAnchor)
             self.setTextCursor(cursor)
 
@@ -475,8 +476,8 @@ class Editor(QtWidgets.QPlainTextEdit):
             # Set up operation
             anchor = (
                 MM.KeepAnchor if mod == KM.ShiftModifier else MM.MoveAnchor)
-            operation = MO.PreviousBlock if key in (K.Key_Up, K.Key_PageUp) \
-                        else MO.NextBlock
+            operation = (MO.PreviousBlock if key in (K.Key_Up, K.Key_PageUp)
+                         else MO.NextBlock)
             n = 1 if key in (K.Key_Up, K.Key_Down) else (
                 self._blocks_per_page - 3)
 
