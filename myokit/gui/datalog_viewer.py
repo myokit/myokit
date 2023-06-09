@@ -545,7 +545,7 @@ class AbfTab(TabWidget):
     def __init__(self, parent, abf):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._abf = abf
         self._figures = []
         self._axes = []
@@ -649,7 +649,7 @@ class AtfTab(TabWidget):
         self._atf = atf
 
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
 
         self._figures = []
         self._axes = []
@@ -720,7 +720,7 @@ class CsvTab(TabWidget):
     def __init__(self, parent, log, filename):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._log = log.npview()
         self._filename = filename
         self._figures = []
@@ -817,7 +817,7 @@ class MatTab(TabWidget):
     def __init__(self, parent, mat, filename):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._figures = []
         self._filename = filename
         self._axes = []
@@ -905,7 +905,7 @@ class TxtTab(TabWidget):
     def __init__(self, parent, data, filename):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._figures = []
         self._filename = filename
         self._axes = []
@@ -987,7 +987,7 @@ class WcpTab(TabWidget):
     def __init__(self, parent, wcp):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._wcp = wcp
         self._figures = []
         self._axes = []

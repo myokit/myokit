@@ -113,7 +113,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._timer.setSingleShot(False)
         self._timer.timeout.connect(self.action_next_frame)
         self._timer_paused = False
-        self._timer.setTimerType(Qt.PreciseTimer)
+        self._timer.setTimerType(Qt.TimerType.PreciseTimer)
 
         # Video widget
         self._video_scene = VideoScene()
@@ -140,8 +140,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
 
         # Video slider
         self._slider = QtWidgets.QSlider(Qt.Orientation.Horizontal)
-        self._slider.setTickPosition(QtWidgets.QSlider.NoTicks)
-        #self._slider.setTickPosition(QtWidgets.QSlider.TicksBothSides)
+        self._slider.setTickPosition(QtWidgets.QSlider.TickPosition.NoTicks)
         self._slider.setSingleStep(1)
         self._slider.setMinimum(0)
         self._slider.setMaximum(0)
@@ -153,8 +152,10 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         style = QtWidgets.QApplication.style()
 
         # Play button
-        self._play_icon_play = style.standardIcon(style.SP_MediaPlay)
-        self._play_icon_pause = style.standardIcon(style.SP_MediaPause)
+        self._play_icon_play = style.standardIcon(
+            style.StandardPixmap.SP_MediaPlay)
+        self._play_icon_pause = style.standardIcon(
+            style.StandardPixmap.SP_MediaPause)
         self._play_button = QtWidgets.QPushButton()
         self._play_button.setIcon(self._play_icon_play)
         self._play_button.pressed.connect(self.action_start_stop)
@@ -327,7 +328,8 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             nx = 200
             ny = 800
             image = myokit.ColorMap.image(self._colormap, nx, ny)
-            image = QtGui.QImage(image, nx, ny, QtGui.QImage.Format_ARGB32)
+            image = QtGui.QImage(
+                image, nx, ny, QtGui.QImage.Format.Format_ARGB32)
             painter = QtGui.QPainter(image)
             painter.drawText(10, 15, str(upper))
             painter.drawText(10, ny - 5, str(lower))
@@ -381,7 +383,8 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 return
             nt, ny, nx = self._data.shape()
             image = self._video_frames[self._video_iframe]
-            image = QtGui.QImage(image, nx, ny, QtGui.QImage.Format_ARGB32)
+            image = QtGui.QImage(
+                image, nx, ny, QtGui.QImage.Format.Format_ARGB32)
             image.save(fname, ext)
 
     def action_extract_graphs(self):
@@ -485,7 +488,8 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             nx = self._colorbar_width
             ny = self._colorbar_height
             image = myokit.ColorMap.image(self._colormap, nx, ny)
-            image = QtGui.QImage(image, nx, ny, QtGui.QImage.Format_ARGB32)
+            image = QtGui.QImage(
+                image, nx, ny, QtGui.QImage.Format.Format_ARGB32)
             self._colorbar_pixmap.convertFromImage(image)
             self._colorbar_item.setPixmap(self._colorbar_pixmap)  # qt5
             self.action_set_variable(self._variable)
@@ -525,7 +529,8 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             self._time_field.setText(str(self._data.time()[frame]))
             # Update scene
             image = self._video_frames[self._video_iframe]
-            image = QtGui.QImage(image, nx, ny, QtGui.QImage.Format_ARGB32)
+            image = QtGui.QImage(
+                image, nx, ny, QtGui.QImage.Format.Format_ARGB32)
             self._video_pixmap.convertFromImage(image)
             self._video_item.setPixmap(self._video_pixmap)   # qt5
         # Update graph area
@@ -1030,13 +1035,14 @@ class VideoView(QtWidgets.QGraphicsView):
     def __init__(self, scene):
         super().__init__(scene)
         # Disable scrollbars
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         # Set rendering hints
         self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         self.setViewportUpdateMode(
-            QtWidgets.QGraphicsView.BoundingRectViewportUpdate)
+            QtWidgets.QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)  # noqa
 
         # Fit scene rect in view
         self.fitInView(self.sceneRect(), keepAspect=True)
@@ -1131,20 +1137,20 @@ class GraphArea(QtWidgets.QWidget):
         self._position = self._tmin
 
         # Colors for drawing
-        self._color_temp = Qt.black
+        self._color_temp = Qt.GlobalColor.black
         self._color_cycle = [
-            Qt.red,
-            #Qt.green,
-            Qt.blue,
-            #Qt.cyan,
-            Qt.magenta,
-            #Qt.yellow,
-            Qt.darkRed,
-            Qt.darkGreen,
-            Qt.darkBlue,
-            Qt.darkCyan,
-            Qt.darkMagenta,
-            Qt.darkYellow,
+            Qt.GlobalColor.red,
+            #Qt.GlobalColor.green,
+            Qt.GlobalColor.blue,
+            #Qt.GlobalColor.cyan,
+            Qt.GlobalColor.magenta,
+            #Qt.GlobalColor.yellow,
+            Qt.GlobalColor.darkRed,
+            Qt.GlobalColor.darkGreen,
+            Qt.GlobalColor.darkBlue,
+            Qt.GlobalColor.darkCyan,
+            Qt.GlobalColor.darkMagenta,
+            Qt.GlobalColor.darkYellow,
         ]
 
         # Scaling factors from pixels to normalized (0, 1) coordinates. Updated
@@ -1276,7 +1282,7 @@ class GraphArea(QtWidgets.QWidget):
         painter.begin(self)
 
         # Fill background
-        painter.fillRect(self.rect(), QtGui.QBrush(Qt.white))
+        painter.fillRect(self.rect(), QtGui.QBrush(Qt.GlobalColor.white))
 
         # Create coordinate system for graphs
         painter.scale(self.width(), self.height())
@@ -1304,7 +1310,7 @@ class GraphArea(QtWidgets.QWidget):
             painter.drawPath(self._temp_path)
 
         # Show time indicator
-        pen.setColor(Qt.red)
+        pen.setColor(Qt.GlobalColor.red)
         painter.setPen(pen)
         t = (self._position - self._tmin) / self._trange
         painter.drawLine(QtCore.QLineF(t, 0, t, 1))

@@ -138,9 +138,8 @@ def block(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the DataBlock viewer.
     """
-    qtforce(pyqt6, pyqt5, pyside6, pyside5)
+    qtforce(pyqt6, pyqt5, pyside6, pyside2)
 
-    import myokit.gui
     import myokit.gui.datablock_viewer
     myokit.gui.run(myokit.gui.datablock_viewer.DataBlockViewer, filename)
 
@@ -593,9 +592,10 @@ def ide(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     qtforce(pyqt6, pyqt5, pyside6, pyside2)
 
     import os
-    import myokit.gui.ide
     if filename is not None:
         filename = os.path.abspath(os.path.expanduser(filename))
+
+    import myokit.gui.ide
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
 
 
@@ -699,10 +699,12 @@ def add_import_parser(subparsers):
 # Log viewer
 #
 
-def log(filenames):
+def log(filenames, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the DataLog Viewer.
     """
+    qtforce(pyqt6, pyqt5, pyside6, pyside2)
+
     import myokit.gui.datalog_viewer
     myokit.gui.run(myokit.gui.datalog_viewer.DataLogViewer, *filenames)
 
@@ -718,6 +720,7 @@ def add_log_parser(subparsers):
         description='Runs the DataLog Viewer (PROTOTYPE).',
         help='Runs the DataLog Viewer (PROTOTYPE).',
     )
+    add_qtforce_arguments(parser)
     parser.add_argument(
         'filenames',
         default=None,
