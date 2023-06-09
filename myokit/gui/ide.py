@@ -100,6 +100,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
     def __init__(self, filename=None):
         super().__init__()
 
+        # Regular expression for navigator
+        self._nav_query = QtCore.QRegularExpression(
+            r'^\[[a-zA-Z]{1}[a-zA-Z0-9_]*\]')
+
         # Set application icon
         self.setWindowIcon(icon())
 
@@ -2568,15 +2572,13 @@ class MyokitIDE(myokit.gui.MyokitApplication):
     def update_navigator(self):
         """ Updates the model navigator contents. """
         # Find all components and store their positions in a list (name, line)
-        query = QtCore.QRegularExpression(r'^\[[a-zA-Z]{1}[a-zA-Z0-9_]*\]')
         pos = 0
-        found = self._model_editor.document().find(query, pos)
+        found = self._model_editor.document().find(self._nav_query, pos)
         positions = []
         while not found.isNull():
             pos = found.position()
-            block = found.block()
-            positions.append((block.text(), pos))
-            found = self._model_editor.document().find(query, pos)
+            positions.append((found.selectedText(), pos))
+            found = self._model_editor.document().find(self._nav_query, pos)
         self._model_navigator.set_positions(positions)
 
     def update_recent_files_menu(self):
