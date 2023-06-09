@@ -9,7 +9,7 @@ imported from CellML and then modified, exported or used in simulations.
 
 Implementation
 ==============
-The gui is built using Qt, implemented in Python via either PyQt4 or PySide.
+The gui is built using Qt, implemented in Python via either PyQt or PySide.
 
 .. module:: myokit.gui.ide
 

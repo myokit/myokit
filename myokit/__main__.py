@@ -26,6 +26,55 @@ def colored(color, text):
     return colors[color] + str(text) + colors['normal']
 
 
+def qtforce(pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
+    """ Enforce a chosen Qt version. """
+
+    if pyqt6 or pyqt5 or pyside6 or pyside2:
+        import myokit
+
+        myokit.FORCE_PYQT6 = False
+        myokit.FORCE_PYQT5 = False
+        myokit.FORCE_PYSIDE6 = False
+        myokit.FORCE_PYSIDE2 = False
+
+        if pyqt6:
+            myokit.FORCE_PYQT6 = True
+        elif pyside6:
+            myokit.FORCE_PYSIDE6 = True
+        elif pyqt5:
+            myokit.FORCE_PYQT5 = True
+        elif pyside2:
+            myokit.FORCE_PYSIDE2 = True
+
+        import myokit.gui
+        print('Using backend: ' + myokit.gui.backend)
+
+
+def add_qtforce_arguments(parser):
+    """ Updates a parser with arguments to force a Qt version. """
+
+    parser.add_argument(
+        '--pyqt6',
+        action='store_true',
+        help='Run using the PyQt6 backend.',
+    )
+    parser.add_argument(
+        '--pyqt5',
+        action='store_true',
+        help='Run using the PyQt5 backend.',
+    )
+    parser.add_argument(
+        '--pyside6',
+        action='store_true',
+        help='Run using the PySide6 backend.',
+    )
+    parser.add_argument(
+        '--pyside2',
+        action='store_true',
+        help='Run using the PySide2 backend.',
+    )
+
+
 def main():
     """
     Parses command line arguments.
@@ -85,36 +134,13 @@ def main():
 #
 # Data block viewer
 #
-
-def block(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
+def block(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the DataBlock viewer.
     """
-    import myokit
-    if pyqt5:
-        myokit.FORCE_PYQT5 = True
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = False
-    elif pyqt4:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = True
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = False
-    elif pyside:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = True
-        myokit.FORCE_PYSIDE2 = False
-    elif pyside2:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = True
-    import myokit.gui
+    qtforce(pyqt6, pyqt5, pyside6, pyside2)
+
     import myokit.gui.datablock_viewer
-    if pyqt5 or pyqt4 or pyside or pyside2:
-        print('Using backend: ' + myokit.gui.backend)
     myokit.gui.run(myokit.gui.datablock_viewer.DataBlockViewer, filename)
 
 
@@ -134,26 +160,7 @@ def add_block_parser(subparsers):
         metavar='filename',
         help='The DataBlock zip file to open (optional).',
     )
-    parser.add_argument(
-        '--pyqt5',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PyQt5 backend.',
-    )
-    parser.add_argument(
-        '--pyqt4',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PyQt4 backend.',
-    )
-    parser.add_argument(
-        '--pyside',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PySide backend.',
-    )
-    parser.add_argument(
-        '--pyside2',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PySide2 backend.',
-    )
+    add_qtforce_arguments(parser)
     parser.set_defaults(func=block)
 
 
@@ -578,38 +585,17 @@ def add_icon_parser(subparsers):
 # IDE
 #
 
-def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
+def ide(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the Myokit IDE.
     """
+    qtforce(pyqt6, pyqt5, pyside6, pyside2)
+
     import os
-    import myokit
-    if pyqt5:
-        myokit.FORCE_PYQT5 = True
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = False
-    elif pyqt4:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = True
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = False
-    elif pyside:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = True
-        myokit.FORCE_PYSIDE2 = False
-    elif pyside2:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = True
-    import myokit.gui
-    import myokit.gui.ide
-    if pyqt5 or pyqt4 or pyside or pyside2:
-        print('Using backend: ' + myokit.gui.backend)
     if filename is not None:
         filename = os.path.abspath(os.path.expanduser(filename))
+
+    import myokit.gui.ide
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
 
 
@@ -629,26 +615,7 @@ def add_ide_parser(subparsers):
         metavar='filename',
         help='The mmt file to open (optional).',
     )
-    parser.add_argument(
-        '--pyqt5',
-        action='store_true',
-        help='Run the IDE using the PyQt5 backend.',
-    )
-    parser.add_argument(
-        '--pyqt4',
-        action='store_true',
-        help='Run the IDE using the PyQt4 backend.',
-    )
-    parser.add_argument(
-        '--pyside',
-        action='store_true',
-        help='Run the IDE using the PySide backend.',
-    )
-    parser.add_argument(
-        '--pyside2',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PySide2 backend.',
-    )
+    add_qtforce_arguments(parser)
     parser.set_defaults(func=ide)
 
 
@@ -732,11 +699,12 @@ def add_import_parser(subparsers):
 # Log viewer
 #
 
-def log(filenames):
+def log(filenames, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the DataLog Viewer.
     """
-    import myokit.gui
+    qtforce(pyqt6, pyqt5, pyside6, pyside2)
+
     import myokit.gui.datalog_viewer
     myokit.gui.run(myokit.gui.datalog_viewer.DataLogViewer, *filenames)
 
@@ -752,6 +720,7 @@ def add_log_parser(subparsers):
         description='Runs the DataLog Viewer (PROTOTYPE).',
         help='Runs the DataLog Viewer (PROTOTYPE).',
     )
+    add_qtforce_arguments(parser)
     parser.add_argument(
         'filenames',
         default=None,

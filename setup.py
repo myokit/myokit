@@ -103,9 +103,9 @@ setup(
             'scipy',            # Used in data log, and data log viewer
             'sympy',            # Used in formats.sympy
         ],
-        'gui': ['pyqt5', 'sip'],
-        'pyqt': ['pyqt5', 'sip'],
-        'pyside': ['pyside2'],
+        'gui': ['pyqt6', 'sip'],
+        'pyqt': ['pyqt6', 'sip'],
+        'pyside': ['pyside6'],
     },
 
     # Unit tests

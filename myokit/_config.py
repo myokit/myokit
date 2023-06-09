@@ -62,12 +62,12 @@ def _create(path):
     # GUI Backend
     config.add_section('gui')
     config.set('gui', '# Backend to use for graphical user interface.')
-    config.set('gui', '# Valid options are pyqt5, pyqt4, pyside2 and pyside.')
+    config.set('gui', '# Valid options are pyqt6, pyqt5, pyside6 and pyside2.')
     config.set('gui', '# Leave unset for automatic selection.')
+    config.set('gui', '#backend = pyqt6')
     config.set('gui', '#backend = pyqt5')
-    config.set('gui', '#backend = pyqt4')
+    config.set('gui', '#backend = pyside6')
     config.set('gui', '#backend = pyside2')
-    config.set('gui', '#backend = pyside')
 
     # Locations of sundials library
     config.add_section('sundials')
@@ -261,30 +261,30 @@ def _load():
     # GUI Backend
     if config.has_option('gui', 'backend'):
         x = config.get('gui', 'backend').strip().lower()
-        if x == 'pyqt' or x == 'pyqt4':
-            myokit.FORCE_PYQT4 = True
+        if x == 'pyqt6':
+            myokit.FORCE_PYQT6 = True
             myokit.FORCE_PYQT5 = False
-            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE6 = False
             myokit.FORCE_PYSIDE2 = False
         elif x == 'pyqt5':
-            myokit.FORCE_PYQT4 = False
+            myokit.FORCE_PYQT6 = False
             myokit.FORCE_PYQT5 = True
-            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE6 = False
             myokit.FORCE_PYSIDE2 = False
-        elif x == 'pyside':
-            myokit.FORCE_PYQT4 = False
+        elif x == 'pyside6':
+            myokit.FORCE_PYQT6 = False
             myokit.FORCE_PYQT5 = False
-            myokit.FORCE_PYSIDE = True
+            myokit.FORCE_PYSIDE6 = True
             myokit.FORCE_PYSIDE2 = False
         elif x == 'pyside2':
-            myokit.FORCE_PYQT4 = False
+            myokit.FORCE_PYQT6 = False
             myokit.FORCE_PYQT5 = False
-            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE6 = False
             myokit.FORCE_PYSIDE2 = True
         elif x != '':
             warnings.warn(
                 'Invalid setting in myokit.ini. Expected values for backend'
-                ' are pyqt, pyqt4, pyqt5, pyside, or pyside2. Got: ' + x)
+                ' are pyqt6, pyqt5, pyside6, or pyside2. Got: ' + x)
 
     # Sundials libraries, header files, and version
     if config.has_option('sundials', 'lib'):

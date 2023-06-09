@@ -100,6 +100,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
     def __init__(self, filename=None):
         super().__init__()
 
+        # Regular expression for navigator
+        self._nav_query = QtCore.QRegularExpression(
+            r'^\[[a-zA-Z]{1}[a-zA-Z0-9_]*\]')
+
         # Set application icon
         self.setWindowIcon(icon())
 
@@ -107,7 +111,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self.resize(950, 720)
         self.setMinimumSize(600, 440)
         qr = self.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        cp = QtGui.QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -172,7 +176,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._script_tools.add(self._script_search, 'Find/Replace')
 
         # Create editor tabs
-        self._model_tab = QtWidgets.QSplitter(Qt.Horizontal)
+        self._model_tab = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
         self._model_tab.editor = self._model_editor
         self._model_tab.search = self._model_search
         self._model_tab.addWidget(self._model_editor)
@@ -181,7 +185,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._model_tab.setCollapsible(0, False)
         self._model_tab.setCollapsible(1, False)
 
-        self._protocol_tab = QtWidgets.QSplitter(Qt.Horizontal)
+        self._protocol_tab = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
         self._protocol_tab.editor = self._protocol_editor
         self._protocol_tab.search = self._protocol_search
         self._protocol_tab.addWidget(self._protocol_editor)
@@ -190,7 +194,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._protocol_tab.setCollapsible(0, False)
         self._protocol_tab.setCollapsible(1, False)
 
-        self._script_tab = QtWidgets.QSplitter(Qt.Horizontal)
+        self._script_tab = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
         self._script_tab.editor = self._script_editor
         self._script_tab.search = self._script_search
         self._script_tab.addWidget(self._script_editor)
@@ -233,7 +237,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._console.write('Loading Myokit IDE')
 
         # Create central layout: vertical splitter
-        self._central_splitter = QtWidgets.QSplitter(Qt.Vertical)
+        self._central_splitter = QtWidgets.QSplitter(Qt.Orientation.Vertical)
         self._central_splitter.addWidget(self._editor_tabs)
         self._central_splitter.addWidget(self._console)
         self._central_splitter.setSizes([580, 120])
@@ -369,10 +373,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         try:
             # Ask are you sure?
             msg = 'Remove all units from expressions in model?'
-            box = QtWidgets.QMessageBox
-            options = box.Yes | box.No
-            reply = box.question(self, TITLE, msg, options)
-            if reply == box.No:
+            sb = QtWidgets.QMessageBox.StandardButton
+            reply = QtWidgets.QMessageBox.question(
+                self, TITLE, msg, sb.Yes | sb.No)
+            if reply == sb.No:
                 return
             # Strip units
             # Note: lines are used in error handling!
@@ -454,7 +458,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Simulation creation method
         def sim():
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             try:
                 # Get model and protocol
                 m = self.model(errors_in_console=True)
@@ -463,12 +467,12 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 elif m is None:
                     return 'Empty model definition'
                 QtWidgets.QApplication.processEvents(
-                    QtCore.QEventLoop.ExcludeUserInputEvents)
+                    QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
                 p = self.protocol(errors_in_console=True)
                 if p is False:
                     return 'Errors in protocol'
                 QtWidgets.QApplication.processEvents(
-                    QtCore.QEventLoop.ExcludeUserInputEvents)
+                    QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
                 # Create and return simulation
                 self.statusBar().showMessage('Creating simulation...')
                 return m, p, myokit.Simulation(m, p)
@@ -994,12 +998,12 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             #self.setEnabled(False)
             self._console.write('Running embedded script.')
             QtWidgets.QApplication.setOverrideCursor(
-                QtGui.QCursor(Qt.WaitCursor))
+                QtGui.QCursor(Qt.CursorShape.WaitCursor))
             # Create progress bar
             pbar = progress.ProgressBar(self, 'Running embedded script')
             pbar.show()
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             # Get model and protocol
             m = self.model(errors_in_console=True)
             if m is False:
@@ -1008,16 +1012,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if p is False:
                 return
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             # Clone model & protocol: the script may modify them!
             if m:
                 m = m.clone()
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             if p:
                 p = p.clone()
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             # Get embedded script
             x = self._script_editor.get_text()
             # Run
@@ -1039,7 +1043,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self._console.write(traceback.format_exc())
         finally:
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             # Hide progress bar
             if pbar is not None:
                 pbar.close()
@@ -1534,8 +1538,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if event:
                 event.ignore()
             return
+
         # Close all windows, including matplotlib plots
-        QtWidgets.qApp.closeAllWindows()
+        QtWidgets.QApplication.instance().closeAllWindows()
+
         # Accept event, closing this window
         if event:
             event.accept()
@@ -1558,14 +1564,14 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # File menu
         self._menu_file = self._menu.addMenu('&File')
         # File > New
-        self._tool_new = QtWidgets.QAction('&New', self)
+        self._tool_new = QtGui.QAction('&New', self)
         self._tool_new.setShortcut('Ctrl+N')
         self._tool_new.setStatusTip('Create a new mmt file.')
         self._tool_new.setIcon(myokit.gui.icon('document-new'))
         self._tool_new.triggered.connect(self.action_new)
         self._menu_file.addAction(self._tool_new)
         # File > Open
-        self._tool_open = QtWidgets.QAction('&Open', self)
+        self._tool_open = QtGui.QAction('&Open', self)
         self._tool_open.setShortcut('Ctrl+O')
         self._tool_open.setStatusTip('Open an existing mmt file.')
         self._tool_open.setIcon(myokit.gui.icon('document-open'))
@@ -1574,7 +1580,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # File > ----
         self._menu_file.addSeparator()
         # File > Save
-        self._tool_save = QtWidgets.QAction('&Save', self)
+        self._tool_save = QtGui.QAction('&Save', self)
         self._tool_save.setShortcut('Ctrl+S')
         self._tool_save.setStatusTip('Save the current file')
         self._tool_save.setIcon(myokit.gui.icon('document-save'))
@@ -1582,7 +1588,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_save.setEnabled(False)
         self._menu_file.addAction(self._tool_save)
         # File > Save as
-        self._tool_save_as = QtWidgets.QAction('Save &as', self)
+        self._tool_save_as = QtGui.QAction('Save &as', self)
         self._tool_save_as.setShortcut('Ctrl+Shift+S')
         self._tool_save_as.setStatusTip(
             'Save the current file under a different name.')
@@ -1593,14 +1599,14 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # File > Recent files
         self._recent_file_tools = []
         for i in range(N_RECENT_FILES):
-            tool = QtWidgets.QAction(self, visible=False)
+            tool = QtGui.QAction(self, visible=False)
             tool.triggered.connect(self.action_open_recent)
             self._recent_file_tools.append(tool)
             self._menu_file.addAction(tool)
         # File > ----
         self._menu_file.addSeparator()
         # File > Quit
-        self._tool_exit = QtWidgets.QAction('&Quit', self)
+        self._tool_exit = QtGui.QAction('&Quit', self)
         self._tool_exit.setShortcut('Ctrl+Q')
         self._tool_exit.setStatusTip('Exit application.')
         self._tool_exit.triggered.connect(self.close)
@@ -1610,7 +1616,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         #
         self._menu_edit = self._menu.addMenu('&Edit')
         # Edit > Undo
-        self._tool_undo = QtWidgets.QAction('&Undo', self)
+        self._tool_undo = QtGui.QAction('&Undo', self)
         self._tool_undo.setShortcut('Ctrl+Z')
         self._tool_undo.setStatusTip('Undo the last edit.')
         self._tool_undo.setIcon(myokit.gui.icon('edit-undo'))
@@ -1618,7 +1624,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_undo.setEnabled(False)
         self._menu_edit.addAction(self._tool_undo)
         # Edit > Redo
-        self._tool_redo = QtWidgets.QAction('&Redo', self)
+        self._tool_redo = QtGui.QAction('&Redo', self)
         self._tool_redo.setShortcut('Ctrl+Shift+Z')
         self._tool_redo.setStatusTip('Redo the last undone edit.')
         self._tool_redo.setIcon(myokit.gui.icon('edit-redo'))
@@ -1628,7 +1634,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Edit > ----
         self._menu_edit.addSeparator()
         # Edit > Cut
-        self._tool_cut = QtWidgets.QAction('&Cut', self)
+        self._tool_cut = QtGui.QAction('&Cut', self)
         self._tool_cut.setShortcut('Ctrl+X')
         self._tool_cut.setStatusTip(
             'Cut the selected text and copy it to the clipboard.')
@@ -1637,7 +1643,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_cut.setEnabled(False)
         self._menu_edit.addAction(self._tool_cut)
         # Edit > Copy
-        self._tool_copy = QtWidgets.QAction('&Copy', self)
+        self._tool_copy = QtGui.QAction('&Copy', self)
         self._tool_copy.setShortcut('Ctrl+C')
         self._tool_copy.setStatusTip(
             'Copy the selected text to the clipboard.')
@@ -1646,7 +1652,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_copy.setEnabled(False)
         self._menu_edit.addAction(self._tool_copy)
         # Edit > Paste
-        self._tool_paste = QtWidgets.QAction('&Paste', self)
+        self._tool_paste = QtGui.QAction('&Paste', self)
         self._tool_paste.setShortcut('Ctrl+V')
         self._tool_paste.setStatusTip(
             'Paste text from the clipboard into the editor.')
@@ -1656,7 +1662,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Edit > ----
         self._menu_edit.addSeparator()
         # Edit > Find and replace
-        self._tool_find = QtWidgets.QAction('&Find and replace', self)
+        self._tool_find = QtGui.QAction('&Find and replace', self)
         self._tool_find.setShortcut('Ctrl+F')
         self._tool_find.setStatusTip('Find and/or replace some text.')
         self._tool_find.setIcon(myokit.gui.icon('edit-find'))
@@ -1665,8 +1671,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Edit > ----
         self._menu_edit.addSeparator()
         # Edit > Format protocol
-        self._tool_format_protocol = QtWidgets.QAction(
-            'Format protocol', self)
+        self._tool_format_protocol = QtGui.QAction('Format protocol', self)
         self._tool_format_protocol.setStatusTip(
             'Standardise the formatting of the protocol section.')
         self._tool_format_protocol.triggered.connect(
@@ -1676,7 +1681,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Edit > ----
         self._menu_edit.addSeparator()
         # Edit > Comment or uncomment
-        self._tool_comment = QtWidgets.QAction(
+        self._tool_comment = QtGui.QAction(
             '&Comment/uncomment selected lines', self)
         self._tool_comment.setShortcut('Ctrl+;')
         self._tool_comment.setStatusTip(
@@ -1684,7 +1689,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_comment.triggered.connect(self.action_comment)
         self._menu_edit.addAction(self._tool_comment)
         # Edit > Remove units from expressions
-        self._tool_remove_units = QtWidgets.QAction(
+        self._tool_remove_units = QtGui.QAction(
             'Remove units from &expressions', self)
         self._tool_remove_units.setStatusTip(
             'Remove all units inside expressions.')
@@ -1692,7 +1697,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_edit.addAction(self._tool_remove_units)
         self._model_widgets.append(self._tool_remove_units)
         # Edit > Trim whitespace
-        self._tool_trim_whitespace = QtWidgets.QAction(
+        self._tool_trim_whitespace = QtGui.QAction(
             'Trim trailing &whitespace', self)
         self._tool_trim_whitespace.setStatusTip(
             'Remove trailing whitespace from each line.')
@@ -1704,14 +1709,13 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         #
         self._menu_view = self._menu.addMenu('&View')
         # View > View model definition
-        self._tool_view_model = QtWidgets.QAction(
-            'View &model definition', self)
+        self._tool_view_model = QtGui.QAction('View &model definition', self)
         self._tool_view_model.setShortcut('Alt+1')
         self._tool_view_model.setStatusTip('View the model definition tab')
         self._tool_view_model.triggered.connect(self.action_view_model)
         self._menu_view.addAction(self._tool_view_model)
         # View > View protocol definition
-        self._tool_view_protocol = QtWidgets.QAction(
+        self._tool_view_protocol = QtGui.QAction(
             'View &protocol definition', self)
         self._tool_view_protocol.setShortcut('Alt+2')
         self._tool_view_protocol.setStatusTip(
@@ -1719,8 +1723,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_view_protocol.triggered.connect(self.action_view_protocol)
         self._menu_view.addAction(self._tool_view_protocol)
         # View > View embedded script
-        self._tool_view_script = QtWidgets.QAction(
-            'View embedded &script', self)
+        self._tool_view_script = QtGui.QAction('View embedded &script', self)
         self._tool_view_script.setShortcut('Alt+3')
         self._tool_view_script.setStatusTip('View the embedded script tab')
         self._tool_view_script.triggered.connect(self.action_view_script)
@@ -1728,7 +1731,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # View > ----
         self._menu_view.addSeparator()
         # View > Show model components (navigator)
-        self._tool_view_navigator = QtWidgets.QAction(
+        self._tool_view_navigator = QtGui.QAction(
             'Show model &components', self)
         self._tool_view_navigator.setCheckable(True)
         self._tool_view_navigator.setStatusTip(
@@ -1740,8 +1743,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # View > ----
         self._menu_view.addSeparator()
         # View > Preview protocol
-        self._tool_preview_protocol = QtWidgets.QAction(
-            '&Preview protocol', self)
+        self._tool_preview_protocol = QtGui.QAction('&Preview protocol', self)
         self._tool_preview_protocol.setShortcut('Ctrl+P')
         self._tool_preview_protocol.setStatusTip(
             'Show a preview of the current protocol.')
@@ -1755,7 +1757,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_convert = self._menu.addMenu('&Convert')
 
         # Convert > Import CellML
-        self._tool_import_cellml = QtWidgets.QAction(
+        self._tool_import_cellml = QtGui.QAction(
             'Import model from CellML', self)
         self._tool_import_cellml.setStatusTip(
             'Import a model definition from a CellML file.')
@@ -1763,7 +1765,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             lambda: self.action_import_model('cellml', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_import_cellml)
         # Convert > Export CellML 1
-        self._tool_export_cellml1 = QtWidgets.QAction(
+        self._tool_export_cellml1 = QtGui.QAction(
             'Export model to CellML 1.0', self)
         self._tool_export_cellml1.setStatusTip(
             'Export a model definition to a CellML 1.0 document.')
@@ -1772,7 +1774,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 'cellml1', '.cellml', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_export_cellml1)
         # Convert > Export CellML 2
-        self._tool_export_cellml2 = QtWidgets.QAction(
+        self._tool_export_cellml2 = QtGui.QAction(
             'Export model to CellML 2.0', self)
         self._tool_export_cellml2.setStatusTip(
             'Export a model definition to a CellML 2.0 document.')
@@ -1784,15 +1786,14 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Convert > ----
         self._menu_convert.addSeparator()
         # Convert > Import ABF
-        self._tool_import_abf = QtWidgets.QAction(
-            'Import protocol from ABF', self)
+        self._tool_import_abf = QtGui.QAction('Import protocol from ABF', self)
         self._tool_import_abf.setStatusTip(
             'Import a protocol definition from an ABF file.')
         self._tool_import_abf.triggered.connect(
             self.action_import_abf_protocol)
         self._menu_convert.addAction(self._tool_import_abf)
         # Convert > Import ChannelML
-        self._tool_import_channelml = QtWidgets.QAction(
+        self._tool_import_channelml = QtGui.QAction(
             'Import model from ChannelML', self)
         self._tool_import_channelml.setStatusTip(
             'Import a channel model from ChannelML.')
@@ -1800,8 +1801,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             lambda: self.action_import_model('channelml', FILTER_CHANNELML))
         self._menu_convert.addAction(self._tool_import_channelml)
         # Convert > Import SBML
-        self._tool_import_sbml = QtWidgets.QAction(
-            'Import model from SBML', self)
+        self._tool_import_sbml = QtGui.QAction('Import model from SBML', self)
         self._tool_import_sbml.setStatusTip(
             'Import a model from SBML.')
         self._tool_import_sbml.triggered.connect(
@@ -1811,8 +1811,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Convert > ----
         self._menu_convert.addSeparator()
         # Convert > Export HTML
-        self._tool_export_html = QtWidgets.QAction(
-            'Export model to HTML', self)
+        self._tool_export_html = QtGui.QAction('Export model to HTML', self)
         self._tool_export_html.setStatusTip(
             'Export a model definition to an HTML document using presentation'
             ' MathML.')
@@ -1820,8 +1819,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             lambda: self.action_export_model('html', '.html', FILTER_HTML))
         self._menu_convert.addAction(self._tool_export_html)
         # Convert > Export Latex
-        self._tool_export_latex = QtWidgets.QAction(
-            'Export model to Latex', self)
+        self._tool_export_latex = QtGui.QAction('Export model to Latex', self)
         self._tool_export_latex.setStatusTip(
             'Export a model definition to a Latex document.')
         self._tool_export_latex.triggered.connect(
@@ -1833,7 +1831,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_convert.addSeparator()
 
         # Convert > Ansic
-        self._tool_export_ansic = QtWidgets.QAction('Export to Ansi C', self)
+        self._tool_export_ansic = QtGui.QAction('Export to Ansi C', self)
         self._tool_export_ansic.setStatusTip(
             'Export to a runnable Ansi C program.')
         self._tool_export_ansic.triggered.connect(
@@ -1841,8 +1839,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_convert.addAction(self._tool_export_ansic)
 
         # Convert > CUDA
-        self._tool_export_cuda = QtWidgets.QAction(
-            'Export to CUDA kernel', self)
+        self._tool_export_cuda = QtGui.QAction('Export to CUDA kernel', self)
         self._tool_export_cuda.setStatusTip(
             'Export a model definition to a CUDA kernel program.')
         self._tool_export_cuda.triggered.connect(
@@ -1850,7 +1847,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_convert.addAction(self._tool_export_cuda)
 
         # Convert > CUDA RL
-        self._tool_export_cuda_rl = QtWidgets.QAction(
+        self._tool_export_cuda_rl = QtGui.QAction(
             'Export to CUDA kernel with RL updates', self)
         self._tool_export_cuda_rl.setStatusTip(
             'Export a model definition to a CUDA kernel program using'
@@ -1860,7 +1857,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_convert.addAction(self._tool_export_cuda_rl)
 
         # Convert > EasyML
-        self._tool_export_easyml = QtWidgets.QAction(
+        self._tool_export_easyml = QtGui.QAction(
             'Export to EasyML (Carp)', self)
         self._tool_export_easyml.setStatusTip(
             'Export to an EasyML script for use with Carp/Carpentry.')
@@ -1869,7 +1866,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_convert.addAction(self._tool_export_easyml)
 
         # Convert > Matlab
-        self._tool_export_matlab = QtWidgets.QAction(
+        self._tool_export_matlab = QtGui.QAction(
             'Export to Matlab/Octave', self)
         self._tool_export_matlab.setStatusTip(
             'Export to a runnable Matlab/Octave script.')
@@ -1878,7 +1875,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_convert.addAction(self._tool_export_matlab)
 
         # Convert > OpenCL
-        self._tool_export_opencl = QtWidgets.QAction(
+        self._tool_export_opencl = QtGui.QAction(
             'Export to OpenCL kernel', self)
         self._tool_export_opencl.setStatusTip(
             'Export a model definition to an OpenCL kernel program using')
@@ -1887,7 +1884,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_convert.addAction(self._tool_export_opencl)
 
         # Convert > OpenCL RL
-        self._tool_export_opencl_rl = QtWidgets.QAction(
+        self._tool_export_opencl_rl = QtGui.QAction(
             'Export to OpenCL kernel with RL updates', self)
         self._tool_export_opencl_rl.setStatusTip(
             'Export a model definition to an OpenCL kernel program using'
@@ -1897,7 +1894,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_convert.addAction(self._tool_export_opencl_rl)
 
         # Convert > Python
-        self._tool_export_python = QtWidgets.QAction('Export to Python', self)
+        self._tool_export_python = QtGui.QAction('Export to Python', self)
         self._tool_export_python.setStatusTip(
             'Export a model definition to a runnable Python script.')
         self._tool_export_python.triggered.connect(
@@ -1909,7 +1906,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         #
         self._menu_analysis = self._menu.addMenu('&Analysis')
         # Analysis > Model statistics
-        self._tool_stats = QtWidgets.QAction('Show model statistics', self)
+        self._tool_stats = QtGui.QAction('Show model statistics', self)
         self._tool_stats.setStatusTip(
             'Displays some basic statistics about the current model.')
         self._tool_stats.triggered.connect(self.action_model_stats)
@@ -1917,8 +1914,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Analysis > ----
         self._menu_analysis.addSeparator()
         # Analysis > Check units strict
-        self._tool_units_strict = QtWidgets.QAction(
-            'Check units (&strict)', self)
+        self._tool_units_strict = QtGui.QAction('Check units (&strict)', self)
         self._tool_units_strict.setShortcut('F9')
         self._tool_units_strict.setStatusTip(
             'Check this model\'s units in strict mode.')
@@ -1926,7 +1922,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self.action_check_units_strict)
         self._menu_analysis.addAction(self._tool_units_strict)
         # Analysis > Check units tolerant
-        self._tool_units_tolerant = QtWidgets.QAction(
+        self._tool_units_tolerant = QtGui.QAction(
             'Check units (&tolerant)', self)
         self._tool_units_tolerant.setShortcut('F10')
         self._tool_units_tolerant.setStatusTip(
@@ -1937,7 +1933,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Analysis > ----
         self._menu_analysis.addSeparator()
         # Analysis > Show variable info
-        self._tool_variable_info = QtWidgets.QAction(
+        self._tool_variable_info = QtGui.QAction(
             'Show quick variable info', self)
         self._tool_variable_info.setShortcut('Ctrl+R')
         self._tool_variable_info.setStatusTip(
@@ -1946,7 +1942,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_analysis.addAction(self._tool_variable_info)
         self._model_widgets.append(self._tool_variable_info)
         # Analysis > Show variable evaluation
-        self._tool_variable_evaluation = QtWidgets.QAction(
+        self._tool_variable_evaluation = QtGui.QAction(
             'Show variable evaluation', self)
         self._tool_variable_evaluation.setShortcut('Ctrl+E')
         self._tool_variable_evaluation.setStatusTip(
@@ -1956,7 +1952,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_analysis.addAction(self._tool_variable_evaluation)
         self._model_widgets.append(self._tool_variable_evaluation)
         # Analysis > Show variable dependencies
-        self._tool_variable_dependencies = QtWidgets.QAction(
+        self._tool_variable_dependencies = QtGui.QAction(
             'Show variable dependencies', self)
         self._tool_variable_dependencies.setShortcut('Ctrl+D')
         self._tool_variable_dependencies.setStatusTip(
@@ -1966,7 +1962,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_analysis.addAction(self._tool_variable_dependencies)
         self._model_widgets.append(self._tool_variable_dependencies)
         # Analysis > Show variable users
-        self._tool_variable_users = QtWidgets.QAction(
+        self._tool_variable_users = QtGui.QAction(
             'Show variable users', self)
         self._tool_variable_users.setShortcut('Ctrl+U')
         self._tool_variable_users.setStatusTip(
@@ -1976,7 +1972,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_analysis.addAction(self._tool_variable_users)
         self._model_widgets.append(self._tool_variable_users)
         # Analysis > Graph variable
-        self._tool_variable_graph = QtWidgets.QAction(
+        self._tool_variable_graph = QtGui.QAction(
             'Graph selected variable', self)
         self._tool_variable_graph.setShortcut('Ctrl+G')
         self._tool_variable_graph.setStatusTip(
@@ -1985,7 +1981,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_analysis.addAction(self._tool_variable_graph)
         self._model_widgets.append(self._tool_variable_graph)
         # Analysis > Jump to variable definition
-        self._tool_variable_jump = QtWidgets.QAction(
+        self._tool_variable_jump = QtGui.QAction(
             'Jump to variable definition', self)
         self._tool_variable_jump.setShortcut('Ctrl+J')
         self._tool_variable_jump.setStatusTip(
@@ -1998,7 +1994,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Analysis > ----
         self._menu_analysis.addSeparator()
         # Analysis > Evaluate state derivatives
-        self._tool_state_derivatives = QtWidgets.QAction(
+        self._tool_state_derivatives = QtGui.QAction(
             'Evaluate state derivatives', self)
         self._tool_state_derivatives.setShortcut('F7')
         self._tool_state_derivatives.setStatusTip(
@@ -2007,7 +2003,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self.action_state_derivatives)
         self._menu_analysis.addAction(self._tool_state_derivatives)
         # Analysis > Evaluate state derivatives without error checking
-        self._tool_state_derivatives2 = QtWidgets.QAction(
+        self._tool_state_derivatives2 = QtGui.QAction(
             'Evaluate state derivatives (no error checking)', self)
         self._tool_state_derivatives2.setShortcut('F8')
         self._tool_state_derivatives2.setStatusTip(
@@ -2019,7 +2015,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Analysis > ----
         self._menu_analysis.addSeparator()
         # Analysis > Show component dependency graph
-        self._tool_component_dependency_graph = QtWidgets.QAction(
+        self._tool_component_dependency_graph = QtGui.QAction(
             'Show component dependency graph', self)
         self._tool_component_dependency_graph.setStatusTip(
             'Display a graph of the dependencies between components.')
@@ -2027,7 +2023,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self.action_component_dependency_graph)
         self._menu_analysis.addAction(self._tool_component_dependency_graph)
         # Analysis > Show variable dependency graph
-        self._tool_variable_dependency_graph = QtWidgets.QAction(
+        self._tool_variable_dependency_graph = QtGui.QAction(
             'Show variable dependency graph', self)
         self._tool_variable_dependency_graph.setStatusTip(
             'Display a graph of the dependencies between variables.')
@@ -2035,14 +2031,14 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self.action_variable_dependency_graph)
         self._menu_analysis.addAction(self._tool_variable_dependency_graph)
         # Analysis > Show state dependency matrix
-        self._tool_state_matrix = QtWidgets.QAction(
+        self._tool_state_matrix = QtGui.QAction(
             'Show state dependency matrix', self)
         self._tool_state_matrix.setStatusTip(
             'Display a matrix graph of the dependencies between states.')
         self._tool_state_matrix.triggered.connect(self.action_state_matrix)
         self._menu_analysis.addAction(self._tool_state_matrix)
         # Analysis > Show component dependency cycles
-        self._tool_component_cycles = QtWidgets.QAction(
+        self._tool_component_cycles = QtGui.QAction(
             'Show cyclical component dependencies', self)
         self._tool_component_cycles.setStatusTip(
             'Display a list of cyclical dependencies between components.')
@@ -2054,29 +2050,27 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         #
         self._menu_run = self._menu.addMenu('&Run')
         # Run > Validate
-        self._tool_validate = QtWidgets.QAction(
-            '&Validate model', self)
+        self._tool_validate = QtGui.QAction('&Validate model', self)
         self._tool_validate.setShortcut('Ctrl+B')
         self._tool_validate.setStatusTip('Validate the model.')
         self._tool_validate.triggered.connect(self.action_validate)
         self._menu_run.addAction(self._tool_validate)
         # Run > Jump to error
-        self._tool_jump_to_error = QtWidgets.QAction(
-            '&Jump to last error', self)
+        self._tool_jump_to_error = QtGui.QAction('&Jump to last error', self)
         self._tool_jump_to_error.setShortcut('Ctrl+Space')
         self._tool_jump_to_error.setStatusTip(
             'Jump to the last model error found.')
         self._tool_jump_to_error.triggered.connect(self.action_jump_to_error)
         self._menu_run.addAction(self._tool_jump_to_error)
         # Run > Run embedded script
-        self._tool_run = QtWidgets.QAction('&Run embedded script', self)
+        self._tool_run = QtGui.QAction('&Run embedded script', self)
         self._tool_run.setShortcut('F5')
         self._tool_run.setStatusTip('Run the embedded script.')
         self._tool_run.setIcon(myokit.gui.icon('media-playback-start'))
         self._tool_run.triggered.connect(self.action_run)
         self._menu_run.addAction(self._tool_run)
         # Run > Run explorer
-        self._tool_explore = QtWidgets.QAction('&Run explorer', self)
+        self._tool_explore = QtGui.QAction('&Run explorer', self)
         self._tool_explore.setShortcut('F6')
         self._tool_explore.setStatusTip(
             'Run a simulation and display the results in the explorer.')
@@ -2088,12 +2082,12 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         #
         self._menu_help = self._menu.addMenu('&Help')
         # Help > About
-        self._tool_about = QtWidgets.QAction('&About', self)
+        self._tool_about = QtGui.QAction('&About', self)
         self._tool_about.setStatusTip('View information about this program.')
         self._tool_about.triggered.connect(self.action_about)
         self._menu_help.addAction(self._tool_about)
         # Help > License
-        self._tool_license = QtWidgets.QAction('&License', self)
+        self._tool_license = QtGui.QAction('&License', self)
         self._tool_license.setStatusTip('View this program\'s license info.')
         self._tool_license.triggered.connect(self.action_license)
         self._menu_help.addAction(self._tool_license)
@@ -2348,15 +2342,15 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             msg = 'Save changes to ' + str(self._file) + '?'
         else:
             msg = 'Save changes to new file?'
-        box = QtWidgets.QMessageBox
-        options = box.Yes | box.No
+        sb = QtWidgets.QMessageBox.StandardButton
+        options = sb.Yes | sb.No
         if cancel:
-            options |= box.Cancel
-        reply = box.question(self, TITLE, msg, options)
-        if reply == box.Yes:
+            options |= sb.Cancel
+        reply = QtWidgets.QMessageBox.question(self, TITLE, msg, options)
+        if reply == sb.Yes:
             # Only allow quitting if save succesful
             return self.save_file(save_as=False)
-        elif reply == box.No:
+        elif reply == sb.No:
             return True
         else:
             return False
@@ -2578,16 +2572,13 @@ class MyokitIDE(myokit.gui.MyokitApplication):
     def update_navigator(self):
         """ Updates the model navigator contents. """
         # Find all components and store their positions in a list (name, line)
-        #Sloppy version: query = QtCore.QRegExp(r'^\[') could be faster?
-        query = QtCore.QRegExp(r'^\[[a-zA-Z]{1}[a-zA-Z0-9_]*\]')
         pos = 0
-        found = self._model_editor.document().find(query, pos)
+        found = self._model_editor.document().find(self._nav_query, pos)
         positions = []
         while not found.isNull():
             pos = found.position()
-            block = found.block()
-            positions.append((block.text(), pos))
-            found = self._model_editor.document().find(query, pos)
+            positions.append((found.selectedText(), pos))
+            found = self._model_editor.document().find(self._nav_query, pos)
         self._model_navigator.set_positions(positions)
 
     def update_recent_files_menu(self):
@@ -2650,7 +2641,7 @@ class TabbedToolBar(QtWidgets.QTabWidget):
     def keyPressEvent(self, event):
         """ Qt event: A key-press reaches the widget. """
         key = event.key()
-        if key == Qt.Key_Escape:
+        if key == Qt.Key.Key_Escape:
             self.setFocus()
             self.focusPreviousChild()
         else:
@@ -2724,7 +2715,7 @@ class ModelNavigator(QtWidgets.QWidget):
     def current_item_changed(self, item, previous_item):
         """ Called if the navigator item is changed. """
         if item is not None:
-            line = item.data(Qt.UserRole)
+            line = item.data(Qt.ItemDataRole.UserRole)
             self.item_changed.emit(line)
 
     def set_positions(self, positions):
@@ -2740,7 +2731,7 @@ class ModelNavigator(QtWidgets.QWidget):
         self._list_widget.setSortingEnabled(True)
         for text, pos in self._positions:
             item = QtWidgets.QListWidgetItem(text[1:-1])
-            item.setData(Qt.UserRole, pos)
+            item.setData(Qt.ItemDataRole.UserRole, pos)
             self._list_widget.addItem(item)
 
 
@@ -2757,7 +2748,8 @@ class Console(QtWidgets.QPlainTextEdit):
         font = myokit.gui.qtMonospaceFont()
         font.setPointSize(10)
         self.setFont(font)
-        self.setFrameStyle(QtWidgets.QFrame.WinPanel | QtWidgets.QFrame.Sunken)
+        self.setFrameStyle(
+            QtWidgets.QFrame.Shape.WinPanel | QtWidgets.QFrame.Shadow.Sunken)
 
     def clear(self):
         """
@@ -2799,4 +2791,4 @@ class Console(QtWidgets.QPlainTextEdit):
         self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
         # Autoflush
         QtWidgets.QApplication.processEvents(
-            QtCore.QEventLoop.ExcludeUserInputEvents)
+            QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)

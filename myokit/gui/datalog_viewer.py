@@ -110,7 +110,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # Set size, center
         self.resize(800, 600)
         qr = self.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        cp = QtGui.QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -263,7 +263,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # File menu
         self._menu_file = self._menu.addMenu('&File')
         # File > Open
-        self._tool_open = QtWidgets.QAction('&Open', self)
+        self._tool_open = QtGui.QAction('&Open', self)
         self._tool_open.setShortcut('Ctrl+O')
         self._tool_open.setStatusTip('Open a file')
         self._tool_open.setIcon(QtGui.QIcon.fromTheme('document-open'))
@@ -272,7 +272,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # File > ----
         self._menu_file.addSeparator()
         # File > Quit
-        self._tool_exit = QtWidgets.QAction('&Quit', self)
+        self._tool_exit = QtGui.QAction('&Quit', self)
         self._tool_exit.setShortcut('Ctrl+Q')
         self._tool_exit.setStatusTip('Exit application.')
         self._tool_exit.setIcon(QtGui.QIcon.fromTheme('application-exit'))
@@ -281,7 +281,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # View menu
         self._menu_view = self._menu.addMenu('&View')
         # View > Next file
-        self._tool_next_file = QtWidgets.QAction('Next file', self)
+        self._tool_next_file = QtGui.QAction('Next file', self)
         self._tool_next_file.setShortcut('Ctrl+PgDown')
         self._tool_next_file.setStatusTip('Select the next open file')
         self._tool_next_file.triggered.connect(self.action_next_file)
@@ -289,21 +289,21 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._menu_view.addAction(self._tool_next_file)
         # View > Previous file
         self._menu_view.addAction(self._tool_next_file)
-        self._tool_prev_file = QtWidgets.QAction('Previous file', self)
+        self._tool_prev_file = QtGui.QAction('Previous file', self)
         self._tool_prev_file.setShortcut('Ctrl+PgUp')
         self._tool_prev_file.setStatusTip('Select the previous open file')
         self._tool_prev_file.triggered.connect(self.action_prev_file)
         self._tool_prev_file.setEnabled(False)
         self._menu_view.addAction(self._tool_prev_file)
         # View > Next variable
-        self._tool_next_var = QtWidgets.QAction('Next variable', self)
+        self._tool_next_var = QtGui.QAction('Next variable', self)
         self._tool_next_var.setShortcut('PgDown')
         self._tool_next_var.setStatusTip('Show the next variable')
         self._tool_next_var.triggered.connect(self.action_next_var)
         self._tool_next_var.setEnabled(False)
         self._menu_view.addAction(self._tool_next_var)
         # View > Previous var
-        self._tool_prev_var = QtWidgets.QAction('Previous variable', self)
+        self._tool_prev_var = QtGui.QAction('Previous variable', self)
         self._tool_prev_var.setShortcut('PgUp')
         self._tool_prev_var.setStatusTip('Show the previous variable')
         self._tool_prev_var.triggered.connect(self.action_prev_var)
@@ -312,12 +312,12 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # Help menu
         self._menu_help = self._menu.addMenu('&Help')
         # Help > About
-        self._tool_about = QtWidgets.QAction('&About', self)
+        self._tool_about = QtGui.QAction('&About', self)
         self._tool_about.setStatusTip('View information about this program.')
         self._tool_about.triggered.connect(self.action_about)
         self._menu_help.addAction(self._tool_about)
         # Help > License
-        self._tool_license = QtWidgets.QAction('&License', self)
+        self._tool_license = QtGui.QAction('&License', self)
         self._tool_license.setStatusTip('View this program\'s license info.')
         self._tool_license.triggered.connect(self.action_license)
         self._menu_help.addAction(self._tool_license)
@@ -329,7 +329,8 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._toolbar = self.addToolBar('tools')
         self._toolbar.setFloatable(False)
         self._toolbar.setMovable(False)
-        self._toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self._toolbar.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self._toolbar.addAction(self._tool_open)
         #self._toolbar.addSeparator()
 
@@ -544,7 +545,7 @@ class AbfTab(TabWidget):
     def __init__(self, parent, abf):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._abf = abf
         self._figures = []
         self._axes = []
@@ -648,7 +649,7 @@ class AtfTab(TabWidget):
         self._atf = atf
 
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
 
         self._figures = []
         self._axes = []
@@ -719,7 +720,7 @@ class CsvTab(TabWidget):
     def __init__(self, parent, log, filename):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._log = log.npview()
         self._filename = filename
         self._figures = []
@@ -816,7 +817,7 @@ class MatTab(TabWidget):
     def __init__(self, parent, mat, filename):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._figures = []
         self._filename = filename
         self._axes = []
@@ -904,7 +905,7 @@ class TxtTab(TabWidget):
     def __init__(self, parent, data, filename):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._figures = []
         self._filename = filename
         self._axes = []
@@ -986,7 +987,7 @@ class WcpTab(TabWidget):
     def __init__(self, parent, wcp):
         super().__init__(parent)
         self.setTabsClosable(False)
-        self.setTabPosition(self.East)
+        self.setTabPosition(self.TabPosition.East)
         self._wcp = wcp
         self._figures = []
         self._axes = []
