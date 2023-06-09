@@ -20,7 +20,8 @@ class ProgressBar(QtWidgets.QProgressDialog):
     """
     def __init__(self, parent, message):
         super().__init__(
-            message, 'Cancel', 0, N, parent=parent)
+            message, 'Cancel', 0, N, parent)
+        self.setWindowTitle(' ')
         self.setWindowModality(Qt.WindowModality.WindowModal)
         self.setAutoClose(False)
         self.setAutoReset(False)
@@ -57,6 +58,7 @@ class ProgressBarReporter(myokit.ProgressReporter):
         if msg is not None:
             self._pd.setLabelText(str(msg))
         self._pd.setValue(0)
+        self._pd.repaint()
         QtWidgets.QApplication.processEvents(
             QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
 
@@ -67,4 +69,5 @@ class ProgressBarReporter(myokit.ProgressReporter):
         self._pd.setValue((int)(N * f))
         QtWidgets.QApplication.processEvents(
             QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        self._pd.repaint()
         return not self._pd.wasCanceled()
