@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.35.0] - 2023-06-21
 - Added
   - [#979](https://github.com/myokit/myokit/pull/979) Added support for PyQt6 and PySide6.
