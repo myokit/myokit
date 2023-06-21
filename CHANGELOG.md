@@ -2,15 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.35.0] - 2023-06-21
 - Added
   - [#979](https://github.com/myokit/myokit/pull/979) Added support for PyQt6 and PySide6.
 - Changed
-  - [#980](https://github.com/myokit/myokit/pull/980) Python 2 is no longer supported. The minimum Python version is 3.6.
-- Deprecated
+  - [#980](https://github.com/myokit/myokit/pull/980) Python 2 is no longer supported. The minimum supported Python version is now 3.7.
 - Removed
   - [#979](https://github.com/myokit/myokit/pull/979) Removed support for PyQt4 and PySide, which were deprecated since 2019.
-- Fixed
 
 ## [1.34.0] - 2023-06-07
 - Added

@@ -168,7 +168,7 @@ Because most libraries do, Myokit uses American spelling (e.g. "color", "fiber",
 
 ## Python and C versions
 
-Myokit is developed for Python 3.6 and newer, and tested on whatever GitHub Actions (easily) allows (3.7+ at time of writing).
+Myokit is developed for Python 3.7 and newer, and tested on whatever GitHub Actions (easily) allows (3.7+ at time of writing).
 
 The C code in Myokit should stick to C89 with some exceptions, see [here](https://peps.python.org/pep-0007/)).
 

@@ -77,7 +77,7 @@ setup(
     },
 
     # Python version
-    python_requires='>=3.6',
+    python_requires='>=3.7',
 
     # List of dependencies
     install_requires=[
@@ -93,7 +93,7 @@ setup(
     # Optional extras
     extras_require={
         'docs': [
-            'sphinx>=1.5, !=1.7.3',     # Doc generation
+            'sphinx>=1.7.4',        # Doc generation
         ],
         'dev': [
             'coverage',             # Coverage checking
