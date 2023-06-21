@@ -207,12 +207,12 @@ class AbfFile:
 
         # Protocol info
         self._epoch_functions = None
-        self._numberOfTrials = None
-        self._trialStartToStart = None
-        self._runsPerTrial = None
-        self._runStartToStart = None
-        self._sweepsPerRun = None
-        self._sweepStartToStart = None
+        self._number_of_trials = None
+        self._trial_start_to_start = None
+        self._runs_per_trial = None
+        self._run_start_to_start = None
+        self._sweeps_per_run = None
+        self._sweep_start_to_start = None
 
         # Read as protocol file yes?
         if is_protocol_file is None:
@@ -294,7 +294,7 @@ class AbfFile:
             time, data = [], []
             t = np.array(self._sweeps[0][channel].times())
             for i, sweep in enumerate(self._sweeps):
-                time.append(t + i * self._sweepStartToStart)
+                time.append(t + i * self._sweep_start_to_start)
                 data.append(np.array(sweep[channel].values()))
             return (np.concatenate(time), np.concatenate(data))
 
@@ -360,18 +360,18 @@ class AbfFile:
         out.append(
             'Acquisition mode: ' + str(self._mode) + ': '
             + acquisition_modes[self._mode])
-        if self._numberOfTrials:
+        if self._number_of_trials:
             out.append(
-                'Protocol set for ' + str(self._numberOfTrials)
-                + ' trials, spaced ' + str(self._trialStartToStart)
+                'Protocol set for ' + str(self._number_of_trials)
+                + ' trials, spaced ' + str(self._trial_start_to_start)
                 + 's apart.')
             out.append(
-                '    with ' + str(self._runsPerTrial)
-                + ' runs per trial, spaced ' + str(self._runStartToStart)
+                '    with ' + str(self._runs_per_trial)
+                + ' runs per trial, spaced ' + str(self._run_start_to_start)
                 + 's apart.')
             out.append(
-                '     and ' + str(self._sweepsPerRun)
-                + ' sweeps per run, spaced ' + str(self._sweepStartToStart)
+                '     and ' + str(self._sweeps_per_run)
+                + ' sweeps per run, spaced ' + str(self._sweep_start_to_start)
                 + 's apart.')
         else:   # pragma: no cover
             out.append('Protocol data could not be determined.')
@@ -545,7 +545,7 @@ class AbfFile:
         start = 0
         next_start = 0
         f = 1e3 if ms else 1
-        for iSweep in range(self._sweepsPerRun):
+        for iSweep in range(self._sweeps_per_run):
 
             if not einfo_exists(channel):   # pragma: no cover
                 # Not sure if this can happen, if so, would need to update code
@@ -576,7 +576,7 @@ class AbfFile:
                         'Usupported epoch type: ' + epoch_types(kind))
 
             # Event at holding potential
-            next_start += f * self._sweepStartToStart
+            next_start += f * self._sweep_start_to_start
             e_level = dinfo(channel, 'fDACHoldingLevel')
             e_start = start
             e_length = next_start - start
@@ -642,7 +642,7 @@ class AbfFile:
 
         # Gather steps
         levels = tuple(levels)
-        for i in range(self._sweepsPerRun):
+        for i in range(self._sweeps_per_run):
             j = 0
             for e in einfo(channel):
                 if e['type'] == EPOCH_STEPPED:
@@ -651,15 +651,9 @@ class AbfFile:
         return levels
 
     def __iter__(self):
-        """
-        Returns an iterator over all sweeps
-        """
         return iter(self._sweeps)
 
     def __len__(self):
-        """
-        Returns the number of sweeps in this file.
-        """
         return len(self._sweeps)
 
     def protocol(self):
@@ -919,12 +913,12 @@ class AbfFile:
         if self._version < 2:
 
             # Before version 2: Sections are fixed length, locations absolute
-            self._numberOfTrials = h['lNumberOfTrials']
-            self._trialStartToStart = h['fTrialStartToStart']
-            self._runsPerTrial = h['lRunsPerTrial']
-            self._runStartToStart = h['fRunStartToStart']
-            self._sweepsPerRun = h['lSweepsPerRun']
-            self._sweepStartToStart = h['fEpisodeStartToStart']
+            self._number_of_trials = h['lNumberOfTrials']
+            self._trial_start_to_start = h['fTrialStartToStart']
+            self._runs_per_trial = h['lRunsPerTrial']
+            self._run_start_to_start = h['fRunStartToStart']
+            self._sweeps_per_run = h['lSweepsPerRun']
+            self._sweep_start_to_start = h['fEpisodeStartToStart']
 
             # Number of samples in a channel for each sweep
             # (Only works for fixed-length, high-speed-osc or episodic)
@@ -956,12 +950,12 @@ class AbfFile:
 
             # Trials, runs, sweeps
             # (According to the manual, there should only be 1 trial!)
-            self._numberOfTrials = p['lNumberOfTrials']
-            self._trialStartToStart = p['fTrialStartToStart']
-            self._runsPerTrial = p['lRunsPerTrial']
-            self._runStartToStart = p['fRunStartToStart']
-            self._sweepsPerRun = p['lSweepsPerRun']
-            self._sweepStartToStart = p['fSweepStartToStart']
+            self._number_of_trials = p['lNumberOfTrials']
+            self._trial_start_to_start = p['fTrialStartToStart']
+            self._runs_per_trial = p['lRunsPerTrial']
+            self._run_start_to_start = p['fRunStartToStart']
+            self._sweeps_per_run = p['lSweepsPerRun']
+            self._sweep_start_to_start = p['fSweepStartToStart']
 
             # Number of samples in a channel in a single sweep
             nSam = p['lNumSamplesPerEpisode'] // h['sections']['ADC']['length']
@@ -985,8 +979,8 @@ class AbfFile:
             self._epoch_functions = (dinfo, einfo_exists, einfo)
 
         # If sweepStartToStart == 0, we set it to the duration of a sweep
-        if self._sweepStartToStart == 0:    # pragma: no cover
-            self._sweepStartToStart = nSam / self._rate
+        if self._sweep_start_to_start == 0:    # pragma: no cover
+            self._sweep_start_to_start = nSam / self._rate
 
         # Step 2: Generate analog signals corresponding to the waveforms
         # suggested by the 'epochs' in the protocol
@@ -1067,7 +1061,7 @@ class AbfFile:
                         continue
 
             sweeps.append(sweep)
-            start += self._sweepStartToStart
+            start += self._sweep_start_to_start
         return sweeps
 
     def _read_sweeps(self):
@@ -1218,7 +1212,7 @@ class AbfFile:
 
             if self._mode == ACMODE_EPISODIC_STIMULATION:
                 # Increase time according to sweeps in episodic stim. mode
-                start += self._sweepStartToStart
+                start += self._sweep_start_to_start
 
             # Store sweep
             sweeps.append(sweep)
@@ -1305,9 +1299,9 @@ class AbfFile:
 
 class Sweep:
     """
-    Represents a single sweep (also called an 'episode')
+    Represents a single sweep (also called an 'episode').
 
-    A sweep is represented as a fixed-size list of channels.
+    Each sweep contains a number of :class:`channels<Channel>`.
     """
     def __init__(self, n):
         super().__init__()
@@ -1337,7 +1331,7 @@ class Channel:
     """
     Represents an analog signal for a single channel.
 
-    To obtain this channel's formatted data, use times() and trace()
+    To obtain this channel's data, use :meth:`times` and :meth:`trace`.
     """
     def __init__(self, parent_file):
         super().__init__()
@@ -1375,9 +1369,7 @@ class Channel:
         # file with 2 channels can have indices 0 and 3.
 
     def name(self):
-        """
-        Returns the name set for this channel.
-        """
+        """ Returns the name set for this channel. """
         return self._name
 
     def number(self):
@@ -1393,17 +1385,13 @@ class Channel:
             + str(self._rate) + 'Hz, starts at t=' + str(self._start)
 
     def times(self):
-        """
-        Returns a copy of the values on the time axis.
-        """
+        """ Returns a copy of the values on the time axis. """
         n = len(self._data)
         f = 1.0 / self._rate
         return np.arange(self._start, self._start + n * f, f)[0:n]
 
     def values(self):
-        """
-        Returns a copy of the values on the data axis.
-        """
+        """ Returns a copy of the values on the data axis. """
         return np.array(self._data, copy=True)
 
 
