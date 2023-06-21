@@ -5,7 +5,12 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#980](https://github.com/myokit/myokit/pull/980) Python 2 is no longer supported. The minimum supported Python version is 3.6.
+  - [#985](https://github.com/myokit/myokit/pull/985) The method `AbfFile.protocol()` that returns an iterator over embedded protocols has been renamed `AbfFile.protocols()`
 - Deprecated
+  - [#985](https://github.com/myokit/myokit/pull/985) The methods `AbfFile.extract_channel`, `extract_channel_as_myokit_log`, and `myokit_log` are deprecated in favor of `AbfFile.log`.
+  - [#985](https://github.com/myokit/myokit/pull/985) The method `AbfFile.myokit_protocol` is deprecated in favor of `AbfFile.protocol`.
+  
 - Removed
 - Fixed
 

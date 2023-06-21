@@ -149,6 +149,8 @@ import numpy as np
 
 from collections import OrderedDict
 
+import myokit
+
 
 # Encoding for text parts of files
 _ENC = 'latin-1'
@@ -182,7 +184,7 @@ class AbfFile:
 
     Similarly, protocol data can be accessed using::
 
-        for sweep in f.protocol():
+        for sweep in f.protocols():
             for channel in sweep:
                 plt.plot(channel.times(), channel.values())
 
@@ -273,6 +275,8 @@ class AbfFile:
 
     def extract_channel(self, channel=0, join=False):
         """
+        This method has been deprecated; please use :meth:`log` instead.
+
         Extracts a selected data ``channel`` and returns its data in a tuple
         containing::
 
@@ -286,6 +290,12 @@ class AbfFile:
 
         If no data is available, ``None`` is returned.
         """
+        # Deprecated since 2023-06-23
+        import warnings
+        warnings.warn(
+            'The method `extract_channel` is deprecated. Please use'
+            ' AbfFile.log() instead.')
+
         if len(self._sweeps) == 0:  # pragma: no cover
             return None
 
@@ -307,13 +317,20 @@ class AbfFile:
 
     def extract_channel_as_myokit_log(self, channel=0):
         """
-        Extracts the given data channel and returns it as a myokit
-        DataLog.
+        This method has been deprecated; please use
+        `AbfFile.log(join_sweeps=False)` instead.
+
+        Extracts the given data channel and returns it as a myokit DataLog.
 
         The log will contain an entry "time" that contains the time vector.
         Each sweep will be in an entry "0.sweep", "1.sweep", "2.sweep" etc.
         """
-        import myokit
+        # Deprecated since 2023-06-23
+        import warnings
+        warnings.warn(
+            'The method `extract_channel` is deprecated. Please use'
+            ' AbfFile.log(join=False) instead.')
+
         log = myokit.DataLog()
         if len(self._sweeps) == 0:  # pragma: no cover
             return log
@@ -324,9 +341,7 @@ class AbfFile:
         return log
 
     def filename(self):
-        """
-        Returns this AbfFile's filename.
-        """
+        """ Returns this AbfFile's filename. """
         return self._filepath
 
     def __getitem__(self, key):
@@ -426,6 +441,64 @@ class AbfFile:
             show_dict('file header', self._header)
         return '\n'.join(out)
 
+    def myokit_log(self, join_sweeps=True):
+        """
+        This method has been deprecated. Please use :meth:`Log` instead.
+
+        Converts the data in this ABF file to a:class:`myokit.DataLog` with an
+        entry for every channel.
+
+        The log will contain an entry "time" containing the time vector, and
+        either a single entry per channel when ``join_sweeps=True``, or one per
+        sweep if ``join_sweeps=False``.
+
+        All sweeps will be joined together into a single time series.
+
+        The log will contain an entry "time" that contains the time vector.
+        Channels will be stored using "0.ad", "1.ad" etc. for the recorded
+        (analog-to-digital) channels and "0.da", "1.da" etc. for the output
+        (digital-to-analog) channels.
+        """
+        # Deprecated since 2023-06-23
+        import warnings
+        warnings.warn(
+            'The method `extract_channel` is deprecated. Please use'
+            ' AbfFile.log(join=False) instead.')
+
+        log = myokit.DataLog()
+        if self._sweeps:
+            # Gather parts of time and channel vectors
+            time = []
+            ad_channels = []
+            da_channels = []
+            for i in range(self.data_channels()):
+                ad_channels.append([])
+            for i in range(self.protocol_channels()):
+                da_channels.append([])
+
+            # Add ad channels
+            for sweep in self:
+                for channel in sweep:
+                    time.append(channel.times())
+                    break
+                for i, channel in enumerate(sweep):
+                    ad_channels[i].append(channel.values())
+
+            # Add da channels
+            for sweep in self.protocols():
+                for i, channel in enumerate(sweep):
+                    da_channels[i].append(channel.values())
+
+            # Combine into time series, store in log
+            log['time'] = np.concatenate(time)
+            log.set_time_key('time')
+            for i, channel in enumerate(ad_channels):
+                log['ad', i] = np.concatenate(channel)
+            for i, channel in enumerate(da_channels):
+                log['da', i] = np.concatenate(channel)
+
+        return log
+
     def matplotlib_figure(self):
         """
         Creates and returns a matplotlib figure of this abf file's contents.
@@ -448,7 +521,7 @@ class AbfFile:
         n = self.protocol_channels()
         ax = [plt.subplot(2, n, n + 1 + i) for i in range(n)]
 
-        for sweep in self.protocol():
+        for sweep in self.protocols():
             times = None
             for i, channel in enumerate(sweep):
                 if times is None:
@@ -457,8 +530,10 @@ class AbfFile:
                 ax[i].plot(times, channel.values())
         return f
 
-    def myokit_log(self):
+    def myokit_log(self, join_sweeps=True):
         """
+        This method has been deprecated. Please use :meth:`Log` instead.
+
         Converts the data in this ABF file to a:class:`myokit.DataLog` with an
         entry for every channel. All sweeps will be joined together into a
         single time series.
@@ -468,7 +543,12 @@ class AbfFile:
         (analog-to-digital) channels and "0.da", "1.da" etc. for the output
         (digital-to-analog) channels.
         """
-        import myokit
+        # Deprecated since 2023-06-23
+        import warnings
+        warnings.warn(
+            'The method `extract_channel` is deprecated. Please use'
+            ' AbfFile.log(join=False) instead.')
+
         log = myokit.DataLog()
         if self._sweeps:
             # Gather parts of time and channel vectors
@@ -489,7 +569,7 @@ class AbfFile:
                     ad_channels[i].append(channel.values())
 
             # Add da channels
-            for sweep in self.protocol():
+            for sweep in self.protocols():
                 for i, channel in enumerate(sweep):
                     da_channels[i].append(channel.values())
 
@@ -504,18 +584,27 @@ class AbfFile:
         return log
 
     def myokit_protocol(self, channel=None, ms=True):
+        """ Deprecated alias of :meth:`protocol`. """
+        return self.protocol(channel, ms)
+
+    def protocol(self, channel=None, ms=True):
         """
-        Returns a single channel from an embedded protocol as a
-        :class:`myokit.Protocol`. The channel to return is specified by setting
-        ``channel`` to the correct index.
+        Returns the embedded protocol from the selected ``channel`` as a
+        :class:`myokit.Protocol`.
 
-        Only works for episodic stimulation, without user lists.
+        Only episodic stimulation is supported, without "user lists".
 
-        By default, all times are converted to milliseconds. To disable this
-        function, set ``ms=False``.
+        By default all times are converted to milliseconds, but this can be
+        disabled by setting ``ms=False``.
+
+        Arguments:
+
+        ``channel``
+            The channel index to return (as an integer).
+        ``ms``
+            Set to ``False`` to disable conversion to milliseconds.
+
         """
-        import myokit
-
         # Only episodic stimulation is supported.
         if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
             return myokit.Protocol()
@@ -585,10 +674,16 @@ class AbfFile:
 
         return p
 
+
+    def protocols(self):
+        """
+        Returns an interator over the protocol data.
+        """
+        return iter(self._protocol)
+
+
     def protocol_channels(self):
-        """
-        Returns the number of channels in this file's protocol.
-        """
+        """ Returns the number of channels in this file's protocol. """
         if self._version < 2:
             return len(self._header['sDACChannelName'])
         else:
@@ -598,6 +693,12 @@ class AbfFile:
         """
         Returns the holding level used by the requested output channel of the
         embedded protocol.
+
+        Arguments:
+
+        ``channel``
+            The channel to return a protocol for, as an integer.
+
         """
         dinfo, einfo_exists, einfo = self._epoch_functions
         return dinfo(channel, 'fDACHoldingLevel')
@@ -618,6 +719,11 @@ class AbfFile:
 
             ([-100, -80, -40], [-140, -140, -140])
 
+
+        Arguments:
+
+        ``channel``
+            The channel to return a protocol for, as an integer.
 
         """
         # Get epoch functions set by _read_protocol
@@ -656,12 +762,6 @@ class AbfFile:
     def __len__(self):
         return len(self._sweeps)
 
-    def protocol(self):
-        """
-        Returns an interator over the protocol data.
-        """
-        return iter(self._protocol)
-
     def _read_datetime(self):
         """
         Reads the date/time this file was recorded
@@ -686,9 +786,7 @@ class AbfFile:
         return datetime.datetime(YY, MM, DD, hh, mm, ss, ms)
 
     def _read_header(self):
-        """
-        Reads the file's header.
-        """
+        """ Reads the file's header. """
 
         def read_f(f, form, offset=None):
             """
@@ -899,8 +997,7 @@ class AbfFile:
         Only works for episodic stimulation, without any user lists.
 
         The resulting analog signal has the same size as the recorded signals,
-        so not the full length of the protocol! This is different from the
-        values returned by the Myokit
+        so not the full length of the protocol!
         """
         # Only episodic stimulation is supported.
         if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
@@ -1374,8 +1471,10 @@ class Channel:
 
     def number(self):
         """
-        Returns the channel index used by pClamp. Note that this does not
-        necessarily equal its index in the Python sweep data!
+        Returns the channel index used by pClamp.
+
+        Note that this does not necessarily equal its index in the Python sweep
+        data.
         """
         return self._numb
 
