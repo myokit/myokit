@@ -549,11 +549,8 @@ class AbfTab(TabWidget):
         self._abf = abf
         self._figures = []
         self._axes = []
-        for i in range(self._abf.data_channels()):
+        for i in range(self._abf.channel_count()):
             tab, name = self.create_graph_tab(i)
-            self.addTab(tab, name)
-        for i in range(self._abf.protocol_channels()):
-            tab, name = self.create_protocol_tab(i)
             self.addTab(tab, name)
         self.addTab(self.create_info_tab(), 'Info')
         del self._abf
@@ -573,44 +570,11 @@ class AbfTab(TabWidget):
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
 
         # Draw lines
-        name = 'AD(' + str(channel) + ')'   # Default if no data is present
+        name = f'Channel {channel}'  # Default if no data is present
         times = None
         for i, sweep in enumerate(self._abf):
             if times is None:
-                name = 'AD' + str(sweep[channel].number()) + ': ' \
-                    + sweep[channel].name()
-                times = sweep[channel].times()
-            axes.plot(times, sweep[channel].values())
-
-        # Create a layout
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addWidget(canvas)
-        vbox.addWidget(toolbar)
-        widget.setLayout(vbox)
-        self._figures.append(figure)
-        self._axes.append(axes)
-        return widget, name
-
-    def create_protocol_tab(self, channel):
-        """
-        Creates a widget displaying a stored D/A signal.
-        """
-        widget = QtWidgets.QWidget(self)
-        # Create figure
-        figure = matplotlib.figure.Figure()
-        figure.suptitle(self._abf.filename())
-        canvas = backend.FigureCanvasQTAgg(figure)
-        canvas.setParent(widget)
-        axes = figure.add_subplot(1, 1, 1)
-        toolbar = backend.NavigationToolbar2QT(canvas, widget)
-
-        # Draw lines
-        name = 'DA(' + str(channel) + ')'   # Default if no data is present
-        times = None
-        for i, sweep in enumerate(self._abf.protocols()):
-            if times is None:
-                name = 'DA' + str(sweep[channel].number()) + ': ' \
-                    + sweep[channel].name()
+                name = sweep[channel].name()
                 times = sweep[channel].times()
             axes.plot(times, sweep[channel].values())
 

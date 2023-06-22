@@ -286,16 +286,14 @@ class AbfFile(myokit.formats.SweepSource):
         # Read the protocol info, and attempt to reconstruct the D/A signal as
         # as list of sweeps. MUST be called before _read_ad_data.
         self._sweeps = []
-        self._read_1_protocol()
-        '''
         try:
+            self._read_1_protocol()
         except:   # pragma: no cover
             # This is not something we _want_ to happen, so if we have test
             # cases that trigger this error they should be resolved. At the
             # same time, if it happens to a user we want it to "sort-of work"
             # (an experimental rather than a production setting)
             warnings.warn('Unable to read protocol from ' + self._filepath)
-        '''
 
         # Create sweeps and add the AD data
         if self._nADC:
@@ -613,8 +611,8 @@ class AbfFile(myokit.formats.SweepSource):
         ax = plt.subplot(2, 1, 1)
         ax.set_title('Measured data')
         times = None
-        for sweep in self._sweeps[:self._nADC]:
-            for channel in sweep:
+        for sweep in self._sweeps:
+            for channel in sweep[:self._nADC]:
                 if times is None:
                     times = channel.times()
                 plt.plot(times, channel.values())
@@ -622,8 +620,8 @@ class AbfFile(myokit.formats.SweepSource):
         # Plot DA channels
         n = self._nDAC
         ax = [plt.subplot(2, n, n + 1 + i) for i in range(n)]
-        for sweep in self._sweeps[self._nADC:]:
-            for i, channel in enumerate(sweep):
+        for sweep in self._sweeps:
+            for i, channel in enumerate(sweep[self._nADC:]):
                 ax[i].set_title(channel.name())
                 ax[i].plot(times, channel.values())
 
