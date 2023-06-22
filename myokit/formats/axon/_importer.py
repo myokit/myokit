@@ -25,4 +25,4 @@ class AbfImporter(myokit.formats.Importer):
         """
         from myokit.formats.axon import AbfFile
         abf = AbfFile(filename)
-        return abf.myokit_protocol(channel)
+        return abf.protocol(channel)
