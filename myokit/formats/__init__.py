@@ -673,7 +673,7 @@ class SweepSource:
     Each sweep contains the same number of channels, and each channel is a 1d
     array of equal length.
 
-    Two common ways to represent the data are (1) overlaid:
+    Two common ways to represent the data are (1) overlaid::
 
         time        n_t data points
         sweep[0],   n_c channels, each with n_t data points
@@ -681,20 +681,22 @@ class SweepSource:
         ...
         sweep[n_s]
 
-    or (2) joined into a single time series
+    or (2) joined into a single time series::
 
         time                            n_s*n_t data points
         sweep[0] + sweep[1] + ...       n_c channels, each with n_s*n_t points
 
-
+    The :class:`SweepSource` interface defines methods to get the number of
+    sweeps and channels, the names of the channels, and the data stored in
+    channels either as numpy arrays or in a :class:`myokit.DataLog`.
     """
     def channel(self, channel_id, join_sweeps=False):
         """
         Returns the data for a single channel, identified by integer or string
         ``channel_id``.
 
-        With ``join_sweeps=False``, the data is returned as a list of arrays
-        ``time, sweep_0, sweep_1, ...`` where ``time`` is the time
+        With ``join_sweeps=False``, the data is returned as a tuple of numpy
+        arrays ``time, sweep_0, sweep_1, ...`` where ``time`` is the time
         corresponding to the first sweep.
 
         If ``join_sweeps=True`` the sweeps are joined together, and a tuple

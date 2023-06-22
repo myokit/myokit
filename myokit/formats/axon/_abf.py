@@ -463,7 +463,7 @@ class AbfFile(myokit.formats.SweepSource):
             out.append('Axon Protocol File: ' + self._filename)
         else:
             out.append('Axon Binary File: ' + self._filename)
-        out.append('ABF Format version ' + str(self._version))
+        out.append('ABF Format version ' + self._version_str)
         out.append('Recorded on: ' + str(self._datetime))
 
         # Show protocol info
@@ -558,7 +558,7 @@ class AbfFile(myokit.formats.SweepSource):
         if channels is None:
             channels = list(range(self._nc))
         else:
-            channels = [self._channel_id[i] for i in channels]
+            channels = [self._channel_id(i) for i in channels]
 
         # Create log
         log = myokit.DataLog()
@@ -571,9 +571,10 @@ class AbfFile(myokit.formats.SweepSource):
 
         # Get channel names
         if use_names:
-            ch_names = [c.name() for c in self._sweeps[0]]
+            channel_names = [c.name() for c in self._sweeps[0]]
         else:
-            ch_names = [f'{i}.channel' for i in range(self._nc)]
+            channel_names = [f'{i}.channel' for i in range(self._nc)]
+        channel_names = [channel_names[i] for i in channels]
 
         # Populate log
         if join_sweeps:
@@ -581,59 +582,22 @@ class AbfFile(myokit.formats.SweepSource):
 
             # Set time
             t = np.array(self._sweeps[0][0].times())
-            time = np.concatenate([
-                t + i * self._sweep_start_to_start for i in range(ns)])
-            log['time'] = time
+            time = [t + i * self._sweep_start_to_start for i in range(ns)]
+            log['time'] = np.concatenate(time)
             log.set_time_key('time')
 
             # Set channels
-            data = [[] * len(channels)]
-            for sweep in self._sweeps:
-                for c, d in zip(sweep, data):
-                    d.append(c.values())
-            for name, d in zip(ch_names, data):
-                log[name] = np.concatenate(d)
+            data = []
+            for channel, name in zip(channels, channel_names):
+                log[name] = np.concatenate(
+                    [sweep[channel].values() for sweep in self._sweeps])
 
         else:
             # Return individual sweeps
-            out = []
-            out.append(np.array(self._sweeps[0][channel_id].times()))
-            for sweep in self._sweeps:
-                out.append(np.array(sweep[channel_id].values()))
-            return tuple(out)
-
-
-        '''
-        # Gather parts of time and channel vectors
-        time = []
-        ad_channels = []
-        da_channels = []
-        for i in range(self.data_channels()):
-            ad_channels.append([])
-        for i in range(self._nDAC):
-            da_channels.append([])
-
-        # Add ad channels
-        for sweep in self:
-            for channel in sweep:
-                time.append(channel.times())
-                break
-            for i, channel in enumerate(sweep):
-                ad_channels[i].append(channel.values())
-
-        # Add da channels
-        for sweep in self.protocols():
-            for i, channel in enumerate(sweep):
-                da_channels[i].append(channel.values())
-
-        # Combine into time series, store in log
-        log['time'] = np.concatenate(time)
-        log.set_time_key('time')
-        for i, channel in enumerate(ad_channels):
-            log['ad', i] = np.concatenate(channel)
-        for i, channel in enumerate(da_channels):
-            log['da', i] = np.concatenate(channel)
-        '''
+            log['time'] = np.array(self._sweeps[0][0].times())
+            for i, sweep in enumerate(self._sweeps):
+                for channel, name in zip(channels, channel_names):
+                    log[name, i] = sweep[channel].values()
 
         return log
 
@@ -823,9 +787,8 @@ class AbfFile(myokit.formats.SweepSource):
 
             # Get uniform file version number
             if version < 2:
-                self._version = (
-                    np.round(header['fFileVersionNumber'] * 100) / 100)
-                self._version_str = str(header['fFileVersionNumber'])
+                self._version = np.round(header['fFileVersionNumber'], 5)
+                self._version_str = str(self._version)
             else:
                 v = header['fFileVersionNumber']
                 self._version = v[3]
@@ -987,7 +950,8 @@ class AbfFile(myokit.formats.SweepSource):
                 'Unsupported acquisition method '
                 + acquisition_modes[self._mode] + '; unable to read D/A'
                 ' channels.')
-            return []
+            self._nDAC = 0
+            return
 
         # Start reading
         h = self._header
@@ -1067,36 +1031,47 @@ class AbfFile(myokit.formats.SweepSource):
 
         # Step 2: Generate analog signals corresponding to the waveforms
         # suggested by the 'epochs' in the protocol
+
         # User lists are not supported
+        user_lists = False
         if self._version < 2:   # pragma: no cover
-            if any(self._header['nULEnable']):
-                return []
-        else:   # pragma: no cover
+            user_lists = any(self._header['nULEnable'])
+        else:  # pragma: no cover
             for userlist in self._header['listUserListInfo']:
                 if 'nULEnable' in userlist and userlist['nULEnable']:
-                    return []
+                    user_lists = True
+                    break
                 if 'nConditEnable' in userlist and userlist['nConditEnable']:
-                    return []
+                    user_lists = True
+                    break
+        if user_lists:  # pragma: no cover
+            warnings.warn(
+                'Unsupported acquisition method: episodic with user lists;'
+                ' unable to read D/A channels.')
+            self._nDAC = 0
+            return
 
         # Number of ADC channels
         nADC = self._nADC
-        nDAC = self._nDAC   # Max number, real number will be self._nDAC after
 
-        # Real number of DAC channels
-        self._nDAC = sum([int(einfo_exists(i)) for i in range(nDAC)])
+        # Number of used DAC channels
+        channels = []
+        for iDAC in range(self._nDAC):
+            if einfo_exists(iDAC):
+                if any(e['type'] != EPOCH_DISABLED for e in einfo(iDAC)):
+                    channels.append(iDAC)
+        self._nDAC = nDAC = len(channels)
 
         # Read
         start = 0
         for i_sweep in range(h['lActualSweeps']):
-            sweep = Sweep(nADC + self._nDAC)
+            sweep = Sweep(nADC + nDAC)
 
             # Create channels for this sweep
             i_channel = nADC
-            for iDAC in range(nDAC):
-                # No stimulation info for this channel? Then continue
-                if not einfo_exists(iDAC):
-                    continue
+            for iDAC in channels:
 
+                # Convert, where possible
                 c = Channel(self)
                 c._name = dinfo(iDAC, 'sDACChannelName').strip()
                 c._unit = dinfo(iDAC, 'sDACChannelUnits').strip()
@@ -1116,10 +1091,6 @@ class AbfFile(myokit.formats.SweepSource):
                 # For each 'epoch' in the stimulation signal
                 for e in einfo(iDAC):
                     kind = e['type']
-                    if kind not in epoch_types:
-                        raise NotImplementedError(
-                            'Unknown epoch type: ' + str(kind))
-
                     if kind == EPOCH_DISABLED:
 
                         continue
@@ -1144,8 +1115,7 @@ class AbfFile(myokit.formats.SweepSource):
 
                     else:  # pragma: no cover
 
-                        log = logging.getLogger(__name__)
-                        log.warning(
+                        warnings.warn(
                             'Unsupported epoch type: ' + epoch_types(kind))
                         continue
 
@@ -1273,9 +1243,9 @@ class AbfFile(myokit.formats.SweepSource):
                 else:
 
                     c._name = str(header['listADCInfo'][i]['ADCChNames']
-                        ).strip()
+                                  ).strip()
                     c._unit = str(header['listADCInfo'][i]['ADCChUnits']
-                        ).strip()
+                                  ).strip()
                     c._numb = int(header['listADCInfo'][i]['nADCNum'])
 
                     # Get telegraphed info

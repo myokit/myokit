@@ -13,7 +13,7 @@ import numpy as np
 import myokit
 import myokit.formats.axon as axon
 
-from myokit.tests import TemporaryDirectory, DIR_FORMATS, WarningCollector
+from myokit.tests import TemporaryDirectory, DIR_FORMATS
 
 
 V1_INFO = '''
@@ -28,12 +28,6 @@ Sampling rate: 10000.0 Hz
 A/D Channel 0: "IN 0"
   Unit: pA
 D/A Channel 0: "OUT 0"
-  Unit: mV
-D/A Channel 1: "OUT 1"
-  Unit: V
-D/A Channel 2: "AO #2"
-  Unit: mV
-D/A Channel 3: "AO #3"
   Unit: mV
 '''.strip()
 
@@ -75,12 +69,6 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(abf.path(), path)
         self.assertEqual(abf.filename(), 'abf-v1.abf')
 
-        print()
-        print()
-        print(abf.info())
-        print()
-        print()
-
         # Check getting info
         self.assertIn('version 1.65', abf.info())
         self.maxDiff = None
@@ -89,6 +77,9 @@ class AbfTest(unittest.TestCase):
         # Test getting full header runs without crashing
         abf.info(True)
 
+        # Get version
+        self.assertEqual(abf.version(), '1.65')
+
         # Test len returns number of sweeps
         self.assertEqual(len(abf), 9)
 
@@ -96,11 +87,8 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(abf.ad_channel_count(), 1)    # 1 data channel
         self.assertIsInstance(abf[0], axon.Sweep)
         self.assertIsInstance(abf[0][0], axon.Channel)
-        self.assertEqual(abf.da_channel_count(), 4)    # 4 D/A channels
+        self.assertEqual(abf.da_channel_count(), 1)    # 1 D/A channel
         self.assertIsInstance(abf[1], axon.Sweep)
-        self.assertIsInstance(abf[2], axon.Sweep)
-        self.assertIsInstance(abf[3], axon.Sweep)
-        self.assertIsInstance(abf[4], axon.Sweep)
         self.assertIsInstance(abf[1][0], axon.Channel)
         self.assertEqual(len([s for s in abf]), 9)
 
@@ -111,7 +99,6 @@ class AbfTest(unittest.TestCase):
 
         # Test other D/A channel methods
         self.assertEqual(abf.da_holding_level(1), 0)
-        print(abf.da_steps(1)[0])
         self.assertEqual(len(abf.da_steps(1)[0]), 9)
         self.assertEqual(
             list(abf.da_steps(1)[0]),
@@ -121,23 +108,20 @@ class AbfTest(unittest.TestCase):
         channel = abf[0][0]
         self.assertIsInstance(channel.number(), int)
         self.assertEqual(channel.name(), 'IN 0')
-        self.assertEqual(str(channel), 'Channel(0 "IN 0"); 5000 points sampled'
-            ' at 10000.0Hz, starts at t=0.0')
+        self.assertEqual(str(channel),
+                         'Channel(0 "IN 0"); 5000 points sampled at 10000.0Hz,'
+                         ' starts at t=0.0')
         self.assertEqual(len(channel.times()), len(channel.values()))
         self.assertFalse(np.all(channel.times() == channel.values()))
 
-
-
-
-
-
-
         # Test SweepSource interface
         self.assertEqual(abf.sweep_count(), 9)
-        self.assertEqual(abf.channel_count(), 5)
+        self.assertEqual(abf.channel_count(), 2)
+        self.assertEqual(abf.channel_names(), ['IN 0', 'OUT 0'])
 
+        # Channel without joining
         x = abf.channel(0)
-        self.assertEqual(len(x), 1 + len(abf))      # sweeps + time
+        self.assertEqual(len(x), 1 + len(abf))
         self.assertEqual(len(x[0]), len(x[1]))
         self.assertEqual(len(x[0]), len(x[2]))
         self.assertEqual(len(x[0]), len(x[3]))
@@ -148,30 +132,102 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(len(x[0]), len(x[8]))
         self.assertEqual(len(x[0]), len(x[9]))
 
+        # Channel with joining
         y = abf.channel(0, join_sweeps=True)
         self.assertEqual(len(y), 2)
         self.assertEqual(len(y[0]), 9 * len(x[0]))
         self.assertEqual(len(y[0]), len(y[1]))
 
+        # Conversion to data log without joining
+        x = abf.log()
+        k = list(x.keys())
+        self.assertEqual(len(x), 1 + 2 * 9)
+        self.assertIn('time', x)
+        self.assertIn('0.0.channel', k)
+        self.assertIn('1.0.channel', k)
+        self.assertIn('2.0.channel', k)
+        self.assertIn('3.0.channel', k)
+        self.assertIn('4.0.channel', k)
+        self.assertIn('5.0.channel', k)
+        self.assertIn('6.0.channel', k)
+        self.assertIn('7.0.channel', k)
+        self.assertIn('8.0.channel', k)
+        self.assertIn('0.1.channel', k)
+        self.assertIn('1.1.channel', k)
+        self.assertIn('2.1.channel', k)
+        self.assertIn('3.1.channel', k)
+        self.assertIn('4.1.channel', k)
+        self.assertIn('5.1.channel', k)
+        self.assertIn('6.1.channel', k)
+        self.assertIn('7.1.channel', k)
+        self.assertIn('8.1.channel', k)
+        self.assertEqual(len(x['time']), len(x['5.0.channel']))
+        self.assertEqual(len(x['7.1.channel']), len(x['5.0.channel']))
 
+        x = abf.log(use_names=True)
+        k = list(x.keys())
+        self.assertEqual(len(x), 1 + 2 * 9)
+        self.assertIn('time', k)
+        self.assertIn('0.IN 0', k)
+        self.assertIn('1.IN 0', k)
+        self.assertIn('2.IN 0', k)
+        self.assertIn('3.IN 0', k)
+        self.assertIn('4.IN 0', k)
+        self.assertIn('5.IN 0', k)
+        self.assertIn('6.IN 0', k)
+        self.assertIn('7.IN 0', k)
+        self.assertIn('8.IN 0', k)
+        self.assertIn('0.OUT 0', k)
+        self.assertIn('1.OUT 0', k)
+        self.assertIn('2.OUT 0', k)
+        self.assertIn('3.OUT 0', k)
+        self.assertIn('4.OUT 0', k)
+        self.assertIn('5.OUT 0', k)
+        self.assertIn('6.OUT 0', k)
+        self.assertIn('7.OUT 0', k)
+        self.assertIn('8.OUT 0', k)
 
+        y = abf.log(use_names=True, channels=[1])
+        k = list(y.keys())
+        self.assertEqual(len(y), 1 + 9)
+        self.assertIn('time', y)
+        self.assertIn('0.OUT 0', y)
+        x = abf.log(use_names=True, channels=['OUT 0'])
+        y = list(x.keys())
+        self.assertEqual(len(y), 1 + 9)
+        self.assertIn('time', y)
+        self.assertIn('8.OUT 0', y)
+        x = abf.log(use_names=True, channels=['IN 0', 'OUT 0'])
+        y = list(x.keys())
+        self.assertEqual(len(y), 1 + 2 * 9)
+        self.assertIn('time', y)
+        self.assertIn('0.OUT 0', y)
+        self.assertIn('2.IN 0', y)
+        self.assertEqual(len(x['time']), len(x['2.IN 0']))
 
+        # Conversion to data log with joining
+        y = abf.log(join_sweeps=True)
+        self.assertEqual(len(y), 3)
+        self.assertIn('time', y.keys())
+        self.assertIn('0.channel', y.keys())
+        self.assertIn('1.channel', y.keys())
+        self.assertEqual(len(y['time']), 9 * len(x['time']))
+        self.assertEqual(len(y['time']), len(y['0.channel']))
+        self.assertEqual(len(y['time']), len(y['1.channel']))
 
+        y = abf.log(join_sweeps=True, use_names=True)
+        self.assertEqual(len(y), 3)
+        self.assertIn('time', y.keys())
+        self.assertIn('IN 0', y.keys())
+        self.assertIn('OUT 0', y.keys())
+        self.assertEqual(len(y['time']), 9 * len(x['time']))
+        self.assertEqual(len(y['time']), len(y['IN 0']))
+        self.assertEqual(len(y['time']), len(y['OUT 0']))
 
-        # Test conversion to data log
-        z = abf.log(True, False)
-
-        self.assertEqual(len(z), 6)     # time + channel + 4 protocol channels
-        sweep = abf[0]
-        self.assertEqual(len(sweep), 1)     # 1 channel in sweep
-        channel = sweep[0]
-        self.assertIsInstance(channel.number(), int)
-        self.assertIn('Channel', str(channel))
-        self.assertEqual(len(abf) * len(channel.times()), len(z.time()))
-        self.assertEqual(len(abf) * len(channel.values()), len(z.time()))
-
-
-
+        y = abf.log(join_sweeps=True, use_names=True, channels=['IN 0'])
+        self.assertEqual(len(y), 2)
+        self.assertIn('time', y.keys())
+        self.assertIn('IN 0', y.keys())
 
     def test_read_protocol_v1(self):
         # Test reading a v1 protocol file.
@@ -264,7 +320,6 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(abf.protocol_holding_level(0), -120)
         p = abf.myokit_protocol(0)
         self.assertEqual(len(p), 2)
-
 
     def test_matplotlib_figure(self):
         # Test figure drawing method (doesn't inspect output).
