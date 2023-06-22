@@ -4,15 +4,12 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#985](https://github.com/myokit/myokit/pull/985) The `AbfFile` and `WcpFile` now implement a shared `SweepSource` interface.
 - Changed
-  - [#980](https://github.com/myokit/myokit/pull/980) Python 2 is no longer supported. The minimum supported Python version is 3.6.
-  - [#985](https://github.com/myokit/myokit/pull/985) The method `AbfFile.protocol()` that returns an iterator over embedded protocols has been renamed `AbfFile.protocols()`
+  - [#985](https://github.com/myokit/myokit/pull/985) The interface to the `AbfFile` class has changed significantly, in a backwards incompatible way. Please see the documentation for further details.
 - Deprecated
-  - [#985](https://github.com/myokit/myokit/pull/985) The methods `AbfFile.extract_channel`, `extract_channel_as_myokit_log`, and `myokit_log` are deprecated in favor of `AbfFile.log`.
-  - [#985](https://github.com/myokit/myokit/pull/985) The method `AbfFile.myokit_protocol` is deprecated in favor of `AbfFile.protocol`.
-  
-- Removed
 - Fixed
+  - [#985](https://github.com/myokit/myokit/pull/985) `AbfFile.filename` now returns the filename, not the full path.
 
 ## [1.35.0] - 2023-06-21
 - Added

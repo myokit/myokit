@@ -203,7 +203,7 @@ class WcpFile:
         self._time = np.arange(self._np) * header[b'dt']
 
     def channels(self):
-        """ Deprecated alias of :meth:`count_channels`. """
+        """ Deprecated alias of :meth:`channel_count`. """
         # Deprecated since 2023-06-23
         import warnings
         warnings.warn(
@@ -219,10 +219,6 @@ class WcpFile:
     def channel_names(self):
         """ Returns the names of the channels in this file. """
         return list(self._channel_names)
-
-    def count_records(self):
-        """ Returns the number of records in this file. """
-        return self._nr
 
     def filename(self):
         """ Returns this file's name. """
@@ -259,6 +255,10 @@ class WcpFile:
                 plt.plot(self._time, channel)
         plt.show()
 
+    def record_count(self):
+        """ Returns the number of records in this file. """
+        return self._nr
+
     def records(self):
         """ Deprecated alias of :meth:`count_records`. """
         # Deprecated since 2023-06-23
@@ -267,6 +267,10 @@ class WcpFile:
             'The method `records` is deprecated. Please use'
             ' WcpFile.count_records() instead.')
 
+        return self._nr
+
+    def sweep_count(self):
+        # Docstring in SweepSource
         return self._nr
 
     def times(self):

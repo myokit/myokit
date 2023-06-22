@@ -140,7 +140,6 @@
 # was also used: http://neurodata.hg.sourceforge.net/hgweb/neurodata/neurodata/
 #------------------------------------------------------------------------------
 import datetime
-import logging
 import os
 import struct
 import traceback
@@ -256,6 +255,8 @@ class AbfFile(myokit.formats.SweepSource):
         self._datetime = self._read_datetime()
 
         # Number of channels, sampling rate (Hz) and acquisition mode
+        # Note: Number of AD channels will be set to 0 if this is a
+        #       protocol-only file
         # Note: Number of DA channels will be adjusted by _read_1_protocol
         if self._version < 2:
             self._nADC = int(self._header['nADCNumChannels'])
@@ -271,6 +272,8 @@ class AbfFile(myokit.formats.SweepSource):
         if self._mode not in acquisition_modes:
             raise NotImplementedError(
                 'Unknown acquisition mode: ' + str(mode))
+        if self._is_protocol_file:
+            self._nADC = 0
 
         # Conversion factors for integer data in the channels
         self._adc_factors = None
@@ -283,20 +286,19 @@ class AbfFile(myokit.formats.SweepSource):
         # Read the protocol info, and attempt to reconstruct the D/A signal as
         # as list of sweeps. MUST be called before _read_ad_data.
         self._sweeps = []
+        self._read_1_protocol()
+        '''
         try:
-            self._read_1_protocol()
-        except Exception:   # pragma: no cover
+        except:   # pragma: no cover
             # This is not something we _want_ to happen, so if we have test
             # cases that trigger this error they should be resolved. At the
             # same time, if it happens to a user we want it to "sort-of work"
             # (an experimental rather than a production setting)
-            log = logging.getLogger(__name__)
-            log.warning('Unable to read protocol from ' + self._filepath)
-            log.warning(traceback.format_exc())
-            protocol_sweeps = False
+            warnings.warn('Unable to read protocol from ' + self._filepath)
+        '''
 
         # Create sweeps and add the AD data
-        if not self._is_protocol_file:
+        if self._nADC:
             self._read_2_data()
 
         # Set final number of channels
@@ -350,7 +352,7 @@ class AbfFile(myokit.formats.SweepSource):
     def _channel_id(self, channel_id, must_be_da=False):
         """ Checks an int or str channel id and returns a valid int. """
         if len(self._sweeps) == 0:  # pragma: no cover
-            raise KeyError(f'Channel {channel} not found (empty file).')
+            raise KeyError(f'Channel {channel_id} not found (empty file).')
 
         # Handle string
         if isinstance(channel_id, str):
@@ -655,7 +657,10 @@ class AbfFile(myokit.formats.SweepSource):
                 'Only episodic stimulation is supported.')
 
         # Get D/A channel index
-        ida = self._channel_id(channel_id, must_be_da=True) - self._nADC
+        if channel_id is None:
+            ida = self._nADC
+        else:
+            ida = self._channel_id(channel_id, must_be_da=True) - self._nADC
 
         # User lists are not supported
         if self._version < 2:  # pragma: no cover
@@ -792,7 +797,7 @@ class AbfFile(myokit.formats.SweepSource):
             else:
                 v = header['fFileVersionNumber']
                 self._version = v[3]
-                self._version_str = '.'.join([str(v) for v in v])
+                self._version_str = '.'.join([str(v) for v in reversed(v)])
 
             # Get file start time in seconds
             if version < 2:
@@ -1062,9 +1067,15 @@ class AbfFile(myokit.formats.SweepSource):
                     channels.append(iDAC)
         self._nDAC = nDAC = len(channels)
 
+        # Number of sweeps
+        if self._is_protocol_file:
+            n_sweeps = self._sweeps_per_run
+        else:
+            n_sweeps = h['lActualSweeps']
+
         # Read
         start = 0
-        for i_sweep in range(h['lActualSweeps']):
+        for i_sweep in range(n_sweeps):
             sweep = Sweep(nADC + nDAC)
 
             # Create channels for this sweep

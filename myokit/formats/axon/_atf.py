@@ -34,7 +34,7 @@ class AtfFile:
         self._filename = os.path.basename(filename)
 
         # A version string
-        self._version = None
+        self._version_str = None
 
         # A (multi-line) string containing meta-data found in this file
         self._meta = None
@@ -90,7 +90,7 @@ class AtfFile:
             line_index = 1
             if line[:3] != 'ATF':
                 raise Exception('Unrecognised file type.')
-            self._version = line[3:].strip()
+            self._version_str = line[3:].strip()
 
             # Read number of header lines, number of fields
             line = f.readline().decode(_ENC)
@@ -199,10 +199,8 @@ class AtfFile:
         return iter(self._data.values())
 
     def version(self):
-        """
-        Returns the file type version of this ATF file (as a string).
-        """
-        return self._version
+        """ Returns a string representation of this file's version number. """
+        return self._version_str
 
 
 def load_atf(filename):
