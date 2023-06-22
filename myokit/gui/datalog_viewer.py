@@ -563,6 +563,7 @@ class AbfTab(TabWidget):
         Creates a widget displaying the main data.
         """
         widget = QtWidgets.QWidget(self)
+
         # Create figure
         figure = matplotlib.figure.Figure()
         figure.suptitle(self._abf.filename())
@@ -570,6 +571,7 @@ class AbfTab(TabWidget):
         canvas.setParent(widget)
         axes = figure.add_subplot(1, 1, 1)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
+
         # Draw lines
         name = 'AD(' + str(channel) + ')'   # Default if no data is present
         times = None
@@ -579,6 +581,7 @@ class AbfTab(TabWidget):
                     + sweep[channel].name()
                 times = sweep[channel].times()
             axes.plot(times, sweep[channel].values())
+
         # Create a layout
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(canvas)
@@ -600,15 +603,17 @@ class AbfTab(TabWidget):
         canvas.setParent(widget)
         axes = figure.add_subplot(1, 1, 1)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
+
         # Draw lines
         name = 'DA(' + str(channel) + ')'   # Default if no data is present
         times = None
-        for i, sweep in enumerate(self._abf.protocol()):
+        for i, sweep in enumerate(self._abf.protocols()):
             if times is None:
                 name = 'DA' + str(sweep[channel].number()) + ': ' \
                     + sweep[channel].name()
                 times = sweep[channel].times()
             axes.plot(times, sweep[channel].values())
+
         # Create a layout
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(canvas)

@@ -203,21 +203,29 @@ class WcpFile:
         self._time = np.arange(self._np) * header[b'dt']
 
     def channels(self):
-        """
-        Returns the number of channels in this file.
-        """
+        """ Deprecated alias of :meth:`count_channels`. """
+        # Deprecated since 2023-06-23
+        import warnings
+        warnings.warn(
+            'The method `channels` is deprecated. Please use'
+            ' WcpFile.count_channels() instead.')
+
+        return self._nc
+
+    def channel_count(self):
+        """ Returns the number of channels in this file. """
         return self._nc
 
     def channel_names(self):
-        """
-        Returns the names of the channels in this file.
-        """
+        """ Returns the names of the channels in this file. """
         return list(self._channel_names)
 
+    def count_records(self):
+        """ Returns the number of records in this file. """
+        return self._nr
+
     def filename(self):
-        """
-        Returns the current file's name.
-        """
+        """ Returns this file's name. """
         return self._filename
 
     def myokit_log(self):
@@ -238,15 +246,11 @@ class WcpFile:
         return log
 
     def path(self):
-        """
-        Returns the path to the currently opened file.
-        """
+        """ Returns the path to this file. """
         return self._filepath
 
     def plot(self):
-        """
-        Creates matplotlib plots of all data in this file.
-        """
+        """ Creates and shows a matplotlib figure of all data in this file. """
         import matplotlib.pyplot as plt
         for record in self._records:
             plt.figure()
@@ -256,21 +260,17 @@ class WcpFile:
         plt.show()
 
     def records(self):
-        """
-        Returns the number of records in this file.
-        """
+        """ Deprecated alias of :meth:`count_records`. """
+        # Deprecated since 2023-06-23
+        import warnings
+        warnings.warn(
+            'The method `records` is deprecated. Please use'
+            ' WcpFile.count_records() instead.')
+
         return self._nr
 
-    #def sampling_interval(self):
-    #    """
-    #    Returns the sampling interval used in this file.
-    #    """
-    #    return self._dt
-
     def times(self):
-        """
-        Returns the time points sampled at.
-        """
+        """ Returns the time points sampled at. """
         return np.array(self._time)
 
     def values(self, record, channel):

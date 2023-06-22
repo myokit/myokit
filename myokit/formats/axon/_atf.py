@@ -45,50 +45,30 @@ class AtfFile:
         # Read data
         self._read()
 
-    def filename(self):
-        """
-        Returns this ATF's filename.
-        """
-        return self._file
-
     def __getitem__(self, key):
         return self._data.__getitem__(key)
 
     def __iter__(self):
-        """
-        Iterates over all data arrays in this ATF file.
-        """
         return iter(self._data)
 
+    def __len__(self):
+        return len(self._data)
+
+    def filename(self):
+        """ Returns this ATF's filename. """
+        return self._file
+
+    def info(self):
+        """ Returns this ATF's header/meta data. """
+        return self._meta
+
     def items(self):
-        """
-        Iterates over all key-value pairs in this ATF file's data.
-        """
+        """ Returns an iterator over all ``(key, value)`` pairs. """
         return iter(self._data.items())
 
     def keys(self):
-        """
-        Iterates over all keys in this ATF file's data.
-        """
+        """ Returns an iterator over all keys in this ATF. """
         return iter(self._data.keys())
-
-    def values(self):
-        """
-        Iterates over all values in this ATF file's data.
-        """
-        return iter(self._data.values())
-
-    def __len__(self):
-        """
-        Returns the number of records in this file.
-        """
-        return len(self._data)
-
-    def info(self):
-        """
-        Returns the header/meta data found in this file.
-        """
-        return self._meta
 
     def myokit_log(self):
         """
@@ -103,9 +83,7 @@ class AtfFile:
         return log
 
     def _read(self):
-        """
-        Reads the data in the file.
-        """
+        """ Reads the data in this file. """
         with open(self._file, 'rb') as f:
             # Check version
             line = f.readline().decode(_ENC)
@@ -215,6 +193,10 @@ class AtfFile:
                 vals = [float(x) for x in vals]
                 for k, d in enumerate(vals):
                     data[k].append(d)
+
+    def values(self):
+        """ Returns an iterator over all values in this ATF. """
+        return iter(self._data.values())
 
     def version(self):
         """

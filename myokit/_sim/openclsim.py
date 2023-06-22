@@ -780,8 +780,8 @@ class SimulationOpenCL(myokit.CModule):
         (see the argument list below for the meaning of the variables).
 
         This can be equated to Myokit's diffusion current, but only if we
-        assume **zero-flux boundary conditions**, a **regularly spaced grid**,
-        and **no spatial heterogeneity in D** (or g).
+        assume *zero-flux boundary conditions*, a *regularly spaced grid*,
+        and *no spatial heterogeneity in D* (or g).
 
         With these assumptions, we can use finite differences to find::
 
@@ -791,13 +791,13 @@ class SimulationOpenCL(myokit.CModule):
         respect to unit membrane area.
         For models with currents normalized to area this is unproblematic, but
         to convert to models with unnormalized currents this means we have
-        added the further assumption that **each node contains some fixed
-        amount of membrane**, determined by an area A::
+        added the further assumption that *each node contains some fixed
+        amount of membrane*, determined by an area A::
 
             g = (1 / chi) * (k / (k + 1)) * D * (1 / dx^2) * A
 
         This equation can also be applied in two dimensions, but only if
-        **we assume that the conductivity matrix is diagonal**, in which case::
+        *we assume that the conductivity matrix is diagonal*, in which case::
 
             gx = (1 / chi) * (k / (k + 1)) * Dx * (1 / dx^2) * A
             gy = (1 / chi) * (k / (k + 1)) * Dy * (1 / dy^2) * A
