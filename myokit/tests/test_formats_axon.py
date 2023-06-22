@@ -105,6 +105,7 @@ class AbfTest(unittest.TestCase):
         abf = axon.AbfFile(path)
         self.assertEqual(abf.path(), path)
         self.assertEqual(abf.filename(), 'abf-v1.abf')
+        self.assertIsInstance(abf, myokit.formats.SweepSource)
 
         # Check getting info
         self.assertIn('version 1.65', abf.info())
@@ -430,7 +431,8 @@ class AbfTest(unittest.TestCase):
         matplotlib.use('template')
         path = os.path.join(DIR_FORMATS, 'abf-v1.abf')
         abf = axon.AbfFile(path)
-        abf.matplotlib_figure()
+        f = abf.matplotlib_figure()
+        self.assertIsInstance(f, matplotlib.figure.Figure)
 
 
 class AtfTest(unittest.TestCase):

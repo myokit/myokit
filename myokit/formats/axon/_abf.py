@@ -142,7 +142,6 @@
 import datetime
 import os
 import struct
-import traceback
 import warnings
 
 import numpy as np
@@ -288,7 +287,7 @@ class AbfFile(myokit.formats.SweepSource):
         self._sweeps = []
         try:
             self._read_1_protocol()
-        except:   # pragma: no cover
+        except Exception:  # pragma: no cover
             # This is not something we _want_ to happen, so if we have test
             # cases that trigger this error they should be resolved. At the
             # same time, if it happens to a user we want it to "sort-of work"
