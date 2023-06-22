@@ -460,6 +460,15 @@ class AtfTest(unittest.TestCase):
             for k, v in log.items():
                 self.assertTrue(np.all(v == log2[k]))
 
+            # Deprecated method
+            with WarningCollector() as w:
+                log3 = axon.AtfFile(path).myokit_log()
+            self.assertIn('deprecated', w.text())
+            self.assertEqual(len(log), len(log3))
+            self.assertEqual(set(log.keys()), set(log3.keys()))
+            for k, v in log.items():
+                self.assertTrue(np.all(v == log3[k]))
+
             # Write selected fields
             axon.save_atf(log, path, fields=['time', 'sint'])
             log2 = axon.load_atf(path)
