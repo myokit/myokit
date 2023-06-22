@@ -5,11 +5,13 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
   - [#985](https://github.com/myokit/myokit/pull/985) The `AbfFile` and `WcpFile` now implement a shared `SweepSource` interface.
-- Changed
+- - [#985](https://github.com/myokit/myokit/pull/985) The `AtfFile` class now has a method `path` that returns the full path.
+Changed
   - [#985](https://github.com/myokit/myokit/pull/985) The interface to the `AbfFile` class has changed significantly, in a backwards incompatible way. Please see the documentation for further details.
 - Deprecated
 - Fixed
   - [#985](https://github.com/myokit/myokit/pull/985) `AbfFile.filename` now returns the filename, not the full path.
+  - [#985](https://github.com/myokit/myokit/pull/985) `AtfFile.filename` now returns the filename, not the full path.
 
 ## [1.35.0] - 2023-06-21
 - Added

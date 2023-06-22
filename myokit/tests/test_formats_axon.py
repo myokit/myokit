@@ -13,7 +13,7 @@ import numpy as np
 import myokit
 import myokit.formats.axon as axon
 
-from myokit.tests import TemporaryDirectory, DIR_FORMATS
+from myokit.tests import TemporaryDirectory, DIR_FORMATS, WarningCollector
 
 
 V1_INFO = '''
@@ -604,8 +604,9 @@ class AtfTest(unittest.TestCase):
             # Read atf file
             atf = myokit.formats.axon.AtfFile(path)
 
-            # Test filename()
-            self.assertEqual(atf.filename(), path)
+            # Test filename() and path()
+            self.assertEqual(atf.path(), path)
+            self.assertEqual(atf.filename(), 'test.atf')
 
             # Test iter and getitem
             self.assertEqual(len(list(iter(atf))), 3)

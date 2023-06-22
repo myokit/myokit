@@ -11,6 +11,7 @@ import numpy as np
 
 from collections import OrderedDict
 
+import myokit
 
 # Format used for any text
 _ENC = 'ascii'
@@ -30,7 +31,7 @@ class AtfFile:
     """
     def __init__(self, filename):
         # The path to the file and its basename
-        self._file = os.path.abspath(filename)
+        self._path = os.path.abspath(filename)
         self._filename = os.path.basename(filename)
 
         # A version string
@@ -56,7 +57,7 @@ class AtfFile:
 
     def filename(self):
         """ Returns this ATF's filename. """
-        return self._file
+        return self._filename
 
     def info(self):
         """ Returns this ATF's header/meta data. """
@@ -70,11 +71,10 @@ class AtfFile:
         """ Returns an iterator over all keys in this ATF. """
         return iter(self._data.keys())
 
-    def myokit_log(self):
+    def log(self):
         """
         Returns this file's time series data as a :class:`myokit.DataLog`.
         """
-        import myokit
         log = myokit.DataLog()
         if len(self._data) > 0:
             log.set_time_key(next(iter(self._data.keys())))
@@ -82,9 +82,21 @@ class AtfFile:
             log[k] = v
         return log
 
+    def myokit_log(self):
+        """ Deprecated alias of :meth:`log`. """
+        # Deprecated since 2023-06-22
+        import warnings
+        warnings.warn(
+            'The method `myokit_log` is deprecated. Please use `log` instead.')
+        return self.log()
+
+    def path(self):
+        """ Returns the path to this ATF file. """
+        return self._path
+
     def _read(self):
         """ Reads the data in this file. """
-        with open(self._file, 'rb') as f:
+        with open(self._path, 'rb') as f:
             # Check version
             line = f.readline().decode(_ENC)
             line_index = 1
@@ -208,7 +220,7 @@ def load_atf(filename):
     Reads an ATF file and returns its data as a :class:`myokit.DataLog`.
     """
     filename = os.path.expanduser(filename)
-    return AtfFile(filename).myokit_log()
+    return AtfFile(filename).log()
 
 
 def save_atf(log, filename, fields=None):
