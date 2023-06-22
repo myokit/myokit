@@ -1385,9 +1385,7 @@ class Model(ObjectWithMeta, VarProvider):
     def eval_state_derivatives(
             self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
             ignore_errors=False):
-        """
-        Deprecated alias of :meth:`evaluate_derivatives()`.
-        """
+        """ Deprecated alias of :meth:`evaluate_derivatives()`. """
         # Deprecated since 2021-08-03
         import warnings
         warnings.warn(
