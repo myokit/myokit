@@ -184,6 +184,18 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         gc.collect()
         del tab
 
+    def action_first_var(self):
+        """ Select the first variable in the current file. """
+        tab = self._tabs.currentWidget()
+        if tab:
+            tab.first()
+
+    def action_last_var(self):
+        """ Select the last variable in the current file. """
+        tab = self._tabs.currentWidget()
+        if tab:
+            tab.last()
+
     def action_license(self):
         """
         Displays this program's licensing information.
@@ -295,6 +307,8 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tool_prev_file.triggered.connect(self.action_prev_file)
         self._tool_prev_file.setEnabled(False)
         self._menu_view.addAction(self._tool_prev_file)
+        # View > ----
+        self._menu_view.addSeparator()
         # View > Next variable
         self._tool_next_var = QtGui.QAction('Next variable', self)
         self._tool_next_var.setShortcut('PgDown')
@@ -309,6 +323,20 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tool_prev_var.triggered.connect(self.action_prev_var)
         self._tool_prev_var.setEnabled(False)
         self._menu_view.addAction(self._tool_prev_var)
+        # View > First variable
+        self._tool_first_var = QtGui.QAction('First variable', self)
+        self._tool_first_var.setShortcut('Home')
+        self._tool_first_var.setStatusTip('Show the first variable')
+        self._tool_first_var.triggered.connect(self.action_first_var)
+        self._tool_first_var.setEnabled(False)
+        self._menu_view.addAction(self._tool_first_var)
+        # View > Last var
+        self._tool_last_var = QtGui.QAction('Last variable', self)
+        self._tool_last_var.setShortcut('End')
+        self._tool_last_var.setStatusTip('Show the last variable')
+        self._tool_last_var.triggered.connect(self.action_last_var)
+        self._tool_last_var.setEnabled(False)
+        self._menu_view.addAction(self._tool_last_var)
         # Help menu
         self._menu_help = self._menu.addMenu('&Help')
         # Help > About
@@ -506,9 +534,13 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         if index >= 0:
             tab = self._tabs.widget(index)
             if tab.count() > 1:
-                self._tool_prev_var.setEnabled(True)
+                self._tool_first_var.setEnabled(True)
+                self._tool_last_var.setEnabled(True)
                 self._tool_next_var.setEnabled(True)
+                self._tool_prev_var.setEnabled(True)
                 return
+        self._tool_first_var.setEnabled(False)
+        self._tool_last_var.setEnabled(False)
         self._tool_prev_var.setEnabled(False)
         self._tool_next_var.setEnabled(False)
 
@@ -517,10 +549,16 @@ class TabWidget(QtWidgets.QTabWidget):
     """
     Tab widget that can move up and down when asked.
     """
+    def first(self):
+        """ Select the first widget. """
+        self.setCurrentIndex(0)
+
+    def last(self):
+        """ Select the last widget. """
+        self.setCurrentIndex(self.count() - 1)
+
     def next(self):
-        """
-        Select the next widget.
-        """
+        """ Select the next widget. """
         n = self.count()
         if n < 2:
             return
@@ -528,9 +566,7 @@ class TabWidget(QtWidgets.QTabWidget):
         self.setCurrentIndex(0 if i >= n else i)
 
     def previous(self):
-        """
-        Select the previous widget.
-        """
+        """ Select the previous widget. """
         n = self.count()
         if n < 2:
             return
