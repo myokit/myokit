@@ -664,3 +664,76 @@ def register_external_ewriter(name, ewriter_class):
             _scan_for_internal_formats()
         _EWRITERS[name] = ewriter_class
 
+
+class SweepSource:
+    """
+    Interface for classes that provide time-series data organised into *sweeps*
+    (or *records*) and *channels* (or *traces*).
+
+    Each sweep contains the same number of channels, and each channel is a 1d
+    array of equal length.
+
+    Two common ways to represent the data are (1) overlaid::
+
+        time        n_t data points
+        sweep[0],   n_c channels, each with n_t data points
+        sweep[1],
+        ...
+        sweep[n_s]
+
+    or (2) joined into a single time series::
+
+        time                            n_s*n_t data points
+        sweep[0] + sweep[1] + ...       n_c channels, each with n_s*n_t points
+
+    The :class:`SweepSource` interface defines methods to get the number of
+    sweeps and channels, the names of the channels, and the data stored in
+    channels either as numpy arrays or in a :class:`myokit.DataLog`.
+    """
+    def channel(self, channel_id, join_sweeps=False):
+        """
+        Returns the data for a single channel, identified by integer or string
+        ``channel_id``.
+
+        With ``join_sweeps=False``, the data is returned as a tuple of numpy
+        arrays ``time, sweep_0, sweep_1, ...`` where ``time`` is the time
+        corresponding to the first sweep.
+
+        If ``join_sweeps=True`` the sweeps are joined together, and a tuple
+        ``time, values`` is returned.
+        """
+        raise NotImplementedError
+
+    def channel_count(self):
+        """ Returns the number of channels. """
+        raise NotImplementedError
+
+    def channel_names(self):
+        """ Returns a list of names for each channel. """
+        raise NotImplementedError
+
+    def log(self, join_sweeps=False, use_names=False, channels=None):
+        """
+        Returns a :class:`myokit.DataLog` containing the data from all
+        channels or the subset specified by ``channels``.
+
+        Sweeps can be joined together using ``join_sweeps=True``, and log
+        entries can use systematic names (``use_names=False``) or names
+        specified in the original source (``use_names=True``).
+
+        If ``join_sweeps=False``, the data for each sweep will be returned
+        separately, so that the log will have entries such as ``0.0.channel``,
+        ``1.0.channel``, and ``2.0.channel`` for the first three sweeps and the
+        first channel. Alternatively, if ``use_names=True`` and the first
+        channel is called "IN #0" its entries will be ``0.IN #0`` for the first
+        sweep, then ``1.IN #0`` etc.
+
+        To return only a subset of channels pass in a list of channel ids
+        (names or integers) as ``channels``.
+        """
+        raise NotImplementedError
+
+    def sweep_count(self):
+        """ Returns the number of sweeps. """
+        raise NotImplementedError
+

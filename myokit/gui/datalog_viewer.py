@@ -184,6 +184,18 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         gc.collect()
         del tab
 
+    def action_first_var(self):
+        """ Select the first variable in the current file. """
+        tab = self._tabs.currentWidget()
+        if tab:
+            tab.first()
+
+    def action_last_var(self):
+        """ Select the last variable in the current file. """
+        tab = self._tabs.currentWidget()
+        if tab:
+            tab.last()
+
     def action_license(self):
         """
         Displays this program's licensing information.
@@ -295,6 +307,8 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tool_prev_file.triggered.connect(self.action_prev_file)
         self._tool_prev_file.setEnabled(False)
         self._menu_view.addAction(self._tool_prev_file)
+        # View > ----
+        self._menu_view.addSeparator()
         # View > Next variable
         self._tool_next_var = QtGui.QAction('Next variable', self)
         self._tool_next_var.setShortcut('PgDown')
@@ -309,6 +323,20 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tool_prev_var.triggered.connect(self.action_prev_var)
         self._tool_prev_var.setEnabled(False)
         self._menu_view.addAction(self._tool_prev_var)
+        # View > First variable
+        self._tool_first_var = QtGui.QAction('First variable', self)
+        self._tool_first_var.setShortcut('Home')
+        self._tool_first_var.setStatusTip('Show the first variable')
+        self._tool_first_var.triggered.connect(self.action_first_var)
+        self._tool_first_var.setEnabled(False)
+        self._menu_view.addAction(self._tool_first_var)
+        # View > Last var
+        self._tool_last_var = QtGui.QAction('Last variable', self)
+        self._tool_last_var.setShortcut('End')
+        self._tool_last_var.setStatusTip('Show the last variable')
+        self._tool_last_var.triggered.connect(self.action_last_var)
+        self._tool_last_var.setEnabled(False)
+        self._menu_view.addAction(self._tool_last_var)
         # Help menu
         self._menu_help = self._menu.addMenu('&Help')
         # Help > About
@@ -506,9 +534,13 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         if index >= 0:
             tab = self._tabs.widget(index)
             if tab.count() > 1:
-                self._tool_prev_var.setEnabled(True)
+                self._tool_first_var.setEnabled(True)
+                self._tool_last_var.setEnabled(True)
                 self._tool_next_var.setEnabled(True)
+                self._tool_prev_var.setEnabled(True)
                 return
+        self._tool_first_var.setEnabled(False)
+        self._tool_last_var.setEnabled(False)
         self._tool_prev_var.setEnabled(False)
         self._tool_next_var.setEnabled(False)
 
@@ -517,10 +549,16 @@ class TabWidget(QtWidgets.QTabWidget):
     """
     Tab widget that can move up and down when asked.
     """
+    def first(self):
+        """ Select the first widget. """
+        self.setCurrentIndex(0)
+
+    def last(self):
+        """ Select the last widget. """
+        self.setCurrentIndex(self.count() - 1)
+
     def next(self):
-        """
-        Select the next widget.
-        """
+        """ Select the next widget. """
         n = self.count()
         if n < 2:
             return
@@ -528,9 +566,7 @@ class TabWidget(QtWidgets.QTabWidget):
         self.setCurrentIndex(0 if i >= n else i)
 
     def previous(self):
-        """
-        Select the previous widget.
-        """
+        """ Select the previous widget. """
         n = self.count()
         if n < 2:
             return
@@ -549,11 +585,8 @@ class AbfTab(TabWidget):
         self._abf = abf
         self._figures = []
         self._axes = []
-        for i in range(self._abf.data_channels()):
+        for i in range(self._abf.channel_count()):
             tab, name = self.create_graph_tab(i)
-            self.addTab(tab, name)
-        for i in range(self._abf.protocol_channels()):
-            tab, name = self.create_protocol_tab(i)
             self.addTab(tab, name)
         self.addTab(self.create_info_tab(), 'Info')
         del self._abf
@@ -563,6 +596,7 @@ class AbfTab(TabWidget):
         Creates a widget displaying the main data.
         """
         widget = QtWidgets.QWidget(self)
+
         # Create figure
         figure = matplotlib.figure.Figure()
         figure.suptitle(self._abf.filename())
@@ -570,45 +604,16 @@ class AbfTab(TabWidget):
         canvas.setParent(widget)
         axes = figure.add_subplot(1, 1, 1)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
+
         # Draw lines
-        name = 'AD(' + str(channel) + ')'   # Default if no data is present
+        name = f'Channel {channel}'  # Default if no data is present
         times = None
         for i, sweep in enumerate(self._abf):
             if times is None:
-                name = 'AD' + str(sweep[channel].number()) + ': ' \
-                    + sweep[channel].name()
+                name = sweep[channel].name()
                 times = sweep[channel].times()
             axes.plot(times, sweep[channel].values())
-        # Create a layout
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addWidget(canvas)
-        vbox.addWidget(toolbar)
-        widget.setLayout(vbox)
-        self._figures.append(figure)
-        self._axes.append(axes)
-        return widget, name
 
-    def create_protocol_tab(self, channel):
-        """
-        Creates a widget displaying a stored D/A signal.
-        """
-        widget = QtWidgets.QWidget(self)
-        # Create figure
-        figure = matplotlib.figure.Figure()
-        figure.suptitle(self._abf.filename())
-        canvas = backend.FigureCanvasQTAgg(figure)
-        canvas.setParent(widget)
-        axes = figure.add_subplot(1, 1, 1)
-        toolbar = backend.NavigationToolbar2QT(canvas, widget)
-        # Draw lines
-        name = 'DA(' + str(channel) + ')'   # Default if no data is present
-        times = None
-        for i, sweep in enumerate(self._abf.protocol()):
-            if times is None:
-                name = 'DA' + str(sweep[channel].number()) + ': ' \
-                    + sweep[channel].name()
-                times = sweep[channel].times()
-            axes.plot(times, sweep[channel].values())
         # Create a layout
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(canvas)
@@ -619,18 +624,14 @@ class AbfTab(TabWidget):
         return widget, name
 
     def create_info_tab(self):
-        """
-        Creates a tab displaying information about the file.
-        """
+        """ Creates a tab displaying information about the file. """
         widget = QtWidgets.QTextEdit(self)
         widget.setText(self._abf.info(show_header=True))
         widget.setReadOnly(True)
         return widget
 
     def deleteLater(self):
-        """
-        Deletes this tab (later).
-        """
+        """ Deletes this tab (later). """
         for figure in self._figures:
             figure.clear()
         for axes in self._axes:
@@ -690,18 +691,14 @@ class AtfTab(TabWidget):
         return widget
 
     def create_info_tab(self):
-        """
-        Creates a tab displaying information about the file.
-        """
+        """ Creates a tab displaying information about the file. """
         widget = QtWidgets.QTextEdit(self)
         widget.setText(self._atf.info())
         widget.setReadOnly(True)
         return widget
 
     def deleteLater(self):
-        """
-        Deletes this tab (later).
-        """
+        """ Deletes this tab (later). """
         for figure in self._figures:
             figure.clear()
         for axes in self._axes:
@@ -767,9 +764,7 @@ class CsvTab(TabWidget):
             self.addTab(self.create_graph_tab(k, groups.get(k)), k)
 
     def create_graph_tab(self, key, indices=None):
-        """
-        Creates a widget displaying the data stored under ``key``.
-        """
+        """ Creates a widget displaying the data stored under ``key``. """
         widget = QtWidgets.QWidget(self)
 
         # Create figure
@@ -991,15 +986,14 @@ class WcpTab(TabWidget):
         self._wcp = wcp
         self._figures = []
         self._axes = []
-        for i in range(self._wcp.records()):
+        for i in range(self._wcp.record_count()):
             self.addTab(self.create_graph_tab(i), 'Record ' + str(i))
         del self._wcp
 
     def create_graph_tab(self, record):
-        """
-        Creates a widget displaying the data in record i
-        """
+        """ Creates a widget displaying the data in the given ``record``. """
         widget = QtWidgets.QWidget(self)
+
         # Create figure
         figure = matplotlib.figure.Figure()
         figure.suptitle(self._wcp.filename())
@@ -1007,12 +1001,14 @@ class WcpTab(TabWidget):
         canvas.setParent(widget)
         axes = figure.add_subplot(1, 1, 1)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
+
         # Draw lines
-        for i in range(self._wcp.channels()):
+        for i in range(self._wcp.channel_count()):
             axes.plot(
                 np.array(self._wcp.times(), copy=True),
                 np.array(self._wcp.values(record, i), copy=True),
             )
+
         # Create a layout
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(canvas)
@@ -1022,10 +1018,15 @@ class WcpTab(TabWidget):
         self._axes.append(axes)
         return widget
 
+    def create_info_tab(self):
+        """ Creates a tab displaying information about the file. """
+        widget = QtWidgets.QTextEdit(self)
+        widget.setText(self._wcp.info())
+        widget.setReadOnly(True)
+        return widget
+
     def deleteLater(self):
-        """
-        Deletes this tab (later).
-        """
+        """ Deletes this tab (later). """
         for figure in self._figures:
             figure.clear()
         for axes in self._axes:

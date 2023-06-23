@@ -11,6 +11,7 @@ import numpy as np
 
 from collections import OrderedDict
 
+import myokit
 
 # Format used for any text
 _ENC = 'ascii'
@@ -30,11 +31,11 @@ class AtfFile:
     """
     def __init__(self, filename):
         # The path to the file and its basename
-        self._file = os.path.abspath(filename)
+        self._path = os.path.abspath(filename)
         self._filename = os.path.basename(filename)
 
         # A version string
-        self._version = None
+        self._version_str = None
 
         # A (multi-line) string containing meta-data found in this file
         self._meta = None
@@ -45,56 +46,35 @@ class AtfFile:
         # Read data
         self._read()
 
-    def filename(self):
-        """
-        Returns this ATF's filename.
-        """
-        return self._file
-
     def __getitem__(self, key):
         return self._data.__getitem__(key)
 
     def __iter__(self):
-        """
-        Iterates over all data arrays in this ATF file.
-        """
         return iter(self._data)
 
+    def __len__(self):
+        return len(self._data)
+
+    def filename(self):
+        """ Returns this ATF's filename. """
+        return self._filename
+
+    def info(self):
+        """ Returns this ATF's header/meta data. """
+        return self._meta
+
     def items(self):
-        """
-        Iterates over all key-value pairs in this ATF file's data.
-        """
+        """ Returns an iterator over all ``(key, value)`` pairs. """
         return iter(self._data.items())
 
     def keys(self):
-        """
-        Iterates over all keys in this ATF file's data.
-        """
+        """ Returns an iterator over all keys in this ATF. """
         return iter(self._data.keys())
 
-    def values(self):
-        """
-        Iterates over all values in this ATF file's data.
-        """
-        return iter(self._data.values())
-
-    def __len__(self):
-        """
-        Returns the number of records in this file.
-        """
-        return len(self._data)
-
-    def info(self):
-        """
-        Returns the header/meta data found in this file.
-        """
-        return self._meta
-
-    def myokit_log(self):
+    def log(self):
         """
         Returns this file's time series data as a :class:`myokit.DataLog`.
         """
-        import myokit
         log = myokit.DataLog()
         if len(self._data) > 0:
             log.set_time_key(next(iter(self._data.keys())))
@@ -102,17 +82,27 @@ class AtfFile:
             log[k] = v
         return log
 
+    def myokit_log(self):
+        """ Deprecated alias of :meth:`log`. """
+        # Deprecated since 2023-06-22
+        import warnings
+        warnings.warn(
+            'The method `myokit_log` is deprecated. Please use `log` instead.')
+        return self.log()
+
+    def path(self):
+        """ Returns the path to this ATF file. """
+        return self._path
+
     def _read(self):
-        """
-        Reads the data in the file.
-        """
-        with open(self._file, 'rb') as f:
+        """ Reads the data in this file. """
+        with open(self._path, 'rb') as f:
             # Check version
             line = f.readline().decode(_ENC)
             line_index = 1
             if line[:3] != 'ATF':
                 raise Exception('Unrecognised file type.')
-            self._version = line[3:].strip()
+            self._version_str = line[3:].strip()
 
             # Read number of header lines, number of fields
             line = f.readline().decode(_ENC)
@@ -131,9 +121,8 @@ class AtfFile:
                 line_index += 1
                 if line[0] != '"' or line[-1] != '"':
                     raise Exception(
-                        'Invalid header on line ' + str(line_index)
-                        + ': expecting lines wrapped in double quotation'
-                        ' marks "like this".')
+                        f'Invalid header on line f{line_index}: expecting '
+                        f' lines wrapped in double quotes ("like this").')
                 line = line[1:-1].strip()
                 raw.append(line)
                 if key_value_pairs:
@@ -170,8 +159,8 @@ class AtfFile:
             delims = delims[1:-1]
             if len(delims) + 1 != nf:
                 raise Exception(
-                    'Unable to parse column headers: Expected ' + str(nf)
-                    + ' headers, found ' + str(len(delims) + 1) + '.')
+                    f'Unable to parse column headers: Expected {nf} headers,'
+                    f' found {len(delims) + 1}.')
             commas = ',' in delims[0]
             for delim in delims:
                 if commas != (',' in delim):
@@ -193,8 +182,8 @@ class AtfFile:
             if len(keys) != nf:     # pragma: no cover
                 # This should have been picked up above
                 raise Exception(
-                    'Unable to parse column headers: Expected ' + str(nf)
-                    + ' headers, found ' + str(len(keys)) + '.')
+                    f'Unable to parse column headers: Expected {nf} headers,'
+                    f' found {len(keys)}.')
 
             # Read data
             data = []
@@ -209,18 +198,19 @@ class AtfFile:
                 vals = line.split(sep)
                 if len(vals) != nf:
                     raise Exception(
-                        'Invalid data on line ' + str(line_index)
-                        + ': expecting ' + str(nf) + ' fields, found'
-                        + ' ' + str(len(vals)) + '.')
+                        f'Invalid data on line f{line_index}: expecting {nf}'
+                        f' fields, found {len(vals)}.')
                 vals = [float(x) for x in vals]
                 for k, d in enumerate(vals):
                     data[k].append(d)
 
+    def values(self):
+        """ Returns an iterator over all values in this ATF. """
+        return iter(self._data.values())
+
     def version(self):
-        """
-        Returns the file type version of this ATF file (as a string).
-        """
-        return self._version
+        """ Returns a string representation of this file's version number. """
+        return self._version_str
 
 
 def load_atf(filename):
@@ -228,7 +218,7 @@ def load_atf(filename):
     Reads an ATF file and returns its data as a :class:`myokit.DataLog`.
     """
     filename = os.path.expanduser(filename)
-    return AtfFile(filename).myokit_log()
+    return AtfFile(filename).log()
 
 
 def save_atf(log, filename, fields=None):
@@ -306,12 +296,12 @@ def save_atf(log, filename, fields=None):
         f.write(('ATF 1.0' + eol).encode(_ENC))
 
         # Write number of header lines, number of fields
-        f.write((str(nh) + delim + str(nf) + eol).encode(_ENC))
+        f.write(f'{nh}{delim}{nf}{eol}'.encode(_ENC))
         for k, v in header:
-            f.write(('"' + str(k) + '=' + str(v) + '"' + eol).encode(_ENC))
+            f.write(f'"{k}={v}"{eol}'.encode(_ENC))
 
         # Write field names
-        f.write((delim.join(['"' + k + '"' for k in keys]) + eol).encode(_ENC))
+        f.write((delim.join([f'"{k}"' for k in keys]) + eol).encode(_ENC))
 
         # Write data
         for i in range(nd):

@@ -140,21 +140,23 @@
 # was also used: http://neurodata.hg.sourceforge.net/hgweb/neurodata/neurodata/
 #------------------------------------------------------------------------------
 import datetime
-import logging
 import os
 import struct
-import traceback
+import warnings
 
 import numpy as np
 
 from collections import OrderedDict
+
+import myokit
+import myokit.formats
 
 
 # Encoding for text parts of files
 _ENC = 'latin-1'
 
 
-class AbfFile:
+class AbfFile(myokit.formats.SweepSource):
     """
     Represents a read-only Axon Binary Format file (``.abf``), stored at the
     location pointed to by ``filepath``.
@@ -164,37 +166,61 @@ class AbfFile:
     assumption can be overruled by setting the ``is_protocol_file`` argument
     to either ``True`` or ``False``.
 
-    The "data" in an AbfFile is recorded (analog-to-digital) data. Any output
-    signals from the amplifier to the cell (digital-to-analog) are termed the
-    "protocol".
+    Data in ABF files is recorded in *sweeps*, where each sweep contains one or
+    more *channels* with recorded (A/D) data. In addition, zero or more output
+    channels may be defined (also called "protocol" or D/A channels). Where
+    possible, the :class`AbfFile` class will convert these embedded protocols
+    to time series and include them as additional channels.
 
-    Data in AbfFiles is recorded in episodes called "sweeps". Each sweep
-    contains the data from all recorded channels. The number of channels is
-    constant: channel 1 in sweep 1 contains data recorded from the same source
-    as channel 1 in sweep 10.
+    For example::
 
-    The data in an ``AbfFile`` can be read by iterating over it::
-
-        f = AbfFile('some_file.abf')
-        for sweep in f:
+        abf = AbfFile('some_file.abf')
+        for sweep in abf:
             for channel in sweep:
-                plt.plot(channel.times(), channel.values())
+                print(channel.name())
+            break
 
-    Similarly, protocol data can be accessed using::
+    might show
 
-        for sweep in f.protocol():
+        IN 0
+        10xVm
+        Cmd 0
+
+    where the first two channels are A/D channels and the final one is a
+    converted D/A channel. *Some* A/D channels (see below) can be converted to
+    :class:`myokit.Protocol` objects, using the :meth:`protocol()` method.
+
+    Sweeps and channels are represented by :class:`Sweep` and :class:`Channel`
+    objects respectively, and these can be used to obtain the data from a
+    file::
+
+        abf = AbfFile('some_file.abf')
+        for sweep in abf:
             for channel in sweep:
-                plt.plot(channel.times(), channel.values())
+                plot(channel.times(), channel.values())
 
-    Note that the number of output ("protocol") channels need not equal the
-    number of input ("data") channels.
+    In addition the ``AbfFile`` class implements the
+    :class`myokit.formats.SweepSource` interface.
 
-    Because each channel can have a different sampling rate, AbfFile data is
-    not one-on-one compatible with myokit Simulation logs. To obtain a
-    :class:`myokit.DataLog` version of the file's data, use:meth:`myokit_log`.
+    Support notes:
 
-    In some cases, a myokit protocol can be created from a stored stimulus
-    protocol. To do this, use the method:meth:`myokit_protocol`.
+    - Protocol (D/A) conversion is only supported for "episodic stimulation"
+      without "user lists".
+    - Protocols with more than one sampling rate are not supported.
+    - The ABF format is not (openly) well documented, so there will be several
+      other issues and shortcomings.
+
+    Arguments:
+
+    ``filepath``
+        The path to load the data from. Data will be read into memory
+        immediately upon construction.
+    ``is_protocol_file``
+        If set to ``True``, no attempt to read A/D data will be made and only
+        D/A "protocol" information will be read. If left at its default value
+        of ``None`` files with the extension ``.pro`` will still be recognized
+        as protocol files.
+
     """
     def __init__(self, filepath, is_protocol_file=None):
         # The path to the file and its basename
@@ -204,15 +230,16 @@ class AbfFile:
 
         # Abf format version
         self._version = None
+        self._version_str = None
 
         # Protocol info
         self._epoch_functions = None
-        self._numberOfTrials = None
-        self._trialStartToStart = None
-        self._runsPerTrial = None
-        self._runStartToStart = None
-        self._sweepsPerRun = None
-        self._sweepStartToStart = None
+        self._number_of_trials = None
+        self._trial_start_to_start = None
+        self._runs_per_trial = None
+        self._run_start_to_start = None
+        self._sweeps_per_run = None
+        self._sweep_start_to_start = None
 
         # Read as protocol file yes?
         if is_protocol_file is None:
@@ -227,308 +254,376 @@ class AbfFile:
         self._datetime = self._read_datetime()
 
         # Number of channels, sampling rate (Hz) and acquisition mode
+        # Note: Number of AD channels will be set to 0 if this is a
+        #       protocol-only file
+        # Note: Number of DA channels will be adjusted by _read_1_protocol
         if self._version < 2:
-            self._nc = self._header['nADCNumChannels']
-            self._rate = 1e6 / (self._header['fADCSampleInterval'] * self._nc)
+            self._nADC = int(self._header['nADCNumChannels'])
+            self._nDAC = len(self._header['sDACChannelName'])
+            self._rate = 1e6 / (
+                self._header['fADCSampleInterval'] * self._nADC)
             self._mode = self._header['nOperationMode']
         else:
-            self._nc = self._header['sections']['ADC']['length']
+            self._nADC = int(self._header['sections']['ADC']['length'])
+            self._nDAC = int(self._header['sections']['DAC']['length'])
             self._rate = 1e6 / self._header['protocol']['fADCSequenceInterval']
             self._mode = self._header['protocol']['nOperationMode']
         if self._mode not in acquisition_modes:
-            raise NotImplementedError(
-                'Unknown acquisition mode: ' + str(mode))
+            raise NotImplementedError(f'Unknown acquisition mode: {mode}')
+        if self._is_protocol_file:
+            self._nADC = 0
 
         # Conversion factors for integer data in the channels
         self._adc_factors = None
         self._adc_offsets = None
         self._set_conversion_factors()
 
-        # The protocol used (a list of sweeps)
+        # Channel names: will be set on first call to channel_names()
+        self._channel_names = None
+
+        # Read the protocol info, and attempt to reconstruct the D/A signal as
+        # as list of sweeps. MUST be called before _read_ad_data.
+        self._sweeps = []
         try:
-            self._protocol = self._read_protocol()
-        except Exception:   # pragma: no cover
+            self._read_1_protocol()
+        except Exception:  # pragma: no cover
             # This is not something we _want_ to happen, so if we have test
             # cases that trigger this error they should be resolved. At the
             # same time, if it happens to a user we want it to "sort-of work"
             # (an experimental rather than a production setting)
-            log = logging.getLogger(__name__)
-            log.warning('Unable to read protocol from ' + self._filepath)
-            log.warning(traceback.format_exc())
-            self._protocol = []
+            warnings.warn(f'Unable to read protocol from {self._filepath}')
 
-        # The measured data as a list of sweeps
-        if self._is_protocol_file:
-            self._sweeps = []
-        else:
-            self._sweeps = self._read_sweeps()
+        # Create sweeps and add the AD data
+        if self._nADC:
+            self._read_2_data()
 
-    def data_channels(self):
-        """
-        Returns the number of channels in this file's sweeps.
-        """
-        if len(self._sweeps) == 0:  # pragma: no cover
-            return 0
-        return len(self._sweeps[0])
+        # Set final number of channels
+        self._nc = self._nADC + self._nDAC
 
-    def extract_channel(self, channel=0, join=False):
-        """
-        Extracts a selected data ``channel`` and returns its data in a tuple
-        containing::
-
-             A numpy array representing time
-             A numpy array representing the first sweep
-             A numpy array representing the second sweep
-             ...
-
-        An optional argument ``join=True`` can be set to join all sweeps
-        together and return just two arrays, one for time and one for data.
-
-        If no data is available, ``None`` is returned.
-        """
-        if len(self._sweeps) == 0:  # pragma: no cover
-            return None
-
-        # Join all sweeps
-        if join:
-            time, data = [], []
-            t = np.array(self._sweeps[0][channel].times())
-            for i, sweep in enumerate(self._sweeps):
-                time.append(t + i * self._sweepStartToStart)
-                data.append(np.array(sweep[channel].values()))
-            return (np.concatenate(time), np.concatenate(data))
-
-        # Standard reading
-        data = []
-        data.append(np.array(self._sweeps[0][channel].times()))
+        # Store mapping from channel name to channel index
+        self._channel_names = {}
         for sweep in self._sweeps:
-            data.append(np.array(sweep[channel].values()))
-        return tuple(data)
-
-    def extract_channel_as_myokit_log(self, channel=0):
-        """
-        Extracts the given data channel and returns it as a myokit
-        DataLog.
-
-        The log will contain an entry "time" that contains the time vector.
-        Each sweep will be in an entry "0.sweep", "1.sweep", "2.sweep" etc.
-        """
-        import myokit
-        log = myokit.DataLog()
-        if len(self._sweeps) == 0:  # pragma: no cover
-            return log
-        log.set_time_key('time')
-        log['time'] = np.array(self._sweeps[0][channel].times())
-        for k, sweep in enumerate(self._sweeps):
-            log['sweep', k] = np.array(sweep[channel].values())
-        return log
-
-    def filename(self):
-        """
-        Returns this AbfFile's filename.
-        """
-        return self._filepath
+            for i, channel in enumerate(sweep):
+                self._channel_names[channel.name()] = i
+            break
 
     def __getitem__(self, key):
-        return self._sweeps.__getitem__(key)
+        return self._sweeps[key]
 
-    def _get_conversion_factors(self, channel):
+    def __iter__(self):
+        return iter(self._sweeps)
+
+    def __len__(self):
+        return len(self._sweeps)
+
+    def ad_channel_count(self):
+        """ Returns the number of A/D channels in this file. """
+        return self._nADC
+
+    def channel(self, channel_id, join_sweeps=False):
+        # Docstring in SweepSource
+        channel_id = self._channel_id(channel_id)
+
+        if join_sweeps:
+            # Join sweeps
+            time, data = [], []
+            t = self._sweeps[0][channel_id].times()
+            for i, sweep in enumerate(self._sweeps):
+                time.append(t + i * self._sweep_start_to_start)
+                data.append(sweep[channel_id].values())
+            return (np.concatenate(time), np.concatenate(data))
+
+        else:
+            # Return individual sweeps
+            out = []
+            out.append(np.array(self._sweeps[0][channel_id].times()))
+            for sweep in self._sweeps:
+                out.append(np.array(sweep[channel_id].values()))
+            return tuple(out)
+
+    def channel_count(self):
+        # Docstring in SweepSource
+        return self._nADC + self._nDAC
+
+    def _channel_id(self, channel_id, must_be_da=False):
+        """ Checks an int or str channel id and returns a valid int. """
+        if len(self._sweeps) == 0:  # pragma: no cover
+            raise KeyError(f'Channel {channel_id} not found (empty file).')
+
+        # Handle string
+        if isinstance(channel_id, str):
+            int_id = self._channel_names[channel_id]  # Let KeyError go to user
+        else:
+            int_id = int(channel_id)  # TypeError for user
+            if int_id < 0 or int_id >= self._nc:
+                raise IndexError(f'channel_id out of range: {channel_id}')
+
+        # Check if this is a D/A protocol channel
+        if must_be_da and int_id < self._nADC:
+            raise ValueError(
+                'Given channel_id does not correspond to a D/A channel.')
+
+        return int_id
+
+    def channel_names(self):
+        # Docstring in SweepSource
+        return list(self._channel_names.keys())
+
+    def da_channel_count(self):
+        """ Returns the number of (non-empty) D/A channels in this file. """
+        return self._nDAC
+
+    def da_holding_level(self, channel_id):
         """
-        Returns the conversion factor and shift for the selected channel as a
-        tuple of floats ``(factor, shift)``.
+        Returns the holding level used by the requested output channel of the
+        embedded protocol.
+
+        Arguments:
+
+        ``channel_id``
+            The channel to return a protocol for, as an integer index or a
+            string name. If an integer is given it must be equal to or greater
+            than the value returned by :meth:`ad_channel_count()`.
+
         """
-        return self._adc_factors[channel], self._adc_offsets[channel]
+        ida = self._channel_id(channel_id, must_be_da=True) - self._nADC
+        dinfo, einfo_exists, einfo = self._epoch_functions
+        return dinfo(ida, 'fDACHoldingLevel')
+
+    def da_steps(self, channel_id):
+        """
+        Returns the steps seen during a D/A protocol, for episodic stimulation
+        (not including the holding potential).
+
+        For example, for a protocol that has holding level ``-120mV`` and
+        performs steps to ``-100mV``, then holding, then ``-80mV``, then
+        holding, and then ``-40mV`` the returned output will be::
+
+            ([-100, -80, -40])
+
+        For a more complicated protocol, where each step is followed by a step
+        down to ``-140mV``, the output would be::
+
+            ([-100, -80, -40], [-140, -140, -140])
+
+        Arguments:
+
+        ``channel_id``
+            The channel to return a protocol for, as an integer index or a
+            string name. If an integer is given it must be equal to or greater
+            than the value returned by :meth:`ad_channel_count()`.
+
+        """
+        ida = self._channel_id(channel_id, must_be_da=True) - self._nADC
+
+        # Get epoch functions
+        dinfo, einfo_exists, einfo = self._epoch_functions
+
+        # Create list of step lists
+        levels = []
+        for e in einfo(ida):
+            kind = e['type']
+            if kind not in epoch_types:
+                raise NotImplementedError(f'Unknown epoch type: {kind}')
+            if kind == EPOCH_DISABLED:
+                continue
+            elif kind == EPOCH_STEPPED:
+                levels.append([])
+            else:
+                raise NotImplementedError(
+                    'Unsupported epoch type: {epoch_types(kind)}')
+
+        # Gather steps
+        levels = tuple(levels)
+        for i in range(self._sweeps_per_run):
+            j = 0
+            for e in einfo(ida):
+                if e['type'] == EPOCH_STEPPED:
+                    levels[j].append(e['init_level'] + e['level_inc'] * i)
+                    j += 1
+        return levels
+
+    def filename(self):
+        """ Returns this AbfFile's filename. """
+        return self._filename
 
     def info(self, show_header=False):
         """
-        Returns a string with lots of info on this file.
+        Returns a multi-line string with meta data about this file.
 
         The optional argument ``show_header`` can be used to add the full
         header contents to the output.
         """
         out = []
 
-        # Show file info
+        # File info
         if self._is_protocol_file:
-            out.append('Axon Protocol File: ' + self._filename)
+            out.append(f'Axon Protocol File: {self._filename}')
         else:
-            out.append('Axon Binary File: ' + self._filename)
-        out.append('ABF Format version ' + str(self._version))
-        out.append('Recorded on: ' + str(self._datetime))
+            out.append(f'Axon Binary File: {self._filename}')
+        out.append(f'ABF Format version {self._version_str}')
+        out.append(f'Recorded on: {self._datetime}')
 
-        # Show protocol info
+        # AProtocol info
         out.append(
-            'Acquisition mode: ' + str(self._mode) + ': '
-            + acquisition_modes[self._mode])
-        if self._numberOfTrials:
+            f'Acquisition mode: {self._mode}: {acquisition_modes[self._mode]}')
+        if self._number_of_trials:
             out.append(
-                'Protocol set for ' + str(self._numberOfTrials)
-                + ' trials, spaced ' + str(self._trialStartToStart)
-                + 's apart.')
+                f'Protocol set for {self._number_of_trials} trials,'
+                f' spaced {self._trial_start_to_start}s apart.')
             out.append(
-                '    with ' + str(self._runsPerTrial)
-                + ' runs per trial, spaced ' + str(self._runStartToStart)
-                + 's apart.')
+                f'    with {self._runs_per_trial} runs per trial,'
+                f' spaced {self._run_start_to_start}s apart.')
             out.append(
-                '     and ' + str(self._sweepsPerRun)
-                + ' sweeps per run, spaced ' + str(self._sweepStartToStart)
-                + 's apart.')
+                f'     and {self._sweeps_per_run} sweeps per run,'
+                f' spaced {self._sweep_start_to_start}s apart.')
         else:   # pragma: no cover
             out.append('Protocol data could not be determined.')
-        out.append('Sampling rate: ' + str(self._rate) + ' Hz')
+        out.append(f'Sampling rate: {self._rate} Hz')
 
-        # Show channel info
+        # Channel info
         if self._sweeps:
-            for i, c in enumerate(self._sweeps[0]._channels):
-                out.append('Channel ' + str(i) + ': "' + c._name + '"')
+            # A/D channels
+            for i, c in enumerate(self._sweeps[0]._channels[:self._nADC]):
+                out.append(f'A/D Channel {i}: "{c._name}"')
                 if c._type:  # pragma: no cover
                     # Cover pragma: Don't have appropriate test file
-                    out.append('  Type: ' + type_mode_names[c._type])
-                out.append('  Unit: ' + c._unit.strip())
+                    out.append(f'  Type: {type_mode_names[c._type]}')
+                out.append(f'  Unit: {c._unit.strip()}')
                 if c._lopass:
-                    out.append('  Low-pass filter: ' + str(c._lopass) + ' Hz')
+                    out.append(f'  Low-pass filter: {c._lopass} Hz')
                 if c._cm:
-                    out.append('  Cm (telegraphed): ' + str(c._cm) + ' pF')
+                    out.append(f'  Cm (telegraphed): {c._cm} pF')
                 if c._rs:   # pragma: no cover
                     # Cover pragma: Don't have appropriate test file
-                    out.append('  Rs (telegraphed): ' + str(c._rs))
-
-        # Methods
-        def show_dict(name, d, tab=''):
-            m = max(0, 38 - len(tab) - int(0.1 + len(name) / 2))
-            out.append(tab + '-' * m + '  ' + name + '  ' + '-' * m)
-            for n, v in d.items():
-                n = str(n)
-                if type(v) == OrderedDict:
-                    show_dict(n, v, tab + '  ')
-                elif type(v) == list:
-                    show_list(n, v, tab)
-                else:
-                    out.append(tab + n + ': ' + str(v))
-            m = max(0, 80 - 2 * len(tab))
-            out.append(tab + m * '-')
-
-        def show_list(name, d, tab=''):
-            for index, item in enumerate(d):
-                n = name + '[' + str(index) + ']'
-                if type(item) == OrderedDict:
-                    show_dict(n, item, tab)
-                elif type(item) == list:    # pragma: no cover
+                    out.append(f'  Rs (telegraphed): {c._rs}')
+            # Reconstructed D/A channels
+            for i, c in enumerate(self._sweeps[0]._channels[self._nADC:]):
+                out.append(f'D/A Channel {i}: "{c._name}"')
+                if c._type:  # pragma: no cover
                     # Cover pragma: Don't have appropriate test file
-                    show_list(n, item, tab)
-                else:
-                    out.append(tab + n + ': ' + str(item))
+                    out.append('  Type: {type_mode_names[c._type]}')
+                out.append(f'  Unit: {c._unit.strip()}')
 
         # Show full header info
         if show_header:
             if self.strings:
-                show_dict('Strings', {'strings': self.strings})
-            show_dict('file header', self._header)
+                dict_to_string(out, 'Strings', {'strings': self.strings})
+            dict_to_string(out, 'file header', self._header)
+
         return '\n'.join(out)
 
+    def log(self, join_sweeps=False, use_names=False, channels=None):
+        # Docstring in SweepSource
+
+        # Select channels
+        if channels is None:
+            channels = list(range(self._nc))
+        else:
+            channels = [self._channel_id(i) for i in channels]
+
+        # Create log
+        log = myokit.DataLog()
+
+        # No data? Then return. Do this after channel check to tell user about
+        # invalid channel ids.
+        ns = len(self._sweeps)
+        if ns == 0:  # pragma: no cover
+            return log
+
+        # Get channel names
+        if use_names:
+            channel_names = [c.name() for c in self._sweeps[0]]
+        else:
+            channel_names = [f'{i}.channel' for i in range(self._nc)]
+        channel_names = [channel_names[i] for i in channels]
+
+        # Populate log
+        if join_sweeps:
+            # Join sweeps
+
+            # Set time
+            t = np.array(self._sweeps[0][0].times())
+            time = [t + i * self._sweep_start_to_start for i in range(ns)]
+            log['time'] = np.concatenate(time)
+
+            # Set channels
+            for channel, name in zip(channels, channel_names):
+                log[name] = np.concatenate(
+                    [sweep[channel].values() for sweep in self._sweeps])
+
+        else:
+            # Return individual sweeps
+            log['time'] = np.array(self._sweeps[0][0].times())
+            for i, sweep in enumerate(self._sweeps):
+                for channel, name in zip(channels, channel_names):
+                    log[name, i] = sweep[channel].values()
+
+        log.set_time_key('time')
+        return log
+
     def matplotlib_figure(self):
-        """
-        Creates and returns a matplotlib figure of this abf file's contents.
-        """
+        """ Creates and returns a matplotlib figure with this file's data. """
         import matplotlib.pyplot as plt
         f = plt.figure()
         plt.suptitle(self.filename())
 
-        # Show data channel
+        # Plot AD channels
         ax = plt.subplot(2, 1, 1)
         ax.set_title('Measured data')
         times = None
-        for sweep in self:
-            for channel in sweep:
+        for sweep in self._sweeps:
+            for channel in sweep[:self._nADC]:
                 if times is None:
                     times = channel.times()
                 plt.plot(times, channel.values())
 
-        # Show protocol channels
-        n = self.protocol_channels()
+        # Plot DA channels
+        n = self._nDAC
         ax = [plt.subplot(2, n, n + 1 + i) for i in range(n)]
-
-        for sweep in self.protocol():
-            times = None
-            for i, channel in enumerate(sweep):
-                if times is None:
-                    times = channel.times()
+        for sweep in self._sweeps:
+            for i, channel in enumerate(sweep[self._nADC:]):
                 ax[i].set_title(channel.name())
                 ax[i].plot(times, channel.values())
+
         return f
 
-    def myokit_log(self):
+    def path(self):
+        """ Returns the path to the underlying ABF file. """
+        return self._filepath
+
+    def protocol(self, channel_id=None, ms=True):
         """
-        Converts the data in this ABF file to a:class:`myokit.DataLog` with an
-        entry for every channel. All sweeps will be joined together into a
-        single time series.
+        Returns the embedded protocol from the D/A channel identified by
+        ``channel_id`` as a :class:`myokit.Protocol`.
 
-        The log will contain an entry "time" that contains the time vector.
-        Channels will be stored using "0.ad", "1.ad" etc. for the recorded
-        (analog-to-digital) channels and "0.da", "1.da" etc. for the output
-        (digital-to-analog) channels.
+        Only episodic stimulation is supported, without "user lists".
+
+        By default all times are converted to milliseconds, but this can be
+        disabled by setting ``ms=False``.
+
+        Arguments:
+
+        ``channel``
+            The channel index to return (as an integer).
+        ``ms``
+            Set to ``False`` to disable conversion to milliseconds.
+
         """
-        import myokit
-        log = myokit.DataLog()
-        if self._sweeps:
-            # Gather parts of time and channel vectors
-            time = []
-            ad_channels = []
-            da_channels = []
-            for i in range(self.data_channels()):
-                ad_channels.append([])
-            for i in range(self.protocol_channels()):
-                da_channels.append([])
-
-            # Add ad channels
-            for sweep in self:
-                for channel in sweep:
-                    time.append(channel.times())
-                    break
-                for i, channel in enumerate(sweep):
-                    ad_channels[i].append(channel.values())
-
-            # Add da channels
-            for sweep in self.protocol():
-                for i, channel in enumerate(sweep):
-                    da_channels[i].append(channel.values())
-
-            # Combine into time series, store in log
-            log['time'] = np.concatenate(time)
-            log.set_time_key('time')
-            for i, channel in enumerate(ad_channels):
-                log['ad', i] = np.concatenate(channel)
-            for i, channel in enumerate(da_channels):
-                log['da', i] = np.concatenate(channel)
-
-        return log
-
-    def myokit_protocol(self, channel=None, ms=True):
-        """
-        Returns a single channel from an embedded protocol as a
-        :class:`myokit.Protocol`. The channel to return is specified by setting
-        ``channel`` to the correct index.
-
-        Only works for episodic stimulation, without user lists.
-
-        By default, all times are converted to milliseconds. To disable this
-        function, set ``ms=False``.
-        """
-        import myokit
-
         # Only episodic stimulation is supported.
         if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
-            return myokit.Protocol()
+            raise NotImplementedError(
+                'Only episodic stimulation is supported.')
 
-        # Check channel
-        if channel is None:
-            channel = 0
+        # Get D/A channel index
+        if channel_id is None:
+            ida = self._nADC
         else:
-            channel = int(channel)
+            ida = self._channel_id(channel_id, must_be_da=True) - self._nADC
 
         # User lists are not supported
         if self._version < 2:  # pragma: no cover
-            if self._header['nULEnable'][channel]:
+            if self._header['nULEnable'][ida]:
                 raise NotImplementedError('User lists are not supported.')
         else:   # pragma: no cover
             for userlist in self._header['listUserListInfo']:
@@ -540,23 +635,16 @@ class AbfFile:
         # Create protocol
         p = myokit.Protocol()
 
-        # Get epoch functions set by _read_protocol
         dinfo, einfo_exists, einfo = self._epoch_functions
         start = 0
         next_start = 0
         f = 1e3 if ms else 1
-        for iSweep in range(self._sweepsPerRun):
-
-            if not einfo_exists(channel):   # pragma: no cover
-                # Not sure if this can happen, if so, would need to update code
-                raise Exception('Missing protocol data')
-
-            for e in einfo(channel):
+        for i_sweep in range(self._sweeps_per_run):
+            for e in einfo(ida):
                 kind = e['type']
 
                 if kind not in epoch_types:
-                    raise NotImplementedError(
-                        'Unknown epoch type: ' + str(kind))
+                    raise NotImplementedError(f'Unknown epoch type: {kind}')
 
                 if kind == EPOCH_DISABLED:
                     continue
@@ -565,9 +653,9 @@ class AbfFile:
                     # Event at step
                     dur = f * e['init_duration'] / self._rate
                     inc = f * e['duration_inc'] / self._rate
-                    e_level = e['init_level'] + e['level_inc'] * iSweep
+                    e_level = e['init_level'] + e['level_inc'] * i_sweep
                     e_start = start
-                    e_length = dur + iSweep * inc
+                    e_length = dur + i_sweep * inc
                     p.schedule(e_level, e_start, e_length)
                     start += e_length
 
@@ -576,8 +664,8 @@ class AbfFile:
                         'Usupported epoch type: ' + epoch_types(kind))
 
             # Event at holding potential
-            next_start += f * self._sweepStartToStart
-            e_level = dinfo(channel, 'fDACHoldingLevel')
+            next_start += f * self._sweep_start_to_start
+            e_level = dinfo(ida, 'fDACHoldingLevel')
             e_start = start
             e_length = next_start - start
             p.schedule(e_level, e_start, e_length)
@@ -585,93 +673,8 @@ class AbfFile:
 
         return p
 
-    def protocol_channels(self):
-        """
-        Returns the number of channels in this file's protocol.
-        """
-        if self._version < 2:
-            return len(self._header['sDACChannelName'])
-        else:
-            return int(self._header['sections']['DAC']['length'])
-
-    def protocol_holding_level(self, channel=0):
-        """
-        Returns the holding level used by the requested output channel of the
-        embedded protocol.
-        """
-        dinfo, einfo_exists, einfo = self._epoch_functions
-        return dinfo(channel, 'fDACHoldingLevel')
-
-    def protocol_steps(self, channel=0):
-        """
-        For a stepped protocol, this function returns a tuple of lists of the
-        successive values (not including the holding value).
-
-        For example, for a protocol that has holding value ``-120mV`` and
-        performs steps to ``-100mV``, ``-80mV``, and ``-40mV`` the returned
-        output will be::
-
-            ([-100, -80, -40])
-
-        For a more complicated protocol, where each step is followed by a step
-        down to ``-140mV``, the output would be::
-
-            ([-100, -80, -40], [-140, -140, -140])
-
-
-        """
-        # Get epoch functions set by _read_protocol
-        dinfo, einfo_exists, einfo = self._epoch_functions
-        if not einfo_exists(channel):  # pragma: no cover
-            # Not sure if this can happen, if so need to update code.
-            raise Exception('Missing protocol data')
-
-        # Create list of step lists
-        levels = []
-        for e in einfo(channel):
-            kind = e['type']
-            if kind not in epoch_types:
-                raise NotImplementedError('Unknown epoch type: ' + str(kind))
-            if kind == EPOCH_DISABLED:
-                continue
-            elif kind == EPOCH_STEPPED:
-                levels.append([])
-            else:
-                raise NotImplementedError(
-                    'Unsupported epoch type: ' + epoch_types(kind))
-
-        # Gather steps
-        levels = tuple(levels)
-        for i in range(self._sweepsPerRun):
-            j = 0
-            for e in einfo(channel):
-                if e['type'] == EPOCH_STEPPED:
-                    levels[j].append(e['init_level'] + e['level_inc'] * i)
-                    j += 1
-        return levels
-
-    def __iter__(self):
-        """
-        Returns an iterator over all sweeps
-        """
-        return iter(self._sweeps)
-
-    def __len__(self):
-        """
-        Returns the number of sweeps in this file.
-        """
-        return len(self._sweeps)
-
-    def protocol(self):
-        """
-        Returns an interator over the protocol data.
-        """
-        return iter(self._protocol)
-
     def _read_datetime(self):
-        """
-        Reads the date/time this file was recorded
-        """
+        """ Reads the date/time this file was recorded """
         # Get date and time
         if self._version < 2:
             t1 = str(self._header['lFileStartDate'])
@@ -692,14 +695,10 @@ class AbfFile:
         return datetime.datetime(YY, MM, DD, hh, mm, ss, ms)
 
     def _read_header(self):
-        """
-        Reads the file's header.
-        """
+        """ Reads the file's header. """
 
         def read_f(f, form, offset=None):
-            """
-            Read and unpack a file section using the given format ``form``.
-            """
+            """ Read and unpack a file section in the format ``form``. """
             form = str(form)
             if offset is not None:
                 f.seek(offset)
@@ -741,8 +740,7 @@ class AbfFile:
             elif sig == 'ABF2':
                 version = 2
             else:
-                raise NotImplementedError(
-                    'Unknown ABF Format "' + str(sig) + '".')
+                raise NotImplementedError('Unknown ABF Format "{sig}".')
 
             # Gather header fields
             header = OrderedDict()
@@ -751,11 +749,12 @@ class AbfFile:
 
             # Get uniform file version number
             if version < 2:
-                self._version = (
-                    np.round(header['fFileVersionNumber'] * 100) / 100)
+                self._version = np.round(header['fFileVersionNumber'], 5)
+                self._version_str = str(self._version)
             else:
-                n = header['fFileVersionNumber']
-                self._version = n[3] + 0.1 * n[2] + 0.01 * n[1] + 0.001 * n[0]
+                v = header['fFileVersionNumber']
+                self._version = v[3]
+                self._version_str = '.'.join([str(v) for v in reversed(v)])
 
             # Get file start time in seconds
             if version < 2:
@@ -897,20 +896,24 @@ class AbfFile:
 
         return header
 
-    def _read_protocol(self):
+    def _read_1_protocol(self):
         """
-        Reads the protocol stored in the ABF file and converts it to an analog
-        signal.
+        Reads the protocols stored in the ABF file and converts it to an analog
+        signal if possible.
 
         Only works for episodic stimulation, without any user lists.
 
         The resulting analog signal has the same size as the recorded signals,
-        so not the full length of the protocol! This is different from the
-        values returned by the Myokit
+        so not the full length of the protocol!
         """
         # Only episodic stimulation is supported.
         if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
-            return []
+            warnings.warn(
+                'Unsupported acquisition method '
+                + acquisition_modes[self._mode] + '; unable to read D/A'
+                ' channels.')
+            self._nDAC = 0
+            return
 
         # Start reading
         h = self._header
@@ -919,12 +922,12 @@ class AbfFile:
         if self._version < 2:
 
             # Before version 2: Sections are fixed length, locations absolute
-            self._numberOfTrials = h['lNumberOfTrials']
-            self._trialStartToStart = h['fTrialStartToStart']
-            self._runsPerTrial = h['lRunsPerTrial']
-            self._runStartToStart = h['fRunStartToStart']
-            self._sweepsPerRun = h['lSweepsPerRun']
-            self._sweepStartToStart = h['fEpisodeStartToStart']
+            self._number_of_trials = h['lNumberOfTrials']
+            self._trial_start_to_start = h['fTrialStartToStart']
+            self._runs_per_trial = h['lRunsPerTrial']
+            self._run_start_to_start = h['fRunStartToStart']
+            self._sweeps_per_run = h['lSweepsPerRun']
+            self._sweep_start_to_start = h['fEpisodeStartToStart']
 
             # Number of samples in a channel for each sweep
             # (Only works for fixed-length, high-speed-osc or episodic)
@@ -956,12 +959,12 @@ class AbfFile:
 
             # Trials, runs, sweeps
             # (According to the manual, there should only be 1 trial!)
-            self._numberOfTrials = p['lNumberOfTrials']
-            self._trialStartToStart = p['fTrialStartToStart']
-            self._runsPerTrial = p['lRunsPerTrial']
-            self._runStartToStart = p['fRunStartToStart']
-            self._sweepsPerRun = p['lSweepsPerRun']
-            self._sweepStartToStart = p['fSweepStartToStart']
+            self._number_of_trials = p['lNumberOfTrials']
+            self._trial_start_to_start = p['fTrialStartToStart']
+            self._runs_per_trial = p['lRunsPerTrial']
+            self._run_start_to_start = p['fRunStartToStart']
+            self._sweeps_per_run = p['lSweepsPerRun']
+            self._sweep_start_to_start = p['fSweepStartToStart']
 
             # Number of samples in a channel in a single sweep
             nSam = p['lNumSamplesPerEpisode'] // h['sections']['ADC']['length']
@@ -985,58 +988,77 @@ class AbfFile:
             self._epoch_functions = (dinfo, einfo_exists, einfo)
 
         # If sweepStartToStart == 0, we set it to the duration of a sweep
-        if self._sweepStartToStart == 0:    # pragma: no cover
-            self._sweepStartToStart = nSam / self._rate
+        if self._sweep_start_to_start == 0:    # pragma: no cover
+            self._sweep_start_to_start = nSam / self._rate
 
         # Step 2: Generate analog signals corresponding to the waveforms
         # suggested by the 'epochs' in the protocol
+
         # User lists are not supported
+        user_lists = False
         if self._version < 2:   # pragma: no cover
-            if any(self._header['nULEnable']):
-                return []
-        else:   # pragma: no cover
+            user_lists = any(self._header['nULEnable'])
+        else:  # pragma: no cover
             for userlist in self._header['listUserListInfo']:
                 if 'nULEnable' in userlist and userlist['nULEnable']:
-                    return []
+                    user_lists = True
+                    break
                 if 'nConditEnable' in userlist and userlist['nConditEnable']:
-                    return []
-        sweeps = []
+                    user_lists = True
+                    break
+        if user_lists:  # pragma: no cover
+            warnings.warn(
+                'Unsupported acquisition method: episodic with user lists;'
+                ' unable to read D/A channels.')
+            self._nDAC = 0
+            return
 
-        # Number of DAC channels = number of channels that can be used
-        #  to output a stimulation
-        nDac = self.protocol_channels()
+        # Number of ADC channels
+        nADC = self._nADC
+
+        # Number of used DAC channels
+        channels = []
+        for iDAC in range(self._nDAC):
+            if einfo_exists(iDAC):
+                if any(e['type'] != EPOCH_DISABLED for e in einfo(iDAC)):
+                    channels.append(iDAC)
+        self._nDAC = nDAC = len(channels)
+
+        # Number of sweeps
+        if self._is_protocol_file:
+            n_sweeps = self._sweeps_per_run
+        else:
+            n_sweeps = h['lActualSweeps']
+
+        # Read
         start = 0
-        for iSweep in range(h['lActualSweeps']):
-            sweep = Sweep(nDac)
+        for i_sweep in range(n_sweeps):
+            sweep = Sweep(nADC + nDAC)
 
             # Create channels for this sweep
-            for iDac in range(nDac):
+            i_channel = nADC
+            for iDAC in channels:
+
+                # Convert, where possible
                 c = Channel(self)
-                c._name = dinfo(iDac, 'sDACChannelName').strip()
-                c._unit = dinfo(iDac, 'sDACChannelUnits').strip()
+                c._name = dinfo(iDAC, 'sDACChannelName').strip()
+                c._unit = dinfo(iDAC, 'sDACChannelUnits').strip()
                 if self._version < 2:
-                    c._numb = iDac
+                    c._numb = iDAC
                 else:
-                    c._numb = int(dinfo(iDac, 'lDACChannelNameIndex'))
-                c._data = np.ones(nSam) * dinfo(iDac, 'fDACHoldingLevel')
+                    c._numb = int(dinfo(iDAC, 'lDACChannelNameIndex'))
+                c._data = np.ones(nSam) * dinfo(iDAC, 'fDACHoldingLevel')
                 c._rate = self._rate
                 c._start = start
-                sweep[iDac] = c
-
-                # No stimulation info for this channel? Then continue
-                if not einfo_exists(iDac):
-                    continue
+                sweep[i_channel] = c
+                i_channel += 1
 
                 # Save last sample index
                 i_last = int(nSam * 15625 / 1e6)  # TODO: What's this?
 
                 # For each 'epoch' in the stimulation signal
-                for e in einfo(iDac):
+                for e in einfo(iDAC):
                     kind = e['type']
-                    if kind not in epoch_types:
-                        raise NotImplementedError(
-                            'Unknown epoch type: ' + str(kind))
-
                     if kind == EPOCH_DISABLED:
 
                         continue
@@ -1046,12 +1068,12 @@ class AbfFile:
                         dur = e['init_duration']
                         inc = e['duration_inc']
                         i1 = i_last
-                        i2 = i_last + dur + iSweep * inc
+                        i2 = i_last + dur + i_sweep * inc
                         if i2 > nSam:
                             # The protocol may extend beyond the number of
                             # samples in the recording
                             i2 = nSam
-                        level = e['init_level'] + e['level_inc'] * iSweep
+                        level = e['init_level'] + e['level_inc'] * i_sweep
                         c._data[i1:i2] = level * np.ones(len(range(i2 - i1)))
                         i_last += dur
                         if i_last > nSam:
@@ -1061,22 +1083,19 @@ class AbfFile:
 
                     else:  # pragma: no cover
 
-                        log = logging.getLogger(__name__)
-                        log.warning(
+                        warnings.warn(
                             'Unsupported epoch type: ' + epoch_types(kind))
                         continue
 
-            sweeps.append(sweep)
-            start += self._sweepStartToStart
-        return sweeps
+            self._sweeps.append(sweep)
+            start += self._sweep_start_to_start
 
-    def _read_sweeps(self):
-        """
-        Reads the data from an ABF file and returns a list of sweeps
-        """
+    def _read_2_data(self):
+        """ Reads the A/D data and appends it to the list of sweeps. """
+
         header = self._header
         version = self._version
-        nc = self._nc
+        nc = self._nADC
 
         # Sampling rate is constant for all sweeps and channels
         # TODO: This won't work for 2-rate protocols
@@ -1106,28 +1125,32 @@ class AbfFile:
             o = header['sections']['SynchArray']['index'] * BLOCKSIZE
         if n > 0:
             dt = [(str('offset'), str('i4')), (str('len'), str('i4'))]
-            sdata = np.memmap(self._filepath, dt, 'r', shape=(n), offset=o)
+            sdata = np.memmap(self._filepath, dt, 'r', shape=(n,), offset=o)
         else:   # pragma: no cover
             # Cover pragma: Don't have appropriate test file
             sdata = np.empty((1), dt)
             sdata[0]['len'] = data.size
             sdata[0]['offset'] = 0
 
-        # Get data
-        pos = 0
+        # Number of sweeps must equal n
+        if n != header['lActualSweeps']:
+            raise NotImplementedError(
+                'Unable to read file with different sizes per sweep.')
 
-        # Data structure
-        sweeps = []
+        # Sweeps should have been created by read_protocol, but if the protocol
+        # type was unsupported they might not have been
+        if len(self._sweeps) == 0:  # pragma: no cover
+            self._sweeps = [Sweep(nc) for i in range(n)]
 
         # Time-offset at start of sweep
         start = sdata[0]['offset'] / rate
-        for j in range(sdata.size):
 
-            # Create a new sweep
-            sweep = Sweep(nc)
+        # Get data
+        pos = 0
+        for sweep, sdat in zip(self._sweeps, sdata):
 
             # Get the number of data points
-            size = sdata[j]['len']
+            size = sdat['len']
 
             # Calculate the correct size for variable-length event mode
             if self._mode == ACMODE_VARIABLE_LENGTH_EVENTS:  # pragma: no cover
@@ -1148,9 +1171,8 @@ class AbfFile:
             if header['nDataFormat'] == 0:
                 # Data given as integers? Convert to floating point
                 for i in range(nc):
-                    factor, offset = self._get_conversion_factors(i)
-                    part[:, i] *= factor
-                    part[:, i] += offset
+                    part[:, i] *= self._adc_factors[i]
+                    part[:, i] += self._adc_offsets[i]
 
             # Create channel
             if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
@@ -1161,8 +1183,8 @@ class AbfFile:
                 c = Channel(self)
                 c._data = part[:, i]
                 if version < 2:
-                    c._name = str(header['sADCChannelName'][i])
-                    c._unit = str(header['sADCUnits'][i])
+                    c._name = str(header['sADCChannelName'][i]).strip()
+                    c._unit = str(header['sADCUnits'][i]).strip()
                     c._numb = int(header['nADCPtoLChannelMap'][i])
 
                     # Get telegraphed info
@@ -1188,8 +1210,10 @@ class AbfFile:
 
                 else:
 
-                    c._name = str(header['listADCInfo'][i]['ADCChNames'])
-                    c._unit = str(header['listADCInfo'][i]['ADCChUnits'])
+                    c._name = str(header['listADCInfo'][i]['ADCChNames']
+                                  ).strip()
+                    c._unit = str(header['listADCInfo'][i]['ADCChUnits']
+                                  ).strip()
                     c._numb = int(header['listADCInfo'][i]['nADCNum'])
 
                     # Get telegraphed info
@@ -1218,12 +1242,7 @@ class AbfFile:
 
             if self._mode == ACMODE_EPISODIC_STIMULATION:
                 # Increase time according to sweeps in episodic stim. mode
-                start += self._sweepStartToStart
-
-            # Store sweep
-            sweeps.append(sweep)
-
-        return sweeps
+                start += self._sweep_start_to_start
 
     def _set_conversion_factors(self):
         """
@@ -1234,7 +1253,7 @@ class AbfFile:
         self._adc_offsets = []
         h = self._header
         if self._version < 2:
-            for i in range(self._nc):
+            for i in range(self._nADC):
                 # Multiplier
                 f = (
                     h['fInstrumentScaleFactor'][i]
@@ -1269,7 +1288,7 @@ class AbfFile:
 
             a = h['listADCInfo']
             p = h['protocol']
-            for i in range(self._nc):
+            for i in range(self._nADC):
                 # Multiplier
                 f = (
                     a[i]['fInstrumentScaleFactor']
@@ -1302,12 +1321,20 @@ class AbfFile:
                 # Set final offset
                 self._adc_offsets.append(s)
 
+    def sweep_count(self):
+        # See parent for docstring
+        return len(self._sweeps)
+
+    def version(self):
+        """ Returns a string representation of this file's version number. """
+        return self._version_str
+
 
 class Sweep:
     """
-    Represents a single sweep (also called an 'episode')
+    Represents a single sweep (also called an *episode*).
 
-    A sweep is represented as a fixed-size list of channels.
+    Each sweep contains a number of :class:`channels<Channel>`.
     """
     def __init__(self, n):
         super().__init__()
@@ -1337,7 +1364,7 @@ class Channel:
     """
     Represents an analog signal for a single channel.
 
-    To obtain this channel's formatted data, use times() and trace()
+    To obtain this channel's data, use :meth:`times` and :meth:`trace`.
     """
     def __init__(self, parent_file):
         super().__init__()
@@ -1375,36 +1402,61 @@ class Channel:
         # file with 2 channels can have indices 0 and 3.
 
     def name(self):
-        """
-        Returns the name set for this channel.
-        """
+        """ Returns the name set for this channel. """
         return self._name
 
     def number(self):
         """
-        Returns the channel index used by pClamp. Note that this does not
-        necessarily equal its index in the Python sweep data!
+        Returns the channel index used by pClamp.
+
+        Note that this does not necessarily equal its index in the Python sweep
+        data.
         """
         return self._numb
 
     def __str__(self):
-        return 'Channel(' + str(self._numb) + ' "' + str(self._name) \
-            + '"); ' + str(len(self._data)) + ' points sampled at ' \
-            + str(self._rate) + 'Hz, starts at t=' + str(self._start)
+        return (
+            f'Channel({self._numb} "{self._name}"); {len(self._data)}'
+            f' points sampled at {self._rate}Hz, starts at t={self._start}.')
 
     def times(self):
-        """
-        Returns a copy of the values on the time axis.
-        """
+        """ Returns a copy of the values on the time axis. """
         n = len(self._data)
         f = 1.0 / self._rate
         return np.arange(self._start, self._start + n * f, f)[0:n]
 
     def values(self):
-        """
-        Returns a copy of the values on the data axis.
-        """
+        """ Returns a copy of the values on the data axis. """
         return np.array(self._data, copy=True)
+
+
+def dict_to_string(out, name, d, tab=''):
+    """ Used by AbfFile.info(). """
+    m = max(0, 38 - len(tab) - int(0.1 + len(name) / 2))
+    out.append(f'{tab}{"-" * m}  {name}  {"-" * m}')
+    for n, v in d.items():
+        n = str(n)
+        if type(v) == OrderedDict:
+            dict_to_string(out, n, v, f'{tab}  ')
+        elif type(v) == list:
+            list_to_string(out, n, v, tab)
+        else:
+            out.append(f'{tab}{n}: {v}')
+    m = max(0, 80 - 2 * len(tab))
+    out.append(f'{tab}{m * "-"}')
+
+
+def list_to_string(out, name, d, tab=''):
+    """ Used by AbfFile.info(). """
+    for index, item in enumerate(d):
+        n = f'{name}[{index}]'
+        if type(item) == OrderedDict:
+            dict_to_string(out, n, item, tab)
+        elif type(item) == list:    # pragma: no cover
+            # Cover pragma: Don't have appropriate test file
+            list_to_string(out, n, item, tab)
+        else:
+            out.append(f'{tab}{n}: {item}')
 
 
 # Some python struct types:

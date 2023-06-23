@@ -2189,7 +2189,8 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(np.abs(np.exp(y) - e['values'][i]) < 0.02)
 
         # test setting tmin and tmax
-        e = d.regularize(dt=0.5, tmin=0.4, tmax=2.6)
+        with WarningCollector() as w:
+            e = d.regularize(dt=0.5, tmin=0.4, tmax=2.6)
         self.assertEqual(len(e['time']), 5)
         x = np.array([0.4, 0.9, 1.4, 1.9, 2.4])
         self.assertTrue(np.all(e['time'] == x))
