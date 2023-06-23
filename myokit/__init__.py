@@ -62,7 +62,7 @@ from ._myokit_version import (  # noqa
 # Warn about development version
 if not __release__:     # pragma: no cover
     import warnings  # noqa
-    warnings.warn('Using development version of Myokit (' + __version__ + ').')
+    warnings.warn(f'Using development version of Myokit ({__version__}).')
     del warnings
 
 
@@ -199,7 +199,7 @@ if os.path.exists(DIR_USER_OLD):    # pragma: no cover
 if os.path.exists(DIR_USER):    # pragma: no cover
     if not os.path.isdir(DIR_USER):
         raise Exception(
-            'File or link found in place of user directory: ' + str(DIR_USER))
+            f'File or link found in place of user directory: {DIR_USER}')
 else:                           # pragma: no cover
     os.makedirs(DIR_USER)
 
