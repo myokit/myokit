@@ -5,10 +5,15 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
   - [#985](https://github.com/myokit/myokit/pull/985) The `AbfFile` and `WcpFile` now implement a shared `SweepSource` interface.
-- - [#985](https://github.com/myokit/myokit/pull/985) The `AtfFile` class now has a method `path` that returns the full path.
+  - [#985](https://github.com/myokit/myokit/pull/985) Added a method `AtfFile.path` that returns the full path.
+  - [#985](https://github.com/myokit/myokit/pull/985) Added a method `WcpFile.info` that returns a string version of the file's meta data, and a method `WcpFile.sample_count` that returns the number of samples per channel.
 Changed
-  - [#985](https://github.com/myokit/myokit/pull/985) The interface to the `AbfFile` class has changed significantly, in a backwards incompatible way. Please see the documentation for further details.
+  - [#985](https://github.com/myokit/myokit/pull/985) The interface to the `AbfFile` class has changed significantly, and in a backwards incompatible ways. Please see the documentation for further details.
 - Deprecated
+  - [#985](https://github.com/myokit/myokit/pull/985) The method `AtfFile.myokit_log` is deprecated in favor of `AtfFile.log`.
+  - [#985](https://github.com/myokit/myokit/pull/985) The method `WcpFile.myokit_log` is deprecated in favor of `WcpFile.log`.
+  - [#985](https://github.com/myokit/myokit/pull/985) The methods `WcpFile.channels` and `WcpFile.records` are deprecated in favor of `WcpFile.channel_count` and `WcpFile.record_count`.
+  - [#985](https://github.com/myokit/myokit/pull/985) The method `WcpFile.plot` is deprecated in favor of `WcpFile.matplotlib_figure`.
 - Fixed
   - [#985](https://github.com/myokit/myokit/pull/985) `AbfFile.filename` now returns the filename, not the full path.
   - [#985](https://github.com/myokit/myokit/pull/985) `AtfFile.filename` now returns the filename, not the full path.

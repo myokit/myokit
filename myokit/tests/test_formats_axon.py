@@ -381,6 +381,8 @@ class AbfTest(unittest.TestCase):
         self.assertIn('0.1.channel', k)
         self.assertEqual(len(x['time']), len(x['0.0.channel']))
         self.assertEqual(len(x['time']), len(x['0.1.channel']))
+        self.assertTrue(np.all(x['time'] == abf.channel(0)[0]))
+        self.assertTrue(np.all(x['0.0.channel'] == abf.channel(0)[1]))
 
         x = abf.log(use_names=True)
         k = list(x.keys())
@@ -416,6 +418,8 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(len(y['time']), 1 * len(x['time']))
         self.assertEqual(len(y['time']), len(y['0.channel']))
         self.assertEqual(len(y['time']), len(y['1.channel']))
+        self.assertTrue(np.all(y['time'] == abf.channel(0, True)[0]))
+        self.assertTrue(np.all(y['0.channel'] == abf.channel(0, True)[1]))
 
         y = abf.log(join_sweeps=True, use_names=True)
         self.assertEqual(len(y), 3)
