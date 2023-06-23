@@ -41,12 +41,11 @@ import sys  # noqa
 if sys.hexversion < 0x03000000:  # pragma: no cover
     raise Exception('This version of Myokit does not support Python 2.')
 elif sys.hexversion < 0x03070000:  # pragma: no cover
-    import logging  # noqa
-    log = logging.getLogger(__name__)
-    log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.7. Detected'
-        ' Python version: ' + sys.version)
-    del logging, log
+    import warnings  # noqa
+    warnings.warn(
+        'Myokit is not tested on Python versions before 3.7. Detected'
+        f' version {sys.version}.')
+    del warnings
 del sys
 
 
@@ -61,12 +60,10 @@ from ._myokit_version import (  # noqa
 
 
 # Warn about development version
-import logging  # noqa
-log = logging.getLogger(__name__)
-log.info('Loading Myokit version ' + __version__)
 if not __release__:     # pragma: no cover
-    log.warning('Using development version of Myokit (' + __version__ + ').')
-del log, logging
+    import warnings  # noqa
+    warnings.warn('Using development version of Myokit (' + __version__ + ').')
+    del warnings
 
 
 #

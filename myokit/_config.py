@@ -6,7 +6,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import configparser
-import logging
 import os
 import platform
 import sys
@@ -179,8 +178,7 @@ def _create(path):
         with open(path, 'w') as configfile:
             config.write(configfile)
     except IOError:     # pragma: no cover
-        logger = logging.getLogger('myokit')
-        logger.warning('Warning: Unable to write settings to ' + str(path))
+        warnings.warn('Warning: Unable to write settings to ' + str(path))
 
 
 def _load():

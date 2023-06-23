@@ -2140,7 +2140,4 @@ def add_video_parser(subparsers):
 
 
 if __name__ == '__main__':
-    import logging
-    logging.basicConfig()
-
     main()
