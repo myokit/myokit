@@ -128,6 +128,7 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(abf.da_channel_count(), 1)    # 1 D/A channel
         self.assertIsInstance(abf[0][1], axon.Channel)
         self.assertEqual(len([s for s in abf]), 9)
+        self.assertEqual(len(abf[0]), abf.channel_count())
 
         # Test conversion to Myokit protocol
         p = abf.protocol(1)
@@ -147,7 +148,7 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(channel.name(), 'IN 0')
         self.assertEqual(str(channel),
                          'Channel(0 "IN 0"); 5000 points sampled at 10000.0Hz,'
-                         ' starts at t=0.0')
+                         ' starts at t=0.0.')
         self.assertEqual(len(channel.times()), len(channel.values()))
         self.assertFalse(np.all(channel.times() == channel.values()))
 
@@ -174,6 +175,11 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(len(y), 2)
         self.assertEqual(len(y[0]), 9 * len(x[0]))
         self.assertEqual(len(y[0]), len(y[1]))
+
+        # Channel doesn't exist
+        self.assertRaises(IndexError, abf.channel, -1)
+        self.assertRaises(IndexError, abf.channel, 2)
+        self.assertRaises(KeyError, abf.channel, 'Tom')
 
         # Conversion to data log without joining
         x = abf.log()
@@ -328,6 +334,7 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(abf.da_channel_count(), 1)    # 1 D/A channel
         self.assertIsInstance(abf[0][1], axon.Channel)
         self.assertEqual(len([s for s in abf]), 1)
+        self.assertEqual(len(abf[0]), abf.channel_count())
 
         # Test conversion to Myokit protocol
         p = abf.protocol(1)
@@ -345,7 +352,7 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(channel.name(), 'IN 0')
         self.assertEqual(str(channel),
                          'Channel(0 "IN 0"); 3100 points sampled at 10000.0Hz,'
-                         ' starts at t=76.5501')
+                         ' starts at t=76.5501.')
         self.assertEqual(len(channel.times()), len(channel.values()))
         self.assertFalse(np.all(channel.times() == channel.values()))
 
@@ -524,7 +531,7 @@ class AtfTest(unittest.TestCase):
                 f.write('1\t10\t20\n')
                 f.write('2\t30\t40\n')
             self.assertRaisesRegex(
-                Exception, 'double quotation', axon.load_atf, path)
+                Exception, 'double quotes', axon.load_atf, path)
 
             # Bad column headers
             with open(path, 'w') as f:

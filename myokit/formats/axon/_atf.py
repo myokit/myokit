@@ -121,9 +121,8 @@ class AtfFile:
                 line_index += 1
                 if line[0] != '"' or line[-1] != '"':
                     raise Exception(
-                        'Invalid header on line ' + str(line_index)
-                        + ': expecting lines wrapped in double quotation'
-                        ' marks "like this".')
+                        f'Invalid header on line f{line_index}: expecting '
+                        f' lines wrapped in double quotes ("like this").')
                 line = line[1:-1].strip()
                 raw.append(line)
                 if key_value_pairs:
@@ -160,8 +159,8 @@ class AtfFile:
             delims = delims[1:-1]
             if len(delims) + 1 != nf:
                 raise Exception(
-                    'Unable to parse column headers: Expected ' + str(nf)
-                    + ' headers, found ' + str(len(delims) + 1) + '.')
+                    f'Unable to parse column headers: Expected {nf} headers,'
+                    f' found {len(delims) + 1}.')
             commas = ',' in delims[0]
             for delim in delims:
                 if commas != (',' in delim):
@@ -183,8 +182,8 @@ class AtfFile:
             if len(keys) != nf:     # pragma: no cover
                 # This should have been picked up above
                 raise Exception(
-                    'Unable to parse column headers: Expected ' + str(nf)
-                    + ' headers, found ' + str(len(keys)) + '.')
+                    f'Unable to parse column headers: Expected {nf} headers,'
+                    f' found {len(keys)}.')
 
             # Read data
             data = []
@@ -199,9 +198,8 @@ class AtfFile:
                 vals = line.split(sep)
                 if len(vals) != nf:
                     raise Exception(
-                        'Invalid data on line ' + str(line_index)
-                        + ': expecting ' + str(nf) + ' fields, found'
-                        + ' ' + str(len(vals)) + '.')
+                        f'Invalid data on line f{line_index}: expecting {nf}'
+                        f' fields, found {len(vals)}.')
                 vals = [float(x) for x in vals]
                 for k, d in enumerate(vals):
                     data[k].append(d)
@@ -298,12 +296,12 @@ def save_atf(log, filename, fields=None):
         f.write(('ATF 1.0' + eol).encode(_ENC))
 
         # Write number of header lines, number of fields
-        f.write((str(nh) + delim + str(nf) + eol).encode(_ENC))
+        f.write(f'{nh}{delim}{nf}{eol}'.encode(_ENC))
         for k, v in header:
-            f.write(('"' + str(k) + '=' + str(v) + '"' + eol).encode(_ENC))
+            f.write(f'"{k}={v}"{eol}'.encode(_ENC))
 
         # Write field names
-        f.write((delim.join(['"' + k + '"' for k in keys]) + eol).encode(_ENC))
+        f.write((delim.join([f'"{k}"' for k in keys]) + eol).encode(_ENC))
 
         # Write data
         for i in range(nd):

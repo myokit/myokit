@@ -269,8 +269,7 @@ class AbfFile(myokit.formats.SweepSource):
             self._rate = 1e6 / self._header['protocol']['fADCSequenceInterval']
             self._mode = self._header['protocol']['nOperationMode']
         if self._mode not in acquisition_modes:
-            raise NotImplementedError(
-                'Unknown acquisition mode: ' + str(mode))
+            raise NotImplementedError(f'Unknown acquisition mode: {mode}')
         if self._is_protocol_file:
             self._nADC = 0
 
@@ -292,7 +291,7 @@ class AbfFile(myokit.formats.SweepSource):
             # cases that trigger this error they should be resolved. At the
             # same time, if it happens to a user we want it to "sort-of work"
             # (an experimental rather than a production setting)
-            warnings.warn('Unable to read protocol from ' + self._filepath)
+            warnings.warn(f'Unable to read protocol from {self._filepath}')
 
         # Create sweeps and add the AD data
         if self._nADC:
@@ -328,10 +327,10 @@ class AbfFile(myokit.formats.SweepSource):
         if join_sweeps:
             # Join sweeps
             time, data = [], []
-            t = np.array(self._sweeps[0][channel_id].times())
+            t = self._sweeps[0][channel_id].times()
             for i, sweep in enumerate(self._sweeps):
                 time.append(t + i * self._sweep_start_to_start)
-                data.append(np.array(sweep[channel_id].values()))
+                data.append(sweep[channel_id].values())
             return (np.concatenate(time), np.concatenate(data))
 
         else:
@@ -425,14 +424,14 @@ class AbfFile(myokit.formats.SweepSource):
         for e in einfo(ida):
             kind = e['type']
             if kind not in epoch_types:
-                raise NotImplementedError('Unknown epoch type: ' + str(kind))
+                raise NotImplementedError(f'Unknown epoch type: {kind}')
             if kind == EPOCH_DISABLED:
                 continue
             elif kind == EPOCH_STEPPED:
                 levels.append([])
             else:
                 raise NotImplementedError(
-                    'Unsupported epoch type: ' + epoch_types(kind))
+                    'Unsupported epoch type: {epoch_types(kind)}')
 
         # Gather steps
         levels = tuple(levels)
@@ -450,104 +449,68 @@ class AbfFile(myokit.formats.SweepSource):
 
     def info(self, show_header=False):
         """
-        Returns a string with lots of info on this file.
+        Returns a multi-line string with meta data about this file.
 
         The optional argument ``show_header`` can be used to add the full
         header contents to the output.
         """
         out = []
 
-        # Show file info
+        # File info
         if self._is_protocol_file:
-            out.append('Axon Protocol File: ' + self._filename)
+            out.append(f'Axon Protocol File: {self._filename}')
         else:
-            out.append('Axon Binary File: ' + self._filename)
-        out.append('ABF Format version ' + self._version_str)
-        out.append('Recorded on: ' + str(self._datetime))
+            out.append(f'Axon Binary File: {self._filename}')
+        out.append(f'ABF Format version {self._version_str}')
+        out.append(f'Recorded on: {self._datetime}')
 
-        # Show protocol info
+        # AProtocol info
         out.append(
-            'Acquisition mode: ' + str(self._mode) + ': '
-            + acquisition_modes[self._mode])
+            f'Acquisition mode: {self._mode}: {acquisition_modes[self._mode]}')
         if self._number_of_trials:
             out.append(
-                'Protocol set for ' + str(self._number_of_trials)
-                + ' trials, spaced ' + str(self._trial_start_to_start)
-                + 's apart.')
+                f'Protocol set for {self._number_of_trials} trials,'
+                f' spaced {self._trial_start_to_start}s apart.')
             out.append(
-                '    with ' + str(self._runs_per_trial)
-                + ' runs per trial, spaced ' + str(self._run_start_to_start)
-                + 's apart.')
+                f'    with {self._runs_per_trial} runs per trial,'
+                f' spaced {self._run_start_to_start}s apart.')
             out.append(
-                '     and ' + str(self._sweeps_per_run)
-                + ' sweeps per run, spaced ' + str(self._sweep_start_to_start)
-                + 's apart.')
+                f'     and {self._sweeps_per_run} sweeps per run,'
+                f' spaced {self._sweep_start_to_start}s apart.')
         else:   # pragma: no cover
             out.append('Protocol data could not be determined.')
-        out.append('Sampling rate: ' + str(self._rate) + ' Hz')
+        out.append(f'Sampling rate: {self._rate} Hz')
 
-        # Show Channel info
+        # Channel info
         if self._sweeps:
-            # Show AD channel info
+            # A/D channels
             for i, c in enumerate(self._sweeps[0]._channels[:self._nADC]):
-                out.append('A/D Channel ' + str(i) + ': "' + c._name + '"')
+                out.append(f'A/D Channel {i}: "{c._name}"')
                 if c._type:  # pragma: no cover
                     # Cover pragma: Don't have appropriate test file
-                    out.append('  Type: ' + type_mode_names[c._type])
-                out.append('  Unit: ' + c._unit.strip())
+                    out.append(f'  Type: {type_mode_names[c._type]}')
+                out.append(f'  Unit: {c._unit.strip()}')
                 if c._lopass:
-                    out.append('  Low-pass filter: ' + str(c._lopass) + ' Hz')
+                    out.append(f'  Low-pass filter: {c._lopass} Hz')
                 if c._cm:
-                    out.append('  Cm (telegraphed): ' + str(c._cm) + ' pF')
+                    out.append(f'  Cm (telegraphed): {c._cm} pF')
                 if c._rs:   # pragma: no cover
                     # Cover pragma: Don't have appropriate test file
-                    out.append('  Rs (telegraphed): ' + str(c._rs))
-            # Show DA channel info
+                    out.append(f'  Rs (telegraphed): {c._rs}')
+            # Reconstructed D/A channels
             for i, c in enumerate(self._sweeps[0]._channels[self._nADC:]):
-                out.append('D/A Channel ' + str(i) + ': "' + c._name + '"')
+                out.append(f'D/A Channel {i}: "{c._name}"')
                 if c._type:  # pragma: no cover
                     # Cover pragma: Don't have appropriate test file
-                    out.append('  Type: ' + type_mode_names[c._type])
-                out.append('  Unit: ' + c._unit.strip())
-                if c._lopass:
-                    out.append('  Low-pass filter: ' + str(c._lopass) + ' Hz')
-                if c._cm:
-                    out.append('  Cm (telegraphed): ' + str(c._cm) + ' pF')
-                if c._rs:   # pragma: no cover
-                    # Cover pragma: Don't have appropriate test file
-                    out.append('  Rs (telegraphed): ' + str(c._rs))
-
-        # Methods
-        def show_dict(name, d, tab=''):
-            m = max(0, 38 - len(tab) - int(0.1 + len(name) / 2))
-            out.append(tab + '-' * m + '  ' + name + '  ' + '-' * m)
-            for n, v in d.items():
-                n = str(n)
-                if type(v) == OrderedDict:
-                    show_dict(n, v, tab + '  ')
-                elif type(v) == list:
-                    show_list(n, v, tab)
-                else:
-                    out.append(tab + n + ': ' + str(v))
-            m = max(0, 80 - 2 * len(tab))
-            out.append(tab + m * '-')
-
-        def show_list(name, d, tab=''):
-            for index, item in enumerate(d):
-                n = name + '[' + str(index) + ']'
-                if type(item) == OrderedDict:
-                    show_dict(n, item, tab)
-                elif type(item) == list:    # pragma: no cover
-                    # Cover pragma: Don't have appropriate test file
-                    show_list(n, item, tab)
-                else:
-                    out.append(tab + n + ': ' + str(item))
+                    out.append('  Type: {type_mode_names[c._type]}')
+                out.append(f'  Unit: {c._unit.strip()}')
 
         # Show full header info
         if show_header:
             if self.strings:
-                show_dict('Strings', {'strings': self.strings})
-            show_dict('file header', self._header)
+                dict_to_string(out, 'Strings', {'strings': self.strings})
+            dict_to_string(out, 'file header', self._header)
+
         return '\n'.join(out)
 
     def log(self, join_sweeps=False, use_names=False, channels=None):
@@ -565,7 +528,7 @@ class AbfFile(myokit.formats.SweepSource):
         # No data? Then return. Do this after channel check to tell user about
         # invalid channel ids.
         ns = len(self._sweeps)
-        if ns == 0:
+        if ns == 0:  # pragma: no cover
             return log
 
         # Get channel names
@@ -583,10 +546,8 @@ class AbfFile(myokit.formats.SweepSource):
             t = np.array(self._sweeps[0][0].times())
             time = [t + i * self._sweep_start_to_start for i in range(ns)]
             log['time'] = np.concatenate(time)
-            log.set_time_key('time')
 
             # Set channels
-            data = []
             for channel, name in zip(channels, channel_names):
                 log[name] = np.concatenate(
                     [sweep[channel].values() for sweep in self._sweeps])
@@ -598,6 +559,7 @@ class AbfFile(myokit.formats.SweepSource):
                 for channel, name in zip(channels, channel_names):
                     log[name, i] = sweep[channel].values()
 
+        log.set_time_key('time')
         return log
 
     def matplotlib_figure(self):
@@ -682,8 +644,7 @@ class AbfFile(myokit.formats.SweepSource):
                 kind = e['type']
 
                 if kind not in epoch_types:
-                    raise NotImplementedError(
-                        'Unknown epoch type: ' + str(kind))
+                    raise NotImplementedError(f'Unknown epoch type: {kind}')
 
                 if kind == EPOCH_DISABLED:
                     continue
@@ -779,8 +740,7 @@ class AbfFile(myokit.formats.SweepSource):
             elif sig == 'ABF2':
                 version = 2
             else:
-                raise NotImplementedError(
-                    'Unknown ABF Format "' + str(sig) + '".')
+                raise NotImplementedError('Unknown ABF Format "{sig}".')
 
             # Gather header fields
             header = OrderedDict()
@@ -1179,7 +1139,7 @@ class AbfFile(myokit.formats.SweepSource):
 
         # Sweeps should have been created by read_protocol, but if the protocol
         # type was unsupported they might not have been
-        if len(self._sweeps) == 0:
+        if len(self._sweeps) == 0:  # pragma: no cover
             self._sweeps = [Sweep(nc) for i in range(n)]
 
         # Time-offset at start of sweep
@@ -1455,9 +1415,9 @@ class Channel:
         return self._numb
 
     def __str__(self):
-        return 'Channel(' + str(self._numb) + ' "' + str(self._name) \
-            + '"); ' + str(len(self._data)) + ' points sampled at ' \
-            + str(self._rate) + 'Hz, starts at t=' + str(self._start)
+        return (
+            f'Channel({self._numb} "{self._name}"); {len(self._data)}'
+            f' points sampled at {self._rate}Hz, starts at t={self._start}.')
 
     def times(self):
         """ Returns a copy of the values on the time axis. """
@@ -1468,6 +1428,35 @@ class Channel:
     def values(self):
         """ Returns a copy of the values on the data axis. """
         return np.array(self._data, copy=True)
+
+
+def dict_to_string(out, name, d, tab=''):
+    """ Used by AbfFile.info(). """
+    m = max(0, 38 - len(tab) - int(0.1 + len(name) / 2))
+    out.append(f'{tab}{"-" * m}  {name}  {"-" * m}')
+    for n, v in d.items():
+        n = str(n)
+        if type(v) == OrderedDict:
+            dict_to_string(out, n, v, f'{tab}  ')
+        elif type(v) == list:
+            list_to_string(out, n, v, tab)
+        else:
+            out.append(f'{tab}{n}: {v}')
+    m = max(0, 80 - 2 * len(tab))
+    out.append(f'{tab}{m * "-"}')
+
+
+def list_to_string(out, name, d, tab=''):
+    """ Used by AbfFile.info(). """
+    for index, item in enumerate(d):
+        n = f'{name}[{index}]'
+        if type(item) == OrderedDict:
+            dict_to_string(out, n, item, tab)
+        elif type(item) == list:    # pragma: no cover
+            # Cover pragma: Don't have appropriate test file
+            list_to_string(out, n, item, tab)
+        else:
+            out.append(f'{tab}{n}: {item}')
 
 
 # Some python struct types:
