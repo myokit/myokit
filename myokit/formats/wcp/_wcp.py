@@ -291,7 +291,7 @@ class WcpFile:
         out.append(f'  Channels per record: {self._nc}')
         out.append(f'  Samples per channel: {self._np}')
         out.append(f'  Sampling interval: {self._dt} s')
-        if 'tu' in h:
+        if 'tu' in h:  # pragma: no cover
             out.append(f'Time units: {h["tu"]}')
 
         # Channel info
