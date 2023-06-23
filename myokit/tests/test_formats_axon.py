@@ -340,6 +340,7 @@ class AbfTest(unittest.TestCase):
         p = abf.protocol(1)
         self.assertEqual(len(p), 2)
         self.assertEqual(p.code(), V2_PROTOCOL)
+        self.assertRaises(ValueError, abf.protocol, 0)  # Not a D/A channel
 
         # Test other D/A channel methods
         self.assertEqual(abf.da_holding_level(1), -120)

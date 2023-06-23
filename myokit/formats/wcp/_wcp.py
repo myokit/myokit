@@ -172,7 +172,7 @@ class WcpFile:
                 str('<' + 'f' * self._nc), f.read(4 * self._nc))
 
             # String marker set by user
-            marker = f.read(16).decode(_ENC)
+            marker = f.read(16).decode(_ENC).strip('\x00')
 
             # Store
             self._record_headers.append({

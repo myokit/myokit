@@ -15,6 +15,33 @@ import myokit.formats.wcp as wcp
 from myokit.tests import DIR_FORMATS, WarningCollector
 
 
+INFO = '''
+WinWCP file: wcp-file.wcp
+WinWCP Format version 9
+Recorded on: 21/11/2014 14:18:28
+  Number of records: 11
+  Channels per record: 2
+  Samples per channel: 256
+  Sampling interval: 0.001 s
+A/D channel: Im
+  Unit: pA
+A/D channel: Vm
+  Unit: mV
+Records: Type, Status, Sampling Interval, Start, Marker
+Record 0: TEST, ACCEPTED, 0.001, 0.0, ""
+Record 1: TEST, ACCEPTED, 0.001, 0.5, ""
+Record 2: TEST, ACCEPTED, 0.001, 1.0, ""
+Record 3: TEST, ACCEPTED, 0.001, 1.5, ""
+Record 4: TEST, ACCEPTED, 0.001, 2.0615234375, ""
+Record 5: TEST, ACCEPTED, 0.001, 3.0615234375, ""
+Record 6: TEST, ACCEPTED, 0.001, 3.5615234375, ""
+Record 7: TEST, ACCEPTED, 0.001, 4.0615234375, ""
+Record 8: TEST, ACCEPTED, 0.001, 4.5615234375, ""
+Record 9: TEST, ACCEPTED, 0.001, 5.125, ""
+Record 10: TEST, ACCEPTED, 0.001, 5.625, ""
+'''.strip()
+
+
 class WcpTest(unittest.TestCase):
     """
     Tests the WCP format module.
@@ -35,6 +62,10 @@ class WcpTest(unittest.TestCase):
         self.assertEqual(w.sample_count(), 256)
         self.assertEqual(len(w.times()), 256)
         self.assertEqual(len(w.values(0, 0)), 256)
+
+        # Test meta data
+        self.maxDiff = None
+        self.assertEqual(w.info(), INFO)
 
         # Test Sequence interface
         self.assertEqual(len(w), w.record_count())
