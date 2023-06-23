@@ -991,7 +991,7 @@ class WcpTab(TabWidget):
         del self._wcp
 
     def create_graph_tab(self, record):
-        """ Creates a widget displaying the data in the given ``record. """
+        """ Creates a widget displaying the data in the given ``record``. """
         widget = QtWidgets.QWidget(self)
 
         # Create figure
