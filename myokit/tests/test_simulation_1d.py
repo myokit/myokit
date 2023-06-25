@@ -129,7 +129,7 @@ class Simulation1dTest(unittest.TestCase):
         self.assertEqual(s.time(), -10)
         d = s.run(5, log=['engine.pace']).npview()
         self.assertEqual(s.time(), -5)
-        self.assertTrue(np.all(d['engine.pace'] ==0))
+        self.assertTrue(np.all(d['engine.pace'] == 0))
         d = s.run(6, log=['engine.time', 'engine.pace']).npview()
         #print(d['engine.time'])
         #print(d['engine.pace'])
