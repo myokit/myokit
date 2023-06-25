@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Class for testing the fixed-form pacing system.
+# Class for testing the time-series pacing system.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -12,12 +12,12 @@ import myokit
 from myokit.tests import DIR_TEST
 
 # Location of C template
-SOURCE_FILE = 'ansic_fixed_form_pacing.c'
+SOURCE_FILE = 'ansic_time_series_pacing.c'
 
 
-class AnsicFixedFormPacing(myokit.CModule):
+class AnsicTimeSeriesPacing(myokit.CModule):
     """
-    Class for testing the fixed-form pacing system.
+    Class for testing the time-series pacing system.
     """
     _index = 0
 
@@ -25,9 +25,9 @@ class AnsicFixedFormPacing(myokit.CModule):
         super().__init__()
 
         # Unique id
-        AnsicFixedFormPacing._index += 1
+        AnsicTimeSeriesPacing._index += 1
         module_name = \
-            'myokit_ansic_fpacing_' + str(AnsicFixedFormPacing._index)
+            'myokit_ansic_fpacing_' + str(AnsicTimeSeriesPacing._index)
 
         # Arguments
         fname = os.path.join(DIR_TEST, SOURCE_FILE)

@@ -1,7 +1,6 @@
 <?
-# _ansic_pacing_fixed_form.c
 #
-# Python-callable test code for ansi-c fixed-form pacing.
+# Python-callable test code for C-based time-series pacing.
 #
 # Required variables
 # -----------------------------------------------------------------------------
@@ -21,48 +20,48 @@
 // Initialized yes/no
 int initialized = 0;
 
-// Fixed-form pacing system
-FSys pacing;
+// TIme-series pacing system
+TSys pacing;
 
 /*
- * De-initializes the fixed-form pacing mechanism.
+ * De-initializes the time series pacing mechanism.
  */
 static PyObject*
-fpacing_clean()
+tpacing_clean()
 {
     if (initialized != 0) {
-        // Free fixed-form pacing system space
-        FSys_Destroy(pacing); pacing = NULL;
+        // Free time series pacing system space
+        TSys_Destroy(pacing); pacing = NULL;
     }
 
     // Return 0, allowing the construct
     //  PyErr_SetString(PyExc_Exception, "Oh noes!");
-    //  return fpacing_clean()
+    //  return tpacing_clean()
     // to terminate a python function.
     return 0;
 }
 static PyObject*
-py_fpacing_clean(PyObject *self, PyObject *args)
+py_tpacing_clean(PyObject *self, PyObject *args)
 {
-    fpacing_clean();
+    tpacing_clean();
     Py_RETURN_NONE;
 }
 
 
 /*
- * Initialize the fixed-form pacing mechanism.
+ * Initialize the time series pacing mechanism.
  */
 static PyObject*
-fpacing_init(PyObject *self, PyObject *args)
+tpacing_init(PyObject *self, PyObject *args)
 {
     // Input arguments
     PyObject* protocol;
 
-    FSys_Flag flag;
+    TSys_Flag flag;
 
     // Check if already initialized
     if (initialized != 0) {
-        PyErr_SetString(PyExc_Exception, "Fixed-form pacing system already initialized.");
+        PyErr_SetString(PyExc_Exception, "Time series pacing system already initialized.");
         return 0;
     }
 
@@ -81,11 +80,11 @@ fpacing_init(PyObject *self, PyObject *args)
 
     // From this point on, no more direct returning! Use pacing_clean()
 
-    // Set up fixed-form pacing
-    pacing = FSys_Create(&flag);
-    if (flag != FSys_OK) { FSys_SetPyErr(flag); return fpacing_clean(); }
-    flag = FSys_Populate(pacing, protocol);
-    if (flag != FSys_OK) { FSys_SetPyErr(flag); return fpacing_clean(); }
+    // Set up time series pacing
+    pacing = TSys_Create(&flag);
+    if (flag != TSys_OK) { TSys_SetPyErr(flag); return tpacing_clean(); }
+    flag = TSys_Populate(pacing, protocol);
+    if (flag != TSys_OK) { TSys_SetPyErr(flag); return tpacing_clean(); }
 
     // Done!
     Py_RETURN_NONE;
@@ -95,9 +94,9 @@ fpacing_init(PyObject *self, PyObject *args)
  * Return the value of the pacing variable at a given time
  */
 static PyObject*
-fpacing_pace(PyObject *self, PyObject *args)
+tpacing_pace(PyObject *self, PyObject *args)
 {
-    FSys_Flag flag;
+    TSys_Flag flag;
     double time;
     double pace;
 
@@ -108,18 +107,18 @@ fpacing_pace(PyObject *self, PyObject *args)
         return 0;
     }
 
-    pace = FSys_GetLevel(pacing, time, &flag);
-    if (flag != FSys_OK) { FSys_SetPyErr(flag); return fpacing_clean(); }
+    pace = TSys_GetLevel(pacing, time, &flag);
+    if (flag != TSys_OK) { TSys_SetPyErr(flag); return tpacing_clean(); }
     return PyFloat_FromDouble(pace);
 }
 
 /*
  * Methods in this module
  */
-static PyMethodDef FPacingMethods[] = {
-    {"init", fpacing_init, METH_VARARGS, "Initialize the fixed-form pacing mechanism."},
-    {"pace", fpacing_pace, METH_VARARGS, "Returns the value of the pacing variable at time t."},
-    {"clean", py_fpacing_clean, METH_VARARGS, "De-initializes the fixed-form pacing mechanism."},
+static PyMethodDef TPacingMethods[] = {
+    {"init", tpacing_init, METH_VARARGS, "Initialize the time series pacing mechanism."},
+    {"pace", tpacing_pace, METH_VARARGS, "Returns the value of the pacing variable at time t."},
+    {"clean", py_tpacing_clean, METH_VARARGS, "De-initializes the time series pacing mechanism."},
     {NULL},
 };
 
@@ -131,9 +130,9 @@ static PyMethodDef FPacingMethods[] = {
     static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
         "<?= module_name ?>",       /* m_name */
-        "Fixed-form pacing test",   /* m_doc */
+        "Time series pacing test",   /* m_doc */
         -1,                         /* m_size */
-        FPacingMethods,             /* m_methods */
+        TPacingMethods,             /* m_methods */
         NULL,                       /* m_reload */
         NULL,                       /* m_traverse */
         NULL,                       /* m_clear */
@@ -148,7 +147,7 @@ static PyMethodDef FPacingMethods[] = {
 
     PyMODINIT_FUNC
     init<?=module_name?>(void) {
-        (void) Py_InitModule("<?= module_name ?>", FPacingMethods);
+        (void) Py_InitModule("<?= module_name ?>", TPacingMethods);
     }
 
 #endif
