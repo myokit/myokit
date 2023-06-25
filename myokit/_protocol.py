@@ -746,9 +746,10 @@ class PacingSystem:
     >>> pace = np.array([s.advance(t) for t in time])
 
     """
-    def __init__(self, protocol):
-        # The current time and pacing level
-        self._time = 0
+    def __init__(self, protocol, initial_time=0):
+        # The initial and current time and pacing level
+        self._initial_time = initial_time  # Needed if we add a reset()
+        self._time = initial_time
         self._pace = 0
 
         # Currently active event
@@ -758,15 +759,15 @@ class PacingSystem:
         self._tdown = None
 
         # The next time the pacing variable changes
-        self._tnext = 0
+        self._tnext = initial_time
 
         # Create a copy of the protocol
         self._protocol = protocol.clone()
         #TODO: For periodic events, set an _t0, and a _i, use them to calculate
         #      the next occurence
 
-        # Advance to time zero
-        self.advance(0)
+        # Advance to initial time
+        self.advance(initial_time)
 
     def advance(self, new_time):
         """
@@ -822,21 +823,15 @@ class PacingSystem:
         return self._pace
 
     def next_time(self):
-        """
-        Returns the next time the pacing system will halt at.
-        """
+        """ Returns the next time the pacing system will halt at. """
         return self._tnext
 
     def pace(self):
-        """
-        Returns the current value of the pacing variable.
-        """
+        """ Returns the current value of the pacing variable. """
         return self._pace
 
     def time(self):
-        """
-        Returns the current time in the pacing system.
-        """
+        """ Returns the current time in the pacing system. """
         return self._time
 
 
@@ -863,7 +858,6 @@ class TimeSeriesProtocol:
     Protocols can be compared with ``==``, which will check if the sequence of
     time value pairs is the same, and the interpolation method is the same.
     Protocols can be serialized with ``pickle``.
-
     """
 
     def __init__(self, times, values, method=None):
@@ -909,15 +903,11 @@ class TimeSeriesProtocol:
         self._method = values['method']
 
     def clone(self):
-        """
-        Returns a clone of this protocol.
-        """
+        """ Returns a clone of this protocol. """
         return TimeSeriesProtocol(self._times, self._values, self._method)
 
     def pace(self, t):
-        """
-        Returns the value of the pacing variable at time ``t``.
-        """
+        """ Returns the value of the pacing variable at time ``t``. """
         if t < self._times[0]:
             return self._values[0]
         if t > self._times[-1]:
@@ -930,13 +920,9 @@ class TimeSeriesProtocol:
         ) / (self._times[i + 1] - self._times[i])
 
     def times(self):
-        """
-        Returns a list of the times in this protocol.
-        """
+        """ Returns a list of the times in this protocol. """
         return self._times
 
     def values(self):
-        """
-        Returns a list of the values in this protocol.
-        """
+        """ Returns a list of the values in this protocol. """
         return self._values

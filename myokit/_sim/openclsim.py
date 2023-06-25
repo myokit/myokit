@@ -1709,11 +1709,7 @@ class SimulationOpenCL(myokit.CModule):
         self._step_size = step_size
 
     def set_time(self, time=0):
-        """
-        Sets the current simulation time.
-        """
-        if time < 0:
-            raise ValueError('Simulation time cannot be negative')
+        """ Sets the current simulation time. """
         self._time = float(time)
 
     def shape(self):

@@ -227,6 +227,23 @@ class SimulationTest(unittest.TestCase):
         #       sine value, while the solver will be interpolating y
         np.testing.assert_array_almost_equal(d[b], b_e, decimal=3)
 
+    def test_negative_time(self):
+        # Test starting at a negative time
+
+        self.sim.reset()
+        self.sim.set_protocol(
+            myokit.pacing.blocktrain(duration=1, level=1, period=2))
+        self.sim.set_time(-10)
+        self.assertEqual(self.sim.time(), -10)
+        d = self.sim.run(5, log=['engine.pace']).npview()
+        self.assertEqual(self.sim.time(), -5)
+        self.assertTrue(np.all(d['engine.pace'] ==0))
+        d = self.sim.run(5, log=['engine.pace']).npview()
+        self.assertEqual(self.sim.time(), 0)
+        self.assertTrue(np.all(d['engine.pace'][:-1] == 0))
+        self.assertEqual(d['engine.pace'][-1], 1)
+        self.sim.set_protocol(self.protocol)
+
     def test_no_protocol(self):
         # Test running without a protocol.
 

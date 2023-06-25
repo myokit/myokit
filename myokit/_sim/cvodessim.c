@@ -1006,7 +1006,7 @@ sim_init(PyObject *self, PyObject *args)
             const char* protocol_type_name = Py_TYPE(protocol)->tp_name;
             if (strcmp(protocol_type_name, "Protocol") == 0) {
 
-                epacing = ESys_Create(&flag_epacing);
+                epacing = ESys_Create(tmin, &flag_epacing);
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 pacing_systems[i].esys = epacing;
                 pacing_types[i] = ESys_TYPE;
