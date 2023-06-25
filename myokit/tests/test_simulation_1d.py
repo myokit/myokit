@@ -53,10 +53,6 @@ class Simulation1dTest(unittest.TestCase):
         s.pre(1)
         self.assertNotEqual(s.default_state(0), x0)
 
-        # Test running without a protocol
-        s.set_protocol(None)
-        s.run(1)
-
         # Simulation time can't be negative
         self.assertRaises(ValueError, s.run, -1)
 
@@ -121,26 +117,29 @@ class Simulation1dTest(unittest.TestCase):
         self.assertEqual(x, m.initial_values(True) * 2)
         self.assertEqual(x, s.default_state())
 
-    def test_with_progress_reporter(self):
-        # Test running with a progress reporter.
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+    def test_no_protocol(self):
+        # Test running without a protocol
+        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        x = 0.123
+        m.get('engine.pace').set_rhs(x)
+        n = 4
 
-        # Test using a progress reporter
-        s = myokit.Simulation1d(m, p, ncells=5)
-        s.set_step_size(0.05)
-        with myokit.tools.capture() as c:
-            s.run(110, progress=myokit.ProgressPrinter())
-        c = c.text().splitlines()
-        self.assertTrue(len(c) > 0)
+        # Create without a protocol
+        s = myokit.Simulation1d(m, ncells=n)
+        d = s.run(10, log=['engine.pace']).npview()
+        self.assertIn('engine.pace', d.keys())
+        self.assertTrue(np.all(d['engine.pace'] == 0))
 
-        # Not a progress reporter
-        self.assertRaisesRegex(
-            ValueError, 'ProgressReporter', s.run, 5, progress=12)
-
-        # Cancel from reporter
-        self.assertRaises(
-            myokit.SimulationCancelledError, s.run, 1,
-            progress=CancellingReporter(0))
+        # Set, then unset
+        y = 0.101
+        p = myokit.pacing.blocktrain(level=y, duration=100, period=100)
+        s.set_protocol(p)
+        d = s.run(5, log=['engine.pace']).npview()
+        self.assertTrue(np.all(d['engine.pace'] == y))
+        self.assertGreater(len(d['engine.pace']), 1)
+        s.set_protocol(None)
+        d = s.run(5, log=['engine.pace']).npview()
+        self.assertTrue(np.all(d['engine.pace'] == 0))
 
     def test_set_state(self):
         # Test :meth:`Simulation1d.set_state()`.
@@ -217,6 +216,27 @@ class Simulation1dTest(unittest.TestCase):
         self.assertRaises(ValueError, s.set_default_state, sx, n)
         self.assertRaises(ValueError, s.default_state, -1)
         self.assertRaises(ValueError, s.default_state, n)
+
+    def test_with_progress_reporter(self):
+        # Test running with a progress reporter.
+        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+
+        # Test using a progress reporter
+        s = myokit.Simulation1d(m, p, ncells=5)
+        s.set_step_size(0.05)
+        with myokit.tools.capture() as c:
+            s.run(110, progress=myokit.ProgressPrinter())
+        c = c.text().splitlines()
+        self.assertTrue(len(c) > 0)
+
+        # Not a progress reporter
+        self.assertRaisesRegex(
+            ValueError, 'ProgressReporter', s.run, 5, progress=12)
+
+        # Cancel from reporter
+        self.assertRaises(
+            myokit.SimulationCancelledError, s.run, 1,
+            progress=CancellingReporter(0))
 
     def test_against_cvode(self):
         # Compare the Simulation1d output with CVODE output

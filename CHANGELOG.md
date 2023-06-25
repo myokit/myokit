@@ -19,7 +19,7 @@ This page lists the main changes made to Myokit in each release.
 - Fixed
   - [#985](https://github.com/myokit/myokit/pull/985) `AbfFile.filename` now returns the filename, not the full path.
   - [#985](https://github.com/myokit/myokit/pull/985) `AtfFile.filename` now returns the filename, not the full path.
-  - [#992](https://github.com/myokit/myokit/pull/992) `Simulation` now sets any variable bound to a user-defined pacing label to 0 if no protocol for that label is set.
+  - [#992](https://github.com/myokit/myokit/pull/992) `Simulation` now sets any variable bound to a pacing label to 0 if no protocol for that label is set.
 
 ## [1.35.0] - 2023-06-21
 - Added
