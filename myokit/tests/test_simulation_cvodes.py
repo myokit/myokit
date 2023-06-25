@@ -273,7 +273,7 @@ class SimulationTest(unittest.TestCase):
     def test_wrong_label_set_pacing(self):
         # Test set_pacing with incorrect label
         self.sim.reset()
-        self.sim.pre(50).npview()
+        self.sim.pre(50)
         with self.assertRaisesRegex(ValueError, 'Unknown pacing label'):
             self.sim.set_protocol(None, label='does not exist')
 
