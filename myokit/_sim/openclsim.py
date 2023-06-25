@@ -56,7 +56,8 @@ class SimulationOpenCL(myokit.CModule):
     ``time``
         The simulation time
     ``pace``
-        The pacing level, this is set if a protocol was passed in.
+        The pacing level, this is set if a protocol was passed in. Will be set
+        to 0 if no protocol is provided.
     ``diffusion_current`` (if enabled)
         The current flowing from the cell to its neighbors. This will be
         positive when the cell is acting as a source, negative when it is

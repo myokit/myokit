@@ -468,15 +468,25 @@ class FiberTissueSimulationTest(unittest.TestCase):
             self.assertGreater(df['membrane.V', 0, 0][-1], 0)
             self.s0.reset()
 
-            # Unset protocol, check Vm stays low
-            self.s0.set_protocol(None)
-            df, dt = self.s0.run(
-                5, logf=['membrane.V'], logt=myokit.LOG_NONE, log_interval=1)
-            self.assertLess(df['membrane.V', 0, 0][-1], 0)
+            # Run with constant proto
+            x = 0.0123
+            self.s0.set_protocol(
+                myokit.pacing.blocktrain(level=x, duration=1000, period=1000))
             self.s0.reset()
+            df, dt = self.s0.run(3, logf=['engine.pace'])
+            df = df.npview()
+            self.assertTrue(np.all(df['engine.pace'] == x))
+
+            # Unset: Must now be zero
+            self.s0.set_protocol(None)
+            self.s0.reset()
+            df, dt = self.s0.run(3, logf=['engine.pace'])
+            df = df.npview()
+            self.assertTrue(np.all(df['engine.pace'] == 0))
 
             # Reset protocol, check Vm goes high
             self.s0.set_protocol(self.p)
+            self.s0.reset()
             df, dt = self.s0.run(
                 5, logf=['membrane.V'], logt=myokit.LOG_NONE, log_interval=1)
             self.assertGreater(df['membrane.V', 0, 0][-1], 0)

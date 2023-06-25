@@ -813,11 +813,19 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertEqual(np.max(d0['engine.pace']), 1)
 
         try:
-            # Unset protocol
+            # Make pace high
+            x = 0.0123
+            self.s0.set_protocol(
+                myokit.pacing.blocktrain(level=x, duration=1000, period=1000))
+            self.s0.reset()
+            d0 = self.s0.run(3, log=['engine.pace']).npview()
+            self.assertTrue(np.all(d0['engine.pace'] == x))
+
+            # Unset protocol: pace must now be 0
             self.s0.reset()
             self.s0.set_protocol(None)
             d0 = self.s0.run(3, log=['engine.pace']).npview()
-            self.assertEqual(np.max(d0['engine.pace']), 0)
+            self.assertTrue(np.all(d0['engine.pace'] == 0))
 
             # Add new protocol
             p = myokit.pacing.blocktrain(period=1000, duration=2, offset=3)
