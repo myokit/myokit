@@ -6,16 +6,19 @@ Pacing protocol syntax
 
 In Myokit, pacing is not part of a model but is defined using a separate
 pacing syntax. To introduce a pacing current in the model, a variable must be
-bound to the external input ``pace``.
-The most common use of this mechanism is to specify a stimulus current
+bound to an external input such as ``pace``.
+A common use of this mechanism is to specify a stimulus current
 ``I_stim = amplitude * level`` where
-``amplitude`` is a constant stimulus amplitude and ``level`` is the
-dimensionless variable bound to the input ``pace``::
+``amplitude`` is a constant stimulus amplitude (in amperes) and ``level`` is
+the dimensionless variable bound to the input ``pace``::
 
     [stimulus]
-    amplitude = 60 [uA/cm^2]
-    level = 0 bind pace
+    level = 0
+        bind pace
+    amplitude = 60 [A/F]
+        in [A/F]
     current = level * amplitude
+        in [A/F]
 
 Structure
 =========
