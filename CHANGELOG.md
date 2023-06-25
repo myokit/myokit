@@ -10,7 +10,7 @@ This page lists the main changes made to Myokit in each release.
 - Changed
   - [#985](https://github.com/myokit/myokit/pull/985) The interface to the `AbfFile` class has changed significantly, and in a backwards incompatible ways. Please see the documentation for further details.
   - [#991](https://github.com/myokit/myokit/pull/991) Myokit no longer uses the `logging` module but makes calls to `warnings.warn` instead.
-  - [#992](https://github.com/myokit/myokit/pull/992) If a `Simulation` is created without any protocols, then variables bound to `pace` will not be modified by the simulation. The behavior for other simulation types (`SimulationOpenCL` etc.) is unchanged.
+  - [#992](https://github.com/myokit/myokit/pull/992) If a `Simulation` is created with `protocol={}`, then `pace` will not be set as a binding label. To stay backwards compatible it _will_ be set if `protocol=None`.
 - Deprecated
   - [#985](https://github.com/myokit/myokit/pull/985) The method `AtfFile.myokit_log` is deprecated in favor of `AtfFile.log`.
   - [#985](https://github.com/myokit/myokit/pull/985) The method `WcpFile.myokit_log` is deprecated in favor of `WcpFile.log`.

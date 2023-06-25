@@ -253,10 +253,27 @@ class SimulationTest(unittest.TestCase):
         self.assertTrue(np.all(d['engine.pace'] == 0))
         self.sim.set_protocol(self.protocol)
 
+        # No protocol set from the start? Then "pace" is set anyway for
+        # backwards compatibility
+        m = self.model.clone()
+        m.get('engine.pace').set_rhs(x)
+        s = myokit.Simulation(m)
+        d = s.run(50).npview()
+        self.assertIn('engine.pace', d.keys())
+        self.assertTrue(np.all(d['engine.pace'] == 0))
+
+        # But if user explicitly says no labels, then pace isn't treated in a
+        # special way.
+        s = myokit.Simulation(m, {})
+        self.assertRaises(ValueError, s.set_protocol, self.protocol)
+        d = s.run(50).npview()
+        self.assertNotIn('engine.pace', d.keys())
+        #self.assertTrue(np.all(d['engine.pace'] == x))  constant is not logged
+
     def test_wrong_label_set_pacing(self):
         # Test set_pacing with incorrect label
         self.sim.reset()
-        self.sim.pre(50)
+        self.sim.pre(50).npview()
         with self.assertRaisesRegex(ValueError, 'Unknown pacing label'):
             self.sim.set_protocol(None, label='does not exist')
 
