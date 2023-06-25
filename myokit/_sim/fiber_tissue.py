@@ -56,11 +56,12 @@ class FiberTissueSimulation(myokit.CModule):
     ``time`` (global)
         The simulation time
     ``pace`` (per-cell)
-        The pacing level, this is set if a protocol was passed in.
+        The pacing level, this is set if a protocol was passed in. Will be set
+        to 0 if no protocol is provided.
     ``diffusion_current`` (per-cell)
         The current flowing from the cell to its neighbors. This will be
         positive when the cell is acting as a source, negative when it is
-        acting as a sink.
+        acting as a sink. Will be set to 0 if no connections are made.
 
     The variable ``time`` is set globally, meaning each cell uses the same
     value. The variables ``pace`` and ``diffusion_current`` have different

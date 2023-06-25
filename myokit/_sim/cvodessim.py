@@ -88,6 +88,19 @@ class Simulation(myokit.CModule):
 
     No variable labels are required for this simulation type.
 
+    **Multiple protocols or no protocol**
+
+    This simulation supports pacing with more than one protocol. To this end,
+    pass in a dictionary mapping pacing labels (bindings) to :class:`Protocol`
+    or :class:`TimeSeriesProtocol` objects, e.g.
+    ``protocol={'pace_1': protocol_1, 'pace_2': protocol_2}``.
+
+    For backwards compatibility, if no protocol is set and ``protocol=None``,
+    then the pacing label ``pace`` is still registered (allowing later calls to
+    add a protocol with ``set_protocol``. Alternatively, if ``protocol={}``
+    then no pacing labels will be registered, and any subsequent calls to
+    ``set_protocol`` will fail.
+
     **Storing and loading simulation objects**
 
     There are two ways to store Simulation objects to the file system: 1.
@@ -163,11 +176,13 @@ class Simulation(myokit.CModule):
         if isinstance(protocol, (myokit.Protocol, myokit.TimeSeriesProtocol)):
             protocol = {'pace': protocol}
         elif protocol is None:
-            # TODO: This can be an empty dict once #320 is resolved
+            # For backwards compatibility, we still register 'pace'. This
+            # means users can call `set_protocol` at a later time to set a
+            # protocol.
             protocol = {'pace': None}
         for label, protocol in protocol.items():
+            self._protocols.append(None)
             self._pacing_labels.append(label)
-            self._protocols.append(myokit.Protocol())
             self.set_protocol(protocol, label)
 
         # Generate C Model code, get sensitivity and constants info
@@ -1023,10 +1038,7 @@ class Simulation(myokit.CModule):
             raise ValueError('Unknown pacing label: ' + str(label))
 
         # Set new protocol
-        if protocol is None:
-            self._protocols[index] = myokit.Protocol()
-        else:
-            self._protocols[index] = protocol.clone()
+        self._protocols[index] = None if protocol is None else protocol.clone()
 
     def __setstate__(self, state):
         """

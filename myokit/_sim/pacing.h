@@ -1,8 +1,8 @@
 /*
  * pacing.h
  *
- * Ansi-C implementation for event-based pacing (using a Myokit Protocol
- * object) and fixed-form pacing (using a time-series).
+ * Ansi-C implementation for event-based pacing (using a myokit.Protocol) and
+ * time series pacing (using a myokit.TimeSeriesProtocol).
  *
  * How to use event-based pacing:
  *
@@ -22,13 +22,12 @@
  * Flags are used to indicate errors. If a flag other than ESys_OK is set, a
  * call to ESys_SetPyErr(flag) can be made to set a Python exception.
  *
+ * How to use time series pacing:
  *
- * How to use fixed-form pacing:
- *
- *  1. Create a pacing system using FSys_Create
- *  2. Populate it using two Python lists via FSys_Populate
- *  3. Obtain the pacing value for any time using FSys_GetLevel
- *  4. Tidy up using FSys_Destroy
+ *  1. Create a pacing system using TSys_Create
+ *  2. Populate it using two Python lists via TSys_Populate
+ *  3. Obtain the pacing value for any time using TSys_GetLevel
+ *  4. Tidy up using TSys_Destroy
  *
  * This file is part of Myokit.
  * See http://myokit.org for copyright, sharing, and licensing details.
@@ -596,113 +595,113 @@ ESys_GetLevel(ESys sys, ESys_Flag* flag)
 
 /*
  *
- * Fixed-form code starts here
+ * Time-series code starts here
  *
  */
 
 /*
- * Fixed-form pacing error flags
+ * Time series pacing error flags
  */
-typedef int FSys_Flag;
-#define FSys_OK                             0
-#define FSys_OUT_OF_MEMORY                  -1
+typedef int TSys_Flag;
+#define TSys_OK                             0
+#define TSys_OUT_OF_MEMORY                  -1
 // General
-#define FSys_INVALID_SYSTEM                 -10
-#define FSys_POPULATED_SYSTEM               -11
-#define FSys_UNPOPULATED_SYSTEM             -12
+#define TSys_INVALID_SYSTEM                 -10
+#define TSys_POPULATED_SYSTEM               -11
+#define TSys_UNPOPULATED_SYSTEM             -12
 // Populating the system
-#define FSys_POPULATE_INVALID_TIMES         -20
-#define FSys_POPULATE_INVALID_VALUES        -21
-#define FSys_POPULATE_SIZE_MISMATCH         -22
-#define FSys_POPULATE_NOT_ENOUGH_DATA       -23
-#define FSys_POPULATE_INVALID_TIMES_DATA    -24
-#define FSys_POPULATE_INVALID_VALUES_DATA   -25
-#define FSys_POPULATE_DECREASING_TIMES_DATA -26
-#define FSys_POPULATE_INVALID_PROTOCOL      -27
+#define TSys_POPULATE_INVALID_TIMES         -20
+#define TSys_POPULATE_INVALID_VALUES        -21
+#define TSys_POPULATE_SIZE_MISMATCH         -22
+#define TSys_POPULATE_NOT_ENOUGH_DATA       -23
+#define TSys_POPULATE_INVALID_TIMES_DATA    -24
+#define TSys_POPULATE_INVALID_VALUES_DATA   -25
+#define TSys_POPULATE_DECREASING_TIMES_DATA -26
+#define TSys_POPULATE_INVALID_PROTOCOL      -27
 
 /*
- * Sets a python exception based on a fixed-form pacing error flag.
+ * Sets a python exception based on a time-series pacing error flag.
  *
  * Arguments
  *  flag : The python error flag to base the message on.
  */
 void
-FSys_SetPyErr(FSys_Flag flag)
+TSys_SetPyErr(TSys_Flag flag)
 {
     switch(flag) {
-    case FSys_OK:
+    case TSys_OK:
         break;
-    case FSys_OUT_OF_MEMORY:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Memory allocation failed.");
+    case TSys_OUT_OF_MEMORY:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Memory allocation failed.");
         break;
     // General
-    case FSys_INVALID_SYSTEM:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Invalid pacing system provided.");
+    case TSys_INVALID_SYSTEM:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Invalid pacing system provided.");
         break;
-    case FSys_POPULATED_SYSTEM:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Pacing system already populated.");
+    case TSys_POPULATED_SYSTEM:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Pacing system already populated.");
         break;
-    case FSys_UNPOPULATED_SYSTEM:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Pacing system not populated.");
+    case TSys_UNPOPULATED_SYSTEM:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Pacing system not populated.");
         break;
     // Populate
-    case FSys_POPULATE_INVALID_PROTOCOL:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Invalid protocol python object passed.");
+    case TSys_POPULATE_INVALID_PROTOCOL:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Invalid protocol python object passed.");
         break;
-    case FSys_POPULATE_INVALID_TIMES:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Invalid times array passed.");
+    case TSys_POPULATE_INVALID_TIMES:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Invalid times array passed.");
         break;
-    case FSys_POPULATE_INVALID_VALUES:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Invalid values array passed.");
+    case TSys_POPULATE_INVALID_VALUES:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Invalid values array passed.");
         break;
-    case FSys_POPULATE_SIZE_MISMATCH:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Sizes of times and values arrays don't match.");
+    case TSys_POPULATE_SIZE_MISMATCH:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Sizes of times and values arrays don't match.");
         break;
-    case FSys_POPULATE_NOT_ENOUGH_DATA:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Time-series must contain at least two data points.");
+    case TSys_POPULATE_NOT_ENOUGH_DATA:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Time-series must contain at least two data points.");
         break;
-    case FSys_POPULATE_INVALID_TIMES_DATA:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Times array must contain only floats.");
+    case TSys_POPULATE_INVALID_TIMES_DATA:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Times array must contain only floats.");
         break;
-    case FSys_POPULATE_INVALID_VALUES_DATA:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Values array must contain only floats.");
+    case TSys_POPULATE_INVALID_VALUES_DATA:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Values array must contain only floats.");
         break;
-    case FSys_POPULATE_DECREASING_TIMES_DATA:
-        PyErr_SetString(PyExc_Exception, "F-Pacing error: Times array must be non-decreasing.");
+    case TSys_POPULATE_DECREASING_TIMES_DATA:
+        PyErr_SetString(PyExc_Exception, "T-Pacing error: Times array must be non-decreasing.");
         break;
     // Unknown
     default:
-        PyErr_Format(PyExc_Exception, "F-Pacing error: Unlisted error %d", (int)flag);
+        PyErr_Format(PyExc_Exception, "T-Pacing error: Unlisted error %d", (int)flag);
         break;
     };
 }
 
 /*
- * Fixed-form pacing system
+ * Time series pacing system
  */
-struct FSys_Mem {
+struct TSys_Mem {
     Py_ssize_t n_points;   // The number of entries in the time and pace arrays
     double* times;  // The time array
     double* values; // The values array
     Py_ssize_t last_index; // The index of the most recently returned value
     //double level;   // The current output value
 };
-typedef struct FSys_Mem* FSys;
+typedef struct TSys_Mem* TSys;
 
 /*
- * Creates a fixed-form pacing system
+ * Creates a time series pacing system
  *
  * Arguments
- *  flag : The address of a fixed-form pacing error flag or NULL
+ *  flag : The address of a time series pacing error flag or NULL
  *
- * Returns the newly created fixed-form pacing system
+ * Returns the newly created time series pacing system
  */
-FSys
-FSys_Create(FSys_Flag* flag)
+TSys
+TSys_Create(TSys_Flag* flag)
 {
-    FSys sys = (FSys)malloc(sizeof(struct FSys_Mem));
+    TSys sys = (TSys)malloc(sizeof(struct TSys_Mem));
     if (sys == 0) {
-        if(flag != 0) *flag = FSys_OUT_OF_MEMORY;
+        if(flag != 0) *flag = TSys_OUT_OF_MEMORY;
         return 0;
     }
 
@@ -711,22 +710,22 @@ FSys_Create(FSys_Flag* flag)
     sys->values = NULL;
     sys->last_index = 0;
 
-    if(flag != 0) *flag = FSys_OK;
+    if(flag != 0) *flag = TSys_OK;
     return sys;
 }
 
 /*
- * Destroys a fixed-form pacing system and frees the memory it occupies.
+ * Destroys a time series pacing system and frees the memory it occupies.
  *
  * Arguments
- *  sys : The fixed-form pacing system to destroy
+ *  sys : The time series pacing system to destroy
  *
- * Returns a fixed-form pacing error flag.
+ * Returns a time series pacing error flag.
  */
-FSys_Flag
-FSys_Destroy(FSys sys)
+TSys_Flag
+TSys_Destroy(TSys sys)
 {
-    if(sys == 0) return FSys_INVALID_SYSTEM;
+    if(sys == 0) return TSys_INVALID_SYSTEM;
     if(sys->times != NULL) {
         free(sys->times);
         sys->times = NULL;
@@ -736,39 +735,39 @@ FSys_Destroy(FSys sys)
         sys->values = NULL;
     }
     free(sys);
-    return FSys_OK;
+    return TSys_OK;
 }
 
 /*
- * Populates a fixed-form pacing system using two Python list objects
+ * Populates a time series pacing system using two Python list objects
  * containing an equal number of floating point numbers.
  * Returns an error if the system already has data.
  *
  * Arguments
- *  sys    : The fixed-form pacing system to add the data to.
+ *  sys    : The time series pacing system to add the data to.
  *  times  : A Python list of (non-decreasing) floats.
  *  values : An equally sized Python list of floats.
  *
- * Returns a fixed-form pacing error flag.
+ * Returns a time series pacing error flag.
  */
-FSys_Flag
-FSys_Populate(FSys sys, PyObject* protocol)
+TSys_Flag
+TSys_Populate(TSys sys, PyObject* protocol)
 {
     int i;
     Py_ssize_t n;
     PyObject *times_list, *values_list;
 
     // Check ESys
-    if(sys == 0) return FSys_INVALID_SYSTEM;
-    if (sys->n_points != -1) return FSys_POPULATED_SYSTEM;
-    if (protocol == Py_None) return FSys_POPULATE_INVALID_PROTOCOL;
+    if(sys == 0) return TSys_INVALID_SYSTEM;
+    if (sys->n_points != -1) return TSys_POPULATED_SYSTEM;
+    if (protocol == Py_None) return TSys_POPULATE_INVALID_PROTOCOL;
 
     // Get PyList from protocol (will need to decref!)
     times_list = PyObject_CallMethod(protocol, "times", NULL); // Returns a new reference
-    if(times_list == NULL) return FSys_POPULATE_INVALID_PROTOCOL;
+    if(times_list == NULL) return TSys_POPULATE_INVALID_PROTOCOL;
     if(!PyList_Check(times_list)) {
         Py_DECREF(times_list);
-        return FSys_POPULATE_INVALID_TIMES;
+        return TSys_POPULATE_INVALID_TIMES;
     }
 
     // Check and convert times list
@@ -782,12 +781,12 @@ FSys_Populate(FSys sys, PyObject* protocol)
 
     if (PyErr_Occurred()) {
         free(sys->times); sys->times = NULL;
-        return FSys_POPULATE_INVALID_TIMES_DATA;
+        return TSys_POPULATE_INVALID_TIMES_DATA;
     }
     for(i=1; i<n; i++) {
         if(sys->times[i] < sys->times[i-1]) {
             free(sys->times); sys->times = NULL;
-            return FSys_POPULATE_DECREASING_TIMES_DATA;
+            return TSys_POPULATE_DECREASING_TIMES_DATA;
         }
     }
 
@@ -795,12 +794,12 @@ FSys_Populate(FSys sys, PyObject* protocol)
     values_list = PyObject_CallMethod(protocol, (char*)"values", NULL); // Returns a new reference
     if(values_list == NULL) {
         free(sys->times); sys->times = NULL;
-        return FSys_POPULATE_INVALID_PROTOCOL;
+        return TSys_POPULATE_INVALID_PROTOCOL;
     }
     if(!PyList_Check(values_list) || PyList_Size(values_list) != n) {
         free(sys->times); sys->times = NULL;
         Py_DECREF(values_list);
-        return FSys_POPULATE_INVALID_VALUES;
+        return TSys_POPULATE_INVALID_VALUES;
     }
     sys->values = (double*)malloc((size_t)n * sizeof(double));
     for(i=0; i<n; i++) {
@@ -812,13 +811,13 @@ FSys_Populate(FSys sys, PyObject* protocol)
     if (PyErr_Occurred()) {
         free(sys->times); sys->times = NULL;
         free(sys->values); sys->values = NULL;
-        return FSys_POPULATE_INVALID_VALUES_DATA;
+        return TSys_POPULATE_INVALID_VALUES_DATA;
     }
 
     // Update pacing system and return
     sys->n_points = n;
     sys->last_index = 0;
-    return FSys_OK;
+    return TSys_OK;
 }
 
 /*
@@ -834,7 +833,7 @@ FSys_Populate(FSys sys, PyObject* protocol)
  * using the flag argument!
  */
 double
-FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
+TSys_GetLevel(TSys sys, double time, TSys_Flag* flag)
 {
     // Index and time at left, mid and right point, plus guessed point
     Py_ssize_t ileft, imid, iright, iguess;
@@ -843,11 +842,11 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
 
     // Check system
     if(sys == 0) {
-        if(flag != 0) *flag = FSys_INVALID_SYSTEM;
+        if(flag != 0) *flag = TSys_INVALID_SYSTEM;
         return -1;
     }
     if(sys->n_points < 0) {
-        if(flag != 0) *flag = FSys_UNPOPULATED_SYSTEM;
+        if(flag != 0) *flag = TSys_UNPOPULATED_SYSTEM;
         return -1;
     }
 
@@ -860,7 +859,7 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
     tleft = sys->times[ileft];
     if (tleft > time) {
         // Out-of-bounds on the left, return left-most value
-        if(flag != 0) *flag = FSys_OK;
+        if(flag != 0) *flag = TSys_OK;
         return sys->values[ileft];
     }
 
@@ -869,7 +868,7 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
     tright = sys->times[iright];
     if (tright <= time) {
         // Out-of-bounds on the right, return right-most value
-        if(flag != 0) *flag = FSys_OK;
+        if(flag != 0) *flag = TSys_OK;
         return sys->values[iright];
     }
 
@@ -911,16 +910,30 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
     // (Because otherwise it can happen that tleft == tright, which would give
     //  a divide-by-zero in the interpolateion)
     if (time == tright) {
-        if(flag != 0) *flag = FSys_OK;
+        if(flag != 0) *flag = TSys_OK;
         sys->last_index = iright;
         return sys->values[iright];
     }
 
     // Find the correct value using linear interpolation
-    if(flag != 0) *flag = FSys_OK;
+    if(flag != 0) *flag = TSys_OK;
     sys->last_index = ileft;
     vleft = sys->values[ileft];
     return vleft + (sys->values[iright] - vleft) * (time - tleft) / (tright - tleft);
 }
+
+/*
+ * Pacing types
+ */
+union PSys {
+    ESys esys;
+    TSys tsys;
+};
+
+enum PSysType {
+    PSys_NOT_SET,
+    ESys_TYPE,
+    TSys_TYPE
+};
 
 #endif

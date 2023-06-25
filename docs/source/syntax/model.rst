@@ -502,8 +502,8 @@ Time dependence and pacing
 Explicit time dependence is discouraged, but possible in many simulations using
 the external source ``time``.
 
-In principle, this variable can be used to pace the model, but there are a
-number of problems with this:
+In principle, this variable can be used to "pace" an action potential model,
+but there are two reasons this is discouraged:
 
 1. Conceptually, it makes sense to apply different protocols to the same cell
    model.
@@ -512,16 +512,18 @@ number of problems with this:
    something interesting is about to happen. As a result, the solver may skip
    over the - typically very short - stimuli.
 
-To remedy this, the standard myokit simulation engine has an event-driven
-pacing mechanism that can be accessed through the variable ``pace``::
+Instead, Myokit's simulations provide event-based pacing via "Protocols" (see
+:ref:`syntax/protocol`). The protocol is interpreted by the simulation engine
+and made available to the model through a variable bound to a label such as
+``pace``::
 
     [stimulus]
     level = 0 bind pace
     amplitude = -25
     istim = level * amplitude
 
-For information on defining a pacing protocol, see the section
-:ref:`syntax/protocol`.
+A simulation using the binding ``pace`` will set the value of ``level`` based
+on the provided Protocol.
 
 Labelling special variables
 ---------------------------

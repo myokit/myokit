@@ -192,15 +192,7 @@ Model model;        /* A model object */
 /*
  * Pacing
  */
-union PSys {
-    ESys event;
-    FSys fixed;
-};
-enum PSysType {
-    EVENT,
-    FIXED
-};
-union PSys *pacing_systems;   /* Array of pacing system (event or fixed) */
+union PSys *pacing_systems;   /* Array of pacing systems (event based or time series) */
 enum PSysType *pacing_types;  /* Array of pacing system types */
 PyObject *protocols;          /* The protocols used to generate the pacing systems */
 double* pacing;               /* Pacing values, same size as pacing_systems and pacing_types */
@@ -351,16 +343,16 @@ benchmarker_print(char* message)
 int
 rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
 {
-    FSys_Flag flag_fpacing;
+    TSys_Flag flag_fpacing;
     UserData fdata;
     int i;
 
-    /* Fixed-form pacing? Then look-up correct value of pacing variable */
+    /* Time-series pacing? Then look-up correct value of pacing variable */
     for (int i = 0; i < n_pace; i++) {
-        if (pacing_types[i] == FIXED) {
-            pacing[i] = FSys_GetLevel(pacing_systems[i].fixed, t, &flag_fpacing);
-            if (flag_fpacing != FSys_OK) { /* This should never happen */
-                FSys_SetPyErr(flag_fpacing);
+        if (pacing_types[i] == TSys_TYPE) {
+            pacing[i] = TSys_GetLevel(pacing_systems[i].tsys, t, &flag_fpacing);
+            if (flag_fpacing != TSys_OK) { /* This should never happen */
+                TSys_SetPyErr(flag_fpacing);
                 return -1;  /* Negative value signals irrecoverable error to CVODE */
             }
         }
@@ -441,6 +433,9 @@ sim_clean(void)
         #endif
 
         /* CVode arrays */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Sundials vectors.\n");
+        #endif
         if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
         if (ylast != NULL) { N_VDestroy_Serial(ylast); ylast = NULL; }
         if (sy != NULL) { N_VDestroyVectorArray(sy, model->ns_independents); sy = NULL; }
@@ -450,9 +445,15 @@ sim_clean(void)
         }
 
         /* Root finding results */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Root-finding results.\n");
+        #endif
         free(rf_direction); rf_direction = NULL;
 
         /* Sundials objects */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Sundials objects.\n");
+        #endif
         CVodeFree(&cvode_mem); cvode_mem = NULL;
         #if SUNDIALS_VERSION_MAJOR >= 3
         SUNLinSolFree(sundense_solver); sundense_solver = NULL;
@@ -463,6 +464,9 @@ sim_clean(void)
         #endif
 
         /* User data and parameter scale array*/
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Sundials user-data.\n");
+        #endif
         free(pbar);
         if (udata != NULL) {
             free(udata->p);
@@ -470,11 +474,15 @@ sim_clean(void)
         }
 
         /* Pacing systems */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Pacing systems.\n");
+        #endif
         for (int i = 0; i < n_pace; i++) {
-            if (pacing_types[i] == FIXED) {
-                FSys_Destroy(pacing_systems[i].fixed);
-            } else if (pacing_types[i] == EVENT) {
-                ESys_Destroy(pacing_systems[i].event);
+            // Note: Type is ESys, TSys, or not set!
+            if (pacing_types[i] == ESys_TYPE) {
+                ESys_Destroy(pacing_systems[i].esys);
+            } else if (pacing_types[i] == TSys_TYPE) {
+                TSys_Destroy(pacing_systems[i].tsys);
             }
         }
         free(pacing_systems); pacing_systems = NULL;
@@ -482,6 +490,9 @@ sim_clean(void)
         free(pacing); pacing = NULL;
 
         /* CModel */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..CModel.\n");
+        #endif
         Model_Destroy(model); model = NULL;
 
         /* Benchmarking and profiling */
@@ -508,6 +519,10 @@ sim_clean(void)
 PyObject*
 sim_cleanx(PyObject* ex_type, const char* msg, ...)
 {
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Entering sim_cleanx.\n");
+    #endif
+
     va_list argptr;
     char errstr[1024];
 
@@ -544,11 +559,11 @@ sim_init(PyObject *self, PyObject *args)
     int flag_cvode;
     Model_Flag flag_model;
     ESys_Flag flag_epacing;
-    FSys_Flag flag_fpacing;
+    TSys_Flag flag_fpacing;
 
     /* Pacing systems */
     ESys epacing;
-    FSys fpacing;
+    TSys fpacing;
 
     /* General purpose ints for iterating */
     int i, j;
@@ -618,7 +633,7 @@ sim_init(PyObject *self, PyObject *args)
             &bound_py,          /*  4. List: store final bound variables here */
             &literals,          /*  5. List: literal constant values */
             &parameters,        /*  6. List: parameter values */
-            &protocols,         /*   7. Event-based or fixed protocols */
+            &protocols,         /*  7. Event-based or time series protocols */
             &log_dict,          /*  8. DataLog */
             &log_interval,      /*  9. Float: log interval, or 0 */
             &log_times,         /* 10. List of logging times, or None */
@@ -955,6 +970,9 @@ sim_init(PyObject *self, PyObject *args)
      */
     n_pace = 0;
     if (protocols != Py_None) {
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM Initialising pacing systems\n");
+        #endif
         if (!PyList_Check(protocols)) {
             return sim_cleanx(PyExc_TypeError, "'protocols' must be a list.");
         }
@@ -980,43 +998,61 @@ sim_init(PyObject *self, PyObject *args)
     tnext = tmax;
 
     /*
-     * Set up event-based and/or fixed pacing.
+     * Set up event-based and/or time-series pacing.
      */
     if (protocols != Py_None) {
         for (int i = 0; i < PyList_Size(protocols); i++) {
             PyObject *protocol = PyList_GetItem(protocols, i);
             const char* protocol_type_name = Py_TYPE(protocol)->tp_name;
             if (strcmp(protocol_type_name, "Protocol") == 0) {
-                pacing_systems[i].event = ESys_Create(&flag_epacing);
-                pacing_types[i] = EVENT;
-                epacing = pacing_systems[i].event;
+
+                epacing = ESys_Create(&flag_epacing);
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+                pacing_systems[i].esys = epacing;
+                pacing_types[i] = ESys_TYPE;
+
                 flag_epacing = ESys_Populate(epacing, protocol);
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+
                 flag_epacing = ESys_AdvanceTime(epacing, tmin);
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+
                 t_proposed = ESys_GetNextTime(epacing, &flag_epacing);
                 pacing[i] = ESys_GetLevel(epacing, &flag_epacing);
                 tnext = fmin(t_proposed, tnext);
 
-                #ifdef MYOKIT_DEBUG_PROFILING
+                #if defined(MYOKIT_DEBUG_PROFILING)
                 benchmarker_print("CP Created event-based pacing system.");
+                #elif defined(MYOKIT_DEBUG_MESSAGES)
+                printf("CM Created an event-based pacing system\n");
                 #endif
+
             } else if (strcmp(protocol_type_name, "TimeSeriesProtocol") == 0) {
-                pacing_systems[i].fixed = FSys_Create(&flag_fpacing);
-                pacing_types[i] = FIXED;
-                fpacing = pacing_systems[i].fixed;
-                if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
-                flag_fpacing = FSys_Populate(fpacing, protocol);
-                if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
 
+                fpacing = TSys_Create(&flag_fpacing);
+                pacing_systems[i].tsys = fpacing;
+                pacing_types[i] = TSys_TYPE;
 
-                #ifdef MYOKIT_DEBUG_PROFILING
-                benchmarker_print("CP Created fixed-form pacing system.");
+                if (flag_fpacing != TSys_OK) { TSys_SetPyErr(flag_fpacing); return sim_clean(); }
+                flag_fpacing = TSys_Populate(fpacing, protocol);
+                if (flag_fpacing != TSys_OK) { TSys_SetPyErr(flag_fpacing); return sim_clean(); }
+                pacing[i] = 0;
+
+                #if defined(MYOKIT_DEBUG_PROFILING)
+                benchmarker_print("CP Created time-series pacing system.");
+                #elif defined(MYOKIT_DEBUG_MESSAGES)
+                printf("CM Added a time-series pacing system\n");
                 #endif
+
             } else {
-                printf("protocol_type_name: %s", protocol_type_name);
-                return sim_cleanx(PyExc_TypeError, "Item %d in 'protocols' is not a myokit.Protocol or myokit.TimeSeriesProtocol object.", i);
+
+                /* Pacing label defined but no protocol set. Usually happens through set_protocol(None). */
+                #if defined(MYOKIT_DEBUG_MESSAGES)
+                printf("CM Unsetting previously set protocol\n");
+                #endif
+
+                pacing_types[i] = PSys_NOT_SET;
+                pacing[i] = 0;  /* See #320 and technical note on pacing */
             }
         }
     }
@@ -1284,6 +1320,9 @@ sim_step(PyObject *self, PyObject *args)
     int flag_root;          /* Root finding flag */
     int flag_reinit = 0;    /* Set if CVODE needs to be reset during a simulation step */
 
+    /* Pacing */
+    ESys epacing;
+
     /* Multi-purpose ints for iterating */
     int i, j;
 
@@ -1521,12 +1560,10 @@ sim_step(PyObject *self, PyObject *args)
              */
             tnext = tmax;
             for (int i = 0; i < n_pace; i++) {
-                if (pacing_types[i] == EVENT) {
-                    ESys epacing = pacing_systems[i].event;
+                if (pacing_types[i] == ESys_TYPE) {
+                    epacing = pacing_systems[i].esys;
                     flag_epacing = ESys_AdvanceTime(epacing, t);
-                    if (flag_epacing != ESys_OK) {
-                        ESys_SetPyErr(flag_epacing); return sim_clean();
-                    }
+                    if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                     t_proposed = ESys_GetNextTime(epacing, NULL);
                     tnext = fmin(tnext, t_proposed);
                     pacing[i] = ESys_GetLevel(epacing, NULL);

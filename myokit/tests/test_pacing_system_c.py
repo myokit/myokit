@@ -11,7 +11,7 @@ import numpy as np
 import myokit
 
 from myokit.tests.ansic_event_based_pacing import AnsicEventBasedPacing
-from myokit.tests.ansic_fixed_form_pacing import AnsicFixedFormPacing
+from myokit.tests.ansic_time_series_pacing import AnsicTimeSeriesPacing
 
 
 class EventBasedPacingAnsicTest(unittest.TestCase):
@@ -97,11 +97,11 @@ class EventBasedPacingAnsicTest(unittest.TestCase):
         self.assertRaises(myokit.SimultaneousProtocolEventError, s.run, 40)
 
 
-class FixedFormPacingAnsicTest(unittest.TestCase):
+class TimeSeriesPacingAnsicTest(unittest.TestCase):
     """
-    Test the Ansi-C fixed-form pacing system (aka point-list, aka data-clamp).
+    Test the Ansi-C time-series pacing system (aka point-list, aka data-clamp).
     """
-    def test_fixed_form_pacing_ansic(self):
+    def test_time_series_pacing_ansic(self):
         # Tests if the basics work
 
         if False:
@@ -139,7 +139,8 @@ class FixedFormPacingAnsicTest(unittest.TestCase):
         values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         times = [0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 5, 7]
         values = list(range(len(times)))
-        pacing = AnsicFixedFormPacing(myokit.TimeSeriesProtocol(times, values))
+        pacing = AnsicTimeSeriesPacing(
+            myokit.TimeSeriesProtocol(times, values))
 
         def test(value, index):
             self.assertEqual(pacing.pace(value), index)
