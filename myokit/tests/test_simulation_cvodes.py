@@ -230,13 +230,17 @@ class SimulationTest(unittest.TestCase):
     def test_no_protocol(self):
         # Test running without a protocol.
 
+        # Check if pace was set to zero (see technical notes).
         self.sim.reset()
         self.sim.pre(50)
         self.sim.set_protocol(None)
         d = self.sim.run(50, log=['engine.pace']).npview()
-
-        # Check if pace was set to zero (see technical notes).
         self.assertTrue(np.all(d['engine.pace'] == 0))
+
+        # Defined at the start? Then still counts as bound
+        self.assertRaisesRegex(
+            ValueError, 'not a literal',
+            self.sim.set_constant, 'engine.pace', 1)
 
         # Check that pace is reset to zero when protocol is removed
         x = 0.01    # Note: Must be low to stop sim crashing :D
