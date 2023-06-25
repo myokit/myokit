@@ -931,6 +931,7 @@ union PSys {
 };
 
 enum PSysType {
+    PSys_NOT_SET,
     ESys_TYPE,
     TSys_TYPE
 };

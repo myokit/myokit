@@ -163,11 +163,10 @@ class Simulation(myokit.CModule):
         if isinstance(protocol, (myokit.Protocol, myokit.TimeSeriesProtocol)):
             protocol = {'pace': protocol}
         elif protocol is None:
-            # TODO: This can be an empty dict once #320 is resolved
-            protocol = {'pace': None}
+            protocol = {}
         for label, protocol in protocol.items():
+            self._protocols.append(None)
             self._pacing_labels.append(label)
-            self._protocols.append(myokit.Protocol())
             self.set_protocol(protocol, label)
 
         # Generate C Model code, get sensitivity and constants info
@@ -1023,10 +1022,7 @@ class Simulation(myokit.CModule):
             raise ValueError('Unknown pacing label: ' + str(label))
 
         # Set new protocol
-        if protocol is None:
-            self._protocols[index] = myokit.Protocol()
-        else:
-            self._protocols[index] = protocol.clone()
+        self._protocols[index] = None if protocol is None else protocol.clone()
 
     def __setstate__(self, state):
         """

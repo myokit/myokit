@@ -482,6 +482,7 @@ Model_SetupPacing(Model model, int n_pace)
     /* Clear values */
     for (int i = 0; i < n_pace; i++) {
         model->pace_values[i] = 0;
+        /* Note: This will be overruled by the first call to SetBoundVariables */
     }
 
     return Model_OK;

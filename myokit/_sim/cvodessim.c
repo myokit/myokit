@@ -433,6 +433,9 @@ sim_clean(void)
         #endif
 
         /* CVode arrays */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Sundials vectors.\n");
+        #endif
         if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
         if (ylast != NULL) { N_VDestroy_Serial(ylast); ylast = NULL; }
         if (sy != NULL) { N_VDestroyVectorArray(sy, model->ns_independents); sy = NULL; }
@@ -442,9 +445,15 @@ sim_clean(void)
         }
 
         /* Root finding results */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Root-finding results.\n");
+        #endif
         free(rf_direction); rf_direction = NULL;
 
         /* Sundials objects */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Sundials objects.\n");
+        #endif
         CVodeFree(&cvode_mem); cvode_mem = NULL;
         #if SUNDIALS_VERSION_MAJOR >= 3
         SUNLinSolFree(sundense_solver); sundense_solver = NULL;
@@ -455,6 +464,9 @@ sim_clean(void)
         #endif
 
         /* User data and parameter scale array*/
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Sundials user-data.\n");
+        #endif
         free(pbar);
         if (udata != NULL) {
             free(udata->p);
@@ -462,10 +474,14 @@ sim_clean(void)
         }
 
         /* Pacing systems */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Pacing systems.\n");
+        #endif
         for (int i = 0; i < n_pace; i++) {
+            // Note: Type is ESys, TSys, or not set!
             if (pacing_types[i] == ESys_TYPE) {
                 ESys_Destroy(pacing_systems[i].esys);
-            } else {
+            } else if (pacing_types[i] == TSys_TYPE) {
                 TSys_Destroy(pacing_systems[i].tsys);
             }
         }
@@ -474,6 +490,9 @@ sim_clean(void)
         free(pacing); pacing = NULL;
 
         /* CModel */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..CModel.\n");
+        #endif
         Model_Destroy(model); model = NULL;
 
         /* Benchmarking and profiling */
@@ -500,6 +519,10 @@ sim_clean(void)
 PyObject*
 sim_cleanx(PyObject* ex_type, const char* msg, ...)
 {
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Entering sim_cleanx.\n");
+    #endif
+
     va_list argptr;
     char errstr[1024];
 
@@ -1013,15 +1036,23 @@ sim_init(PyObject *self, PyObject *args)
                 if (flag_fpacing != TSys_OK) { TSys_SetPyErr(flag_fpacing); return sim_clean(); }
                 flag_fpacing = TSys_Populate(fpacing, protocol);
                 if (flag_fpacing != TSys_OK) { TSys_SetPyErr(flag_fpacing); return sim_clean(); }
+                pacing[i] = 0;
 
                 #if defined(MYOKIT_DEBUG_PROFILING)
                 benchmarker_print("CP Created time-series pacing system.");
                 #elif defined(MYOKIT_DEBUG_MESSAGES)
                 printf("CM Added a time-series pacing system\n");
                 #endif
+
             } else {
-                printf("protocol_type_name: %s", protocol_type_name);
-                return sim_cleanx(PyExc_TypeError, "Item %d in 'protocols' is not a myokit.Protocol or myokit.TimeSeriesProtocol object.", i);
+
+                /* Pacing label defined but no protocol set. Usually happens through set_protocol(None). */
+                #if defined(MYOKIT_DEBUG_MESSAGES)
+                printf("CM Unsetting previously set protocol\n");
+                #endif
+
+                pacing_types[i] = PSys_NOT_SET;
+                pacing[i] = 0;  /* See #320 and technical note on pacing */
             }
         }
     }
