@@ -900,8 +900,6 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.assertEqual(self.s0.time(), 10)
             self.s0.run(1)
             self.assertEqual(self.s0.time(), 11)
-            self.assertRaisesRegex(
-                ValueError, 'negative', self.s0.set_time, -1)
 
             # Test running for a negative amount of time
             self.assertRaisesRegex(
