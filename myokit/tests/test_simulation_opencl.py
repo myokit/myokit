@@ -682,6 +682,24 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertEqual(x, m.initial_values(True) * 2)
         self.assertEqual(x, s.default_state())
 
+    def test_negative_time(self):
+        # Test starting at a negative time
+
+        p = myokit.pacing.blocktrain(duration=1, level=1, period=2)
+        self.s0.reset()
+        self.s0.set_protocol(p)
+        self.s0.set_time(-10)
+        self.assertEqual(self.s0.time(), -10)
+        d = self.s0.run(5, log=['engine.pace']).npview()
+        self.assertEqual(self.s0.time(), -5)
+        self.assertTrue(np.all(d['engine.pace'] == 0))
+        d = self.s0.run(6, log=['engine.time', 'engine.pace']).npview()
+        #print(d['engine.time'])
+        #print(d['engine.pace'])
+        self.assertEqual(self.s0.time(), 1)
+        self.assertTrue(np.all(d['engine.pace'][:-1] == 0))
+        self.assertEqual(d['engine.pace'][-1], 1)
+
     def test_neighbors_0d(self):
         # Test listing neighbors in a 0d simulation
 
@@ -882,8 +900,6 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.assertEqual(self.s0.time(), 10)
             self.s0.run(1)
             self.assertEqual(self.s0.time(), 11)
-            self.assertRaisesRegex(
-                ValueError, 'negative', self.s0.set_time, -1)
 
             # Test running for a negative amount of time
             self.assertRaisesRegex(

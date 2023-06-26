@@ -22,7 +22,7 @@ class AnsicEventBasedPacing(myokit.CModule):
     """
     _index = 0
 
-    def __init__(self, protocol):
+    def __init__(self, protocol, initial_time=0):
         super().__init__()
 
         # Unique id
@@ -42,8 +42,8 @@ class AnsicEventBasedPacing(myokit.CModule):
         self._sys = self._compile(module_name, fname, args, libs, libd, incd)
 
         # Initialize
-        self._sys.init(protocol.clone())
-        self.advance(0)
+        self._sys.init(protocol.clone(), initial_time)
+        self.advance(initial_time)
 
     def __del__(self):
         # Free the memory used by the pacing system

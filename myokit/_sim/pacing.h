@@ -216,11 +216,12 @@ ESys_ScheduleEvent(ESys_Event head, ESys_Event add, ESys_Flag* flag)
  * Pacing system
  */
 struct ESys_Mem {
-    Py_ssize_t n_events;   // The number of events in this system
-    double time;    // The current time
-    ESys_Event events;   // The events, stored as an array
-    ESys_Event head;     // The head of the event queue
-    ESys_Event fire;     // The currently active event
+    Py_ssize_t n_events;    // The number of events in this system
+    double time;            // The current time
+    double initial_time;    // The initial time (used by reset)
+    ESys_Event events;      // The events, stored as an array
+    ESys_Event head;        // The head of the event queue
+    ESys_Event fire;        // The currently active event
     double tnext;   // The time of the next event start or finish
     double tdown;   // The time the active event is over
     double level;   // The current output value
@@ -236,7 +237,7 @@ typedef struct ESys_Mem* ESys;
  * Returns the newly created pacing system
  */
 ESys
-ESys_Create(ESys_Flag* flag)
+ESys_Create(double initial_time, ESys_Flag* flag)
 {
     ESys sys = (ESys)malloc(sizeof(struct ESys_Mem));
     if (sys == 0) {
@@ -244,13 +245,14 @@ ESys_Create(ESys_Flag* flag)
         return 0;
     }
 
-    sys->time = 0;
+    sys->time = initial_time;
+    sys->initial_time = initial_time;
     sys->n_events = -1; // Used to indicate unpopulated system
     sys->events = NULL;
     sys->head = NULL;
     sys->fire = NULL;
-    sys->tnext = 0;
-    sys->tdown = 0;
+    sys->tnext = initial_time;
+    sys->tdown = initial_time;
     sys->level = 0;
 
     if(flag != 0) *flag = ESys_OK;
@@ -314,11 +316,11 @@ ESys_Reset(ESys sys)
     }
 
     // Reset the properties of the event system
-    sys->time = 0;
+    sys->time = sys->initial_time;
     sys->head = head;
     sys->fire = 0;
-    sys->tnext = 0;
-    sys->tdown = 0;
+    sys->tnext = sys->initial_time;
+    sys->tdown = sys->initial_time;
     sys->level = 0;
 
     return ESys_OK;
@@ -908,7 +910,7 @@ TSys_GetLevel(TSys sys, double time, TSys_Flag* flag)
 
     // Handle special case of time == tright
     // (Because otherwise it can happen that tleft == tright, which would give
-    //  a divide-by-zero in the interpolateion)
+    //  a divide-by-zero in the interpolation)
     if (time == tright) {
         if(flag != 0) *flag = TSys_OK;
         sys->last_index = iright;

@@ -117,6 +117,26 @@ class Simulation1dTest(unittest.TestCase):
         self.assertEqual(x, m.initial_values(True) * 2)
         self.assertEqual(x, s.default_state())
 
+    def test_negative_time(self):
+        # Test starting at a negative time
+
+        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        p = myokit.pacing.blocktrain(duration=1, level=1, period=2)
+        n = 4
+        s = myokit.Simulation1d(m, p, ncells=n)
+
+        s.set_time(-10)
+        self.assertEqual(s.time(), -10)
+        d = s.run(5, log=['engine.pace']).npview()
+        self.assertEqual(s.time(), -5)
+        self.assertTrue(np.all(d['engine.pace'] == 0))
+        d = s.run(6, log=['engine.time', 'engine.pace']).npview()
+        #print(d['engine.time'])
+        #print(d['engine.pace'])
+        self.assertEqual(s.time(), 1)
+        self.assertTrue(np.all(d['engine.pace'][:-1] == 0))
+        self.assertEqual(d['engine.pace'][-1], 1)
+
     def test_no_protocol(self):
         # Test running without a protocol
         m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))

@@ -383,6 +383,27 @@ class FiberTissueSimulationTest(unittest.TestCase):
             ValueError, 'diffusion current must have the same unit',
             FT, mf, m2)
 
+    def test_negative_time(self):
+        # Test starting at a negative time
+
+        p = myokit.pacing.blocktrain(duration=1, level=1, period=2)
+        self.s0.reset()
+        self.s0.set_protocol(p)
+        self.s0.set_time(-10)
+        self.assertEqual(self.s0.time(), -10)
+        df, dt = self.s0.run(5, logf=['engine.pace'], logt=myokit.LOG_NONE)
+        df = df.npview()
+        self.assertEqual(self.s0.time(), -5)
+        self.assertTrue(np.all(df['engine.pace'] == 0))
+        df, dt = self.s0.run(
+            6, logf=['engine.time', 'engine.pace'], logt=myokit.LOG_NONE)
+        df = df.npview()
+        #print(d['engine.time'])
+        #print(d['engine.pace'])
+        self.assertEqual(self.s0.time(), 1)
+        self.assertTrue(np.all(df['engine.pace'][:-1] == 0))
+        self.assertEqual(df['engine.pace'][-1], 1)
+
     def test_pre_reset(self):
         # Tests getting/setting of states and time, and use of pre() and run()
         try:

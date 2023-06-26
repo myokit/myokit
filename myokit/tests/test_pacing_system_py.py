@@ -89,6 +89,24 @@ class EventBasedPacingPythonTest(unittest.TestCase):
         m = str(e.exception)
         self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
 
+    def test_negative_time(self):
+        # Test starting from a negative time
+
+        p = myokit.pacing.blocktrain(level=1, duration=1, period=2)
+        s = myokit.PacingSystem(p, initial_time=-100)
+        self.assertEqual(s.time(), -100)
+        self.assertEqual(s.next_time(), 0)
+        self.assertEqual(s.pace(), 0)
+
+        p = myokit.pacing.blocktrain(level=1, duration=1, period=2, offset=1)
+        s = myokit.PacingSystem(p, initial_time=-100)
+        self.assertEqual(s.time(), -100)
+        self.assertEqual(s.next_time(), 1)
+        self.assertEqual(s.pace(), 0)
+        s.advance(s.next_time())
+        self.assertEqual(s.time(), 1)
+        self.assertEqual(s.pace(), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

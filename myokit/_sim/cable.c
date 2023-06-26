@@ -414,7 +414,7 @@ print(tab + '}')
     }
 
     /* Set up pacing */
-    pacing = ESys_Create(&flag_pacing);
+    pacing = ESys_Create(tmin, &flag_pacing);
     if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_Populate(pacing, protocol);
     if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
