@@ -10,6 +10,7 @@ import unittest
 
 import numpy as np
 
+import myokit
 import myokit.formats.wcp as wcp
 
 from myokit.tests import DIR_FORMATS, WarningCollector
@@ -42,6 +43,46 @@ Record 10: TEST, ACCEPTED, 0.001, 5.625, ""
 '''.strip()
 
 
+INFO_LONG = INFO + '''
+------------------------------------ header ------------------------------------
+ver: 9
+ctime: 21/11/2014 12:43:08
+rtime: 21/11/2014 14:18:28
+nbh: 1024
+adcmax: 32677
+nc: 2
+nba: 2
+nbd: 2
+ad: 10.0
+nr: 11
+dt: 0.001
+nz: 20
+id: ''' + '''
+---------------------------------- raw header ----------------------------------
+rtimesecs: 9062.11
+yo0: 0
+yu0: pA
+yn0: Im
+yg0: 0.0005
+yz0: 0
+yr0: 0
+yo1: 1
+yu1: mV
+yn1: Vm
+yg1: 0.01
+yz1: 0
+yr1: 0
+txperc: 0
+pkpavg: 1
+nsvchan: 0
+nsvalign: 0
+nsvtypr: 0
+nsvs2p: F
+nsvcur0: 0
+nsvcur1: 0
+'''.rstrip()
+
+
 class WcpTest(unittest.TestCase):
     """
     Tests the WCP format module.
@@ -50,7 +91,7 @@ class WcpTest(unittest.TestCase):
     def test_data_file(self):
         # Test basic wcp file reading.
 
-        # Load old file from Maastricht
+        # Load test file
         fname = 'wcp-file.wcp'
         path = os.path.join(DIR_FORMATS, fname)
         w = wcp.WcpFile(path)
@@ -65,7 +106,11 @@ class WcpTest(unittest.TestCase):
 
         # Test meta data
         self.maxDiff = None
-        self.assertEqual(w.info(), INFO)
+        self.assertEqual(w.meta_str(), INFO)
+        self.assertEqual(w.meta_str(True), INFO_LONG)
+        with WarningCollector() as c:
+            self.assertEqual(w.info(), INFO)
+        self.assertIn('deprecated', c.text())
 
         # Test Sequence interface
         self.assertEqual(len(w), w.record_count())
@@ -75,19 +120,27 @@ class WcpTest(unittest.TestCase):
         # Test SweepSource interface
         self.assertEqual(w.channel_count(), 2)
         self.assertEqual(w.channel_names(), ['Im', 'Vm'])
+        self.assertEqual(w.channel_units(), [myokit.units.pA, myokit.units.mV])
+        self.assertEqual(w.channel_names(0), 'Im')
+        self.assertEqual(w.channel_names(1), 'Vm')
+        self.assertEqual(w.channel_units(0), myokit.units.pA)
+        self.assertEqual(w.channel_units(1), myokit.units.mV)
         self.assertEqual(w.sweep_count(), w.record_count())
+        self.assertTrue(w.equal_length_sweeps())
 
         # Test SweepSource.channel()
         # Without joining
-        x = w.channel(0)
-        y = w.channel(1)
-        self.assertEqual(len(x), len(y), w.sweep_count())
-        self.assertEqual(len(x[0]), w.sample_count())
-        self.assertEqual(len(x[1]), w.sample_count())
-        self.assertEqual(len(x[2]), w.sample_count())
-        self.assertTrue(np.all(x[1] == w.channel('Im')[1]))
-        self.assertTrue(np.all(x[1] != w.channel('Vm')[1]))
-        self.assertTrue(np.all(y[1] == w.channel('Vm')[1]))
+        t0, v0 = w.channel(0)
+        t1, v1 = w.channel(1)
+        self.assertEqual(len(t0), len(t1), w.sweep_count())
+        self.assertEqual(len(v0), len(v1), w.sweep_count())
+        self.assertEqual(len(t0[0]), w.sample_count())
+        self.assertEqual(len(t1[1]), w.sample_count())
+        self.assertEqual(len(v0[2]), w.sample_count())
+        self.assertEqual(len(v1[3]), w.sample_count())
+        self.assertTrue(np.all(v0[0] == w.channel('Im')[1][0]))
+        self.assertTrue(np.all(v0[0] != w.channel('Vm')[1][0]))
+        self.assertTrue(np.all(v1[1] == w.channel('Vm')[1][1]))
 
         # With joining
         x = w.channel(0, join_sweeps=True)
@@ -113,8 +166,8 @@ class WcpTest(unittest.TestCase):
             for c in range(w.channel_count()):
                 k.append(f'{r}.{c}.channel')
         self.assertEqual(set(k), set(d.keys()))
-        self.assertTrue(np.all(d['time'] == w.channel(0)[0]))
-        self.assertTrue(np.all(d['1.0.channel'] == w.channel(0)[2]))
+        self.assertTrue(np.all(d['time'] == w.channel(0)[0][0]))
+        self.assertTrue(np.all(d['1.0.channel'] == w.channel(0)[1][1]))
 
         # Without joining, use names
         d = w.log(use_names=True)
@@ -123,8 +176,8 @@ class WcpTest(unittest.TestCase):
             for r in range(w.record_count()):
                 k.append(f'{r}.{c}')
         self.assertEqual(set(k), set(d.keys()))
-        self.assertTrue(np.all(d['time'] == w.channel(0)[0]))
-        self.assertTrue(np.all(d['1.Im'] == w.channel(0)[2]))
+        self.assertTrue(np.all(d['time'] == w.channel(0)[0][0]))
+        self.assertTrue(np.all(d['1.Im'] == w.channel(0)[1][1]))
 
         # With joining
         d = w.log(join_sweeps=True)
@@ -137,12 +190,6 @@ class WcpTest(unittest.TestCase):
         self.assertEqual(list(d.keys()), ['time', 'Im', 'Vm'])
         self.assertTrue(np.all(d['time'] == w.channel(0, True)[0]))
         self.assertTrue(np.all(d['Vm'] == w.channel(1, True)[1]))
-
-        # Selected channels
-        d = w.log(join_sweeps=True, use_names=True, channels=['Im'])
-        self.assertEqual(list(d.keys()), ['time', 'Im'])
-        d = w.log(join_sweeps=True, use_names=True, channels=[1])
-        self.assertEqual(list(d.keys()), ['time', 'Vm'])
 
         # Deprecated methods
         with WarningCollector() as c:

@@ -4,23 +4,26 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
-  - [#985](https://github.com/myokit/myokit/pull/985) The `AbfFile` and `WcpFile` now implement a shared `SweepSource` interface.
+  - [#985](https://github.com/myokit/myokit/pull/985), [#998](https://github.com/myokit/myokit/pull/998) The `AbfFile` and `WcpFile` now implement a shared `SweepSource` interface.
   - [#985](https://github.com/myokit/myokit/pull/985) Added a method `AtfFile.path` that returns the full path.
   - [#985](https://github.com/myokit/myokit/pull/985) Added a method `WcpFile.info` that returns a string version of the file's meta data, and a method `WcpFile.sample_count` that returns the number of samples per channel.
 - Changed
-  - [#985](https://github.com/myokit/myokit/pull/985) The interface to the `AbfFile` class has changed significantly, and in a backwards incompatible ways. Please see the documentation for further details.
+  - [#985](https://github.com/myokit/myokit/pull/985), [#998](https://github.com/myokit/myokit/pull/998)  The interface to the `AbfFile` class has changed significantly, and in a backwards incompatible ways. Please see the documentation for further details.
   - [#991](https://github.com/myokit/myokit/pull/991) Myokit no longer uses the `logging` module but makes calls to `warnings.warn` instead.
   - [#992](https://github.com/myokit/myokit/pull/992) If a `Simulation` is created with `protocol={}`, then `pace` will not be set as a binding label. To stay backwards compatible it _will_ be set if `protocol=None`.
   - [#994](https://github.com/myokit/myokit/pull/994) Simulations can now start at arbitrary times, including negative ones. Note that protocol events have a default offset of 0, so no events are usually expected at negative times.
 - Deprecated
-  - [#985](https://github.com/myokit/myokit/pull/985) The method `AtfFile.myokit_log` is deprecated in favor of `AtfFile.log`.
   - [#985](https://github.com/myokit/myokit/pull/985) The method `WcpFile.myokit_log` is deprecated in favor of `WcpFile.log`.
   - [#985](https://github.com/myokit/myokit/pull/985) The methods `WcpFile.channels` and `WcpFile.records` are deprecated in favor of `WcpFile.channel_count` and `WcpFile.record_count`.
   - [#985](https://github.com/myokit/myokit/pull/985) The method `WcpFile.plot` is deprecated in favor of `WcpFile.matplotlib_figure`.
+  - [#985](https://github.com/myokit/myokit/pull/985) The method `AtfFile.myokit_log` is deprecated in favor of `AtfFile.log`.
+  - [#998](https://github.com/myokit/myokit/pull/998) The method `WcpFile.info` is deprecated in favor of `WcpFile.meta_str`.
+  - [#998](https://github.com/myokit/myokit/pull/998) The method `AtfFile.info` is deprecated in favor of `AtfFile.meta_str`.
 - Fixed
   - [#985](https://github.com/myokit/myokit/pull/985) `AbfFile.filename` now returns the filename, not the full path.
   - [#985](https://github.com/myokit/myokit/pull/985) `AtfFile.filename` now returns the filename, not the full path.
   - [#992](https://github.com/myokit/myokit/pull/992) `Simulation` now sets any variable bound to a pacing label to 0 if no protocol for that label is set.
+  - [#998](https://github.com/myokit/myokit/pull/998) Fixed a bug where channels in ABF v1 files were sometimes scaled using the wrong meta data.
 
 ## [1.35.0] - 2023-06-21
 - Added

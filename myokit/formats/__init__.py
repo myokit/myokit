@@ -741,7 +741,7 @@ class SweepSource:
         """
         Returns the available number of reconstructed D/A output channels.
 
-        This can be 0 if reconstructed outputs are not supported.
+        This should return 0 if D/A channels are not supported.
         """
         raise NotImplementedError
 
@@ -750,7 +750,8 @@ class SweepSource:
         Returns the names of all reconstructed D/A output channels or the name
         of a specific output channel ``index``.
 
-        This can be an empty list if reconstructed outputs are not supported.
+        This will raise a ``NotImplementedError`` if D/A channels are not
+        supported.
         """
         raise NotImplementedError
 
@@ -772,7 +773,8 @@ class SweepSource:
         ``round``).
 
         If a D/A outputs cannot be converted to a :class:`myokit.Protocol`, a
-        ``ValueError`` is raised.
+        ``ValueError`` is raised. A ``NotImplementedError`` is raised if D/A
+        channels are not supported at all.
         """
         raise NotImplementedError
 
@@ -781,7 +783,8 @@ class SweepSource:
         Returns the units (as :class:`myokit.Unit`) of all reconstructed D/A
         output channels or the units of a specific output channel ``index``.
 
-        This will be an empty list if reconstructed outputs are not supported.
+        This will raise a ``NotImplementedError`` if D/A channels are not
+        supported.
         """
         raise NotImplementedError
 
