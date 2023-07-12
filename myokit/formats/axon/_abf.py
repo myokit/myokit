@@ -728,33 +728,34 @@ class AbfFile(myokit.formats.SweepSource):
         h = self._header
         if self._version < 2:
             for i in range(self._n_adc):
+                j = h['nADCSamplingSeq'][i]
 
                 # Multiplier
                 f = (
-                    h['fInstrumentScaleFactor'][i]
-                    * h['fADCProgrammableGain'][i]
+                    h['fInstrumentScaleFactor'][j]
+                    * h['fADCProgrammableGain'][j]
                     * h['lADCResolution']
                     / h['fADCRange'])
 
                 # Signal conditioner used?
                 if h['nSignalType'] != 0:   # pragma: no cover
                     # Cover pragma: Don't have appropriate test file
-                    f *= h['fSignalGain'][i]
+                    f *= h['fSignalGain'][j]
 
                 # Additional gain?
-                if h['nTelegraphEnable'][i]:
-                    f *= h['fTelegraphAdditGain'][i]
+                if h['nTelegraphEnable'][j]:
+                    f *= h['fTelegraphAdditGain'][j]
 
                 # Set final gain factor
                 self._adc_factors.append(1 / f)
 
                 # Shift
-                s = h['fInstrumentOffset'][i]
+                s = h['fInstrumentOffset'][j]
 
                 # Signal conditioner used?
                 if h['nSignalType'] != 0:   # pragma: no cover
                     # Cover pragma: Don't have appropriate test file
-                    s -= h['fSignalOffset'][i]
+                    s -= h['fSignalOffset'][j]
 
                 # Set final offset
                 self._adc_offsets.append(s)
@@ -888,14 +889,16 @@ class AbfFile(myokit.formats.SweepSource):
                 c._start = start
 
                 if self._version < 2:
-                    c._name = h['sADCChannelName'][i]
-                    c._index = int(h['nADCPtoLChannelMap'][i])
-                    c._unit = self._unit(h['sADCUnits'][i])
+                    j = h['nADCSamplingSeq'][i]
+
+                    c._name = h['sADCChannelName'][j]
+                    c._index = int(h['nADCPtoLChannelMap'][j])
+                    c._unit = self._unit(h['sADCUnits'][j])
 
                     # Get telegraphed info
                     def get(field):
                         try:
-                            return float(h[field][i])
+                            return float(h[field][j])
                         except KeyError:
                             return None
 
