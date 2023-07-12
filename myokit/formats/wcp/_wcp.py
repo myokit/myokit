@@ -14,7 +14,7 @@ import myokit
 _ENC = 'ascii'
 
 
-class WcpFile:
+class WcpFile(myokit.formats.SweepSource):
     """
     Represents a read-only WinWCP file (``.wcp``), stored at ``path``.
 

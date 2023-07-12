@@ -202,6 +202,13 @@ class WcpTest(unittest.TestCase):
             e = w.myokit_log()
         self.assertIn('deprecated', c.text())
 
+        # Unsupported da methods
+        self.assertEqual(w.da_count(), 0)
+        self.assertRaises(NotImplementedError, w.da, 0)
+        self.assertRaises(NotImplementedError, w.da_names)
+        self.assertRaises(NotImplementedError, w.da_units)
+        self.assertRaises(NotImplementedError, w.da_protocol)
+
     def test_figure_method(self):
         # Tests matplotlib_figure
         # Select matplotlib backend that doesn't require a screen

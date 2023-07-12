@@ -824,7 +824,7 @@ class SweepSource:
 
         Will return ``None`` if no such string is available.
         """
-        return None
+        return None  # pragma: no-cover
 
     def sweep_count(self):
         """
