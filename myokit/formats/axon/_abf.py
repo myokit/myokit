@@ -711,7 +711,7 @@ class AbfFile(myokit.formats.SweepSource):
                             warnings.warn(
                                 f'Unsupported epoch type: {epoch_types(t)}')
                             break
-                elif source == DAC_DACFILEWAVEFORM:
+                elif source == DAC_DACFILEWAVEFORM:  # pragma: no cover
                     # Stimulus file? Then don't use
                     warnings.warn('Stimulus file D/A channel not supported.')
 
@@ -1120,8 +1120,8 @@ class AbfFile(myokit.formats.SweepSource):
         tf = myokit.Unit.conversion_factor(units.s, tu)
         if myokit.Unit.can_convert(self._da_units[output_id], units.V):
             df = myokit.Unit.conversion_factor(self._da_units[output_id], vu)
-        elif myokit.Unit.can_convert(  # pragma: no cover
-                self._da_units[output_id], units.A):
+        elif myokit.Unit.can_convert(
+                self._da_units[output_id], units.A):  # pragma: no cover
             df = myokit.Unit.conversion_factor(self._da_units[output_id], cu)
         else:   # Not a voltage or current? Then don't convert
             df = 1
