@@ -29,17 +29,17 @@ A/D channel: Im
 A/D channel: Vm
   Unit: mV
 Records: Type, Status, Sampling Interval, Start, Marker
-Record 0: TEST, ACCEPTED, 0.001, 0.0, ""
-Record 1: TEST, ACCEPTED, 0.001, 0.5, ""
-Record 2: TEST, ACCEPTED, 0.001, 1.0, ""
-Record 3: TEST, ACCEPTED, 0.001, 1.5, ""
-Record 4: TEST, ACCEPTED, 0.001, 2.0615234375, ""
-Record 5: TEST, ACCEPTED, 0.001, 3.0615234375, ""
-Record 6: TEST, ACCEPTED, 0.001, 3.5615234375, ""
-Record 7: TEST, ACCEPTED, 0.001, 4.0615234375, ""
-Record 8: TEST, ACCEPTED, 0.001, 4.5615234375, ""
-Record 9: TEST, ACCEPTED, 0.001, 5.125, ""
-Record 10: TEST, ACCEPTED, 0.001, 5.625, ""
+Record 0: TEST, ACCEPTED, 0.0, ""
+Record 1: TEST, ACCEPTED, 0.5, ""
+Record 2: TEST, ACCEPTED, 1.0, ""
+Record 3: TEST, ACCEPTED, 1.5, ""
+Record 4: TEST, ACCEPTED, 2.0615234375, ""
+Record 5: TEST, ACCEPTED, 3.0615234375, ""
+Record 6: TEST, ACCEPTED, 3.5615234375, ""
+Record 7: TEST, ACCEPTED, 4.0615234375, ""
+Record 8: TEST, ACCEPTED, 4.5615234375, ""
+Record 9: TEST, ACCEPTED, 5.125, ""
+Record 10: TEST, ACCEPTED, 5.625, ""
 '''.strip()
 
 
@@ -127,7 +127,7 @@ class WcpTest(unittest.TestCase):
         self.assertEqual(w.channel_units(1), myokit.units.mV)
         self.assertEqual(w.sweep_count(), w.record_count())
         self.assertTrue(w.equal_length_sweeps())
-        self.assertEqual(w.time_units(), myokit.units.s)
+        self.assertEqual(w.time_unit(), myokit.units.s)
 
         # Test SweepSource.channel()
         # Without joining

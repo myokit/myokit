@@ -127,8 +127,11 @@ class WcpFile(myokit.formats.SweepSource):
             self._np = (self._header['nbd'] * 512) // (2 * self._nc)
 
         # Get time units
-        # Note: Assuming seconds if no unit set
-        self._time_unit = self._unit(self._header.get('tu', 's'))
+        self._time_unit = myokit.units.s
+        # Time as set by dt (which is what we need) is _always_ in seconds.
+        # John Dempster says: "The TU= value referred to the time units which
+        # were displayed in early versions of WinWCP and no longer exists in
+        # recent WCP data files." (Email to michael, 2023-07-12).
 
         # Get channel-specific fields
         for i in range(self._nc):
@@ -172,9 +175,15 @@ class WcpFile(myokit.formats.SweepSource):
             # Time of recording, as float, not sure how to interpret
             rtime = struct.unpack(str('<f'), f.read(4))[0]
 
-            # Sampling interval: pretty sure this should be the same as the
-            # file wide one in header['dt']
+            # Sampling interval
+            # It is technically possible to have different dts for different
+            # records (see email J.D. 2023-07-12), but rare.
+            # Not supported here!
             rint = round(struct.unpack(str('<f'), f.read(4))[0], 6)
+            if rint != self._dt:  # pragma: no cover
+                raise ValueError(
+                    'Unsupported feature: WCP file contains more than one'
+                    ' sampling rate.')
 
             # Maximum positive limit of A/D converter voltage range
             vmax = struct.unpack(
@@ -188,7 +197,6 @@ class WcpFile(myokit.formats.SweepSource):
                 'status': rstatus,
                 'type': rtype,
                 'rtime': rtime,
-                'dt': rint,
                 'marker': marker,
             })
 
@@ -351,8 +359,6 @@ class WcpFile(myokit.formats.SweepSource):
         out.append(f'  Channels per record: {self._nc}')
         out.append(f'  Samples per channel: {self._np}')
         out.append(f'  Sampling interval: {self._dt} s')
-        if 'tu' in h:  # pragma: no cover
-            out.append(f'Time units: {h["tu"]}')
 
         # Channel info
         for c in self._channel_headers:
@@ -364,7 +370,7 @@ class WcpFile(myokit.formats.SweepSource):
             'Records: Type, Status, Sampling Interval, Start, Marker')
         for i, r in enumerate(self._record_headers):
             out.append(f'Record {i}: {r["type"]}, {r["status"]},'
-                       f' {r["dt"]}, {r["rtime"]}, "{r["marker"]}"')
+                       f' {r["rtime"]}, "{r["marker"]}"')
 
         # Parsed and unparsed header
         if verbose:
@@ -478,7 +484,6 @@ HEADER_FIELDS = {
     'np': int,         # No. of A/D samples per channel
     'dt': float,       # A/D sampling interval (s)
     'nz': int,         # No. of samples averaged to calculate a zero level.
-    'tu': str,         # Time units
     'id': str,         # Experiment identification line
 }
 
