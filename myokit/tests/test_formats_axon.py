@@ -217,6 +217,7 @@ class AbfTest(unittest.TestCase):
         # Sweep count
         self.assertEqual(len(abf), 9)
         self.assertEqual(abf.sweep_count(), 9)
+        self.assertEqual(len([s for s in abf]), 9)
 
         # Test access to A/D and D/A channels via sequence interface
         self.assertIsInstance(abf[0], axon.Sweep)
@@ -286,6 +287,10 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(len(da_times[0]), len(times[0]))
         self.assertTrue(np.all(times[0] == da_times[0]))
         self.assertFalse(np.all(values[0] == da_values[0]))
+        self.assertTruen(np.all(da_values[3] == abf.da('OUT 0')[3]))
+        self.assertRaises(IndexError, abf.da, -1)
+        self.assertRaises(IndexError, abf.da, 1)
+        self.assertRaises(IndexError, abf.da, 'hiya')
 
         tj, vj = abf.da(0, join_sweeps=True)
         self.assertTrue(np.all(tj == np.concatenate(da_times)))
@@ -595,8 +600,25 @@ class AbfTest(unittest.TestCase):
 
         # Test conversion to Myokit protocol
         p = abf.da_protocol(0)
-        self.assertEqual(len(p), 74)
+        self.assertEqual(len(p), 37 * 2)
         self.assertEqual(p.code(), V2_PROTOCOL)
+
+        # Test conversion with initial holding as in the real experiment
+        p = abf.da_protocol(0, include_initial_holding=True)
+        e = p.events()
+        self.assertEqual(e[0].level(), -120)    # Pre step
+        self.assertEqual(e[0].start(), 0)
+        self.assertEqual(e[0].duration(), 0.4)
+        self.assertEqual(e[1].level(), -100)    # Real step
+        self.assertEqual(e[1].start(), 0.4)
+        self.assertEqual(e[1].duration(), 25)
+        self.assertEqual(e[2].level(), -120)    # Shortened post-step
+        self.assertEqual(e[2].start(), 25.4)
+        self.assertEqual(e[2].duration(), 4974.6)
+        self.assertEqual(e[3].level(), -120)    # Next pre step
+        self.assertEqual(e[3].start(), 5000)
+        self.assertEqual(e[3].duration(), 0.4)
+        self.assertEqual(len(e), 37 * 3)
 
     def test_matplotlib_figure(self):
         # Test figure drawing method (doesn't inspect output).

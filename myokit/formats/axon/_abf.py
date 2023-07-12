@@ -560,7 +560,7 @@ class AbfFile(myokit.formats.SweepSource):
             self._rate = 1e6 / h['protocol']['fADCSequenceInterval']
             self._mode = h['protocol']['nOperationMode']
 
-        if self._mode not in acquisition_modes:  # pragma: no-cover
+        if self._mode not in acquisition_modes:  # pragma: no cover
             raise NotImplementedError(f'Unknown acquisition mode: {mode}')
 
         # Protocol files don't have A/D channels by definition
@@ -999,6 +999,7 @@ class AbfFile(myokit.formats.SweepSource):
                         # The protocol may extend beyond the number of samples
                         # in the recording
                         if i2 > ns:
+                            print('HERE 111')
                             i2 = ns
 
                         level = e['init_level'] + e['level_inc'] * i_sweep
@@ -1006,7 +1007,8 @@ class AbfFile(myokit.formats.SweepSource):
                         i_last = i2
 
                         # No more data? Then stop reading this channel
-                        if i_last >= ns:
+                        if i_last >= ns:  # pragma: no cover
+                            print('HERE 222')
                             break
 
                 # Store channel
@@ -1131,7 +1133,8 @@ class AbfFile(myokit.formats.SweepSource):
         tf = myokit.Unit.conversion_factor(units.s, tu)
         if myokit.Unit.can_convert(self._da_units[output_id], units.V):
             df = myokit.Unit.conversion_factor(self._da_units[output_id], vu)
-        elif myokit.Unit.can_convert(self._da_units[output_id], units.A):
+        elif myokit.Unit.can_convert(  # pragma: no cover
+                self._da_units[output_id], units.A):
             df = myokit.Unit.conversion_factor(self._da_units[output_id], cu)
         else:   # Not a voltage or current? Then don't convert
             df = 1
@@ -1144,7 +1147,9 @@ class AbfFile(myokit.formats.SweepSource):
         else:
             offset = self._samples_per_channel // 64
             offset -= offset % self._n_adc
-            if (offset < self._n_adc):
+            if (offset < self._n_adc):  # pragma: no cover
+                # Don't have a test for this, but this is part of the
+                # established procedure.
                 offset = self._n_adc
             offset /= self._rate
 
@@ -1207,7 +1212,7 @@ class AbfFile(myokit.formats.SweepSource):
         # Create log, return if no sweeps or channels
         log = myokit.DataLog()
         ns = len(self._sweeps)
-        if ns == 0 or (self._n_adc + self._n_dac) == 0:
+        if ns == 0 or (self._n_adc + self._n_dac) == 0:  # pragma: no cover
             return log
 
         # Get channel names
