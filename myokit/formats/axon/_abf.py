@@ -1123,7 +1123,8 @@ class AbfFile(myokit.formats.SweepSource):
         elif myokit.Unit.can_convert(
                 self._da_units[output_id], units.A):  # pragma: no cover
             df = myokit.Unit.conversion_factor(self._da_units[output_id], cu)
-        else:   # Not a voltage or current? Then don't convert
+        else:  # pragma: no cover
+            # Not a voltage or current? Then don't convert
             df = 1
         tf, df = float(tf), float(df)
 
