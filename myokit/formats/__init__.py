@@ -668,39 +668,50 @@ def register_external_ewriter(name, ewriter_class):
 class SweepSource:
     """
     Interface for classes that provide time-series data organised into *sweeps*
-    (or *records*) and *channels* (or *traces*).
-
-    Each sweep contains the same number of channels, and each channel is a 1d
-    array of equal length.
-
-    Two common ways to represent the data are (1) overlaid::
-
-        time        n_t data points
-        sweep[0],   n_c channels, each with n_t data points
-        sweep[1],
-        ...
-        sweep[n_s]
-
-    or (2) joined into a single time series::
-
-        time                            n_s*n_t data points
-        sweep[0] + sweep[1] + ...       n_c channels, each with n_s*n_t points
+    (or *records* or *episodes*) and *channels* (or *traces*).
 
     The :class:`SweepSource` interface defines methods to get the number of
-    sweeps and channels, the names of the channels, and the data stored in
-    channels either as numpy arrays or in a :class:`myokit.DataLog`.
+    sweeps and channels, the names and units of the channels, and the data
+    stored in channels either as numpy arrays or in a :class:`myokit.DataLog`.
+
+    Each sweep contains the same number of channels, and each channel is
+    represented as a 1d array. In most cases these arrays have the same length
+    for every sweep, but whether this is the case for the current source can be
+    tested with :meth:`equal_length_sweeps`.
+
+    Data can be retrieved sweep by sweep::
+
+        (time[0], sweep[0]),        n_t data points, n_c channels of n_t points
+        (time[1], sweep[1]),
+        (time[2], sweep[2]),
+        ...
+        (time[n_s], sweep[n_s])
+
+    This allows plotting in the common "overlaid" fashion, i.e. plotting every
+    ``sweep[i] against ``time[0]``.
+
+    For other types of analysis (e.g. parameter estimation) the data can also
+    be returned as single time series::
+
+        time                            sum(n_t[i]) data points
+        sweep[0] + sweep[1] + ...       n_c channels, with sum(n_t[i]) points
+
+    Some formats can also contain information from which D/A output signals can
+    be reconstructed. These can be accessed using the :meth:`da`.
+
     """
     def channel(self, channel_id, join_sweeps=False):
         """
         Returns the data for a single channel, identified by integer or string
         ``channel_id``.
 
-        With ``join_sweeps=False``, the data is returned as a tuple of numpy
-        arrays ``time, sweep_0, sweep_1, ...`` where ``time`` is the time
-        corresponding to the first sweep.
+        With ``join_sweeps=False``, the data is returned as a tuple
+        ``(times, sweeps)`` where ``times`` and ``sweeps`` are 2d numpy arrays
+        indexed so that ``times[i][j]`` is the ``j``-th time point for sweep
+        ``i``.
 
         If ``join_sweeps=True`` the sweeps are joined together, and a tuple
-        ``time, values`` is returned.
+        ``(times, values)`` is returned ``times`` and ``values`` are 1d arrays.
         """
         raise NotImplementedError
 
@@ -708,32 +719,120 @@ class SweepSource:
         """ Returns the number of channels. """
         raise NotImplementedError
 
-    def channel_names(self):
-        """ Returns a list of names for each channel. """
+    def channel_names(self, index=None):
+        """
+        Returns the names of all channels or the name of a specific channel
+        ``index``.
+        """
         raise NotImplementedError
 
-    def log(self, join_sweeps=False, use_names=False, channels=None):
+    def channel_units(self, index=None):
+        """
+        Returns the units (as :class:`myokit.Unit`) of all channels or the
+        units of a specific channel ``index``.
+        """
+        raise NotImplementedError
+
+    def da(self, output_id, join_sweeps=False):
+        """ Like :meth:`channel`, but returns reconstructed D/A signals. """
+        raise NotImplementedError
+
+    def da_count(self):
+        """
+        Returns the available number of reconstructed D/A output channels.
+
+        This can be 0 if reconstructed outputs are not supported.
+        """
+        raise NotImplementedError
+
+    def da_names(self):
+        """
+        Returns the names of all reconstructed D/A output channels or the name
+        of a specific output channel ``index``.
+
+        This can be an empty list if reconstructed outputs are not supported.
+        """
+        raise NotImplementedError
+
+    def da_protocol(self, output_id=None, tu='ms', vu='mV', cu='pA',
+                    n_digits=9):
+        """
+        Returns a :class:`myokit.Protocol` representation of the D/A output
+        channel specified by name or integer ``output_id``.
+
+        If no explicit output channel is set, a guess will be made.
+
+        Time units will be converted to ``tu``, voltage units to ``vu``, and
+        current units to ``cu``. Other unit types will be left unchanged. Units
+        may be specified as :class:`myokit.Unit` objects or strings.
+
+        By default, floating point numbers in the protocol will be rounded to
+        9 digits after the decimal point. This can be changed or disabled via
+        the ``n_digits`` argument (which is passed to the built-in method
+        ``round``).
+
+        If a D/A outputs cannot be converted to a :class:`myokit.Protocol`, a
+        ``ValueError`` is raised.
+        """
+        raise NotImplementedError
+
+    def da_units(self):
+        """
+        Returns the units (as :class:`myokit.Unit`) of all reconstructed D/A
+        output channels or the units of a specific output channel ``index``.
+
+        This will be an empty list if reconstructed outputs are not supported.
+        """
+        raise NotImplementedError
+
+    def equal_length_sweeps(self):
+        """
+        Returns ``True`` only if each sweep in this source has the same length.
+        """
+        raise NotImplementedError
+
+    def log(self, join_sweeps=False, use_names=False, include_da=True):
         """
         Returns a :class:`myokit.DataLog` containing the data from all
-        channels or the subset specified by ``channels``.
+        channels.
 
-        Sweeps can be joined together using ``join_sweeps=True``, and log
-        entries can use systematic names (``use_names=False``) or names
-        specified in the original source (``use_names=True``).
+        The log will have a single entry ``time`` corresponding to the time of
+        the first sweep if ``join_sweeps`` is ``False``, or the time of all
+        points when ``join_sweeps`` is ``True``.
 
-        If ``join_sweeps=False``, the data for each sweep will be returned
-        separately, so that the log will have entries such as ``0.0.channel``,
-        ``1.0.channel``, and ``2.0.channel`` for the first three sweeps and the
-        first channel. Alternatively, if ``use_names=True`` and the first
-        channel is called "IN #0" its entries will be ``0.IN #0`` for the first
-        sweep, then ``1.IN #0`` etc.
+        Names will have a systematic form ``sweep.channel.type``, for example
+        ``0.1.channel`` for the 1st sweep, second channel of A/D input, or
+        ``3.0.da`` for the 3d sweep, first channel of reconstructed D/A output.
+        To obtain a log with the user-specified names from the source instead,
+        set ``use_names`` to ``True``.
 
-        To return only a subset of channels pass in a list of channel ids
-        (names or integers) as ``channels``.
+        To exclude D/A signal reconstructions, set ``include_da`` to ``False``.
+
+        A call with ``join_sweeps=False`` on a source where
+        :meth:`equal_length_sweeps()` returns ``False`` will raise a
+        ``ValueError``.
         """
         raise NotImplementedError
 
+    def meta_str(self, verbose=False):
+        """
+        Optional method that returns a multi-line string with unstructured meta
+        data about the source and its contents.
+
+        Will return ``None`` if no such string is available.
+        """
+        return None
+
     def sweep_count(self):
-        """ Returns the number of sweeps. """
+        """
+        Returns the number of sweeps.
+
+        Note that a source with zero recorded channels may still report a
+        non-zero number of sweeps if it can provide D/A outputs.
+        """
+        raise NotImplementedError
+
+    def time_unit(self):
+        """ Returns the time unit used in this source. """
         raise NotImplementedError
 
