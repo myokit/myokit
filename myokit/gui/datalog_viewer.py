@@ -699,6 +699,7 @@ class SweepSourceTab(GraphTabWidget):
             widget.setReadOnly(True)
             self.addTab(widget, 'info')
 
+
 class AbfTab(SweepSourceTab):
     """ A widget displaying an ABF file. """
     pass

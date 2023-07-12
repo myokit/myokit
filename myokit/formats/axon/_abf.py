@@ -982,7 +982,7 @@ class AbfFile(myokit.formats.SweepSource):
                 if self._is_protocol_file:
                     i_last = 0
                 else:
-                    i_last = ns // 64 # ABFH_HOLDINGFRACTION = 64
+                    i_last = ns // 64  # ABFH_HOLDINGFRACTION = 64
                     i_last -= i_last % self._n_adc
                     if (i_last < self._n_adc):
                         i_last = self._n_adc

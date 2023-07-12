@@ -368,11 +368,11 @@ class WcpFile:
 
         # Parsed and unparsed header
         if verbose:
-            out.append(f'{"-" * 36} header {"-" * 36}')
+            out.append(f'{"-" * 35} header {"-" * 35}')
             for k, v in self._header.items():
                 out.append(f'{k}: {v}')
 
-            out.append(f'{"-" * 34} raw header {"-" * 34}')
+            out.append(f'{"-" * 33} raw header {"-" * 33}')
             for k, v in self._header_raw.items():
                 out.append(f'{k}: {v}')
 
