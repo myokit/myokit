@@ -705,19 +705,12 @@ class AbfTab(SweepSourceTab):
     pass
 
 
-class AtfTab(TabWidget):
-    """
-    A widget displaying an AGF file.
-    """
+class AtfTab(GraphTabWidget):
+    """ A widget displaying an ATF file. """
     def __init__(self, parent, atf):
         super().__init__(parent)
         self._atf = atf
 
-        self.setTabsClosable(False)
-        self.setTabPosition(self.TabPosition.East)
-
-        self._figures = []
-        self._axes = []
         keys = list(self._atf.keys())
         if len(keys) > 1:
             time = keys[0]  # Time is always first (and regularly sampled)
@@ -761,18 +754,8 @@ class AtfTab(TabWidget):
         widget.setReadOnly(True)
         return widget
 
-    def deleteLater(self):
-        """ Deletes this tab (later). """
-        for figure in self._figures:
-            figure.clear()
-        for axes in self._axes:
-            axes.cla()
-        del self._figures, self._axes
-        gc.collect()
-        super().deleteLater()
 
-
-class CsvTab(TabWidget):
+class CsvTab(GraphTabWidget):
     """
     A widget displaying a CSV file.
 
@@ -780,12 +763,9 @@ class CsvTab(TabWidget):
     """
     def __init__(self, parent, log, filename):
         super().__init__(parent)
-        self.setTabsClosable(False)
-        self.setTabPosition(self.TabPosition.East)
+
         self._log = log.npview()
         self._filename = filename
-        self._figures = []
-        self._axes = []
 
         # Check time key was found
         time = log.time_key()
@@ -856,30 +836,13 @@ class CsvTab(TabWidget):
         self._axes.append(axes)
         return widget
 
-    def deleteLater(self):
-        """
-        Deletes this tab (later).
-        """
-        for figure in self._figures:
-            figure.clear()
-        for axes in self._axes:
-            axes.cla()
-        del self._figures, self._axes
-        gc.collect()
-        super().deleteLater()
 
-
-class MatTab(TabWidget):
-    """
-    A widget displaying a MAT file.
-    """
+class MatTab(GraphTabWidget):
+    """ A widget displaying a .mat file. """
     def __init__(self, parent, mat, filename):
         super().__init__(parent)
-        self.setTabsClosable(False)
-        self.setTabPosition(self.TabPosition.East)
-        self._figures = []
+
         self._filename = filename
-        self._axes = []
 
         # Find usable data
         for key in mat.keys():
@@ -944,30 +907,14 @@ class MatTab(TabWidget):
         self._axes.append(axes)
         return widget
 
-    def deleteLater(self):
-        """
-        Deletes this tab (later).
-        """
-        for figure in self._figures:
-            figure.clear()
-        for axes in self._axes:
-            axes.cla()
-        del self._figures, self._axes
-        gc.collect()
-        super().deleteLater()
 
+class TxtTab(GraphTabWidget):
+    """ A widget displaying a .txt file (with lots of heuristics!). """
 
-class TxtTab(TabWidget):
-    """
-    A widget displaying a TXT file (with lots of heuristics!).
-    """
     def __init__(self, parent, data, filename):
         super().__init__(parent)
-        self.setTabsClosable(False)
-        self.setTabPosition(self.TabPosition.East)
-        self._figures = []
+
         self._filename = filename
-        self._axes = []
 
         # Find usable data
         if np.prod(data.shape) == np.max(data.shape):
@@ -1025,18 +972,6 @@ class TxtTab(TabWidget):
         self._figures.append(figure)
         self._axes.append(axes)
         return widget
-
-    def deleteLater(self):
-        """
-        Deletes this tab (later).
-        """
-        for figure in self._figures:
-            figure.clear()
-        for axes in self._axes:
-            axes.cla()
-        del self._figures, self._axes
-        gc.collect()
-        super().deleteLater()
 
 
 class WcpTab(SweepSourceTab):
