@@ -287,10 +287,10 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(len(da_times[0]), len(times[0]))
         self.assertTrue(np.all(times[0] == da_times[0]))
         self.assertFalse(np.all(values[0] == da_values[0]))
-        self.assertTruen(np.all(da_values[3] == abf.da('OUT 0')[3]))
+        self.assertTrue(np.all(da_values[3] == abf.da('OUT 0')[1][3]))
         self.assertRaises(IndexError, abf.da, -1)
         self.assertRaises(IndexError, abf.da, 1)
-        self.assertRaises(IndexError, abf.da, 'hiya')
+        self.assertRaises(KeyError, abf.da, 'hiya')
 
         tj, vj = abf.da(0, join_sweeps=True)
         self.assertTrue(np.all(tj == np.concatenate(da_times)))

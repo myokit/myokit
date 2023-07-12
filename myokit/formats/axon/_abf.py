@@ -976,40 +976,27 @@ class AbfFile(myokit.formats.SweepSource):
                 c._start = start
                 c._unit = self._unit(dinfo(i_dac, 'sDACChannelUnits'))
 
-                # Last sample index (updated every iteration)
-
-                # This procedure is based on ABF v1's _GetHoldingLength()
+                # Find start of first epoch. This is defined as being at t=0
+                # but axon likes to add some samples before the first and after
+                # the last epoch. We can find out the number of samples using
+                # a procedure found in ABF v1's _GetHoldingLength()
                 if self._is_protocol_file:
-                    i_last = 0
+                    i2 = 0
                 else:
-                    i_last = ns // 64  # ABFH_HOLDINGFRACTION = 64
-                    i_last -= i_last % self._n_adc
-                    if (i_last < self._n_adc):
-                        i_last = self._n_adc
+                    i2 = ns // 64  # ABFH_HOLDINGFRACTION = 64
+                    i2 -= i2 % self._n_adc
+                    if (i2 < self._n_adc):
+                        i2 = self._n_adc
 
                 # For each 'epoch' in the stimulation signal
                 for e in einfo(i_dac):
                     if e['type'] == EPOCH_STEPPED:
                         dur = e['init_duration']
                         inc = e['duration_inc']
-
-                        i1 = i_last
-                        i2 = i_last + dur + i_sweep * inc
-
-                        # The protocol may extend beyond the number of samples
-                        # in the recording
-                        if i2 > ns:
-                            print('HERE 111')
-                            i2 = ns
-
+                        i1 = i2
+                        i2 += dur + i_sweep * inc
                         level = e['init_level'] + e['level_inc'] * i_sweep
                         c._data[i1:i2] = level * np.ones(len(range(i2 - i1)))
-                        i_last = i2
-
-                        # No more data? Then stop reading this channel
-                        if i_last >= ns:  # pragma: no cover
-                            print('HERE 222')
-                            break
 
                 # Store channel
                 sweep._channels.append(c)
