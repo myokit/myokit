@@ -14,7 +14,7 @@ import myokit
 _ENC = 'ascii'
 
 
-class WcpFile:
+class WcpFile(myokit.formats.SweepSource):
     """
     Represents a read-only WinWCP file (``.wcp``), stored at ``path``.
 
@@ -37,23 +37,30 @@ class WcpFile:
         self._filename = os.path.basename(path)
 
         # Header info, per file, per record, and per channel
+        self._version_str = None
         self._header = {}
         self._header_raw = {}
         self._record_headers = []
         self._channel_headers = []
 
         # Records
-        self._records = None
+        self._records = []
         self._nr = None     # Records in file
         self._nc = None     # Channels per record
         self._np = None     # Samples per channel
         self._dt = None     # Sampling interval (s)
 
+        # Channels
+        self._channel_names = []
+        self._channel_name_map = {}
+
         # Time signal
         self._time = None
 
-        # Version string
-        self._version_str = None
+        # Units
+        self._time_unit = None
+        self._channel_units = []
+        self._unit_cache = {}
 
         # Read the file
         with open(path, 'rb') as f:
@@ -119,9 +126,14 @@ class WcpFile:
         except KeyError:
             self._np = (self._header['nbd'] * 512) // (2 * self._nc)
 
+        # Get time units
+        self._time_unit = myokit.units.s
+        # Time as set by dt (which is what we need) is _always_ in seconds.
+        # John Dempster says: "The TU= value referred to the time units which
+        # were displayed in early versions of WinWCP and no longer exists in
+        # recent WCP data files." (Email to michael, 2023-07-12).
+
         # Get channel-specific fields
-        self._channel_names = []
-        self._channel_name_map = {}
         for i in range(self._nc):
             c = {}
             for k, t in HEADER_CHANNEL_FIELDS.items():
@@ -129,6 +141,7 @@ class WcpFile:
             self._channel_headers.append(c)
             self._channel_names.append(c['yn'])
             self._channel_name_map[c['yn']] = i
+            self._channel_units.append(self._unit(c['yu']))
 
         # Analysis block size and data block size
         # Data is stored as 16 bit integers (little-endian)
@@ -145,7 +158,6 @@ class WcpFile:
         adcmax = self._header['adcmax']
 
         # Read data records
-        records = []
         offset = header_size
         for i in range(self._nr):
             # Read analysis block
@@ -163,9 +175,15 @@ class WcpFile:
             # Time of recording, as float, not sure how to interpret
             rtime = struct.unpack(str('<f'), f.read(4))[0]
 
-            # Sampling interval: pretty sure this should be the same as the
-            # file wide one in header['dt']
+            # Sampling interval
+            # It is technically possible to have different dts for different
+            # records (see email J.D. 2023-07-12), but rare.
+            # Not supported here!
             rint = round(struct.unpack(str('<f'), f.read(4))[0], 6)
+            if rint != self._dt:  # pragma: no cover
+                raise ValueError(
+                    'Unsupported feature: WCP file contains more than one'
+                    ' sampling rate.')
 
             # Maximum positive limit of A/D converter voltage range
             vmax = struct.unpack(
@@ -179,7 +197,6 @@ class WcpFile:
                 'status': rstatus,
                 'type': rtype,
                 'rtime': rtime,
-                'dt': rint,
                 'marker': marker,
             })
 
@@ -201,12 +218,10 @@ class WcpFile:
                 vmx / (adcmax * h['yg']) * data[:, h['yo']].astype('f4')
                 for h, vmx in zip(self._channel_headers, vmax)]
 
-            records.append(record)
+            self._records.append(record)
 
             # Increase offset beyong data block
             offset += rdb_size
-
-        self._records = records
 
         # Create time signal
         self._time = np.arange(self._np) * self._dt
@@ -219,40 +234,6 @@ class WcpFile:
 
     def __len__(self):
         return self._nr
-
-    def channel(self, channel_id, join_sweeps=False):
-        # Docstring in SweepSource
-        channel_id = self._channel_id(channel_id)
-
-        if join_sweeps:
-            # Join sweeps
-            time, data = [], []
-            for r, h in zip(self._records, self._record_headers):
-                time.append(self._time + h['rtime'])
-                data.append(r[channel_id])
-            return (np.concatenate(time), np.concatenate(data))
-
-        else:
-            # Return individual sweeps
-            out = []
-            out.append(np.array(self._time))
-            for r in self._records:
-                out.append(np.array(r[channel_id]))
-            return tuple(out)
-
-    def channels(self):
-        """ Deprecated alias of :meth:`channel_count`. """
-        # Deprecated since 2023-06-22
-        import warnings
-        warnings.warn(
-            'The method `channels` is deprecated. Please use'
-            ' WcpFile.channel_count() instead.')
-
-        return self._nc
-
-    def channel_count(self):
-        # Docstring in SweepSource
-        return self._nc
 
     def _channel_id(self, channel_id):
         """ Checks an int or str channel id and returns a valid int. """
@@ -268,59 +249,67 @@ class WcpFile:
             raise IndexError(f'channel_id out of range: {channel_id}')
         return int_id
 
-    def channel_names(self):
+    def channel(self, channel_id, join_sweeps=False):
         # Docstring in SweepSource
-        return list(self._channel_names)
+        channel_id = self._channel_id(channel_id)
+        time, data = [], []
+        for r, h in zip(self._records, self._record_headers):
+            time.append(self._time + h['rtime'])
+            data.append(r[channel_id])
+        if join_sweeps:
+            return (np.concatenate(time), np.concatenate(data))
+        return time, data
+
+    def channels(self):
+        """ Deprecated alias of :meth:`channel_count`. """
+        # Deprecated since 2023-06-22
+        import warnings
+        warnings.warn(
+            'The method `channels` is deprecated. Please use'
+            ' WcpFile.channel_count() instead.')
+        return self._nc
+
+    def channel_count(self):
+        # Docstring in SweepSource
+        return self._nc
+
+    def channel_names(self, index=None):
+        # Docstring in SweepSource
+        if index is None:
+            return list(self._channel_names)
+        return self._channel_names[index]
+
+    def channel_units(self, index=None):
+        # Docstring in SweepSource
+        if index is None:
+            return list(self._channel_units)
+        return self._channel_units[index]
+
+    def da_count(self):
+        # Docstring in SweepSource. Rest is allowed raise NotImplementedError
+        return 0
+
+    def equal_length_sweeps(self):
+        # Docstring in SweepSource
+        return True
 
     def filename(self):
         """ Returns this file's name. """
         return self._filename
 
     def info(self):
-        """ Returns a multi-line string with meta data about this file. """
-        h = self._header
-        out = []
+        """ Deprecated alias of :meth:`meta_str` """
+        # Deprecated since 2023-07-12
+        import warnings
+        warnings.warn(
+            'The method `info` is deprecated. Please use `meta_str` instead.')
+        return self.meta_str(False)
 
-        # Add file info
-        out.append(f'WinWCP file: {self._filename}')
-        out.append(f'WinWCP Format version {self._version_str}')
-        out.append(f'Recorded on: {h["rtime"]}')
-
-        # Basic records info
-        out.append(f'  Number of records: {self._nr}')
-        out.append(f'  Channels per record: {self._nc}')
-        out.append(f'  Samples per channel: {self._np}')
-        out.append(f'  Sampling interval: {self._dt} s')
-        if 'tu' in h:  # pragma: no cover
-            out.append(f'Time units: {h["tu"]}')
-
-        # Channel info
-        for c in self._channel_headers:
-            out.append(f'A/D channel: {c["yn"]}')
-            out.append(f'  Unit: {c["yu"]}')
-
-        # Record info
-        out.append('Records: Type, Status, Sampling Interval, Start, Marker')
-        for i, r in enumerate(self._record_headers):
-            out.append(f'Record {i}: {r["type"]}, {r["status"]}, {r["dt"]},'
-                       f' {r["rtime"]}, "{r["marker"]}"')
-
-        return '\n'.join(out)
-
-    def log(self, join_sweeps=False, use_names=False, channels=None):
+    def log(self, join_sweeps=False, use_names=False, include_da=True):
         # Docstring in SweepSource
-
-        # Select channels
-        if channels is None:
-            channels = list(range(self._nc))
-        else:
-            channels = [self._channel_id(i) for i in channels]
 
         # Create log
         log = myokit.DataLog()
-
-        # No data? Then return. Do this after channel check to tell user about
-        # invalid channel ids.
         if self._nr == 0:  # pragma: no cover
             return log
 
@@ -328,24 +317,19 @@ class WcpFile:
         channel_names = self._channel_names
         if not use_names:
             channel_names = [f'{i}.channel' for i in range(self._nc)]
-        channel_names = [channel_names[i] for i in channels]
 
-        # Populate log
+        # Gather data and return
         if join_sweeps:
-            # Join sweeps
-            time = []
-            for h in self._record_headers:
-                time.append(self._time + h['rtime'])
-            log['time'] = np.concatenate(time)
-            for c, name in zip(channels, channel_names):
+            log['time'] = np.concatenate(
+                [self._time + h['rtime'] for h in self._record_headers])
+            for c, name in enumerate(channel_names):
                 log[name] = np.concatenate([r[c] for r in self._records])
-
         else:
             # Return individual sweeps
-            log['time'] = np.array(self._time)
-            for i, record in enumerate(self._records):
-                for channel, name in zip(channels, channel_names):
-                    log[name, i] = record[channel]
+            log['time'] = self._time
+            for r, record in enumerate(self._records):
+                for c, name in enumerate(channel_names):
+                    log[name, r] = record[c]
 
         log.set_time_key('time')
         return log
@@ -360,6 +344,46 @@ class WcpFile:
                 ax.plot(self._time, channel)
         return f
 
+    def meta_str(self, verbose=False):
+        # Docstring in SweepSource
+        h = self._header
+        out = []
+
+        # Add file info
+        out.append(f'WinWCP file: {self._filename}')
+        out.append(f'WinWCP Format version {self._version_str}')
+        out.append(f'Recorded on: {h["rtime"]}')
+
+        # Basic records info
+        out.append(f'  Number of records: {self._nr}')
+        out.append(f'  Channels per record: {self._nc}')
+        out.append(f'  Samples per channel: {self._np}')
+        out.append(f'  Sampling interval: {self._dt} s')
+
+        # Channel info
+        for c in self._channel_headers:
+            out.append(f'A/D channel: {c["yn"]}')
+            out.append(f'  Unit: {c["yu"]}')
+
+        # Record info
+        out.append(
+            'Records: Type, Status, Sampling Interval, Start, Marker')
+        for i, r in enumerate(self._record_headers):
+            out.append(f'Record {i}: {r["type"]}, {r["status"]},'
+                       f' {r["rtime"]}, "{r["marker"]}"')
+
+        # Parsed and unparsed header
+        if verbose:
+            out.append(f'{"-" * 35} header {"-" * 35}')
+            for k, v in self._header.items():
+                out.append(f'{k}: {v}')
+
+            out.append(f'{"-" * 33} raw header {"-" * 33}')
+            for k, v in self._header_raw.items():
+                out.append(f'{k}: {v}')
+
+        return '\n'.join(out)
+
     def myokit_log(self):
         """
         Deprecated method. Please use ``WcpFile.log(use_names=True)`` instead.
@@ -369,6 +393,7 @@ class WcpFile:
         warnings.warn(
             'The method `myokit_log` is deprecated. Please use'
             ' WcpFile.log(use_names=True) instead.')
+        return self.log(self)
 
     def path(self):
         """ Returns the path to this file. """
@@ -416,9 +441,22 @@ class WcpFile:
         # Docstring in SweepSource
         return self._nr
 
+    def time_unit(self):
+        # Docstring in SweepSource
+        return self._time_unit
+
     def times(self):
         """ Returns the time points sampled at. """
         return np.array(self._time)
+
+    def _unit(self, unit_string):
+        """ Parses a unit string and returns a :class:`myokit.Unit`. """
+        try:
+            return self._unit_cache[unit_string]
+        except KeyError:
+            unit = myokit.parse_unit(unit_string)
+            self._unit_cache[unit_string] = unit
+            return unit
 
     def values(self, record, channel):
         """
@@ -446,7 +484,6 @@ HEADER_FIELDS = {
     'np': int,         # No. of A/D samples per channel
     'dt': float,       # A/D sampling interval (s)
     'nz': int,         # No. of samples averaged to calculate a zero level.
-    'tu': str,         # Time units
     'id': str,         # Experiment identification line
 }
 

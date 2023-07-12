@@ -258,7 +258,7 @@ class Unit:
 
         Returns a :class:`myokit.Quantity`.
 
-        Raises a :class:`myokit.IncompatibleUnitError` if the units cannot be
+        Raises an :class:`myokit.IncompatibleUnitError` if the units cannot be
         converted.'
         """
         # Check unit1

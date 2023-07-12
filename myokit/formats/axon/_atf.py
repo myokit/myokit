@@ -61,7 +61,11 @@ class AtfFile:
 
     def info(self):
         """ Returns this ATF's header/meta data. """
-        return self._meta
+        # Deprecated since 2023-07-12
+        import warnings
+        warnings.warn(
+            'The method `info` is deprecated. Please use `meta_str` instead.')
+        return self.meta_str()
 
     def items(self):
         """ Returns an iterator over all ``(key, value)`` pairs. """
@@ -81,6 +85,15 @@ class AtfFile:
         for k, v in self._data.items():
             log[k] = v
         return log
+
+    def meta_str(self, verbose=True):
+        """
+        Returns this ATF's header data as an unstructured multi-line string.
+
+        Note that the ``verbose`` argument doesn't do anything, but provides
+        compatibility with similar methods in other files.
+        """
+        return self._meta
 
     def myokit_log(self):
         """ Deprecated alias of :meth:`log`. """

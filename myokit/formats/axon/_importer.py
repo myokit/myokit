@@ -16,7 +16,7 @@ class AbfImporter(myokit.formats.Importer):
     def supports_protocol(self):
         return True
 
-    def protocol(self, filename, channel=None):
+    def protocol(self, filename, channel=0):
         """
         Attempts to load the protocol from the file at ``filename``.
 
@@ -25,4 +25,4 @@ class AbfImporter(myokit.formats.Importer):
         """
         from myokit.formats.axon import AbfFile
         abf = AbfFile(filename)
-        return abf.protocol(channel)
+        return abf.da_protocol(channel)

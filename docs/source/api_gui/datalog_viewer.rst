@@ -21,6 +21,13 @@ Widgets
 
 .. autoclass:: TabWidget
 
+.. autoclass:: GraphTabWidget
+
+.. autoclass:: SweepSourceTab
+
+Graphing widgets
+----------------
+
 .. autoclass:: AbfTab
 
 .. autoclass:: AtfTab
@@ -32,3 +39,4 @@ Widgets
 .. autoclass:: TxtTab
 
 .. autoclass:: WcpTab
+
