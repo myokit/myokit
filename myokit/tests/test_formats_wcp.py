@@ -127,6 +127,7 @@ class WcpTest(unittest.TestCase):
         self.assertEqual(w.channel_units(1), myokit.units.mV)
         self.assertEqual(w.sweep_count(), w.record_count())
         self.assertTrue(w.equal_length_sweeps())
+        self.assertEqual(w.time_units(), myokit.units.s)
 
         # Test SweepSource.channel()
         # Without joining
