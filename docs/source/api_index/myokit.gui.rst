@@ -31,7 +31,9 @@ myokit.gui.datalog_viewer
 - :class:`myokit.gui.datalog_viewer.AtfTab`
 - :class:`myokit.gui.datalog_viewer.CsvTab`
 - :class:`myokit.gui.datalog_viewer.DataLogViewer`
+- :class:`myokit.gui.datalog_viewer.GraphTabWidget`
 - :class:`myokit.gui.datalog_viewer.MatTab`
+- :class:`myokit.gui.datalog_viewer.SweepSourceTab`
 - :class:`myokit.gui.datalog_viewer.TabWidget`
 - :class:`myokit.gui.datalog_viewer.TxtTab`
 - :class:`myokit.gui.datalog_viewer.WcpTab`
