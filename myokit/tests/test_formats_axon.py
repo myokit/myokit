@@ -26,9 +26,9 @@ Protocol set for 1 trials, spaced 0.0s apart.
      and 9 sweeps per run, spaced 0.5s apart.
 Sampling rate: 10000.0 Hz
 A/D Channel 0: "IN 0"
-  Unit: pA
+  Unit: [pA]
 D/A Channel 0: "OUT 0"
-  Unit: mV
+  Unit: [mV]
 '''.strip()
 
 V1_PROTO_INFO = '''
@@ -41,7 +41,7 @@ Protocol set for 1 trials, spaced 0.0s apart.
      and 30 sweeps per run, spaced 5.0s apart.
 Sampling rate: 20000.0 Hz
 D/A Channel 0: "Cmd 0"
-  Unit: mV
+  Unit: [mV]
 '''.strip()
 
 V1_PROTOCOL = '''
@@ -67,28 +67,124 @@ V1_PROTOCOL = '''
 0.0      4100.0   400.0    0.0      0
 '''.strip()
 
+V1_PROTOCOL_VS = '''
+[[protocol]]
+# Level  Start    Length   Period   Multiplier
+-0.1     0.0      0.1      0.0      0
+0.0      0.1      0.4      0.0      0
+-0.08    0.5      0.1      0.0      0
+0.0      0.6      0.4      0.0      0
+-0.06    1.0      0.1      0.0      0
+0.0      1.1      0.4      0.0      0
+-0.04    1.5      0.1      0.0      0
+0.0      1.6      0.4      0.0      0
+-0.02    2.0      0.1      0.0      0
+0.0      2.1      0.4      0.0      0
+0.0      2.5      0.1      0.0      0
+0.0      2.6      0.4      0.0      0
+0.02     3.0      0.1      0.0      0
+0.0      3.1      0.4      0.0      0
+0.04     3.5      0.1      0.0      0
+0.0      3.6      0.4      0.0      0
+0.06     4.0      0.1      0.0      0
+0.0      4.1      0.4      0.0      0
+'''.strip()
+
 V2_INFO = '''
 Axon Binary File: abf-v2.abf
 ABF Format version 2.0.0.0
-Recorded on: 2014-10-01 14:03:55.980999
+Recorded on: 2016-01-07 10:51:55.345000
 Acquisition mode: 5: Episodic stimulation mode
 Protocol set for 1 trials, spaced 0.0s apart.
     with 1 runs per trial, spaced 0.0s apart.
-     and 1 sweeps per run, spaced 5.0s apart.
-Sampling rate: 10000.0 Hz
+     and 37 sweeps per run, spaced 5.0s apart.
+Sampling rate: 20000.0 Hz
 A/D Channel 0: "IN 0"
-  Unit: pA
+  Unit: [pA]
   Low-pass filter: 10000.0 Hz
-  Cm (telegraphed): 6.34765625 pF
+  Cm (telegraphed): 11.083984375 pF
 D/A Channel 0: "Cmd 0"
-  Unit: mV
+  Unit: [mV]
+
 '''.strip()
 
 V2_PROTOCOL = '''
 [[protocol]]
 # Level  Start    Length   Period   Multiplier
-12.0     0.0      1000.0   0.0      0
--120.0   1000.0   4000.0   0.0      0
+-100.0   0.0      25.0     0.0      0
+-120.0   25.0     4975.0   0.0      0
+-95.0    5000.0   25.0     0.0      0
+-120.0   5025.0   4975.0   0.0      0
+-90.0    10000.0  25.0     0.0      0
+-120.0   10025.0  4975.0   0.0      0
+-85.0    15000.0  25.0     0.0      0
+-120.0   15025.0  4975.0   0.0      0
+-80.0    20000.0  25.0     0.0      0
+-120.0   20025.0  4975.0   0.0      0
+-75.0    25000.0  25.0     0.0      0
+-120.0   25025.0  4975.0   0.0      0
+-70.0    30000.0  25.0     0.0      0
+-120.0   30025.0  4975.0   0.0      0
+-65.0    35000.0  25.0     0.0      0
+-120.0   35025.0  4975.0   0.0      0
+-60.0    40000.0  25.0     0.0      0
+-120.0   40025.0  4975.0   0.0      0
+-55.0    45000.0  25.0     0.0      0
+-120.0   45025.0  4975.0   0.0      0
+-50.0    50000.0  25.0     0.0      0
+-120.0   50025.0  4975.0   0.0      0
+-45.0    55000.0  25.0     0.0      0
+-120.0   55025.0  4975.0   0.0      0
+-40.0    60000.0  25.0     0.0      0
+-120.0   60025.0  4975.0   0.0      0
+-35.0    65000.0  25.0     0.0      0
+-120.0   65025.0  4975.0   0.0      0
+-30.0    70000.0  25.0     0.0      0
+-120.0   70025.0  4975.0   0.0      0
+-25.0    75000.0  25.0     0.0      0
+-120.0   75025.0  4975.0   0.0      0
+-20.0    80000.0  25.0     0.0      0
+-120.0   80025.0  4975.0   0.0      0
+-15.0    85000.0  25.0     0.0      0
+-120.0   85025.0  4975.0   0.0      0
+-10.0    90000.0  25.0     0.0      0
+-120.0   90025.0  4975.0   0.0      0
+-5.0     95000.0  25.0     0.0      0
+-120.0   95025.0  4975.0   0.0      0
+0.0      100000.0 25.0     0.0      0
+-120.0   100025.0 4975.0   0.0      0
+5.0      105000.0 25.0     0.0      0
+-120.0   105025.0 4975.0   0.0      0
+10.0     110000.0 25.0     0.0      0
+-120.0   110025.0 4975.0   0.0      0
+15.0     115000.0 25.0     0.0      0
+-120.0   115025.0 4975.0   0.0      0
+20.0     120000.0 25.0     0.0      0
+-120.0   120025.0 4975.0   0.0      0
+25.0     125000.0 25.0     0.0      0
+-120.0   125025.0 4975.0   0.0      0
+30.0     130000.0 25.0     0.0      0
+-120.0   130025.0 4975.0   0.0      0
+35.0     135000.0 25.0     0.0      0
+-120.0   135025.0 4975.0   0.0      0
+40.0     140000.0 25.0     0.0      0
+-120.0   140025.0 4975.0   0.0      0
+45.0     145000.0 25.0     0.0      0
+-120.0   145025.0 4975.0   0.0      0
+50.0     150000.0 25.0     0.0      0
+-120.0   150025.0 4975.0   0.0      0
+55.0     155000.0 25.0     0.0      0
+-120.0   155025.0 4975.0   0.0      0
+60.0     160000.0 25.0     0.0      0
+-120.0   160025.0 4975.0   0.0      0
+65.0     165000.0 25.0     0.0      0
+-120.0   165025.0 4975.0   0.0      0
+70.0     170000.0 25.0     0.0      0
+-120.0   170025.0 4975.0   0.0      0
+75.0     175000.0 25.0     0.0      0
+-120.0   175025.0 4975.0   0.0      0
+80.0     180000.0 25.0     0.0      0
+-120.0   180025.0 4975.0   0.0      0
 '''.strip()
 
 
@@ -108,78 +204,92 @@ class AbfTest(unittest.TestCase):
         self.assertIsInstance(abf, myokit.formats.SweepSource)
 
         # Check getting info
-        self.assertIn('version 1.65', abf.info())
+        self.assertIn('version 1.65', abf.meta_str())
         self.maxDiff = None
-        self.assertEqual(abf.info(), V1_INFO)
+        self.assertEqual(abf.meta_str(), V1_INFO)
 
         # Test getting full header runs without crashing
-        abf.info(True)
+        abf.meta_str(True)
 
         # Get version
         self.assertEqual(abf.version(), '1.65')
 
-        # Test len returns number of sweeps
+        # Sweep count
         self.assertEqual(len(abf), 9)
+        self.assertEqual(abf.sweep_count(), 9)
 
-        # Test access to A/D channels via native API
-        self.assertEqual(abf.ad_channel_count(), 1)    # 1 data channel
+        # Test access to A/D and D/A channels via sequence interface
         self.assertIsInstance(abf[0], axon.Sweep)
+        self.assertIsInstance(abf[8], axon.Sweep)
+        self.assertFalse(abf[0] is abf[1])
+        self.assertEqual(len(abf[0]), 2)
+        self.assertEqual(len(abf[8]), 2)
         self.assertIsInstance(abf[0][0], axon.Channel)
-        self.assertEqual(abf.da_channel_count(), 1)    # 1 D/A channel
         self.assertIsInstance(abf[0][1], axon.Channel)
-        self.assertEqual(len([s for s in abf]), 9)
-        self.assertEqual(len(abf[0]), abf.channel_count())
 
-        # Test conversion to Myokit protocol
-        p = abf.protocol(1)
-        self.assertEqual(len(p), 18)
-        self.assertEqual(p.code(), V1_PROTOCOL)
-
-        # Test other D/A channel methods
-        self.assertEqual(abf.da_holding_level(1), 0)
-        self.assertEqual(len(abf.da_steps(1)[0]), 9)
-        self.assertEqual(
-            list(abf.da_steps(1)[0]),
-            [-100, -80, -60, -40, -20, 0, 20, 40, 60])
-
-        # Test Channel methods
+        # Test abf.Channel methods
         channel = abf[0][0]
-        self.assertIsInstance(channel.number(), int)
+        self.assertEqual(channel.index(), 0)
         self.assertEqual(channel.name(), 'IN 0')
+        self.assertIsInstance(channel.unit(), myokit.Unit)
+        self.assertEqual(channel.unit(), myokit.units.pA)
         self.assertEqual(str(channel),
                          'Channel(0 "IN 0"); 5000 points sampled at 10000.0Hz,'
                          ' starts at t=0.0.')
         self.assertEqual(len(channel.times()), len(channel.values()))
         self.assertFalse(np.all(channel.times() == channel.values()))
 
-        # Test SweepSource interface
-        self.assertEqual(abf.sweep_count(), 9)
-        self.assertEqual(abf.channel_count(), 2)
-        self.assertEqual(abf.channel_names(), ['IN 0', 'OUT 0'])
+        # Test SweepSource info
+        self.assertTrue(abf.equal_length_sweeps())
+        self.assertEqual(abf.time_unit(), myokit.units.s)
 
-        # Channel without joining
-        x = abf.channel(0)
-        self.assertEqual(len(x), 1 + len(abf))
-        self.assertEqual(len(x[0]), len(x[1]))
-        self.assertEqual(len(x[0]), len(x[2]))
-        self.assertEqual(len(x[0]), len(x[3]))
-        self.assertEqual(len(x[0]), len(x[4]))
-        self.assertEqual(len(x[0]), len(x[5]))
-        self.assertEqual(len(x[0]), len(x[6]))
-        self.assertEqual(len(x[0]), len(x[7]))
-        self.assertEqual(len(x[0]), len(x[8]))
-        self.assertEqual(len(x[0]), len(x[9]))
+        # Test A/D channel access via SweepSource interface
+        self.assertEqual(abf.channel_count(), 1)
+        self.assertEqual(abf.channel_names(), ['IN 0'])
+        self.assertEqual(abf.channel_names(0), 'IN 0')
+        self.assertEqual(abf.channel_units(), [myokit.units.pA])
+        self.assertEqual(abf.channel_units(0), myokit.units.pA)
 
-        # Channel with joining
-        y = abf.channel(0, join_sweeps=True)
-        self.assertEqual(len(y), 2)
-        self.assertEqual(len(y[0]), 9 * len(x[0]))
-        self.assertEqual(len(y[0]), len(y[1]))
+        times, values = abf.channel(0)
+        self.assertEqual(9, len(times), len(values))
+        self.assertEqual(len(times[0]), len(values[0]))
+        self.assertEqual(len(times[0]), len(times[1]), len(values[1]))
+        self.assertEqual(len(times[0]), len(times[2]), len(values[2]))
+        self.assertEqual(len(times[0]), len(times[3]), len(values[3]))
+        self.assertEqual(len(times[0]), len(times[4]), len(values[4]))
+        self.assertEqual(len(times[0]), len(times[5]), len(values[5]))
+        self.assertEqual(len(times[0]), len(times[6]), len(values[6]))
+        self.assertEqual(len(times[0]), len(times[7]), len(values[7]))
+        self.assertEqual(len(times[0]), len(times[8]), len(values[8]))
+
+        tj, vj = abf.channel(0, join_sweeps=True)
+        self.assertTrue(np.all(tj == np.concatenate(times)))
+        self.assertTrue(np.all(vj == np.concatenate(values)))
 
         # Channel doesn't exist
         self.assertRaises(IndexError, abf.channel, -1)
-        self.assertRaises(IndexError, abf.channel, 2)
-        self.assertRaises(KeyError, abf.channel, 'Tom')
+        self.assertRaises(IndexError, abf.channel, 1)
+        self.assertRaises(KeyError, abf.channel, 'OUT 0')
+
+        # Test D/A output access via SweepSource interface
+        self.assertEqual(abf.da_count(), 1)
+        self.assertEqual(abf.da_names(), ['OUT 0'])
+        self.assertEqual(abf.da_names(0), 'OUT 0')
+        self.assertEqual(abf.da_units(), [myokit.units.mV])
+        self.assertEqual(abf.da_units(0), myokit.units.mV)
+
+        da_times, da_values = abf.da(0)
+        self.assertEqual(9, len(da_times), len(da_values))
+        self.assertEqual(len(da_times[0]), len(da_values[0]))
+        self.assertEqual(len(da_times[0]), len(da_times[1]), len(da_values[1]))
+        self.assertEqual(len(da_times[0]), len(da_times[8]), len(da_values[8]))
+        self.assertEqual(len(da_times[0]), len(times[0]))
+        self.assertTrue(np.all(times[0] == da_times[0]))
+        self.assertFalse(np.all(values[0] == da_values[0]))
+
+        tj, vj = abf.da(0, join_sweeps=True)
+        self.assertTrue(np.all(tj == np.concatenate(da_times)))
+        self.assertTrue(np.all(vj == np.concatenate(da_values)))
 
         # Conversion to data log without joining
         x = abf.log()
@@ -195,17 +305,32 @@ class AbfTest(unittest.TestCase):
         self.assertIn('6.0.channel', k)
         self.assertIn('7.0.channel', k)
         self.assertIn('8.0.channel', k)
-        self.assertIn('0.1.channel', k)
-        self.assertIn('1.1.channel', k)
-        self.assertIn('2.1.channel', k)
-        self.assertIn('3.1.channel', k)
-        self.assertIn('4.1.channel', k)
-        self.assertIn('5.1.channel', k)
-        self.assertIn('6.1.channel', k)
-        self.assertIn('7.1.channel', k)
-        self.assertIn('8.1.channel', k)
+        self.assertIn('0.0.da', k)
+        self.assertIn('1.0.da', k)
+        self.assertIn('2.0.da', k)
+        self.assertIn('3.0.da', k)
+        self.assertIn('4.0.da', k)
+        self.assertIn('5.0.da', k)
+        self.assertIn('6.0.da', k)
+        self.assertIn('7.0.da', k)
+        self.assertIn('8.0.da', k)
         self.assertEqual(len(x['time']), len(x['5.0.channel']))
-        self.assertEqual(len(x['7.1.channel']), len(x['5.0.channel']))
+        self.assertEqual(len(x['7.0.da']), len(x['5.0.channel']))
+
+        x = abf.log(include_da=False)
+        k = list(x.keys())
+        self.assertEqual(len(x), 1 + 1 * 9)
+        self.assertIn('time', x)
+        self.assertIn('0.0.channel', k)
+        self.assertIn('1.0.channel', k)
+        self.assertIn('2.0.channel', k)
+        self.assertIn('3.0.channel', k)
+        self.assertIn('4.0.channel', k)
+        self.assertIn('5.0.channel', k)
+        self.assertIn('6.0.channel', k)
+        self.assertIn('7.0.channel', k)
+        self.assertIn('8.0.channel', k)
+        self.assertEqual(len(x['time']), len(x['5.0.channel']))
 
         x = abf.log(use_names=True)
         k = list(x.keys())
@@ -230,33 +355,15 @@ class AbfTest(unittest.TestCase):
         self.assertIn('7.OUT 0', k)
         self.assertIn('8.OUT 0', k)
 
-        y = abf.log(use_names=True, channels=[1])
-        k = list(y.keys())
-        self.assertEqual(len(y), 1 + 9)
-        self.assertIn('time', y)
-        self.assertIn('0.OUT 0', y)
-        x = abf.log(use_names=True, channels=['OUT 0'])
-        y = list(x.keys())
-        self.assertEqual(len(y), 1 + 9)
-        self.assertIn('time', y)
-        self.assertIn('8.OUT 0', y)
-        x = abf.log(use_names=True, channels=['IN 0', 'OUT 0'])
-        y = list(x.keys())
-        self.assertEqual(len(y), 1 + 2 * 9)
-        self.assertIn('time', y)
-        self.assertIn('0.OUT 0', y)
-        self.assertIn('2.IN 0', y)
-        self.assertEqual(len(x['time']), len(x['2.IN 0']))
-
         # Conversion to data log with joining
         y = abf.log(join_sweeps=True)
         self.assertEqual(len(y), 3)
         self.assertIn('time', y.keys())
         self.assertIn('0.channel', y.keys())
-        self.assertIn('1.channel', y.keys())
+        self.assertIn('0.da', y.keys())
         self.assertEqual(len(y['time']), 9 * len(x['time']))
         self.assertEqual(len(y['time']), len(y['0.channel']))
-        self.assertEqual(len(y['time']), len(y['1.channel']))
+        self.assertEqual(len(y['time']), len(y['0.da']))
 
         y = abf.log(join_sweeps=True, use_names=True)
         self.assertEqual(len(y), 3)
@@ -267,12 +374,23 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(len(y['time']), len(y['IN 0']))
         self.assertEqual(len(y['time']), len(y['OUT 0']))
 
-        y = abf.log(join_sweeps=True, use_names=True, channels=['IN 0'])
+        y = abf.log(join_sweeps=True, use_names=True, include_da=False)
         self.assertEqual(len(y), 2)
         self.assertIn('time', y.keys())
         self.assertIn('IN 0', y.keys())
+        self.assertEqual(len(y['time']), 9 * len(x['time']))
+        self.assertEqual(len(y['time']), len(y['IN 0']))
 
-    def test_read_protocol_v1(self):
+        # Test conversion to Myokit protocol
+        p = abf.da_protocol(0)
+        self.assertEqual(len(p), 18)
+        self.assertEqual(p.code(), V1_PROTOCOL)
+
+        p = abf.da_protocol(0, vu=myokit.units.V, tu='s')
+        self.assertEqual(len(p), 18)
+        self.assertEqual(p.code(), V1_PROTOCOL_VS)
+
+    def test_read_protocol_file_v1(self):
         # Test reading a v1 protocol file.
 
         # Load file
@@ -280,28 +398,32 @@ class AbfTest(unittest.TestCase):
         abf = axon.AbfFile(path)
 
         # Check version info
-        self.assertIn('version 1.65', abf.info())
-        self.assertEqual(abf.info(), V1_PROTO_INFO)
-        abf.info(True)  # Test getting full header runs without crashing
-        self.assertEqual(abf.channel_count(), 1)
-        self.assertEqual(abf.ad_channel_count(), 0)
-        self.assertEqual(abf.da_channel_count(), 1)
-        self.assertEqual(abf.channel_names(), ['Cmd 0'])
+        self.assertIn('version 1.65', abf.meta_str())
+        self.assertEqual(abf.meta_str(), V1_PROTO_INFO)
+        abf.meta_str(True)  # Test getting full header runs without crashing
+        self.assertEqual(abf.channel_count(), 0)
+        self.assertEqual(abf.channel_names(), [])
+        self.assertEqual(abf.channel_units(), [])
+        self.assertEqual(abf.da_count(), 1)
+        self.assertEqual(abf.da_names(), ['Cmd 0'])
+        self.assertEqual(abf.da_names(0), 'Cmd 0')
+        self.assertEqual(abf.da_units(), [myokit.units.mV])
+        self.assertEqual(abf.da_units(0), myokit.units.mV)
         #self.assertEqual(len(abf.log(join_sweeps=True)), 2)
 
         # Load, force as protocol
         path = os.path.join(DIR_FORMATS, 'abf-protocol.pro')
         abf = axon.AbfFile(path, is_protocol_file=True)
-        self.assertEqual(abf.channel_count(), 1)
-        self.assertEqual(abf.ad_channel_count(), 0)
-        self.assertEqual(abf.da_channel_count(), 1)
+        self.assertEqual(abf.channel_count(), 0)
+        self.assertEqual(abf.channel_count(), 0)
+        self.assertEqual(abf.da_count(), 1)
 
         # Check version info
-        self.assertIn('version 1.65', abf.info())
-        self.assertIn('Axon Protocol File', abf.info())
+        self.assertIn('version 1.65', abf.meta_str())
+        self.assertIn('Axon Protocol File', abf.meta_str())
 
         # Test protocol extraction
-        p = abf.protocol()
+        p = abf.da_protocol()
         self.assertEqual(len(p), 60)
 
     def test_read_v2(self):
@@ -314,127 +436,167 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(abf.filename(), 'abf-v2.abf')
 
         # Check getting info
-        self.assertIn('version 2.0', abf.info())
+        self.assertIn('version 2.0', abf.meta_str())
         self.maxDiff = None
-        self.assertEqual(abf.info(), V2_INFO)
+        self.assertEqual(abf.meta_str(), V2_INFO)
 
         # Test getting full header runs without crashing
-        abf.info(True)
+        abf.meta_str(True)
 
         # Get version
         self.assertEqual(abf.version(), '2.0.0.0')
 
-        # Test len returns number of sweeps
-        self.assertEqual(len(abf), 1)
+        # Sweep count
+        self.assertEqual(len(abf), 37)
+        self.assertEqual(abf.sweep_count(), 37)
 
         # Test access to A/D channels via native API
-        self.assertEqual(abf.ad_channel_count(), 1)    # 1 data channel
         self.assertIsInstance(abf[0], axon.Sweep)
+        self.assertIsInstance(abf[1], axon.Sweep)
+        self.assertIsInstance(abf[36], axon.Sweep)
+        self.assertFalse(abf[0] is abf[1])
+        self.assertEqual(len(abf[0]), 2)
+        self.assertEqual(len(abf[36]), 2)
         self.assertIsInstance(abf[0][0], axon.Channel)
-        self.assertEqual(abf.da_channel_count(), 1)    # 1 D/A channel
         self.assertIsInstance(abf[0][1], axon.Channel)
-        self.assertEqual(len([s for s in abf]), 1)
-        self.assertEqual(len(abf[0]), abf.channel_count())
+        self.assertFalse(abf[0][0] is abf[0][1])
 
-        # Test conversion to Myokit protocol
-        p = abf.protocol(1)
-        self.assertEqual(len(p), 2)
-        self.assertEqual(p.code(), V2_PROTOCOL)
-        self.assertRaises(ValueError, abf.protocol, 0)  # Not a D/A channel
-
-        # Test other D/A channel methods
-        self.assertEqual(abf.da_holding_level(1), -120)
-        self.assertEqual(len(abf.da_steps(1)[0]), 1)
-        self.assertEqual(abf.da_steps(1)[0], [12])
-
-        # Test Channel methods
+        # Test abf.Channel methods
         channel = abf[0][0]
-        self.assertIsInstance(channel.number(), int)
+        self.assertEqual(channel.index(), 0)
         self.assertEqual(channel.name(), 'IN 0')
+        self.assertIsInstance(channel.unit(), myokit.Unit)
+        self.assertEqual(channel.unit(), myokit.units.pA)
         self.assertEqual(str(channel),
-                         'Channel(0 "IN 0"); 3100 points sampled at 10000.0Hz,'
-                         ' starts at t=76.5501.')
+                         'Channel(0 "IN 0"); 516 points sampled at 20000.0Hz,'
+                         ' starts at t=0.0.')
         self.assertEqual(len(channel.times()), len(channel.values()))
         self.assertFalse(np.all(channel.times() == channel.values()))
 
-        # Test SweepSource interface
-        self.assertEqual(abf.sweep_count(), 1)
-        self.assertEqual(abf.channel_count(), 2)
-        self.assertEqual(abf.channel_names(), ['IN 0', 'Cmd 0'])
+        # Test SweepSource info
+        self.assertTrue(abf.equal_length_sweeps())
+        self.assertEqual(abf.time_unit(), myokit.units.s)
 
-        # Channel without joining
-        x = abf.channel(0)
-        self.assertEqual(len(x), 1 + len(abf))
-        self.assertEqual(len(x[0]), len(x[1]))
+        # Test A/D channel access via SweepSource interface
+        self.assertEqual(abf.channel_count(), 1)
+        self.assertEqual(abf.channel_names(), ['IN 0'])
+        self.assertEqual(abf.channel_names(0), 'IN 0')
+        self.assertEqual(abf.channel_units(), [myokit.units.pA])
+        self.assertEqual(abf.channel_units(0), myokit.units.pA)
 
-        # Channel with joining
-        y = abf.channel(0, join_sweeps=True)
-        self.assertEqual(len(y), 2)
-        self.assertEqual(len(y[0]), len(x[0]))
-        self.assertEqual(len(y[0]), len(y[1]))
+        times, values = abf.channel(0)
+        self.assertEqual(37, len(times), len(values))
+        self.assertEqual(len(times[0]), len(values[0]))
+        self.assertEqual(len(times[0]), len(times[1]), len(values[1]))
+        self.assertEqual(len(times[0]), len(times[2]), len(values[2]))
+        self.assertEqual(len(times[0]), len(times[17]), len(values[13]))
+        self.assertEqual(len(times[0]), len(times[36]), len(values[36]))
+
+        tj, vj = abf.channel(0, join_sweeps=True)
+        self.assertTrue(np.all(tj == np.concatenate(times)))
+        self.assertTrue(np.all(vj == np.concatenate(values)))
+
+        # Channel doesn't exist
+        self.assertRaises(IndexError, abf.channel, -1)
+        self.assertRaises(IndexError, abf.channel, 1)
+        self.assertRaises(KeyError, abf.channel, 'OUT 0')
+
+        # Test D/A output access via SweepSource interface
+        self.assertEqual(abf.da_count(), 1)
+        self.assertEqual(abf.da_names(), ['Cmd 0'])
+        self.assertEqual(abf.da_names(0), 'Cmd 0')
+        self.assertEqual(abf.da_units(), [myokit.units.mV])
+        self.assertEqual(abf.da_units(0), myokit.units.mV)
+
+        da_times, da_values = abf.da(0)
+        self.assertEqual(37, len(da_times), len(da_values))
+        self.assertEqual(len(da_times[0]), len(da_values[0]))
+        self.assertEqual(len(da_times[0]), len(da_times[1]), len(da_values[1]))
+        self.assertEqual(len(da_times[0]), len(da_times[4]), len(da_values[9]))
+        self.assertEqual(len(da_times[0]), len(times[0]))
+        self.assertTrue(np.all(times[0] == da_times[0]))
+        self.assertFalse(np.all(values[0] == da_values[0]))
+
+        tj, vj = abf.da(0, join_sweeps=True)
+        self.assertTrue(np.all(tj == np.concatenate(da_times)))
+        self.assertTrue(np.all(vj == np.concatenate(da_values)))
 
         # Conversion to data log without joining
         x = abf.log()
         k = list(x.keys())
-        self.assertEqual(len(x), 3)
+        self.assertEqual(len(x), 1 + 2 * 37)
         self.assertIn('time', x)
         self.assertIn('0.0.channel', k)
-        self.assertIn('0.1.channel', k)
-        self.assertEqual(len(x['time']), len(x['0.0.channel']))
-        self.assertEqual(len(x['time']), len(x['0.1.channel']))
-        self.assertTrue(np.all(x['time'] == abf.channel(0)[0]))
-        self.assertTrue(np.all(x['0.0.channel'] == abf.channel(0)[1]))
+        self.assertIn('1.0.channel', k)
+        self.assertIn('2.0.channel', k)
+        self.assertIn('3.0.channel', k)
+        self.assertIn('36.0.channel', k)
+        self.assertIn('0.0.da', k)
+        self.assertIn('5.0.da', k)
+        self.assertIn('16.0.da', k)
+        self.assertIn('36.0.da', k)
+        self.assertEqual(len(x['time']), len(x['5.0.channel']))
+        self.assertEqual(len(x['7.0.da']), len(x['5.0.channel']))
+
+        x = abf.log(include_da=False)
+        k = list(x.keys())
+        self.assertEqual(len(x), 1 + 1 * 37)
+        self.assertIn('time', x)
+        self.assertIn('0.0.channel', k)
+        self.assertIn('1.0.channel', k)
+        self.assertIn('2.0.channel', k)
+        self.assertIn('3.0.channel', k)
+        self.assertIn('36.0.channel', k)
+        self.assertNotIn('0.0.da', k)
+        self.assertNotIn('7.0.da', k)
+        self.assertNotIn('36.0.da', k)
+        self.assertEqual(len(x['time']), len(x['6.0.channel']))
 
         x = abf.log(use_names=True)
         k = list(x.keys())
-        self.assertEqual(len(x), 3)
-        self.assertIn('time', k)
+        self.assertEqual(len(x), 1 + 2 * 37)
+        self.assertIn('time', x)
         self.assertIn('0.IN 0', k)
+        self.assertIn('1.IN 0', k)
+        self.assertIn('2.IN 0', k)
+        self.assertIn('36.IN 0', k)
         self.assertIn('0.Cmd 0', k)
-
-        y = abf.log(use_names=True, channels=[1])
-        k = list(y.keys())
-        self.assertEqual(len(y), 2)
-        self.assertIn('time', y)
-        self.assertIn('0.Cmd 0', y)
-        x = abf.log(use_names=True, channels=['Cmd 0'])
-        y = list(x.keys())
-        self.assertEqual(len(y), 2)
-        self.assertIn('time', y)
-        self.assertIn('0.Cmd 0', y)
-        x = abf.log(use_names=True, channels=[0, 'Cmd 0'])
-        y = list(x.keys())
-        self.assertEqual(len(y), 3)
-        self.assertIn('time', y)
-        self.assertIn('0.Cmd 0', y)
-        self.assertIn('0.IN 0', y)
-        self.assertEqual(len(x['time']), len(x['0.IN 0']))
+        self.assertIn('5.Cmd 0', k)
+        self.assertIn('16.Cmd 0', k)
+        self.assertIn('36.Cmd 0', k)
+        self.assertEqual(len(x['time']), len(x['5.IN 0']))
+        self.assertEqual(len(x['7.Cmd 0']), len(x['5.IN 0']))
 
         # Conversion to data log with joining
         y = abf.log(join_sweeps=True)
         self.assertEqual(len(y), 3)
         self.assertIn('time', y.keys())
         self.assertIn('0.channel', y.keys())
-        self.assertIn('1.channel', y.keys())
-        self.assertEqual(len(y['time']), 1 * len(x['time']))
+        self.assertIn('0.da', y.keys())
+        self.assertEqual(len(y['time']), 37 * len(x['time']))
         self.assertEqual(len(y['time']), len(y['0.channel']))
-        self.assertEqual(len(y['time']), len(y['1.channel']))
-        self.assertTrue(np.all(y['time'] == abf.channel(0, True)[0]))
-        self.assertTrue(np.all(y['0.channel'] == abf.channel(0, True)[1]))
+        self.assertEqual(len(y['time']), len(y['0.da']))
 
         y = abf.log(join_sweeps=True, use_names=True)
         self.assertEqual(len(y), 3)
         self.assertIn('time', y.keys())
         self.assertIn('IN 0', y.keys())
         self.assertIn('Cmd 0', y.keys())
-        self.assertEqual(len(y['time']), 1 * len(x['time']))
+        self.assertEqual(len(y['time']), 37 * len(x['time']))
         self.assertEqual(len(y['time']), len(y['IN 0']))
         self.assertEqual(len(y['time']), len(y['Cmd 0']))
 
-        y = abf.log(join_sweeps=True, use_names=True, channels=['IN 0'])
+        y = abf.log(join_sweeps=True, use_names=True, include_da=False)
         self.assertEqual(len(y), 2)
         self.assertIn('time', y.keys())
         self.assertIn('IN 0', y.keys())
+        self.assertEqual(len(y['time']), 37 * len(x['time']))
+        self.assertEqual(len(y['time']), len(y['IN 0']))
+
+        # Test conversion to Myokit protocol
+        p = abf.da_protocol(0)
+        self.assertEqual(len(p), 74)
+        self.assertEqual(p.code(), V2_PROTOCOL)
 
     def test_matplotlib_figure(self):
         # Test figure drawing method (doesn't inspect output).
@@ -659,7 +821,11 @@ class AtfTest(unittest.TestCase):
             self.assertEqual(len(atf), 3)
 
             # Test info
-            self.assertIn('myokit', atf.info())
+            meta = atf.meta_str()
+            self.assertIn('myokit', meta)
+            with WarningCollector() as w:
+                self.assertEqual(meta, atf.info())
+            self.assertIn('deprecated', w.text())
 
             # Test version
             self.assertEqual(atf.version(), '1.0')
