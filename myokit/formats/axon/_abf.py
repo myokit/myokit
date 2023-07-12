@@ -695,8 +695,8 @@ class AbfFile(myokit.formats.SweepSource):
 
                 # Check for unsupported features (or disabled waveforms/epochs)
                 # Version 1 files can only have two waveform channels
-                if self._version < 2 and i_dac > 1:
-                    source = DAC_EPOCHTABLEWAVEFORM
+                if self._version < 2 and i_dac > 1:  # pragma: no cover
+                    source = DAC_DISABLED
                 else:
                     source = dinfo(i_dac, 'nWaveformSource')
                 if source == DAC_EPOCHTABLEWAVEFORM:
@@ -706,7 +706,7 @@ class AbfFile(myokit.formats.SweepSource):
                         t = e['type']
                         if t == EPOCH_STEPPED:
                             use = True
-                        elif t != EPOCH_DISABLED:
+                        elif t != EPOCH_DISABLED:  # pragma: no cover
                             use = False
                             warnings.warn(
                                 f'Unsupported epoch type: {epoch_types(t)}')
@@ -985,7 +985,7 @@ class AbfFile(myokit.formats.SweepSource):
                 else:
                     i2 = ns // 64  # ABFH_HOLDINGFRACTION = 64
                     i2 -= i2 % self._n_adc
-                    if (i2 < self._n_adc):
+                    if (i2 < self._n_adc):  # pragma: no cover
                         i2 = self._n_adc
 
                 # For each 'epoch' in the stimulation signal
