@@ -546,9 +546,8 @@ class DataLogViewer(myokit.gui.MyokitApplication):
 
 
 class TabWidget(QtWidgets.QTabWidget):
-    """
-    Tab widget that can move up and down when asked.
-    """
+    """ Generic tab widget with first/last next/previous methods. """
+
     def first(self):
         """ Select the first widget. """
         self.setCurrentIndex(0)
@@ -574,61 +573,17 @@ class TabWidget(QtWidgets.QTabWidget):
         self.setCurrentIndex(n - 1 if i < 0 else i)
 
 
-class AbfTab(TabWidget):
-    """
-    A widget displaying an ABF file.
-    """
-    def __init__(self, parent, abf):
+class GraphTabWidget(TabWidget):
+    """ Tab widget to graph a data source. """
+
+    def __init__(self, parent):
         super().__init__(parent)
+
         self.setTabsClosable(False)
         self.setTabPosition(self.TabPosition.East)
-        self._abf = abf
+
         self._figures = []
         self._axes = []
-        for i in range(self._abf.channel_count()):
-            tab, name = self.create_graph_tab(i)
-            self.addTab(tab, name)
-        self.addTab(self.create_info_tab(), 'Info')
-        del self._abf
-
-    def create_graph_tab(self, channel):
-        """
-        Creates a widget displaying the main data.
-        """
-        widget = QtWidgets.QWidget(self)
-
-        # Create figure
-        figure = matplotlib.figure.Figure()
-        figure.suptitle(self._abf.filename())
-        canvas = backend.FigureCanvasQTAgg(figure)
-        canvas.setParent(widget)
-        axes = figure.add_subplot(1, 1, 1)
-        toolbar = backend.NavigationToolbar2QT(canvas, widget)
-
-        # Draw lines
-        name = f'Channel {channel}'  # Default if no data is present
-        times = None
-        for i, sweep in enumerate(self._abf):
-            if times is None:
-                name = sweep[channel].name()
-                times = sweep[channel].times()
-            axes.plot(times, sweep[channel].values())
-
-        # Create a layout
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addWidget(canvas)
-        vbox.addWidget(toolbar)
-        widget.setLayout(vbox)
-        self._figures.append(figure)
-        self._axes.append(axes)
-        return widget, name
-
-    def create_info_tab(self):
-        """ Creates a tab displaying information about the file. """
-        widget = QtWidgets.QTextEdit(self)
-        widget.setText(self._abf.info(show_header=True))
-        widget.setReadOnly(True)
-        return widget
 
     def deleteLater(self):
         """ Deletes this tab (later). """
@@ -639,6 +594,114 @@ class AbfTab(TabWidget):
         del self._figures, self._axes
         gc.collect()
         super().deleteLater()
+
+
+class SweepSourceTab(GraphTabWidget):
+    """ A tab widget for sources implementing the SweepSource interface. """
+
+    def __init__(self, parent, source):
+        super().__init__(parent)
+
+        # Add A/D
+        for i in range(source.channel_count()):
+            self._add_graph_tab(source, i)
+
+        # Add D/A
+        for i in range(source.da_count()):
+            self._add_graph_tab(source, i, True)
+
+        # Add meta data
+        self._add_meta_tab(source)
+
+    def _add_graph_tab(self, source, index, da=False):
+        """ Adds a tab for a graph. """
+
+        # Create widget
+        widget = QtWidgets.QWidget(self)
+
+        # Create figure
+        figure = matplotlib.figure.Figure()
+        canvas = backend.FigureCanvasQTAgg(figure)
+        canvas.setParent(widget)
+        toolbar = backend.NavigationToolbar2QT(canvas, widget)
+
+        # Draw signal
+        join_sweeps = not source.equal_length_sweeps()
+        if da:
+            name = source.da_names(index)
+            units = source.da_units(index)
+            times, values = source.da(index, join_sweeps)
+        else:
+            name = source.channel_names(index)
+            units = source.channel_units(index)
+            times, values = source.channel(index, join_sweeps)
+
+        axes = figure.add_subplot(1, 1, 1)
+        axes.set_xlabel(f'Time {source.time_unit()}')
+        axes.set_ylabel(f'{name} {units}')
+        if join_sweeps:
+            axes.plot(times, values)
+        else:
+            for v in values:
+                axes.plot(times[0], v)
+
+        # Store for later deletion
+        self._figures.append(figure)
+        self._axes.append(axes)
+
+        # Create a layout
+        vbox = QtWidgets.QVBoxLayout()
+        vbox.addWidget(canvas)
+        vbox.addWidget(toolbar)
+        widget.setLayout(vbox)
+
+        # Add tab
+        self.addTab(widget, name)
+
+    '''
+    def debug_tab(self, channel_index, da=True):
+        """ Add a tab graphing data using the DataLog method. """
+        widget = QtWidgets.QWidget(self)
+
+        # Create widget
+        widget = QtWidgets.QWidget(self)
+
+        # Create figure
+        figure = matplotlib.figure.Figure()
+        figure.suptitle(self._abf.filename())
+        canvas = backend.FigureCanvasQTAgg(figure)
+        canvas.setParent(widget)
+        toolbar = backend.NavigationToolbar2QT(canvas, widget)
+
+        # Draw lines
+        p = self._abf.da_protocol(channel_index, tu='s', vu='V')
+        times, _ = self._abf.da(channel_index)
+        for t in times:
+            d = p.log_for_interval(t[0], t[-1], for_drawing=True).npview()
+            axes.plot(d['time'] - t[0], d['pace'])
+
+        # Create a layout
+        vbox = QtWidgets.QVBoxLayout()
+        vbox.addWidget(canvas)
+        vbox.addWidget(toolbar)
+        widget.setLayout(vbox)
+
+        # Add tab
+        self.addTab(widget, name)
+'''
+
+    def _add_meta_tab(self, source):
+
+        meta = source.meta_str(True)
+        if meta:
+            widget = QtWidgets.QTextEdit(self)
+            widget.setText(meta)
+            widget.setReadOnly(True)
+            self.addTab(widget, 'info')
+
+class AbfTab(SweepSourceTab):
+    """ A widget displaying an ABF file. """
+    pass
 
 
 class AtfTab(TabWidget):
@@ -975,63 +1038,6 @@ class TxtTab(TabWidget):
         super().deleteLater()
 
 
-class WcpTab(TabWidget):
-    """
-    A widget displaying a WCP file.
-    """
-    def __init__(self, parent, wcp):
-        super().__init__(parent)
-        self.setTabsClosable(False)
-        self.setTabPosition(self.TabPosition.East)
-        self._wcp = wcp
-        self._figures = []
-        self._axes = []
-        for i in range(self._wcp.record_count()):
-            self.addTab(self.create_graph_tab(i), 'Record ' + str(i))
-        del self._wcp
-
-    def create_graph_tab(self, record):
-        """ Creates a widget displaying the data in the given ``record``. """
-        widget = QtWidgets.QWidget(self)
-
-        # Create figure
-        figure = matplotlib.figure.Figure()
-        figure.suptitle(self._wcp.filename())
-        canvas = backend.FigureCanvasQTAgg(figure)
-        canvas.setParent(widget)
-        axes = figure.add_subplot(1, 1, 1)
-        toolbar = backend.NavigationToolbar2QT(canvas, widget)
-
-        # Draw lines
-        for i in range(self._wcp.channel_count()):
-            axes.plot(
-                np.array(self._wcp.times(), copy=True),
-                np.array(self._wcp.values(record, i), copy=True),
-            )
-
-        # Create a layout
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addWidget(canvas)
-        vbox.addWidget(toolbar)
-        widget.setLayout(vbox)
-        self._figures.append(figure)
-        self._axes.append(axes)
-        return widget
-
-    def create_info_tab(self):
-        """ Creates a tab displaying information about the file. """
-        widget = QtWidgets.QTextEdit(self)
-        widget.setText(self._wcp.info())
-        widget.setReadOnly(True)
-        return widget
-
-    def deleteLater(self):
-        """ Deletes this tab (later). """
-        for figure in self._figures:
-            figure.clear()
-        for axes in self._axes:
-            axes.cla()
-        del self._figures, self._axes
-        gc.collect()
-        super().deleteLater()
+class WcpTab(SweepSourceTab):
+    pass
 
