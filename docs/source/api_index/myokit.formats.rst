@@ -120,6 +120,28 @@ myokit.formats.easyml
 - :meth:`myokit.formats.easyml.exporters`
 - :meth:`myokit.formats.easyml.ewriters`
 
+myokit.formats.heka
+---------------------
+- :class:`myokit.formats.heka.AmplifierMode`
+- :class:`myokit.formats.heka.EndianAwareReader`
+- :class:`myokit.formats.heka.Group`
+- :meth:`myokit.formats.heka.importers`
+- :class:`myokit.formats.heka.NoSupportedDAChannelError`
+- :class:`myokit.formats.heka.PatchMasterFile`
+- :class:`myokit.formats.heka.PatchMasterImporter`
+- :class:`myokit.formats.heka.PulsedFile`
+- :class:`myokit.formats.heka.Segment`
+- :class:`myokit.formats.heka.SegmentClass`
+- :class:`myokit.formats.heka.SegmentIncrement`
+- :class:`myokit.formats.heka.SegmentStorage`
+- :class:`myokit.formats.heka.Series`
+- :class:`myokit.formats.heka.Stimulus`
+- :class:`myokit.formats.heka.StimulusChannel`
+- :class:`myokit.formats.heka.StimulusFile`
+- :class:`myokit.formats.heka.Sweep`
+- :class:`myokit.formats.heka.Trace`
+- :class:`myokit.formats.heka.TreeNode`
+
 myokit.formats.html
 -------------------
 - :meth:`myokit.formats.html.exporters`

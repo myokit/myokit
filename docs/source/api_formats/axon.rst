@@ -14,6 +14,9 @@ Time series and meta data can be read using the classes :class:`AbfFile` and
 :class:`AtfFile`. Stored protocol data can also be retrieved from ABF files.
 A :class:`DataLog` can be stored in ATF format using :meth:`save_atf`.
 
+The :class:`AbfFile` class implements Myokit's shared
+:class:`myokit.formats.SweepSource` interface.
+
 .. autoclass:: AbfFile
 
 .. autoclass:: Sweep

@@ -21,7 +21,7 @@ class PatchMasterImporter(myokit.formats.Importer):
         Attempts to load the protocol from the file at ``filename``.
 
         Because PatchMaster files can contain several experiments, a further
-        selection can be made with the arguments::
+        selection can be made with the arguments:
 
         ``filename``
             The file to read

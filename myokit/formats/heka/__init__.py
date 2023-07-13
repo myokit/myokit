@@ -20,6 +20,7 @@ from ._patchmaster import ( # noqa
     StimulusFile,
     Sweep,
     Trace,
+    TreeNode,
 )
 from ._importer import PatchMasterImporter
 

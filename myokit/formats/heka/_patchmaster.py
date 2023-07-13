@@ -577,7 +577,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
 
     The data in a :class:`Series` can be obtained from its child :class:`Sweep`
     and :class:`Trace` objects, or via the unified
-     :class:`myokit.formats.SweepSource` interface.
+    :class:`myokit.formats.SweepSource` interface.
 
     An example of native access::
 
@@ -1352,16 +1352,8 @@ class Stimulus(TreeNode):
     Each ``Stimulus`` contains zero or more :class:`StimulusChannel` objects,
     and each channel is made up out of :class:`Segment` objects.
 
-    For selected stimuli (see below), a reconstruction can be made.
-
-                for c in self:
-                if c.supported():
-                    mode, unit = c.amplifier_mode(), c.unit()
-                    vc = mode is AmplifierMode.VC and unit is myokit.units.V
-                    cc = mode is AmplifierMode.CC and unit is myokit.units.nA
-                    if vc or cc:
-                        channel = c
-                        break
+    For selected stimuli, a reconstruction can be made using :meth:`protocol`
+    or :meth:`reconstruction`.
     """
     def __init__(self, parent):
         super().__init__(parent)
