@@ -1096,8 +1096,8 @@ class AbfFile(myokit.formats.SweepSource):
             return list(self._da_names.keys())
         return list(self._da_names.keys())[index]
 
-    def da_protocol(self, output_id=0, tu='ms', vu='mV', cu='pA', n_digits=9,
-                    include_initial_holding=False):
+    def da_protocol(self, output_id=None, tu='ms', vu='mV', cu='pA',
+                    n_digits=9, include_initial_holding=False):
         """
         See :meth:`myokit.formats.SweepSource.da_protocol()`.
 
@@ -1109,7 +1109,7 @@ class AbfFile(myokit.formats.SweepSource):
 
         # Check the output id. This also raises an error if no supported D/A
         # channels are present.
-        output_id = self._da_id(output_id)
+        output_id = self._da_id(output_id or 0)
 
         # Get the index in dinfo
         i_dac = self._dac_indices[output_id]

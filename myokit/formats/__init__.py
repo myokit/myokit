@@ -745,7 +745,7 @@ class SweepSource:
         """
         raise NotImplementedError
 
-    def da_names(self):
+    def da_names(self, index=None):
         """
         Returns the names of all reconstructed D/A output channels or the name
         of a specific output channel ``index``.
@@ -768,17 +768,16 @@ class SweepSource:
         may be specified as :class:`myokit.Unit` objects or strings.
 
         By default, floating point numbers in the protocol will be rounded to
-        9 digits after the decimal point. This can be changed or disabled via
-        the ``n_digits`` argument (which is passed to the built-in method
-        ``round``).
+        9 digits after the decimal point. This can be customised using the
+        argument ``n_digits``.
 
-        If a D/A outputs cannot be converted to a :class:`myokit.Protocol`, a
+        If a D/A output cannot be converted to a :class:`myokit.Protocol`, a
         ``ValueError`` is raised. A ``NotImplementedError`` is raised if D/A
         channels are not supported at all.
         """
         raise NotImplementedError
 
-    def da_units(self):
+    def da_units(self, index=None):
         """
         Returns the units (as :class:`myokit.Unit`) of all reconstructed D/A
         output channels or the units of a specific output channel ``index``.
@@ -803,11 +802,15 @@ class SweepSource:
         the first sweep if ``join_sweeps`` is ``False``, or the time of all
         points when ``join_sweeps`` is ``True``.
 
-        Names will have a systematic form ``sweep.channel.type``, for example
-        ``0.1.channel`` for the 1st sweep, second channel of A/D input, or
-        ``3.0.da`` for the 3d sweep, first channel of reconstructed D/A output.
+        Names will have a systematic form ``i_sweep.i_channel.label``, for
+        example ``0.1.channel`` for sweep 0 of recorded channel 1, or
+        ``3.0.da`` for sweep 3 of reconstructed D/A output 0. These can also be
+        accessed using the syntax ``log['channel', 1, 0]`` and
+        ``log['da', 0, 3]``.
+
         To obtain a log with the user-specified names from the source instead,
-        set ``use_names`` to ``True``.
+        set ``use_names`` to ``True``. This will result in names such as
+        ``0.IN 1`` or ``3.Cmd 0``.
 
         To exclude D/A signal reconstructions, set ``include_da`` to ``False``.
 

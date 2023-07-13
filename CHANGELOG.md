@@ -4,6 +4,7 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#955](https://github.com/myokit/myokit/pull/955) Added provisional HEKA PatchMaster file reading.
   - [#985](https://github.com/myokit/myokit/pull/985), [#998](https://github.com/myokit/myokit/pull/998) The `AbfFile` and `WcpFile` now implement a shared `SweepSource` interface.
   - [#985](https://github.com/myokit/myokit/pull/985) Added a method `AtfFile.path` that returns the full path.
   - [#985](https://github.com/myokit/myokit/pull/985) Added a method `WcpFile.info` that returns a string version of the file's meta data, and a method `WcpFile.sample_count` that returns the number of samples per channel.
@@ -16,6 +17,7 @@ This page lists the main changes made to Myokit in each release.
   - [#985](https://github.com/myokit/myokit/pull/985) The method `WcpFile.myokit_log` is deprecated in favor of `WcpFile.log`.
   - [#985](https://github.com/myokit/myokit/pull/985) The methods `WcpFile.channels` and `WcpFile.records` are deprecated in favor of `WcpFile.channel_count` and `WcpFile.record_count`.
   - [#985](https://github.com/myokit/myokit/pull/985) The method `WcpFile.plot` is deprecated in favor of `WcpFile.matplotlib_figure`.
+  - [#985](https://github.com/myokit/myokit/pull/985) The method `WcpFile.records` is deprecated in favor of `WcpFile.record_count` or `WcpFile.sweep_count`.
   - [#985](https://github.com/myokit/myokit/pull/985) The method `AtfFile.myokit_log` is deprecated in favor of `AtfFile.log`.
   - [#998](https://github.com/myokit/myokit/pull/998) The method `WcpFile.info` is deprecated in favor of `WcpFile.meta_str`.
   - [#998](https://github.com/myokit/myokit/pull/998) The method `AtfFile.info` is deprecated in favor of `AtfFile.meta_str`.

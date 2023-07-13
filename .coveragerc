@@ -5,6 +5,7 @@ omit =
     myokit/tests/*
     myokit/__main__.py
     myokit/lib/common.py
+    myokit/formats/heka/*
 
 [report]
 exclude_lines =

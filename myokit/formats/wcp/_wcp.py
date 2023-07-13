@@ -416,15 +416,11 @@ class WcpFile(myokit.formats.SweepSource):
         plt.show()
 
     def record_count(self):
-        """
-        Returns the number of records in this file.
-
-        Alias of :meth:`sweep_count`.
-        """
+        """ Alias of :meth:`sweep_count`. """
         return self._nr
 
     def records(self):
-        """ Deprecated alias of :meth:`count_records`. """
+        """ Deprecated alias of :meth:`sweep_count`. """
         # Deprecated since 2023-06-22
         import warnings
         warnings.warn(
