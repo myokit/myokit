@@ -755,8 +755,22 @@ class Series(TreeNode, myokit.formats.SweepSource):
     def equal_length_sweeps(self):
         # Docstring in SweepSource
 
-        # Assuming this is always true right now:
-        #  - assuming sweeps have same data size in is_complete
+        # Get length of any trace
+        n = 0
+        for sweep in self:
+            for trace in sweep:
+                if len(trace):
+                    n = len(trace)
+                    break
+        if n == 0:
+            return True
+
+        # Check all traces
+        for sweep in self:
+            for trace in sweep:
+                if len(trace) != n:
+                    return False
+
         return True
 
     def is_complete(self):
@@ -764,17 +778,23 @@ class Series(TreeNode, myokit.formats.SweepSource):
         Returns ``False`` if this series was aborted before the recording was
         completed.
 
-        At the moment, this only checks if the number of sweeps matches the
-        intended sweep count. It does not check if the final sweep contains the
-        intended number of data points.
-
+        The full check can only be run if this channel's Stimulus can be
+        analysed to determine the intended number of samples in each sweep. If
+        the stimulus contains unsupported features, this part of the check will
+        not be run.
         """
         if len(self) != self._intended_sweep_count:
             return False
 
-        #n0 = [channel._n for channel in self[0]]
-        #n1 = [channel._n for channel in self[-1]]
-        #return n0 == n1
+        try:
+            n_samples = self._stimulus.sweep_samples()
+            for sweep, expected in zip(self, n_samples):
+                for ch in sweep:
+                    if len(ch) != expected:
+                        return False
+        except NoSupportedDAChannelError:
+            return True
+
         return True
 
     def label(self):
@@ -785,6 +805,9 @@ class Series(TreeNode, myokit.formats.SweepSource):
             use_real_start_times=False):
         """
         See :meth:`myokit.formats.SweepSource.log`.
+
+        A D/A reconstruction will only be included if the stimulus type is
+        supported, and if all segments are stored.
 
         Sweep starts in the Patchmaster format can be derived from the stimulus
         information (the intended start) or from the logged system time at the
@@ -804,6 +827,11 @@ class Series(TreeNode, myokit.formats.SweepSource):
         if not use_names:
             channel_names = [f'{i}.channel' for i in range(len(channel_names))]
             da_names = [f'{i}.da' for i in range(len(da_names))]
+
+        # Don't include D/A if it has a different length than the data
+        if include_da and len(da_names) > 0:  # This means it's supported
+            if not self._stimulus.all_segments_stored():
+                include_da = False
 
         # Populate log
         if join_sweeps:
@@ -1392,6 +1420,17 @@ class Stimulus(TreeNode):
                     self._supported_channel = c
                     break
 
+    def all_segments_stored(self):
+        """
+        Returns ``True`` if all of this stimulus's segments should be stored.
+
+        The channel to check is chosen automatically. If no supported channel
+        can be found, a :class:`NoSupportedDAChannelError` is raised.
+        """
+        if self._supported_channel is None:
+            raise NoSupportedDAChannelError()
+        return self._supported_channel.all_segments_stored()
+
     def protocol(self, tu='ms', vu='mV', cu='pA', n_digits=9):
         """
         Generates a :class:`myokit.Protocol` corresponding to this stimulus, or
@@ -1441,6 +1480,9 @@ class Stimulus(TreeNode):
         """
         Returns the (intended) durations of this stimulus's sweeps, as a list
         of times in seconds.
+
+        Note that this returns the actual duration of a sweep, regardless of
+        storage.
         """
         d = np.array(
             [channel.sweep_durations(self._sweep_count) for channel in self])
@@ -1454,6 +1496,18 @@ class Stimulus(TreeNode):
         one sweep end and the next sweep start, in seconds).
         """
         return self._sweep_interval
+
+    def sweep_samples(self):
+        """
+        Returns the (intended) number of samples stored during each of this
+        stimulus's sweeps.
+
+        Unlike :meth:`sweep_durations`, this method takes storage into account.
+        """
+        if self._supported_channel is None:
+            raise NoSupportedDAChannelError()
+        return self._supported_channel.sweep_samples(
+            self._sweep_count, self._dt)
 
 
 #
@@ -1579,6 +1633,12 @@ class StimulusChannel(TreeNode):
     def __str__(self):
         return (f'StimulusChannel in {self._amplifier_mode} mode and units'
                 f' {self._unit}')
+
+    def all_segments_stored(self):
+        """
+        Returns ``True`` if all this channel's segments should be stored.
+        """
+        return all(s.storage() is SegmentStorage.Stored for s in self)
 
     def amplifier_mode(self):
         """
@@ -1733,6 +1793,18 @@ class StimulusChannel(TreeNode):
         """
         d = np.array([seg.durations(sweep_count) for seg in self])
         return d.sum(axis=0)
+
+    def sweep_samples(self, sweep_count, dt):
+        """
+        Returns the (intended) number of samples in each of this channel's
+        sweeps.
+
+        Note that, unlike :meth:`sweep_durations`, this method takes storage
+        into account.
+        """
+        return np.sum(
+            np.array([s.samples(sweep_count, dt) for s in self]),
+            axis=0)
 
     def unit(self):
         """ Returns the units that this channel's output is in. """
@@ -1890,6 +1962,10 @@ class Segment(TreeNode):
         its duration increases with 1s per sweep from a base duration of 2s,
         the returned values would be ``[2, 3, 4]``.
 
+        Durations are returned regardless of whether data is stored or not
+        (although the "First sweep" and "Last sweep" storage modes can affect
+        the durations and so are considered by this method).
+
         If unsupported features are encountered, a ``NotImplementedError`` is
         raised.
         """
@@ -1899,16 +1975,37 @@ class Segment(TreeNode):
         if self._duration_from_holding:
             raise NotImplementedError('Segment duration set as holding.')
 
-        return self._duration_increment.sweep_values(
+        durations = self._duration_increment.sweep_values(
             sweep_count,
             self._duration,
             self._duration_delta,
             self._duration_factor,
         )
+        if self._storage is SegmentStorage.First:
+            durations[1:] = 0
+        elif self._storage is SegmentStorage.Last:
+            durations[:-1] = 0
+        return durations
 
     def segment_class(self):
         """ Returns this segment's :class:`SegmentClass`. """
         return self._class
+
+    def samples(self, sweep_count, dt):
+        """
+        Returns the number of samples that should be stored during this
+        segment in each sweep.
+        """
+        if self._storage is SegmentStorage.NotStored:
+            return [0] * sweep_count
+
+        # Get sweep durations. This also handles SegmentStorage.First and Last
+        durations = self.durations(sweep_count)
+        return [int(round(d / dt)) for d in durations]
+
+    def storage(self):
+        """ Returns this segment's :class:`SegmentStorage`. """
+        return self._storage
 
     def values(self, sweep_count, holding, relative):
         """
@@ -1975,10 +2072,16 @@ class SegmentClass(enum.Enum):
 
 class SegmentStorage(enum.Enum):
     """ Segment storage mode """
-    NoStore = 0
-    SegStore = 1
-    SegStoreStart = 2
-    SegStoreEnd = 3
+    NotStored = 0
+    Stored = 1
+
+    # The next two determine more than just storage:
+    # "First Sweep: These segments are output only with the first Sweep of the
+    #  Series but are not stored."
+    # "Last Sweep: These segments are output only with the last Sweep of the
+    #  Series but are not stored."
+    First = 2
+    Last = 3
 
 
 class SegmentIncrement(enum.Enum):
@@ -2084,7 +2187,8 @@ class NoSupportedDAChannelError(myokit.MyokitError):
     Raised if no channel can be found in a stimulus to convert to a D/A
     signal or protocol.
     """
-    pass
+    def __init__(self):
+        super().__init__('No supported DAC Channel found')
 
 
 # Encoding for text parts of files
