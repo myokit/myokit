@@ -1,8 +1,8 @@
 .. _formats/heka:
 
-***********************
-HEKA PatchMaster format
-***********************
+****************
+HEKA PatchMaster
+****************
 
 .. module:: myokit.formats.heka
 
