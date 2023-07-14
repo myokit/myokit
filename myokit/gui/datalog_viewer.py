@@ -14,6 +14,7 @@ from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
 import myokit
 import myokit.gui
+import myokit.gui.progress
 import myokit.formats.axon
 import myokit.formats.wcp
 
@@ -79,16 +80,18 @@ LICENSE = myokit.LICENSE_HTML
 FILTER_ABF = 'ABF files (*.abf *.pro)'
 FILTER_ATF = 'ATF files (*.atf)'
 FILTER_CSV = 'CSV files (*.csv)'
-FILTER_MAT = 'MAT files (*.mat)'
-FILTER_TXT = 'TXT files (*.txt)'
+FILTER_MAT = 'Matlab files (*.mat)'
+FILTER_DAT = 'PatchMaster files (*.dat)'
+FILTER_TXT = 'Text files (*.txt)'
 FILTER_WCP = 'WCP files (*.wcp)'
 FILTER_ZIP = 'Zipped DataLog files (*.zip)'
 FILTER_ANY = 'All files (*.*)'
-FILTER_ALL = 'Data files (*.abf *.csv *.mat *.pro *.txt *.wcp *.zip)'
+FILTER_ALL = 'Data files (*.abf *.csv *.dat *.mat *.pro *.txt *.wcp *.zip)'
 FILTER_LIST = ';;'.join([
     FILTER_ALL,
     FILTER_ABF,
     FILTER_CSV,
+    FILTER_DAT,
     FILTER_MAT,
     FILTER_TXT,
     FILTER_WCP,
@@ -141,6 +144,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
             '.abf': self.load_abf_file,
             '.atf': self.load_atf_file,
             '.csv': self.load_datalog,
+            '.dat': self.load_dat_file,
             '.pro': self.load_abf_file,
             '.txt': self.load_txt_file,
             '.wcp': self.load_wcp_file,
@@ -410,9 +414,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         action(filename)
 
     def load_abf_file(self, filename):
-        """
-        Loads an abf file.
-        """
+        """ Loads an ABF file. """
         try:
             abf = myokit.formats.axon.AbfFile(filename)
         except Exception:
@@ -423,9 +425,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tabs.addTab(AbfTab(self, abf), os.path.basename(filename))
 
     def load_atf_file(self, filename):
-        """
-        Loads an ATF file.
-        """
+        """ Loads an ATF file. """
         try:
             atf = myokit.formats.axon.AtfFile(filename)
         except Exception:
@@ -435,10 +435,47 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._path = os.path.dirname(filename)
         self._tabs.addTab(AtfTab(self, atf), os.path.basename(filename))
 
+    def load_dat_file(self, filename):
+        """ Loads a PatchMaster dat file. """
+
+        pbar = myokit.gui.progress.ProgressBar(
+            self, 'Loading groups and series')
+        pbar.show()
+        reporter = pbar.reporter()
+        reporter.enter()
+
+        flag = QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents
+        QtWidgets.QApplication.processEvents(flag)
+
+        try:
+            with myokit.formats.heka.PatchMasterFile(filename) as f:
+                n = sum([len(list(g.complete_series())) for g in f])
+                i = 0
+                stop = False
+                for group in f:
+                    for series in group.complete_series():
+                        self._tabs.addTab(
+                            PatchMasterTab(self, series),
+                            f'{group.label()} {series.label()}')
+                        i += 1
+                        if not reporter.update(i / n):
+                            stop = True
+                            break
+                        QtWidgets.QApplication.processEvents(flag)
+                    if stop:
+                        break
+                self._path = os.path.dirname(filename)
+        except Exception:
+            e = traceback.format_exc()
+            QtWidgets.QMessageBox.critical(self, TITLE, e)
+            return
+        finally:
+            reporter.exit()
+            pbar.close()
+            pbar.deleteLater()
+
     def load_datalog(self, filename):
-        """
-        Loads a DataLog from csv or zip file.
-        """
+        """ Loads a DataLog from csv or zip file. """
         try:
             if filename[-4:].lower() == '.csv':
                 log = myokit.DataLog.load_csv(filename)
@@ -471,9 +508,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tabs.addTab(MatTab(self, mat, name), name)
 
     def load_txt_file(self, filename):
-        """
-        Loads a csv file.
-        """
+        """ Loads a text file. """
         try:
             data = np.loadtxt(filename)
         except Exception:
@@ -485,9 +520,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tabs.addTab(TxtTab(self, data, name), name)
 
     def load_wcp_file(self, filename):
-        """
-        Loads a wcp file.
-        """
+        """ Loads a WinWCP file. """
         try:
             wcp = myokit.formats.wcp.WcpFile(filename)
         except Exception:
@@ -906,6 +939,11 @@ class MatTab(GraphTabWidget):
         self._figures.append(figure)
         self._axes.append(axes)
         return widget
+
+
+class PatchMasterTab(SweepSourceTab):
+    """ A widget displaying a PatchMaster series. """
+    pass
 
 
 class TxtTab(GraphTabWidget):

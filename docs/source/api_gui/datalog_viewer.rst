@@ -36,6 +36,8 @@ Graphing widgets
 
 .. autoclass:: MatTab
 
+.. autoclass:: PatchMasterTab
+
 .. autoclass:: TxtTab
 
 .. autoclass:: WcpTab
