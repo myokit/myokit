@@ -194,7 +194,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # Variable selection
         self._variable_select = QtWidgets.QComboBox()
         self._variable_select.activated.connect(self.event_variable_selected)
-        self._variable_select.setMinimumWidth(120)
+        self._variable_select.setMinimumWidth(160)
 
         # Colormap selection
         self._colormap = next(iter(myokit.ColorMap.names()))
@@ -203,6 +203,26 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             self._colormap_select.addItem(cmap)
         self._colormap_select.activated.connect(self.event_colormap_selected)
         self._colormap_select.setMinimumWidth(120)
+
+        self._colormap_lower_label = QtWidgets.QLabel('Range')
+        self._colormap_lower_label.setMaximumWidth(50)
+        self._colormap_lower_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self._colormap_lower_field = AutoFloatField()
+        self._colormap_lower_field.setMaxLength(6)
+        self._colormap_lower_field.setMaximumWidth(80)
+        self._colormap_lower_field.editingFinished.connect(
+            self.event_variable_selected)
+
+        self._colormap_upper_label = QtWidgets.QLabel('to')
+        self._colormap_upper_label.setMaximumWidth(20)
+        self._colormap_upper_label.setAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+        self._colormap_upper_field = AutoFloatField()
+        self._colormap_upper_field.setMaxLength(6)
+        self._colormap_upper_field.setMaximumWidth(80)
+        self._colormap_upper_field.editingFinished.connect(
+            self.event_variable_selected)
 
         # Control layout
         self._control_layout = QtWidgets.QHBoxLayout()
@@ -216,6 +236,10 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._control_layout.addWidget(self._graph_clear_button)
         self._control_layout.addWidget(self._variable_select)
         self._control_layout.addWidget(self._colormap_select)
+        self._control_layout.addWidget(self._colormap_lower_label)
+        self._control_layout.addWidget(self._colormap_lower_field)
+        self._control_layout.addWidget(self._colormap_upper_label)
+        self._control_layout.addWidget(self._colormap_upper_field)
 
         # Graph area
         self._graph_area = GraphArea()
@@ -474,6 +498,9 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
     def action_set_colormap(self, name):
         """
         Loads the ColorMap specified by ``name``.
+
+        If data is loaded, this will also call :meth:`action_set_variable` to
+        update the video frames.
         """
         name = str(name)
         if not myokit.ColorMap.exists(name):
@@ -497,21 +524,31 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
     def action_set_variable(self, var):
         """
         Loads the variable specified by the name ``var`` into the main display.
+
+        This method is also responsible for converting the data into frames to
+        be displayed on the video widget.
         """
         if self._data is None:
             return
         self._variable = str(var)
-        self._variable_select.setCurrentIndex(self._variable_select.findText(
-            self._variable))
+        self._variable_select.setCurrentIndex(
+            self._variable_select.findText(self._variable))
         self.action_pause_timer()
         self._video_frames = self._data.images(
-            self._variable, colormap=self._colormap)
+            self._variable,
+            self._colormap,
+            self._colormap_lower_field.value(),
+            self._colormap_upper_field.value()
+        )
         self.action_set_frame(self._video_iframe)
         self.action_depause_timer()
 
     def action_set_frame(self, frame):
         """
         Move to a specific frame.
+
+        This method updates the display to show a video frame created by an
+        earlier call to :meth:`action_set_variable`.
         """
         # Check frame index
         nt, ny, nx = self._data.shape()
@@ -551,9 +588,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._play_button.setIcon(self._play_icon_play)
 
     def closeEvent(self, event=None):
-        """
-        Called when window is closed.)
-        """
+        # Called when window is closed.
         self.save_config()
         if event:
             event.accept()
@@ -699,9 +734,8 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             self._label_cursor.setText('(' + x + ', ' + y + ', ' + z + ')')
 
     def keyPressEvent(self, e):
-        """
-        Catch key presses?
-        """
+        # A key has been pressed
+
         if e.key() == Qt.Key.Key_Space:
             self.action_start_stop()
 
@@ -853,8 +887,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
 
         # Add empty video item to video scene
         self._video_pixmap = QtGui.QPixmap(nx, ny)
-        self._video_item = QtWidgets.QGraphicsPixmapItem(
-            self._video_pixmap)
+        self._video_item = QtWidgets.QGraphicsPixmapItem(self._video_pixmap)
         self._video_scene.addItem(self._video_item)
 
         # Update colormap scene
@@ -963,6 +996,13 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
 class VideoScene(QtWidgets.QGraphicsScene):
     """
     Color data display scene.
+
+    Note that, despite the name, this item does not manage the conversion from
+    data to the image. The actual drawing happens by calling ``setPixmap`` on a
+    ``QGraphicsPixmapItem`` that gets added to this scene.
+
+    See :meth:`DataBlockViewer.action_set_variable()` and
+    :meth:`DataBlockViewer.action_set_frame()`.
     """
     # Signals
     # Somebody moved the mouse
@@ -984,11 +1024,9 @@ class VideoScene(QtWidgets.QGraphicsScene):
         self.resize(1, 1)
 
     def mousePressEvent(self, event):
-        """
-        Single-click
-        """
+        # Single-click event
         if event.button() == Qt.MouseButton.LeftButton:
-            if event.modifiers() == Qt.KeyBoardModifier.NoModifier:
+            if event.modifiers() == Qt.KeyboardModifier.NoModifier:
                 p = event.scenePos()
                 x, y = int(p.x()), int(p.y())
                 if x >= 0 and x < self._w and y >= 0 and y < self._h:
@@ -996,11 +1034,9 @@ class VideoScene(QtWidgets.QGraphicsScene):
                     return
 
     def mouseDoubleClickEvent(self, event):
-        """
-        Double-click
-        """
+        # Double-click event
         if event.button() == Qt.MouseButton.LeftButton:
-            if event.modifiers() == Qt.KeyBoardModifier.NoModifier:
+            if event.modifiers() == Qt.KeyboardModifier.NoModifier:
                 p = event.scenePos()
                 x, y = int(p.x()), int(p.y())
                 if x >= 0 and x < self._w and y >= 0 and y < self._h:
@@ -1008,17 +1044,13 @@ class VideoScene(QtWidgets.QGraphicsScene):
                     return
 
     def mouseMoveEvent(self, event):
-        """
-        Show mouse position in status bar
-        """
+        # The mouse has moved!
         p = event.scenePos()
         x, y = int(p.x()), int(p.y())
         self.mouse_moved.emit(x, y)
 
     def resize(self, w, h):
-        """
-        Resizes the scene to match the given dimensions.
-        """
+        """ Resize the scene to match the given dimensions. """
         self._w = float(w)
         self._h = float(h)
         self.setSceneRect(0, 0, self._w, self._h)
@@ -1081,9 +1113,8 @@ class VideoView(QtWidgets.QGraphicsView):
         self.centerOn(rect.center())
 
     def resizeEvent(self, event=None):
-        """
-        Called when the view is resized.
-        """
+        # Called when the view is resized.
+
         # Tell others a resize is happening
         # (This is used to pause the video playback)
         self.resize_event.emit()
@@ -1365,3 +1396,41 @@ class GraphArea(QtWidgets.QWidget):
         Tells Qt that this widget shout expand.
         """
         return QtCore.QSizePolicy.Expanding
+
+
+class AutoFloatField(QtWidgets.QLineEdit):
+    """
+    A QLineEdit that requires floats as input, but will show "(Auto)" when a
+    non-float is entered and return ``None`` as its value.
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Colors
+        self._color_ok = QtGui.QTextCharFormat().foreground().color().getRgb()
+        self._color_auto = (127, 127, 127)
+        self._auto_text = '(Auto)'
+
+        # Show text
+        self.editingFinished.connect(self._autofy)
+        self._autofy()
+
+    def _autofy(self):
+        """ Put (Auto) if not valid """
+        if self.value() is None:
+            self.setText(self._auto_text)
+            c = self._color_auto
+        else:
+            c = self._color_ok
+        self.setStyleSheet(f'color: rgb({c[0]}, {c[1]}, {c[2]})')
+
+    def focusInEvent(self, event):
+        super().focusInEvent(event)
+        QtCore.QTimer.singleShot(0, self.selectAll)
+
+    def value(self):
+        try:
+            return float(super().text())
+        except ValueError:
+            return None
+
