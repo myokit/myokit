@@ -1152,7 +1152,7 @@ class DataBlock2d:
         # Get lower and upper bounds for colormap scaling
         lower = np.min(data) if lower is None else float(lower)
         upper = np.max(data) if upper is None else float(upper)
-        if upper < lower:
+        if upper < lower:  # pragma: no cover
             upper = lower
 
         # Create images
