@@ -241,7 +241,6 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._control_layout.addWidget(self._colormap_upper_label)
         self._control_layout.addWidget(self._colormap_upper_field)
 
-
         # Graph area
         self._graph_area = GraphArea()
         self._graph_area.mouse_moved.connect(self.event_graph_mouse_move)

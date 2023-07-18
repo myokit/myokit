@@ -18,6 +18,7 @@ myokit.gui
 ===========================
 myokit.gui.datablock_viewer
 ===========================
+- :class:`myokit.gui.datablock_viewer.AutoFloatField`
 - :class:`myokit.gui.datablock_viewer.DataBlockViewer`
 - :class:`myokit.gui.datablock_viewer.GraphArea`
 - :meth:`myokit.gui.datablock_viewer.icon`

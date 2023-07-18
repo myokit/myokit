@@ -20,6 +20,7 @@ Implementation
 
 Widgets
 -------
+.. autoclass:: AutoFloatField
 
 .. autoclass:: GraphArea
 

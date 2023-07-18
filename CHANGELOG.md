@@ -8,6 +8,8 @@ This page lists the main changes made to Myokit in each release.
   - [#985](https://github.com/myokit/myokit/pull/985), [#998](https://github.com/myokit/myokit/pull/998) The `AbfFile` and `WcpFile` now implement a shared `SweepSource` interface.
   - [#985](https://github.com/myokit/myokit/pull/985) Added a method `AtfFile.path` that returns the full path.
   - [#985](https://github.com/myokit/myokit/pull/985) Added a method `WcpFile.info` that returns a string version of the file's meta data, and a method `WcpFile.sample_count` that returns the number of samples per channel.
+  - [#1003](https://github.com/myokit/myokit/pull/1003) The DataBlock viewer now has fields to enter a lower and upper range for the colormap conversion.
+  - [#1003](https://github.com/myokit/myokit/pull/1003) Added new color maps for `myokit.DataBlock` viewing.
 - Changed
   - [#985](https://github.com/myokit/myokit/pull/985), [#998](https://github.com/myokit/myokit/pull/998)  The interface to the `AbfFile` class has changed significantly, and in a backwards incompatible ways. Please see the documentation for further details.
   - [#991](https://github.com/myokit/myokit/pull/991) Myokit no longer uses the `logging` module but makes calls to `warnings.warn` instead.
@@ -26,6 +28,7 @@ This page lists the main changes made to Myokit in each release.
   - [#985](https://github.com/myokit/myokit/pull/985) `AtfFile.filename` now returns the filename, not the full path.
   - [#992](https://github.com/myokit/myokit/pull/992) `Simulation` now sets any variable bound to a pacing label to 0 if no protocol for that label is set.
   - [#998](https://github.com/myokit/myokit/pull/998) Fixed a bug where channels in ABF v1 files were sometimes scaled using the wrong meta data.
+  - [#1003](https://github.com/myokit/myokit/pull/1003) Fixed a bug in the DataBlockViewer introduced when adding Qt6 support.
 
 ## [1.35.0] - 2023-06-21
 - Added
