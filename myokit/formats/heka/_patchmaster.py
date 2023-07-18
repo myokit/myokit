@@ -233,6 +233,10 @@ class PatchMasterFile:
         """
         self._handle.close()
 
+    def filename(self):
+        """ Returns this file's filename. """
+        return self._filename
+
     def group(self, label):
         """ Returns the first :class`Group` matching the given ``label``. """
         for g in self:
@@ -240,9 +244,17 @@ class PatchMasterFile:
                 return g
         raise KeyError(f'Group not found: {label}')
 
+    def path(self):
+        """ Returns the path to this PatchMaster file. """
+        return self._filepath
+
     def stimulus_tree(self):
         """ Returns this file's stimulus tree. """
         return self._stimulus_tree
+
+    def version(self):
+        """ Returns this file's version number. """
+        return self._version
 
 
 class EndianAwareReader:
@@ -591,6 +603,18 @@ class Series(TreeNode, myokit.formats.SweepSource):
         time = log.time()
         data = log['0.0.channel']
 
+    Meta data is stored in two places in each series:
+
+        1. In the individual :class:`Trace` objects. This is somewhat
+           counter-intuitive as some of these properties (e.g.
+           :meth:Trace.pipette_resistance()`) were set before a series was
+           acquired and do no change between channels or sweeps.
+        2. In the series' :class:`AmplifierState`, which can be accessed via
+           the :meth:`amplifier_state()` method.
+
+    A summary of the meta data can be obtained using the ``SweepSource``
+    method :meth:`meta_str()`.
+
     """
     def __init__(self, parent):
         super().__init__(parent)
@@ -611,6 +635,9 @@ class Series(TreeNode, myokit.formats.SweepSource):
         # Info from sweeps
         self._sweep_starts_r = None
 
+        # Info from amplifier
+        self._amplifier_state = None
+
     def _read_properties(self, handle, reader):
         # See TreeNode._read_properties
         i = handle.tell()
@@ -618,8 +645,8 @@ class Series(TreeNode, myokit.formats.SweepSource):
         self._label = reader.str(32)
         handle.seek(i + 136)    # SeTime
         self._time = reader.time()
-        # handle.seek(i + 472)    # SeAmplifierState = 472; (* Size = 400 *)
-        # self._amplifier_state = AmplifierState(handle, reader)
+        handle.seek(i + 472)    # SeAmplifierState = 472; (* Size = 400 *)
+        self._amplifier_state = AmplifierState(handle, reader)
 
     def _read_finalize(self):
         # See TreeNode._read_finalize
@@ -667,6 +694,13 @@ class Series(TreeNode, myokit.formats.SweepSource):
             return f'{self._label} ({len(self)} sweeps)'
         return (f'{self._label} (partial: {len(self)} out of'
                 f' {self._intended_sweep_count} sweeps)')
+
+    def amplifier_state(self):
+        """
+        Returns this series's :class:`AmplifierState`, containing meta data
+        about the recording.
+        """
+        return self._amplifier_state
 
     def channel(self, channel_id, join_sweeps=False,
                 use_real_start_times=False):
@@ -862,9 +896,88 @@ class Series(TreeNode, myokit.formats.SweepSource):
 
     def meta_str(self, verbose=False):
         # Docstring in SweepSource
+        out = []
 
-        # TODO: Can add so much more here!
-        return str(self)
+        # Basic info
+        out.append(f'Series {self._label}')
+        out.append(f'  in {self._parent.label()}')
+        out.append(f'     {self._file.path()}')
+        out.append(f'     version {self._file.version()}')
+        out.append(f'Recorded on {self._time}')
+        out.append(f'{len(self)} sweeps,'
+                   f' {len(self._channel_names)} channels.')
+
+        # Completion status
+        c = self._stimulus.supported_channel()
+        if c is None:
+            out.append('Unable to determine if recording was completed.')
+        else:
+            if self.is_complete():
+                out.append('Complete recording: all sweeps ran and completed.')
+            elif self._intended_sweep_count == len(self):
+                out.append('Incomplete recording: final sweep not completed.')
+            else:
+                out.append(f'Incomplete recording: {len(self)} out of'
+                           f' {self._intended_sweep_count} ran.')
+
+        # Resistance, capacitance, etc.
+        a = self.amplifier_state()
+        out.append('Information from amplifier state:')
+        if a.ljp():
+            out.append('  LJP correction applied using'
+                       f' LJP={round(a.ljp(), 4)} mV.')
+        if a.c_fast_enabled():
+            out.append(f'  C fast compensation: {a.c_fast()} pF,'
+                       f' {round(a.c_fast_tau(), 4)} us.')
+        else:
+            out.append('  C fast compensation: not enabled.')
+        out.append(f'  C slow compensation: {a.c_slow()} pF.')
+        out.append(f'  R series: {a.r_series()} MOhm.')
+        if a.r_series_enabled():
+            p = round(a.r_series_fraction() * 100, 1)
+            out.append(f'  R series compensation: {p} %.')
+        else:
+            out.append('  R series compensation: not enabled')
+        if len(self) and len(self[0]):
+            t = self[0][0]
+            out.append('Information from first trace:')
+
+            out.append(f'  Pipette resistance: {t.r_pipette()} MOhm.')
+            out.append(f'  Seal resistance: {t.r_seal()} MOhm.')
+            out.append(f'  Series resistance: {t.r_series()} MOhm.')
+            out.append(f'    after compensation: {t.r_series_remaining()}'
+                       f' MOhm.')
+            out.append(f'  C slow: {t.c_slow()} pF.')
+
+        # Sweeps and channels
+        if verbose:
+            out.append('-' * 60)
+            for i, sweep in enumerate(self):
+                out.append(f'Sweep {i}, label: "{sweep.label()}", recorded on'
+                           f' {sweep.time()}.')
+                if i == 0:
+                    for j, trace in enumerate(self[0]):
+                        out.append(f'  Trace {j}, label: "{trace.label()}",'
+                                   f' in {trace.time_unit()} and'
+                                   f' {trace.value_unit()}.')
+
+        # Stimulus
+        if verbose:
+            stim = self._stimulus
+            out.append('-' * 60)
+            out.append(f'Stimulus "{stim.label()}".')
+            out.append(f'  {stim.sweep_count()} sweeps.')
+            out.append(f'  Delay between sweeps: {stim.sweep_interval()} s.')
+            out.append(f'  Sampling interval: {stim.sampling_interval()} s.')
+            for i, ch in enumerate(stim):
+                out.append(f'  Channel {i}, in {ch.unit()}, amplifier in'
+                           f' {ch.amplifier_mode()} mode.')
+                out.append(f'  Stimulus reconstruction: {ch.support_str()}.')
+                for j, seg in enumerate(ch):
+                    out.append(f'   Segment {j}, {seg.storage()}')
+                    out.append(f'    {seg.segment_class()}, {seg}')
+
+        return '\n'.join(out)
 
     def stimulus(self):
         """ Returns the :class:`Stimulus` linked to this series. """
@@ -979,13 +1092,12 @@ class Sweep(TreeNode):
 # TrYRange             = 128; (* LONGREAL *)
 # TrYOffset            = 136; (* LONGREAL *)
 # TrBandwidth          = 144; (* LONGREAL *)
-# TrPipetteResistance  = 152; (* LONGREAL *)  Value when R-memb > R-pip button
-#                                              was pressed before run
-# TrCellPotential      = 160; (* LONGREAL *)  From an external device
+# TrPipetteResistance  = 152; (* LONGREAL *)
+# TrCellPotential      = 160; (* LONGREAL *)
 # TrSealResistance     = 168; (* LONGREAL *)
-# TrCSlow              = 176; (* LONGREAL *)  "Last" C-slow value
-# TrGSeries            = 184; (* LONGREAL *)  "Last" R-series value
-# TrRsValue            = 192; (* LONGREAL *)  See manual 14.1.5!
+# TrCSlow              = 176; (* LONGREAL *)
+# TrGSeries            = 184; (* LONGREAL *)
+# TrRsValue            = 192; (* LONGREAL *)
 # TrGLeak              = 200; (* LONGREAL *)
 # TrMConductance       = 208; (* LONGREAL *)
 # TrLinkDAChannel      = 216; (* INT32 *)
@@ -1056,6 +1168,13 @@ class Trace(TreeNode):
         # Units
         self._data_unit = None
 
+        # Meta data
+        self._r_pipette = None
+        self._r_seal = None
+        self._r_series_comp = None
+        self._g_series = None
+        self._c_slow = None
+
     def _read_properties(self, handle, reader):
         # See TreeNode._read_properties
         self._handle = handle
@@ -1095,10 +1214,22 @@ class Trace(TreeNode):
         handle.seek(i + 96)     # TrYUnit
         self._data_unit = reader.str(8)
         handle.seek(i + 120)    # TrXUnit
-        self._time_unit = reader.str(8)
+        time_unit = reader.str(8)
+        assert time_unit == 's'
 
-        # Convert units
-        assert self._time_unit == 's'
+        # Meta data
+        handle.seek(i + 152)  # TrPipetteResistance  = 152; (* LONGREAL *)
+        self._r_pipette = reader.read1('d')
+        handle.seek(i + 168)  # TrSealResistance     = 168; (* LONGREAL *)
+        self._r_seal = reader.read1('d')
+        handle.seek(i + 176)  # TrCSlow              = 176; (* LONGREAL *)
+        self._c_slow = reader.read1('d')
+        handle.seek(i + 184)  # TrGSeries            = 184; (* LONGREAL *)
+        self._g_series = reader.read1('d')
+        handle.seek(i + 192)  # TrRsValue            = 192; (* LONGREAL *)
+        self._r_series_comp = reader.read1('d')
+
+        # Convert unit
         self._data_unit = myokit.parse_unit(self._data_unit)
 
     def __len__(self):
@@ -1108,6 +1239,13 @@ class Trace(TreeNode):
         """ Returns the number of samples in this trace. """
         return self._n
 
+    def c_slow(self):
+        """
+        Returns the capacitance (pF) compensated by the slow capacitance
+        compensation (i.e. the membrane capacitance).
+        """
+        return self._c_slow * 1e12
+
     def duration(self):
         """ Returns the total duration of this sweep's recorded data. """
         return self._n * self._dt
@@ -1115,6 +1253,38 @@ class Trace(TreeNode):
     def label(self):
         """ Returns this trace's label. """
         return self._label
+
+    def r_seal(self):
+        """
+        Returns the seal resistance (MOhm) determined from the test pulse
+        before the trace was acquired.
+        """
+        return self._r_seal * 1e-6
+
+    def r_series(self):
+        """
+        Returns the last (uncompensated) series resistance (MOhm) before
+        acquiring the trace.
+        """
+        return 1e-6 / self._g_series
+
+    def r_series_remaining(self):
+        """
+        Returns the series resistance (MOhm) remaining after compensation.
+        """
+        # "Absolute fraction of the compensated R-series value. The value
+        # depends on the % of R-series compensation."
+        return (1 / self._g_series - self._r_series_comp) * 1e-6
+
+    def r_pipette(self):
+        """
+        Returns the pipette resistance (MOhm) determined from the test pulse
+        before breaking the seal.
+
+        This was manually logged when the "R-memb to R-pip" button was pressed
+        before acquiring the data.
+        """
+        return self._r_pipette * 1e-6
 
     def times(self):
         """ Recreates and returns a time vector for this trace. """
@@ -1273,23 +1443,101 @@ class Trace(TreeNode):
 # NOTE: Not to be confused with AmplStateRecord, which can contain an
 # AmplifierState.
 #
-#class AmplifierState:
-#    """
-#    Describes the state of an amplifier used by PatchMaster.
-#    """
-#    def __init__(self, handle, reader):
-#
-#        # Read properties
-#        start = handle.tell()
-#
-#        handle.seek(start + 96)  # sVCStimDacScale = 96; (* LONGREAL *)
-#        self._vc_stim_dac_scale = reader.read1('d')
-#        handle.seek(start + 104)  # sCCStimScale = 104; (* LONGREAL *)
-#        self._cc_stim_scale = reader.read1('d')
-#        handle.seek(start + 272)  # sStimScale = 272; (* LONGREAL *)
-#        self._stim_scale = reader.read1('d')
-#        handle.seek(start + 376)  # sCCStimDacScale = 376; (* LONGREAL *)
-#        self._cc_stim_dac_scale = reader.read1('d')
+class AmplifierState:
+    """
+    Describes the state of an amplifier used by PatchMaster.
+    """
+    def __init__(self, handle, reader):
+
+        # Read properties
+        i = handle.tell()
+
+        # Series resistance compensation
+        handle.seek(i + 40)     # sRsFraction = 40; (* LONGREAL *)
+        self._rs_fraction = reader.read1('d')
+        handle.seek(i + 240)    # sRsOn = 240; (* BYTE *)
+        self._rs_enabled = bool(reader.read1('b'))
+
+        handle.seek(i + 88)    # sGSeries = 88; (* LONGREAL *)
+        self._g_series = reader.read1('d')
+
+        handle.seek(i + 56)    # sCFastAmp1 = 56; (* LONGREAL *)
+        self._cf_amp1 = reader.read1('d')
+        handle.seek(i + 64)    # sCFastAmp2 = 64; (* LONGREAL *)
+        self._cf_amp2 = reader.read1('d')
+        handle.seek(i + 72)    # sCFastTau = 72; (* LONGREAL *)
+        self._cf_tau = reader.read1('d')
+        handle.seek(i + 285)   # sCCCFastOn = 285; (* BYTE *)
+        self._cf_enabled = bool(reader.read1('b'))
+
+        handle.seek(i + 80)    # sCSlow = 80; (* LONGREAL *)
+        self._cs = reader.read1('d')
+
+        handle.seek(i + 136)  # sVLiquidJunction = 136; (* LONGREAL *)
+        self._ljp = reader.read1('d')
+
+    def c_fast(self):
+        """
+        Return the capacitance (pF) used in fast capacitance correction
+        (CFast2).
+        """
+        # Not sure why there are two. They are almost identical. Older EPC9
+        # manual has a Fast1 and Fast2 as well, but only for GET, for SET there
+        # is only 2. So... going with that for now
+        return self._cf_amp2 * 1e12
+
+    def c_fast_tau(self):
+        """
+        Returns the time constant (us) used in fast capacitance correction.
+        """
+        return self._cf_tau * 1e6
+
+    def c_fast_enabled(self):
+        """ Returns ``True`` if fast capacitance compensation was enabled. """
+        return self._cf_enabled
+
+    def c_slow(self):
+        """
+        Returns the capacitance (cF) used in slow capacitance correction.
+        """
+        return self._cs * 1e12
+
+    def ljp(self):
+        """
+        Returns the liquid junction potential (LJP, in mV) used in the LJP
+        correction.
+
+        The LJP is defined as the potential of the bath with respect to the
+        pipette (V_bath - V_pipette), and so will typically be a positive
+        number. This will be subtracted or added from the measured or applied
+        voltage, depending on the selected clamping mode.
+
+        If this is non-zero, then PatchMaster will have corrected recorded Vm's
+        before storing, and will have corrected output command potentials
+        before applying. No further a posteriori correction is necessary.
+        """
+        return self._ljp * 1e3
+
+    def r_series_enabled(self):
+        """
+        Returns ``True`` if series resistance compensation was enabled and set
+        to a non-zero value.
+        """
+        return self._rs_enabled and self._rs_fraction > 0
+
+    def r_series_fraction(self):
+        """
+        Returns the fraction of series resistance that was compensated, or 0 if
+        series resistance compensation was not enabled.
+        """
+        return self._rs_fraction if self._rs_enabled else 0
+
+    def r_series(self):
+        """
+        Returns the last (uncompensated) series resistance (MOhm) before
+        acquiring the trace.
+        """
+        return 1e-6 / self._g_series
 
 
 #
@@ -1388,7 +1636,7 @@ class Stimulus(TreeNode):
 
         self._entry_name = None
         self._sweep_count = None
-        self._sweep_interval = None  # Waiting time between sweeps
+        self._sweep_interval = None  # Waiting time between sweeps (s)
         self._dt = None
 
         # Supported channel: there should be either 0 or 1 supported DAC
@@ -1431,6 +1679,10 @@ class Stimulus(TreeNode):
             raise NoSupportedDAChannelError()
         return self._supported_channel.all_segments_stored()
 
+    def label(self):
+        """ Returns this stimulus's name. """
+        return self._entry_name
+
     def protocol(self, tu='ms', vu='mV', cu='pA', n_digits=9):
         """
         Generates a :class:`myokit.Protocol` corresponding to this stimulus, or
@@ -1464,6 +1716,10 @@ class Stimulus(TreeNode):
             raise NoSupportedDAChannelError()
         return self._supported_channel.reconstruction(
             self._sweep_count, self._sweep_interval, self._dt, join_sweeps)
+
+    def sampling_interval(self):
+        """ Returns this stimulus's sampling interval (in seconds). """
+        return self._dt
 
     def supported_channel(self):
         """
@@ -1786,6 +2042,19 @@ class StimulusChannel(TreeNode):
             return False
         return True
 
+    def support_str(self):
+        """
+        Returns a string indicating support for this channel.
+
+        Supported channels return ``"Supported"``, unsupported channels return
+        a string detailing the reason this channel is not supported.
+        """
+        try:
+            self._supported()
+        except NotImplementedError as e:
+            return str(e)
+        return 'Supported'
+
     def sweep_durations(self, sweep_count):
         """
         Returns the (intended) durations of this channel's sweeps, as a list
@@ -1830,7 +2099,7 @@ class StimulusChannel(TreeNode):
 #
 class StimulusChannelDACFlags:
     """
-    Takes a ``chStimToDacID`` list of bools and sets them as named properties.
+    Takes a ``StimToDacID`` list of bools and sets them as named properties.
 
     See "10.9.1 DA output channel settings" in the manual.
     """
@@ -1838,11 +2107,11 @@ class StimulusChannelDACFlags:
         self.use_stim_scale = bools[0]      # Apply "standard conversion"
         self.use_relative = bools[1]        # Relative to holding
         self.use_file_template = bools[2]   # Use recorded wave form
-        #self.use_for_lock_in = bools[3]
-        #self.use_for_wavelength = bools[4]
-        #self.use_scaling = bools[5]
-        #self.use_for_chirp = bools[6]
-        #self.use_for_imaging = bools[7]
+        self.use_for_lock_in = bools[3]
+        self.use_for_wavelength = bools[4]
+        self.use_scaling = bools[5]
+        self.use_for_chirp = bools[6]
+        self.use_for_imaging = bools[7]
 
 
 class AmplifierMode(enum.Enum):
@@ -2063,11 +2332,19 @@ class SegmentClass(enum.Enum):
     Squarewave = 4
     Chirpwave = 5
 
-    _ignore_ = ['_names']
-    _names = ['Constant', 'Ramp', 'Continuous', 'Sine', 'Square wave', 'Chirp']
-
     def __str__(self):
-        return SegmentClass._names[self.value]
+        if self is SegmentClass.Constant:
+            return 'Constant'
+        elif self is SegmentClass.Ramp:
+            return 'Ramp'
+        elif self is SegmentClass.Continuous:
+            return 'Continuous'
+        elif self is SegmentClass.ConstSine:
+            return 'Sine wave'
+        elif self is SegmentClass.Squarewave:
+            return 'Square wave'
+        else:
+            return 'Chirp wave'
 
 
 class SegmentStorage(enum.Enum):
@@ -2083,6 +2360,16 @@ class SegmentStorage(enum.Enum):
     First = 2
     Last = 3
 
+    def __str__(self):
+        if self is SegmentStorage.Stored:
+            return 'Stored'
+        elif self is SegmentStorage.NotStored:
+            return 'Not stored'
+        elif self is SegmentStorage.First:
+            return 'Not stored, output on first sweep only'
+        else:
+            return 'Not stored, output on last sweep only'
+
 
 class SegmentIncrement(enum.Enum):
     """ Segment increment mode (for time or voltage) """
@@ -2097,6 +2384,28 @@ class SegmentIncrement(enum.Enum):
     LogDecreaseInterleaved = 8
     LogAlternate = 9
     # Note: The manual mentions a "toggle" mode, for V only
+
+    def __str__(self):
+        if self is SegmentIncrement.Increase:
+            return 'Increase'
+        elif self is SegmentIncrement.Decrease:
+            return 'Decrease'
+        elif self is SegmentIncrement.IncreaseInterleaved:
+            return 'Interleave+'
+        elif self is SegmentIncrement.DecreaseInterleaved:
+            return 'Interleave-'
+        elif self is SegmentIncrement.Alternate:
+            return 'Alternate'
+        elif self is SegmentIncrement.LogIncrease:
+            return 'Log increase'
+        elif self is SegmentIncrement.LogDecrease:
+            return 'Log decrease'
+        elif self is SegmentIncrement.LogIncreaseInterleaved:
+            return 'Log interleave+'
+        elif self is SegmentIncrement.LogDecreaseInterleaved:
+            return 'Log interleave-'
+        else:
+            return 'Log alternate'
 
     def format(self, base, delta, factor):
         """
