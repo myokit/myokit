@@ -2,7 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.35.1] - 2023-07-19
 - Added
   - [#955](https://github.com/myokit/myokit/pull/955) Added provisional HEKA PatchMaster file reading.
   - [#985](https://github.com/myokit/myokit/pull/985), [#998](https://github.com/myokit/myokit/pull/998) The `AbfFile` and `WcpFile` now implement a shared `SweepSource` interface.
