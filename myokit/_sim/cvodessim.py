@@ -1023,8 +1023,8 @@ class Simulation(myokit.CModule):
 
     def set_protocol(self, protocol, label='pace'):
         """
-        Set an event-based pacing :class:`Protocol` or a :class:`FixedProtocol`
-        for the given ``label``.
+        Set an event-based pacing :class:`Protocol` or a
+        :class:`TimeSeriesProtocol` for the given ``label``.
 
         To remove a previously set binding call this method with ``protocol =
         None``. In this case, the value of any variables bound to ``label``
