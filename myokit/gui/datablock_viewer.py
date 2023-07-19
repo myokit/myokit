@@ -28,7 +28,7 @@ SETTINGS_FILE = os.path.join(myokit.DIR_USER, 'DataBlockViewer.ini')
 N_RECENT_FILES = 5
 
 # About
-ABOUT = '<h1>' + TITLE + '</h1>' + """
+ABOUT = f'<h1>{TITLE}</h1>' + f"""
 <p>
     Myokit's DataBlock viewer is a utility to examine
     <code>DataBlock1d</code> and <code>DataBlock2d</code> objects
@@ -42,10 +42,10 @@ ABOUT = '<h1>' + TITLE + '</h1>' + """
 </p>
 <p>
     System info:
-    <br />Python: PYTHON
-    <br />Using the BACKEND GUI backend.
+    <br />Python: {sys.version}
+    <br />Using the {myokit.gui.backend} GUI backend.
 </p>
-""".replace('BACKEND', myokit.gui.backend).replace('PYTHON', sys.version)
+"""
 
 # License
 LICENSE = myokit.LICENSE_HTML
@@ -280,8 +280,8 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self.update_window_title()
 
         # Set controls to correct values
-        self._colormap_select.setCurrentIndex(self._colormap_select.findText(
-            self._colormap))
+        self._colormap_select.setCurrentIndex(
+            self._colormap_select.findText(self._colormap))
         self._rate_field.setText(str(self._timer_interval))
         self._timer.setInterval(self._timer_interval)
 
@@ -321,20 +321,21 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 self._timer.start()
 
     def action_extract_colormap_image(self):
-        """
-        Extracts the current colormap to an image file.
-        """
+        """ Extracts the current colormap to an image file. """
+
         if self._data is None:
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>No data to export.</h1>'
                 '<p>Please open a data file first.</p>')
             return
+
         fname = QtWidgets.QFileDialog.getSaveFileName(
             self,
             'Extract colormap to image file',
             self._path,
             filter=FILTER_IMG)[0]
+
         if fname:
             fname = str(fname)
             ext = os.path.splitext(fname)[1][1:].upper()
@@ -342,22 +343,28 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 QtWidgets.QMessageBox.warning(
                     self, TITLE,
                     '<h1>Image type not recognized.</h1>'
-                    '<p>Unknown image type "' + str(ext) + '".</p>')
+                    f'<p>Unknown image type "{ext}".</p>')
                 return
-            # Get min and max of data
-            data = self._data.get2d(self._variable)
-            lower = np.min(data)
-            upper = np.max(data)
+
             # Create image
             nx = 200
             ny = 800
             image = myokit.ColorMap.image(self._colormap, nx, ny)
             image = QtGui.QImage(
                 image, nx, ny, QtGui.QImage.Format.Format_ARGB32)
+
+            # Add lower and upper bounds
+            lower = self._colormap_lower_field.value()
+            upper = self._colormap_upper_field.value()
+            if lower is None or upper is None:
+                data = self._data.get2d(self._variable)
+                lower = np.min(data) if lower is None else lower
+                upper = np.max(data) if upper is None else upper
             painter = QtGui.QPainter(image)
             painter.drawText(10, 15, str(upper))
             painter.drawText(10, ny - 5, str(lower))
             painter.end()
+
             # Save
             image.save(fname, ext)
 
@@ -403,7 +410,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 QtWidgets.QMessageBox.warning(
                     self, TITLE,
                     '<h1>Image type not recognized.</h1>'
-                    '<p>Unknown image type "' + str(ext) + '".</p>')
+                    f'<p>Unknown image type "{ext}".</p>')
                 return
             nt, ny, nx = self._data.shape()
             image = self._video_frames[self._video_iframe]
@@ -505,13 +512,16 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         name = str(name)
         if not myokit.ColorMap.exists(name):
             return  # Silent return?
+
         # Set colormap
         self._colormap = name
+
         # Update colormap controls
-        self._colormap_select.setCurrentIndex(self._colormap_select.findText(
-            self._colormap))
+        self._colormap_select.setCurrentIndex(
+            self._colormap_select.findText(self._colormap))
+
+        # Update colorbar
         if self._data is not None:
-            # Update colorbar
             nx = self._colorbar_width
             ny = self._colorbar_height
             image = myokit.ColorMap.image(self._colormap, nx, ny)
@@ -665,18 +675,14 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._menu_help.addAction(self._tool_license)
 
     def display_exception(self):
-        """
-        Displays the last exception.
-        """
+        """ Displays the last exception in a messagebox. """
         QtWidgets.QMessageBox.warning(
             self, TITLE,
             '<h1>An error has occurred.</h1>'
-            '<pre>' + traceback.format_exc() + '</pre>')
+            f'<pre>{traceback.format_exc()}</pre>')
 
     def event_colormap_selected(self):
-        """
-        Colormap is selected by user.
-        """
+        """ Colormap is selected by user. """
         self.action_set_colormap(str(self._colormap_select.currentText()))
 
     def event_graph_mouse_move(self, x, y):
@@ -684,29 +690,21 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         Graph cursur moved: Display the current cursor position on the graph
         scene in the status bar.
         """
-        F = '{:< 1.6g}'
-        x, y = F.format(x), F.format(y)
-        self._label_cursor.setText('(' + x + ', ' + y + ')')
+        self._label_cursor.setText(f'({x:< 1.6g}, {y:< 1.6g})')
 
     def event_rate_changed(self, e=None):
-        """
-        User changed frame interval.
-        """
+        """ User changed frame interval. """
         self._timer_interval = int(self._rate_field.text())
         self._timer.setInterval(self._timer_interval)
 
     def event_variable_selected(self):
-        """
-        Variable is selected by user.
-        """
+        """ Variable is selected by user. """
         self._variable = self._variable_select.currentText()
         if self._data is not None:
             self.action_set_variable(self._variable)
 
     def event_video_single_click(self, x, y):
-        """
-        Video clicked: Add a graph at the location of the click
-        """
+        """ Video clicked: Add a graph at the location of the click. """
         self._graph_area.graph(self._variable, x, y)
 
     def event_video_double_click(self, x, y):
@@ -724,14 +722,12 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # Cursor position is in scene coordinates, so already matches datablock
         # dimensions!
         if self._data is not None:
-            F = '{:< 1.6g}'
             try:
                 z = self._data.get2d(self._variable)[self._video_iframe, y, x]
-                z = F.format(z)
+                z = '{:< 1.6g}'.format(z)
             except IndexError:
                 z = '?'
-            x, y = F.format(x), F.format(y)
-            self._label_cursor.setText('(' + x + ', ' + y + ', ' + z + ')')
+            self._label_cursor.setText(f'({x:< 1.6g}, {y:< 1.6g}, {z}')
 
     def keyPressEvent(self, e):
         # A key has been pressed
@@ -831,14 +827,16 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         try:
             data = myokit.DataBlock2d.load(fname, progress=reporter)
             del reporter
-        except myokit.DataBlockReadError:
+        except myokit.DataBlockReadError as e:
             pd.reset()
             self.statusBar().showMessage('Load failed.')
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>Unable to read file.</h1>'
-                '<p>The given filename <code>' + str(fname) + '</code>'
-                ' could not be read as a <code>myokit.DataBlock2d</code>.</p>')
+                f'<p>The given filename <code>{fname}</code>'
+                ' could not be read as a <code>myokit.DataBlock2d</code>.</p>'
+                f'<p>{e}</p>'
+            )
             return
         except Exception:
             pd.reset()
@@ -856,7 +854,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>Unable to read file.</h1>'
-                '<p>The given filename <code>' + str(fname) + '</code>'
+                f'<p>The given filename <code>{fname}</code>'
                 ' does not contain any 2d data.</p>')
             return
 
@@ -977,7 +975,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         for k, fname in enumerate(self._recent_files):
             t = self._recent_file_tools[k]
-            t.setText(str(k + 1) + '. ' + os.path.basename(fname))
+            t.setText(f'{k + 1}. {os.path.basename(fname)}')
             t.setData(fname)
             t.setVisible(True)
         for i in range(len(self._recent_files), N_RECENT_FILES):
@@ -987,9 +985,9 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         Sets this window's title based on the current state.
         """
-        title = TITLE + ' ' + myokit.__version__
+        title = f'{TITLE} {myokit.__version__}'
         if self._file:
-            title = os.path.basename(self._file) + ' - ' + title
+            title = f'{os.path.basename(self._file)} - {title}'
         self.setWindowTitle(title)
 
 
