@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1005](https://github.com/myokit/myokit/pull/1005) DataBlock viewer now shows user-set values when exporting a colormap.
 
 ## [1.35.1] - 2023-07-19
 - Added
