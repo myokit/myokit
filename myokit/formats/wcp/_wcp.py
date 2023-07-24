@@ -29,6 +29,10 @@ class WcpFile(myokit.formats.SweepSource):
     WinWCP files contain a number of records ``NR``, each containing data from
     ``NC`` channels. Every channel has the same length, ``NP`` samples.
     Sampling happens at a fixed sampling rate.
+
+    When a :class:`WcpFile` is created, the file at ``path`` is read in its
+    entirety and the file handle is closed. No try-catch or ``with`` statements
+    are required.
     """
     def __init__(self, path):
         # The path to the file and its basename
@@ -322,16 +326,25 @@ class WcpFile(myokit.formats.SweepSource):
         if join_sweeps:
             log['time'] = np.concatenate(
                 [self._time + h['rtime'] for h in self._record_headers])
+            log.cmeta['time']['unit'] = self._time_unit
             for c, name in enumerate(channel_names):
                 log[name] = np.concatenate([r[c] for r in self._records])
+                log.cmeta[name]['unit'] = self._channel_units[c]
         else:
             # Return individual sweeps
             log['time'] = self._time
+            log.cmeta['time']['unit'] = self._time_unit
             for r, record in enumerate(self._records):
                 for c, name in enumerate(channel_names):
-                    log[name, r] = record[c]
+                    name = f'{r}.{name}'
+                    log[name] = record[c]
+                    log.cmeta[name]['unit'] = self._channel_units[c]
 
+        # Add meta data
         log.set_time_key('time')
+        log.meta['original_format'] = f'WinWCP {self._version_str}'
+        log.meta['recording_time'] = self._header['rtime']
+
         return log
 
     def matplotlib_figure(self):

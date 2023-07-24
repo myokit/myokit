@@ -209,6 +209,10 @@ class AbfFile(myokit.formats.SweepSource):
     - The publicly available information on the ABF format is not great, so
       there will be several other issues and shortcomings.
 
+    When an :class:`AbfFile` is created, the file at ``filepath`` is read in
+    its entirety and the file handle is closed. No try-catch or ``with``
+    statements are required.
+
     Arguments:
 
     ``filepath``
@@ -887,6 +891,7 @@ class AbfFile(myokit.formats.SweepSource):
                 c._data = part[:, i]    # Actually store the data
                 c._rate = rate
                 c._start = start
+                c._is_reconstruction = False
 
                 if self._version < 2:
                     j = h['nADCSamplingSeq'][i]
@@ -975,6 +980,7 @@ class AbfFile(myokit.formats.SweepSource):
                 c._rate = self._rate
                 c._start = start
                 c._unit = self._unit(dinfo(i_dac, 'sDACChannelUnits'))
+                c._is_reconstruction = True
 
                 # Find start of first epoch. This is defined as being at t=0
                 # but axon likes to add some samples before the first and after
@@ -1212,20 +1218,52 @@ class AbfFile(myokit.formats.SweepSource):
             if include_da:
                 names += [f'{i}.da' for i in range(self._n_dac)]
 
-        # Gather data and return
+        # Channel meta data adding function
+        def add_channel_meta(channel, cmeta):
+            if channel._is_reconstruction:
+                cmeta['channel_type'] = 'Reconstructed D/A signal'
+                cmeta['original_name'] = channel._name
+                cmeta['original_index'] = channel._index
+                cmeta['unit'] = channel._unit
+                if channel._type:  # pragma: no cover
+                    cmeta['DAC type'] = type_mode_names[channel._type]
+            else:
+                cmeta['channel_type'] = 'Recorded signal'
+                cmeta['original_name'] = channel._name
+                cmeta['original_index'] = channel._index
+                cmeta['unit'] = channel._unit
+                if channel._lopass:
+                    cmeta['low_pass_Hz'] = channel._lopass
+                if channel._cm:
+                    cmeta['Cm_pF'] = channel._cm
+                if channel._rs:   # pragma: no cover
+                    cmeta['Rs'] = channel._rs
+
+        # Gather data
         t = self._sweeps[0][0].times()
         if not join_sweeps:
             log['time'] = t
+            log.cmeta['time']['unit'] = myokit.units.s
             for i_sweep, sweep in enumerate(self._sweeps):
                 for channel, name in zip(sweep, names):
-                    log[name, i_sweep] = channel.values()
+                    name = f'{i_sweep}.{name}'
+                    log[name] = channel.values()
+                    add_channel_meta(channel, log.cmeta[name])
         else:
             log['time'] = np.concatenate(
                 [t + i * self._sweep_start_to_start for i in range(ns)])
+            log.cmeta['time']['unit'] = myokit.units.s
             for i_channel, name in enumerate(names):
                 log[name] = np.concatenate(
                     [sweep[i_channel].values() for sweep in self._sweeps])
+                add_channel_meta(self._sweeps[0][i_channel], log.cmeta[name])
+
+        # Add meta data
         log.set_time_key('time')
+        log.meta['original_format'] = f'ABF {self._version_str}'
+        log.meta['recording_time'] = self._datetime
+        log.meta['acquisition_mode'] = acquisition_modes[self._mode]
+
         return log
 
     def matplotlib_figure(self):
@@ -1294,9 +1332,6 @@ class AbfFile(myokit.formats.SweepSource):
             # A/D recordings
             for i, c in enumerate(self._sweeps[0][:self._n_adc]):
                 out.append(f'A/D Channel {i}: "{c._name}"')
-                if c._type:  # pragma: no cover
-                    # Cover pragma: Don't have appropriate test file
-                    out.append(f'  Type: {type_mode_names[c._type]}')
                 out.append(f'  Unit: {c._unit}')
                 if c._lopass:
                     out.append(f'  Low-pass filter: {c._lopass} Hz')
@@ -1309,10 +1344,10 @@ class AbfFile(myokit.formats.SweepSource):
             # Reconstructed D/A outputs
             for i, c in enumerate(self._sweeps[0][self._n_adc:]):
                 out.append(f'D/A Channel {i}: "{c._name}"')
+                out.append(f'  Unit: {c._unit}')
                 if c._type:  # pragma: no cover
                     # Cover pragma: Don't have appropriate test file
                     out.append('  Type: {type_mode_names[c._type]}')
-                out.append(f'  Unit: {c._unit}')
 
         # Add full header info
         if show_header:
@@ -1380,6 +1415,9 @@ class Channel:
 
         # This channel's name
         self._name = None
+
+        # Is this a reconstructed D/A output?
+        self._is_reconstruction = None
 
         # This channel's index in the file. This is basically a name, and does
         # not correspond to e.g. its index in the ADC/DAC info or its index in
