@@ -906,10 +906,6 @@ class Series(TreeNode, myokit.formats.SweepSource):
         # Add meta data
         log.set_time_key('time')
         a = self.amplifier_state()
-
-
-
-
         log.meta['ljp_correction_mV'] = a.ljp()
         log.meta['c_slow_compensation_pF'] = a.c_slow()
         if a.c_fast_enabled():

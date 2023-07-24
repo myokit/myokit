@@ -984,7 +984,7 @@ class DataLog(OrderedDict):
             delimiter=',', header=True, meta=False):
         """
         Writes this ``DataLog`` to a CSV file, following the syntax
-        outlined in RFC 4180 and with a header indicating the field names.
+        outlined in RFC 4180, and with a header indicating the field names.
 
         The resulting file will consist of:
 
@@ -1743,7 +1743,7 @@ def prepare_log(
                              f' variables, got <{var}>.')
 
     # Function to add meta data about variables
-    def add_meta(log, key, var, time_unit = None):
+    def add_meta(log, key, var, time_unit=None):
         m = log.cmeta[key]
         u = var.unit()
         if u is not None:

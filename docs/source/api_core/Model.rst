@@ -35,13 +35,13 @@ implementations).
    :inherited-members:
 
 Helper classes and functions
-==========================
+============================
 
 .. autofunction:: check_name
 
 .. autoclass:: ModelPart
 
-.. autoclass:: ObjectWithMeta
+.. autoclass:: ObjectWithMetaData
 
 .. autoclass:: MetaDataContainer
 

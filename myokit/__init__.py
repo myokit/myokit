@@ -369,6 +369,7 @@ from ._model_api import ( # noqa
     MetaDataContainer,
     Model,
     ModelPart,
+    ObjectWithMetaData,
     UserFunction,
     Variable,
     VarOwner,

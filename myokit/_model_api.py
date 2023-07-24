@@ -74,7 +74,7 @@ class MetaDataContainer(dict):
         super().__setitem__(key, item)
 
 
-class ObjectWithMeta:
+class ObjectWithMetaData:
     """
     Base class for objects with meta data.
 
@@ -119,7 +119,7 @@ class ObjectWithMeta:
                 b.write(key + v + eol)
 
 
-class ModelPart(ObjectWithMeta):
+class ModelPart(ObjectWithMetaData):
     """
     Base class for model parts.
     """
@@ -750,7 +750,7 @@ class VarOwner(ModelPart, VarProvider):
                 raise myokit.UnresolvedReferenceError(name, sa(name))
 
 
-class Model(ObjectWithMeta, VarProvider):
+class Model(ObjectWithMetaData, VarProvider):
     """
     Represents an electrophysiological cell model, structured in components.
 

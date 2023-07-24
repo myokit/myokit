@@ -97,7 +97,7 @@ myokit
 - :class:`myokit.Number`
 - :class:`myokit.NumericalError`
 - :meth:`myokit.numpy_writer`
-- :class:`myokit.ObjectWithMeta`
+- :class:`myokit.ObjectWithMetaData`
 - :class:`myokit.OpenCL`
 - :class:`myokit.OpenCLDeviceInfo`
 - :class:`myokit.OpenCLInfo`
