@@ -34,15 +34,20 @@ implementations).
 .. autoclass:: Model
    :inherited-members:
 
-``myokit.ModelPart``
-====================
+Helper classes and functions
+==========================
+
+.. autofunction:: check_name
 
 .. autoclass:: ModelPart
 
-Name validation
-===============
+.. autoclass:: ObjectWithMeta
 
-.. autofunction:: check_name
+.. autoclass:: MetaDataContainer
+
+.. autoclass:: VarOwner
+
+.. autoclass:: VarProvider
 
 Model comparison
 ================

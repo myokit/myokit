@@ -43,12 +43,21 @@ def check_name(name):
 
 class MetaDataContainer(dict):
     """
-    Dictionary that stores meta-data.
+    Dictionary that stores string meta-data.
+
+    Each key must be a valid Myokit name (so start with at least one letter,
+    and contain only letters, numbers, and underscores). Values can be any
+    string.
+
+    A MetaDataContainer can be cloned using
+    ``clone = MetaDataContainer(original)``.
     """
+    # Note: Cloning doesn't need to be deep, as keys and values are both
+    # immutable strings.
 
     def __getitem__(self, key):
         # Check key
-        if META.match(key) is None:
+        if NAME.match(key) is None:
             raise myokit.InvalidMetaDataNameError(
                 'The key <' + str(key) + '>'
                 ' is not a valid meta-data property identifier.')
@@ -58,7 +67,7 @@ class MetaDataContainer(dict):
         # Check item
         item = str(item)
         # Check key
-        if META.match(key) is None:
+        if NAME.match(key) is None:
             raise myokit.InvalidMetaDataNameError(
                 'The key <' + str(key) + '>'
                 ' is not a valid meta-data property identifier.')

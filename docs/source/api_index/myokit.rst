@@ -13,6 +13,7 @@ myokit
 - :meth:`myokit.check_name`
 - :class:`myokit.CModel`
 - :class:`myokit.CModule`
+- :class:`myokit.ColumnMetaData`
 - :class:`myokit.ColorMap`
 - :class:`myokit.CompilationError`
 - :class:`myokit.Compiler`
@@ -79,6 +80,7 @@ myokit
 - :class:`myokit.Log`
 - :class:`myokit.Log10`
 - :class:`myokit.LoggedVariableInfo`
+- :class:`myokit.MetaDataContainer`
 - :class:`myokit.Minus`
 - :class:`myokit.MissingRhsError`
 - :class:`myokit.MissingTimeVariableError`
@@ -95,6 +97,7 @@ myokit
 - :class:`myokit.Number`
 - :class:`myokit.NumericalError`
 - :meth:`myokit.numpy_writer`
+- :class:`myokit.ObjectWithMeta`
 - :class:`myokit.OpenCL`
 - :class:`myokit.OpenCLDeviceInfo`
 - :class:`myokit.OpenCLInfo`
@@ -161,5 +164,7 @@ myokit
 - :class:`myokit.UnusedVariableError`
 - :class:`myokit.UserFunction`
 - :class:`myokit.Variable`
+- :class:`myokit.VarOwner`
+- :class:`myokit.VarProvider`
 - :meth:`myokit.version`
 - :class:`myokit.VariableMappingError`

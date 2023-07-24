@@ -366,10 +366,13 @@ from ._model_api import ( # noqa
     Component,
     Equation,
     EquationList,
+    MetaDataContainer,
     Model,
     ModelPart,
     UserFunction,
     Variable,
+    VarOwner,
+    VarProvider,
 )
 
 # Expressions
@@ -505,6 +508,7 @@ from ._progress import (    # noqa
 
 # Data logging
 from ._datalog import (     # noqa
+    ColumnMetaData,
     DataLog,
     _dimco,
     LoggedVariableInfo,
