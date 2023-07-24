@@ -112,17 +112,17 @@ class DataLog(OrderedDict):
             self.meta = myokit.MetaDataContainer()
             self.cmeta = ColumnMetaData()
         elif isinstance(other, DataLog):
-            super().__init__(other)
             self._time = other._time
             self.meta = myokit.MetaDataContainer(other.meta)
             self.cmeta = ColumnMetaData(other.cmeta)
-        else:
             super().__init__(other)  # Let dict do the conversion
+        else:
             self._time = None
             self.meta = myokit.MetaDataContainer()
             self.cmeta = ColumnMetaData()
             for key in other:
                 self.cmeta._add(key)
+            super().__init__(other)  # Let dict do the conversion
 
         # Set time key, allow overruling when cloning
         if time is not None:
@@ -234,7 +234,8 @@ class DataLog(OrderedDict):
         return super().__contains__(self._parse_key(key))
 
     def __delitem__(self, key):
-        super().__delitem__(self._parse_key(key))
+        key = self._parse_key(key)
+        super().__delitem__(key)
         self.cmeta._remove(key)
 
     def extend(self, other):
@@ -1957,6 +1958,10 @@ def prepare_log(
         raise ValueError('String passed in as `log` argument, should be list'
                          ' or other sequence containing strings.')
 
+    # Time variable and unit
+    time = model.time()
+    time_unit = time.unit()
+
     # Parse log argument as list
     lst = log
     log = myokit.DataLog()
@@ -2030,7 +2035,7 @@ def prepare_log(
                     add_meta(log, key, var, time_unit if deriv else None)
 
     # Set time variable
-    time = model.time().qname()
+    time = time.qname()
     if time in log:
         log.set_time_key(time)
 
