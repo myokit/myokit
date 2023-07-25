@@ -296,7 +296,7 @@ Then have a look at `<your myokit path>/doc/build/html/index.html`.
 - Coverage is tested using [codecov.io](https://docs.codecov.io/docs) which builds on [coverage](https://coverage.readthedocs.io/). 
   Configuration file: `.coveragerc` ([syntax](https://coverage.readthedocs.io/en/latest/config.html)).
 - Documentation is built using [readthedocs](readthedocs.org) and [published here](https://myokit.readthedocs.io/).
-  Configuration file `.readthedocs.txt`.
+  Configuration file `.readthedocs.yaml`.
 - Code style is checked using flake8.
   Configuration file: `.flake8` ([syntax](http://flake8.pycqa.org/en/latest/user/configuration.html)).
 
