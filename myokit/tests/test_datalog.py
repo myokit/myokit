@@ -1586,6 +1586,8 @@ class DataLogTest(unittest.TestCase):
         d = myokit.DataLog()
         d['a.b'] = np.arange(0, 100, dtype=np.float32)
         d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
+        d.meta['one'] = 1
+        d.cmeta['a.b']['two'] = 2
 
         # Test saving with double precision
         with TemporaryDirectory() as td:
@@ -1607,6 +1609,9 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(isinstance(e['c.d'][0], float))
             self.assertEqual(e['a.b'].typecode, 'd')
             self.assertEqual(e['c.d'].typecode, 'd')
+
+            #TODO: If we decide that meta data should be read as well, then
+            # check that it was loaded correctly here.
 
         # Test saving with single precision
         d = myokit.DataLog()
