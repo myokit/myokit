@@ -36,6 +36,5 @@ jobs:
 
       - name: Run unit tests
         run: |
-          C:\Miniconda\python.exe -m myokit system
           C:\Miniconda\python.exe -m myokit test unit
 
