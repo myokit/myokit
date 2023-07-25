@@ -4,10 +4,17 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1006](https://github.com/myokit/myokit/pull/1006) The `DataLog` class can now store global meta data in `.meta` and per-column meta data in `.cmeta`. Both must be string-string key-value pairs.
+  - [#1006](https://github.com/myokit/myokit/pull/1006) Simulations now automatically add some meta data (units) to the data log.
+  - [#1006](https://github.com/myokit/myokit/pull/1006) The `DataLog` class can now save meta data to disk using the [CSV-on-the-web](https://w3c.github.io/csvw/) format.
+  - [#1006](https://github.com/myokit/myokit/pull/1006) Added a class `ColumnMetaData` to represent per-column meta data of a table or DataLog.
+  - [#1006](https://github.com/myokit/myokit/pull/1006) ABF, WCP, and PatchMaster file classes now add meta data when creating a `DataLog`.
 - Changed
+  - [#1006](https://github.com/myokit/myokit/pull/1006) Made core classes `ObjectWithMetaData`, `MetaDataContainer`, `VarOwner`, and `VarProvider` part of the public API. Similarly the method `check_name`.
 - Deprecated
 - Removed
 - Fixed
+  - [#1006](https://github.com/myokit/myokit/pull/1006) `DataLog.clone()` no longer replaces `array.array` objects with lists.
 
 ## [1.35.2] - 2023-07-19
 - Fixed

@@ -5,6 +5,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import array
 import os
 import unittest
 
@@ -24,11 +25,127 @@ from myokit.tests import (
 # Extra output
 debug = False
 
+CSV_META = """
+{
+  "@context": "http://www.w3.org/ns/csvw",
+  "url": "test.csv",
+  "tableSchema": {
+    "columns": [
+      {
+        "titles": "a.b",
+        "datatype": "double"
+      },
+      {
+        "titles": "c.d",
+        "datatype": "double",
+        "myokit:extra": "This is the best column"
+      },
+      {
+        "titles": "e.f",
+        "datatype": "double"
+      }
+    ]
+  },
+  "myokit:test": "A nice sandwich",
+  "myokit:number": "4",
+  "myokit:one:two": "5"
+}
+""".strip()
+
 
 class DataLogTest(unittest.TestCase):
     """
     Tests the DataLog's functions.
     """
+    def test_apd(self):
+        # Test the apd method.
+
+        # Very coarse check
+        d = myokit.DataLog(time='time')
+        d['time'] = np.linspace(0, 10, 11)
+        d['v'] = np.ones(10) * -85
+        d['v'][1:3] = 40
+        d['v'][6:9] = 40
+        apds = d.apd(v='v')
+        self.assertEqual(len(apds), 2)
+        self.assertTrue(apds['start'][0] > 0)
+        self.assertTrue(apds['start'][0] < 1)
+        self.assertTrue(apds['duration'][0] > 2.5)
+        self.assertTrue(apds['duration'][0] < 3.0)
+        self.assertTrue(apds['start'][1] > 5)
+        self.assertTrue(apds['start'][1] < 6)
+        self.assertTrue(apds['duration'][1] > 3.5)
+        self.assertTrue(apds['duration'][1] < 4.0)
+
+        # Check with threshold equal to V
+        apds = d.apd(v='v', threshold=-85)
+        self.assertEqual(len(apds['start']), 1)
+        self.assertEqual(apds['start'][0], 5)
+        self.assertEqual(apds['duration'][0], 4)
+
+        # Check against example model
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.Simulation(m, p)
+        s.set_tolerance(1e-8, 1e-8)
+        d, apds1 = s.run(
+            2000, log=['engine.time', 'membrane.V'],
+            log_interval=0.005,
+            apd_variable='membrane.V', apd_threshold=-70)
+        apds2 = d.apd(threshold=-70)
+        self.assertEqual(len(apds1['start']), 2)
+        self.assertEqual(len(apds2['start']), 2)
+        self.assertAlmostEqual(1, apds1['start'][0] / apds2['start'][0])
+        self.assertAlmostEqual(1, apds1['start'][1] / apds2['start'][1])
+        self.assertAlmostEqual(1, apds1['duration'][0] / apds2['duration'][0])
+        self.assertAlmostEqual(1, apds1['duration'][1] / apds2['duration'][1])
+
+    def test_clone(self):
+        # Test cloning via constructor and clone() method
+
+        # Obtain a log from a simulation
+        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.Simulation(m, p)
+        d1 = s.run(100, log=myokit.LOG_BOUND + myokit.LOG_STATE)
+        d1.meta['yes'] = 'no'
+
+        # Clone via constructor
+        d2 = myokit.DataLog(d1)
+        self.assertEqual(len(d1), len(d2))
+        self.assertEqual(d1.keys(), d2.keys())
+        for v1, v2 in zip(d1.values(), d2.values()):
+            self.assertEqual(v1, v2)
+            self.assertTrue(v1 is v2)   # Constructor clone is not deep!
+            self.assertEqual(type(v2), array.array)
+        self.assertIn('yes', d2.meta)
+        self.assertEqual(d2.meta['yes'], 'no')
+        for k in d2:
+            self.assertIn(k, d2.cmeta)
+        self.assertIn('unit', d2.cmeta['ica.Ca_i'])
+        self.assertEqual(d2.cmeta['ica.Ca_i']['unit'], '[mM]')
+
+        # Clone via clone()
+        d2 = d1.clone()
+        self.assertEqual(len(d1), len(d2))
+        self.assertEqual(d1.keys(), d2.keys())
+        for v1, v2 in zip(d1.values(), d2.values()):
+            self.assertEqual(v1, v2)
+            self.assertFalse(v1 is v2)
+            self.assertEqual(type(v2), array.array)
+        self.assertIn('yes', d2.meta)
+        self.assertEqual(d2.meta['yes'], 'no')
+        self.assertEqual(d2.cmeta['ica.Ca_i']['unit'], '[mM]')
+
+        # Clone via clone(numpy=True)
+        d2 = d1.clone(numpy=True)
+        self.assertEqual(len(d1), len(d2))
+        self.assertEqual(d1.keys(), d2.keys())
+        for v1, v2 in zip(d1.values(), d2.values()):
+            self.assertEqual(list(v1), list(v2))
+            self.assertFalse(v1 is v2)
+            self.assertEqual(type(v2), np.ndarray)
+        self.assertIn('yes', d2.meta)
+        self.assertEqual(d2.meta['yes'], 'no')
+        self.assertEqual(d2.cmeta['ica.Ca_i']['unit'], '[mM]')
 
     def test_extend(self):
         # Test the extend function.
@@ -152,6 +269,49 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(x.find_after(19), 4)
         self.assertEqual(x.find_after(20), 4)
         self.assertEqual(x.find_after(21), 5)
+
+    def test_fold(self):
+        # Test the fold() method.
+
+        d = myokit.DataLog(time='time')
+        d['time'] = list(range(100))
+        d['x'] = list(np.arange(100) * 3)
+
+        # Test without discarding remainder
+        d2 = d.fold(30, discard_remainder=False)
+        self.assertEqual(set(d2.keys()), set([
+            'time', '0.x', '1.x', '2.x', '3.x']))
+
+        # Test with discarding remainder
+        d = d.npview()
+        d2 = d.fold(30)
+        self.assertEqual(set(d2.keys()), set([
+            'time', '0.x', '1.x', '2.x']))
+        self.assertEqual(len(d2['time']), 30)
+        self.assertEqual(len(d2['0.x']), 30)
+        self.assertEqual(len(d2['1.x']), 30)
+        self.assertEqual(len(d2['2.x']), 30)
+        self.assertTrue(np.all(d2['time'] == d['time'][:30]))
+        self.assertTrue(np.all(d2['0.x'] == d['x'][:30]))
+        self.assertTrue(np.all(d2['1.x'] == d['x'][30:60]))
+        self.assertTrue(np.all(d2['2.x'] == d['x'][60:90]))
+
+    def test_has_nan(self):
+        # Test the has_nan() method, which checks if the _final_ value in any
+        # field is NaN.
+
+        d = myokit.DataLog(time='time')
+        d['time'] = list(range(100))
+        d['x'] = list(np.arange(100) * 3)
+        d['y'] = list(np.arange(100) * 3)
+        d['z'] = list(np.arange(100) * 3)
+        self.assertFalse(d.has_nan())
+        d['x'][-3] = float('nan')
+        self.assertFalse(d.has_nan())
+        d['x'][-1] = float('inf')
+        self.assertFalse(d.has_nan())
+        d['x'][-1] = float('nan')
+        self.assertTrue(d.has_nan())
 
     def test_indexing(self):
         # Test the indexing overrides in the simulation log.
@@ -378,6 +538,224 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(
             e.keys_like('m.v'),
             ['0.0.m.v', '0.1.m.v', '1.0.m.v', '1.1.m.v'])
+
+    def test_length(self):
+        # Test the length() method, that counts the length of the log's
+        # entries.
+
+        d = myokit.DataLog(time='time')
+        self.assertEqual(d.length(), 0)
+        d['time'] = list(np.arange(100) * 3)
+        self.assertEqual(d.length(), 100)
+        d['x'] = list(np.arange(100) * 3)
+        self.assertEqual(d.length(), 100)
+
+    def test_load_errors(self):
+        # Test if the correct load errors are raised.
+
+        # Missing data file
+        path = os.path.join(DIR_IO, 'badlog-1-no-data.zip')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
+            path)
+
+        # Missing structure file
+        path = os.path.join(DIR_IO, 'badlog-2-no-structure.zip')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
+            path)
+
+        # Not a zip
+        path = os.path.join(DIR_IO, 'badlog-3-not-a-zip.zip')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'bad zip file', myokit.DataLog.load, path)
+
+        # Wrong number of fields
+        path = os.path.join(DIR_IO, 'badlog-4-invalid-n-fields.zip')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'number of fields', myokit.DataLog.load,
+            path)
+
+        # Negative data size
+        path = os.path.join(DIR_IO, 'badlog-5-invalid-data-size.zip')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Invalid data size', myokit.DataLog.load,
+            path)
+
+        # Unknown data type
+        path = os.path.join(DIR_IO, 'badlog-6-bad-data-type.zip')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Invalid data type', myokit.DataLog.load,
+            path)
+
+        # Not enough data
+        path = os.path.join(DIR_IO, 'badlog-7-not-enough-data.zip')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'larger data', myokit.DataLog.load, path)
+
+    def test_load_with_progress(self):
+        # Test loading with a progress reporter.
+
+        p = TestReporter()
+        path = os.path.join(DIR_IO, 'goodlog.zip')
+        self.assertFalse(p.entered)
+        self.assertFalse(p.exited)
+        self.assertFalse(p.updated)
+        d = myokit.DataLog.load(path, progress=p)
+        self.assertTrue(p.entered)
+        self.assertTrue(p.exited)
+        self.assertTrue(p.updated)
+        self.assertEqual(type(d), myokit.DataLog)
+
+        p = CancellingReporter(1)
+        d = myokit.DataLog.load(path, progress=p)
+        self.assertIsNone(d)
+
+    def test_load_csv_errors(self):
+        # Test for errors during csv loading.
+
+        # Test errory file, with comments etc., should work fine!
+        path = os.path.join(DIR_IO, 'datalog.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
+        # Empty file
+        path = os.path.join(DIR_IO, 'datalog-1-empty.csv')
+        d = myokit.DataLog.load_csv(path)
+        self.assertEqual(set(d.keys()), set())
+
+        # Test windows line endings
+        path = os.path.join(DIR_IO, 'datalog-2-windows.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
+        # Test old mac line endings
+        path = os.path.join(DIR_IO, 'datalog-3-old-mac.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
+        # Test empty lines at end
+        path = os.path.join(DIR_IO, 'datalog-4-empty-lines.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
+        # Test semicolons at end of each line
+        path = os.path.join(DIR_IO, 'datalog-5-semicolons.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
+        # Test unterminated string
+        path = os.path.join(DIR_IO, 'datalog-6-open-string.csv')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'inside quoted', myokit.DataLog.load_csv,
+            path)
+
+        # Test empty lines between data
+        path = os.path.join(DIR_IO, 'datalog-7-empty-lines-2.csv')
+        d = myokit.DataLog.load_csv(path)
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == np.arange(1, 7)))
+        self.assertTrue(np.all(d['v'] == 10 * (np.arange(1, 7))))
+
+        # Test unquoted field names
+        path = os.path.join(DIR_IO, 'datalog-8-unquoted-header.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
+        # Test double-quoted field names
+        path = os.path.join(DIR_IO, 'datalog-9-double-quoted-header.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v"quote"']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v"quote"'] == 10 * (1 + np.arange(6))))
+
+        # Test file with just some spaces (one line)
+        path = os.path.join(DIR_IO, 'datalog-10-just-spaces.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set())
+
+        # Test file with just some spaces (one line)
+        path = os.path.join(DIR_IO, 'datalog-11-just-a-semicolon.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set())
+
+        # Test header "abc"x"adc"
+        path = os.path.join(DIR_IO, 'datalog-12-bad-header.csv')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Expecting double quote',
+            myokit.DataLog.load_csv, path)
+
+        # Test empty field "" in header
+        path = os.path.join(DIR_IO, 'datalog-13-header-with-empty-1.csv')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
+            path)
+
+        # Test empty field "x",,"y" in header
+        path = os.path.join(DIR_IO, 'datalog-14-header-with-empty-2.csv')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
+            path)
+
+        # Test empty field "time","v", in header
+        path = os.path.join(DIR_IO, 'datalog-15-header-with-empty-3.csv')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
+            path)
+
+        # Test wrong field count in data
+        path = os.path.join(DIR_IO, 'datalog-16-wrong-columns-in-data.csv')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Wrong number of columns',
+            myokit.DataLog.load_csv, path)
+
+        # Test non-float data
+        path = os.path.join(DIR_IO, 'datalog-17-non-float-data.csv')
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Unable to convert',
+            myokit.DataLog.load_csv, path)
+
+    def test_npview(self):
+        # Tests the npview() method
+
+        d = myokit.DataLog()
+        d['tammy'] = [7, 8, 9]
+        d['tommy'] = [4, 5, 6]
+        d['timmy'] = [1, 2, 3]
+        d.set_time_key('timmy')
+        d.meta['best_meta'] = 'super_value'
+        d.cmeta['tammy']['stand:by'] = 'your man'
+
+        e = d.npview()
+        self.assertFalse(d is e)
+        self.assertEqual(len(d), len(e))
+        self.assertIsInstance(d['tammy'], list)
+        self.assertIsInstance(d['tommy'], list)
+        self.assertIsInstance(d['timmy'], list)
+        self.assertIsInstance(e['tammy'], np.ndarray)
+        self.assertIsInstance(e['tommy'], np.ndarray)
+        self.assertIsInstance(e['timmy'], np.ndarray)
+        self.assertEqual(d['tammy'], list(e['tammy']))
+        self.assertEqual(d['tommy'], list(e['tommy']))
+        self.assertEqual(d['timmy'], list(e['timmy']))
+        self.assertEqual(len(d.meta), len(e.meta))
+        self.assertIn('tammy', e.cmeta)
+        self.assertEqual(len(d.cmeta['tammy']), len(e.cmeta['tammy']))
+        self.assertIn('stand:by', e.cmeta['tammy'])
+        self.assertEqual(
+            d.cmeta['tammy']['stand:by'], e.cmeta['tammy']['stand:by'])
 
     def test_prepare_log_0d(self):
         # Test the `prepare_log` method for single-cell simulations.
@@ -1170,12 +1548,46 @@ class DataLogTest(unittest.TestCase):
             ValueError, 'Invalid index', prepare_log, ['3.3.membrane.V'], m,
             (2, 1))
 
+    def test_regularize(self):
+        # Test the deprecated regularize() method.
+
+        d = myokit.DataLog(time='time')
+        d['time'] = np.log(np.linspace(1, 25, 100))
+        d['values'] = np.linspace(1, 25, 100)
+
+        has_scipy = True
+        with WarningCollector() as w:
+            try:
+                e = d.regularize(dt=0.5)
+            except ImportError:
+                has_scipy = False
+        self.assertIn('eprecated', w.text())
+        if not has_scipy:
+            return
+
+        self.assertEqual(len(e['time']), 7)
+        x = np.array([0, 0.5, 1, 1.5, 2, 2.5, 3])
+        self.assertTrue(np.all(e['time'] == x))
+        for i, y in enumerate(x):
+            self.assertTrue(np.abs(np.exp(y) - e['values'][i]) < 0.02)
+
+        # test setting tmin and tmax
+        with WarningCollector() as w:
+            e = d.regularize(dt=0.5, tmin=0.4, tmax=2.6)
+        self.assertEqual(len(e['time']), 5)
+        x = np.array([0.4, 0.9, 1.4, 1.9, 2.4])
+        self.assertTrue(np.all(e['time'] == x))
+        for i, y in enumerate(x):
+            self.assertTrue(np.abs(np.exp(y) - e['values'][i]) < 0.02)
+
     def test_save(self):
         # Test saving in binary format.
 
         d = myokit.DataLog()
         d['a.b'] = np.arange(0, 100, dtype=np.float32)
         d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
+        d.meta['one'] = 1
+        d.cmeta['a.b']['two'] = 2
 
         # Test saving with double precision
         with TemporaryDirectory() as td:
@@ -1197,6 +1609,9 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(isinstance(e['c.d'][0], float))
             self.assertEqual(e['a.b'].typecode, 'd')
             self.assertEqual(e['c.d'].typecode, 'd')
+
+            #TODO: If we decide that meta data should be read as well, then
+            # check that it was loaded correctly here.
 
         # Test saving with single precision
         d = myokit.DataLog()
@@ -1226,73 +1641,12 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(np.all(e.time() == d.time()))
             self.assertTrue(np.all(e.time() == d['c.d']))
 
-    def test_load_errors(self):
-        # Test if the correct load errors are raised.
-
-        # Missing data file
-        path = os.path.join(DIR_IO, 'badlog-1-no-data.zip')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
-            path)
-
-        # Missing structure file
-        path = os.path.join(DIR_IO, 'badlog-2-no-structure.zip')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
-            path)
-
-        # Not a zip
-        path = os.path.join(DIR_IO, 'badlog-3-not-a-zip.zip')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'bad zip file', myokit.DataLog.load, path)
-
-        # Wrong number of fields
-        path = os.path.join(DIR_IO, 'badlog-4-invalid-n-fields.zip')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'number of fields', myokit.DataLog.load,
-            path)
-
-        # Negative data size
-        path = os.path.join(DIR_IO, 'badlog-5-invalid-data-size.zip')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'Invalid data size', myokit.DataLog.load,
-            path)
-
-        # Unknown data type
-        path = os.path.join(DIR_IO, 'badlog-6-bad-data-type.zip')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'Invalid data type', myokit.DataLog.load,
-            path)
-
-        # Not enough data
-        path = os.path.join(DIR_IO, 'badlog-7-not-enough-data.zip')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'larger data', myokit.DataLog.load, path)
-
-    def test_load_with_progress(self):
-        # Test loading with a progress reporter.
-
-        p = TestReporter()
-        path = os.path.join(DIR_IO, 'goodlog.zip')
-        self.assertFalse(p.entered)
-        self.assertFalse(p.exited)
-        self.assertFalse(p.updated)
-        d = myokit.DataLog.load(path, progress=p)
-        self.assertTrue(p.entered)
-        self.assertTrue(p.exited)
-        self.assertTrue(p.updated)
-        self.assertEqual(type(d), myokit.DataLog)
-
-        p = CancellingReporter(1)
-        d = myokit.DataLog.load(path, progress=p)
-        self.assertIsNone(d)
-
     def test_save_csv(self):
         # Test saving as csv.
 
         d = myokit.DataLog()
 
-        # Note: a.b and e.f are both non-decreaing, could be taken for time!
+        # Note: a.b and e.f are both non-decreasing, could be taken for time!
         d['a.b'] = np.arange(0, 100)
         d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
         d['e.f'] = np.arange(0, 100) + 1
@@ -1319,8 +1673,6 @@ class DataLogTest(unittest.TestCase):
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(e.time()[0], d['a.b'][0])
-
-        # Now set time key
         d.set_time_key('e.f')
         with TemporaryDirectory() as td:
             fname = td.path('test.csv')
@@ -1329,10 +1681,6 @@ class DataLogTest(unittest.TestCase):
             self.assertEqual(e.time()[0], d['e.f'][0])
 
         # Test saving with single precision
-        d = myokit.DataLog(time='a.b')
-        d['a.b'] = np.arange(0, 100)
-        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
-        d['e.f'] = np.arange(0, 100) + 1
         d = d.npview()
         with TemporaryDirectory() as td:
             fname = td.path('test.csv')
@@ -1348,10 +1696,6 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(np.all(np.abs(d['c.d'] - e['c.d']) < 1e-6))
 
         # Test saving with python string formats
-        d = myokit.DataLog(time='a.b')
-        d['a.b'] = np.arange(0, 100)
-        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
-        d['e.f'] = np.arange(0, 100) + 1
         with TemporaryDirectory() as td:
             fname = td.path('test.csv')
             d.save_csv(fname, precision=None)
@@ -1371,10 +1715,6 @@ class DataLogTest(unittest.TestCase):
             self.assertRaises(ValueError, d.save_csv, fname, 'ernie')
 
         # Test saving with a fixed order
-        d = myokit.DataLog(time='a.b')
-        d['a.b'] = np.arange(0, 100)
-        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
-        d['e.f'] = np.arange(0, 100) + 1
         with TemporaryDirectory() as td:
             fname = td.path('test.csv')
             d.save_csv(fname, order=['a.b', 'c.d', 'e.f'])
@@ -1426,121 +1766,48 @@ class DataLogTest(unittest.TestCase):
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(len(e.keys()), 0)
 
-    def test_load_csv_errors(self):
-        # Test for errors during csv loading.
+        # Test saving CSV with meta data
+        d = myokit.DataLog()
+        d.set_time_key('a.b')
+        d['a.b'] = np.arange(0, 100)
+        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
+        d['e.f'] = np.arange(0, 100) + 1
+        d.meta['test'] = 'A nice sandwich'
+        d.meta['number'] = 4
+        d.meta['one:two'] = 5
+        d.cmeta['c.d']['extra'] = 'This is the best column'
 
-        # Test errory file, with comments etc., should work fine!
-        path = os.path.join(DIR_IO, 'datalog.csv')
-        d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
-        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
-        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname, meta=True)
 
-        # Empty file
-        path = os.path.join(DIR_IO, 'datalog-1-empty.csv')
-        d = myokit.DataLog.load_csv(path)
-        self.assertEqual(set(d.keys()), set())
+            e = myokit.DataLog.load_csv(fname)
+            self.assertEqual(len(d), len(e))
+            self.assertIn('a.b', e)
+            self.assertIn('c.d', e)
+            self.assertNotIn('a.d', e)
+            self.assertEqual(len(d['a.b']), len(e['a.b']))
+            self.assertEqual(len(d['c.d']), len(e['c.d']))
+            self.assertEqual(list(d['a.b']), list(e['a.b']))
+            self.assertEqual(list(d['c.d']), list(e['c.d']))
 
-        # Test windows line endings
-        path = os.path.join(DIR_IO, 'datalog-2-windows.csv')
-        d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
-        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
-        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+            self.maxDiff = None
+            meta_path = td.path('test.csv-metadata.json')
+            self.assertTrue(os.path.exists(meta_path))
+            with open(meta_path, 'r') as f:
+                self.assertEqual(f.read(), CSV_META)
 
-        # Test old mac line endings
-        path = os.path.join(DIR_IO, 'datalog-3-old-mac.csv')
-        d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
-        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
-        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+        # Test no meta data is written is none is set
+        del d.meta['test']
+        del d.meta['number']
+        del d.meta['one:two']
+        del d.cmeta['c.d']['extra']
 
-        # Test empty lines at end
-        path = os.path.join(DIR_IO, 'datalog-4-empty-lines.csv')
-        d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
-        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
-        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
-
-        # Test semicolons at end of each line
-        path = os.path.join(DIR_IO, 'datalog-5-semicolons.csv')
-        d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
-        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
-        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
-
-        # Test unterminated string
-        path = os.path.join(DIR_IO, 'datalog-6-open-string.csv')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'inside quoted', myokit.DataLog.load_csv,
-            path)
-
-        # Test empty lines between data
-        path = os.path.join(DIR_IO, 'datalog-7-empty-lines-2.csv')
-        d = myokit.DataLog.load_csv(path)
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
-        self.assertTrue(np.all(d['time'] == np.arange(1, 7)))
-        self.assertTrue(np.all(d['v'] == 10 * (np.arange(1, 7))))
-
-        # Test unquoted field names
-        path = os.path.join(DIR_IO, 'datalog-8-unquoted-header.csv')
-        d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
-        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
-        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
-
-        # Test double-quoted field names
-        path = os.path.join(DIR_IO, 'datalog-9-double-quoted-header.csv')
-        d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v"quote"']))
-        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
-        self.assertTrue(np.all(d['v"quote"'] == 10 * (1 + np.arange(6))))
-
-        # Test file with just some spaces (one line)
-        path = os.path.join(DIR_IO, 'datalog-10-just-spaces.csv')
-        d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set())
-
-        # Test file with just some spaces (one line)
-        path = os.path.join(DIR_IO, 'datalog-11-just-a-semicolon.csv')
-        d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set())
-
-        # Test header "abc"x"adc"
-        path = os.path.join(DIR_IO, 'datalog-12-bad-header.csv')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'Expecting double quote',
-            myokit.DataLog.load_csv, path)
-
-        # Test empty field "" in header
-        path = os.path.join(DIR_IO, 'datalog-13-header-with-empty-1.csv')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
-            path)
-
-        # Test empty field "x",,"y" in header
-        path = os.path.join(DIR_IO, 'datalog-14-header-with-empty-2.csv')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
-            path)
-
-        # Test empty field "time","v", in header
-        path = os.path.join(DIR_IO, 'datalog-15-header-with-empty-3.csv')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
-            path)
-
-        # Test wrong field count in data
-        path = os.path.join(DIR_IO, 'datalog-16-wrong-columns-in-data.csv')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'Wrong number of columns',
-            myokit.DataLog.load_csv, path)
-
-        # Test non-float data
-        path = os.path.join(DIR_IO, 'datalog-17-non-float-data.csv')
-        self.assertRaisesRegex(
-            myokit.DataLogReadError, 'Unable to convert',
-            myokit.DataLog.load_csv, path)
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname, meta=True)
+            meta_path = td.path('test.csv-metadata.json')
+            self.assertFalse(os.path.exists(meta_path))
 
     def test_split(self):
         # Test the split function.
@@ -1772,6 +2039,24 @@ class DataLogTest(unittest.TestCase):
         e = d.split_periodic(100)
         self.assertEqual(set(d.keys()), set(e.keys()))
         self.assertFalse(d is e)
+
+    def test_time(self):
+        # Test the time() method.
+
+        d = myokit.DataLog(time='t')
+        t = [1, 2, 3]
+        d['t'] = t
+        self.assertIs(d['t'], t)
+
+        # Test non-existing time key
+        d = myokit.DataLog(time='t')
+        self.assertRaisesRegex(
+            myokit.InvalidDataLogError, 'Invalid key', d.time)
+
+        # Test no time key
+        d = myokit.DataLog()
+        self.assertRaisesRegex(
+            myokit.InvalidDataLogError, 'No time', d.time)
 
     def test_trim(self):
         # Test the trim() method.
@@ -2044,199 +2329,6 @@ class DataLogTest(unittest.TestCase):
         d['x'].append(1)
         self.assertRaises(myokit.InvalidDataLogError, d.validate)
 
-    def test_apd(self):
-        # Test the apd method.
-
-        # Very coarse check
-        d = myokit.DataLog(time='time')
-        d['time'] = np.linspace(0, 10, 11)
-        d['v'] = np.ones(10) * -85
-        d['v'][1:3] = 40
-        d['v'][6:9] = 40
-        apds = d.apd(v='v')
-        self.assertEqual(len(apds), 2)
-        self.assertTrue(apds['start'][0] > 0)
-        self.assertTrue(apds['start'][0] < 1)
-        self.assertTrue(apds['duration'][0] > 2.5)
-        self.assertTrue(apds['duration'][0] < 3.0)
-        self.assertTrue(apds['start'][1] > 5)
-        self.assertTrue(apds['start'][1] < 6)
-        self.assertTrue(apds['duration'][1] > 3.5)
-        self.assertTrue(apds['duration'][1] < 4.0)
-
-        # Check with threshold equal to V
-        apds = d.apd(v='v', threshold=-85)
-        self.assertEqual(len(apds['start']), 1)
-        self.assertEqual(apds['start'][0], 5)
-        self.assertEqual(apds['duration'][0], 4)
-
-        # Check against example model
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.Simulation(m, p)
-        s.set_tolerance(1e-8, 1e-8)
-        d, apds1 = s.run(
-            2000, log=['engine.time', 'membrane.V'],
-            log_interval=0.005,
-            apd_variable='membrane.V', apd_threshold=-70)
-        apds2 = d.apd(threshold=-70)
-        self.assertEqual(len(apds1['start']), 2)
-        self.assertEqual(len(apds2['start']), 2)
-        self.assertAlmostEqual(1, apds1['start'][0] / apds2['start'][0])
-        self.assertAlmostEqual(1, apds1['start'][1] / apds2['start'][1])
-        self.assertAlmostEqual(1, apds1['duration'][0] / apds2['duration'][0])
-        self.assertAlmostEqual(1, apds1['duration'][1] / apds2['duration'][1])
-
-    def test_clone(self):
-        # Test data log cloning.
-
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.Simulation(m, p)
-        d1 = s.run(100, log=myokit.LOG_BOUND + myokit.LOG_STATE).npview()
-        d2 = d1.clone()
-
-        # Check keys are the same
-        self.assertEqual(d1.keys(), d2.keys())
-
-        # Check the values are the same, but not the same objects
-        for k, v in d1.items():
-            self.assertTrue(np.all(v == d2[k]))
-            self.assertFalse(v is d2[k])
-            self.assertTrue(type(d2[k]) == list)
-
-        # Check cloning as numpy arrays
-        d2 = d1.clone(numpy=True)
-        self.assertEqual(d1.keys(), d2.keys())
-        for k, v in d1.items():
-            self.assertTrue(np.all(v == d2[k]))
-            self.assertFalse(v is d2[k])
-            self.assertTrue(type(d2[k]) == np.ndarray)
-
-    def test_fold(self):
-        # Test the fold() method.
-
-        d = myokit.DataLog(time='time')
-        d['time'] = list(range(100))
-        d['x'] = list(np.arange(100) * 3)
-
-        # Test without discarding remainder
-        d2 = d.fold(30, discard_remainder=False)
-        self.assertEqual(set(d2.keys()), set([
-            'time', '0.x', '1.x', '2.x', '3.x']))
-
-        # Test with discarding remainder
-        d = d.npview()
-        d2 = d.fold(30)
-        self.assertEqual(set(d2.keys()), set([
-            'time', '0.x', '1.x', '2.x']))
-        self.assertEqual(len(d2['time']), 30)
-        self.assertEqual(len(d2['0.x']), 30)
-        self.assertEqual(len(d2['1.x']), 30)
-        self.assertEqual(len(d2['2.x']), 30)
-        self.assertTrue(np.all(d2['time'] == d['time'][:30]))
-        self.assertTrue(np.all(d2['0.x'] == d['x'][:30]))
-        self.assertTrue(np.all(d2['1.x'] == d['x'][30:60]))
-        self.assertTrue(np.all(d2['2.x'] == d['x'][60:90]))
-
-    def test_has_nan(self):
-        # Test the has_nan() method, which checks if the _final_ value in any
-        # field is NaN.
-
-        d = myokit.DataLog(time='time')
-        d['time'] = list(range(100))
-        d['x'] = list(np.arange(100) * 3)
-        d['y'] = list(np.arange(100) * 3)
-        d['z'] = list(np.arange(100) * 3)
-        self.assertFalse(d.has_nan())
-        d['x'][-3] = float('nan')
-        self.assertFalse(d.has_nan())
-        d['x'][-1] = float('inf')
-        self.assertFalse(d.has_nan())
-        d['x'][-1] = float('nan')
-        self.assertTrue(d.has_nan())
-
-    def test_length(self):
-        # Test the length() method, that counts the length of the log's
-        # entries.
-
-        d = myokit.DataLog(time='time')
-        self.assertEqual(d.length(), 0)
-        d['time'] = list(np.arange(100) * 3)
-        self.assertEqual(d.length(), 100)
-        d['x'] = list(np.arange(100) * 3)
-        self.assertEqual(d.length(), 100)
-
-    def test_regularize(self):
-        # Test the deprecated regularize() method.
-
-        d = myokit.DataLog(time='time')
-        d['time'] = np.log(np.linspace(1, 25, 100))
-        d['values'] = np.linspace(1, 25, 100)
-
-        has_scipy = True
-        with WarningCollector() as w:
-            try:
-                e = d.regularize(dt=0.5)
-            except ImportError:
-                has_scipy = False
-        self.assertIn('eprecated', w.text())
-        if not has_scipy:
-            return
-
-        self.assertEqual(len(e['time']), 7)
-        x = np.array([0, 0.5, 1, 1.5, 2, 2.5, 3])
-        self.assertTrue(np.all(e['time'] == x))
-        for i, y in enumerate(x):
-            self.assertTrue(np.abs(np.exp(y) - e['values'][i]) < 0.02)
-
-        # test setting tmin and tmax
-        with WarningCollector() as w:
-            e = d.regularize(dt=0.5, tmin=0.4, tmax=2.6)
-        self.assertEqual(len(e['time']), 5)
-        x = np.array([0.4, 0.9, 1.4, 1.9, 2.4])
-        self.assertTrue(np.all(e['time'] == x))
-        for i, y in enumerate(x):
-            self.assertTrue(np.abs(np.exp(y) - e['values'][i]) < 0.02)
-
-    def test_time(self):
-        # Test the time() method.
-
-        d = myokit.DataLog(time='t')
-        t = [1, 2, 3]
-        d['t'] = t
-        self.assertIs(d['t'], t)
-
-        # Test non-existing time key
-        d = myokit.DataLog(time='t')
-        self.assertRaisesRegex(
-            myokit.InvalidDataLogError, 'Invalid key', d.time)
-
-        # Test no time key
-        d = myokit.DataLog()
-        self.assertRaisesRegex(
-            myokit.InvalidDataLogError, 'No time', d.time)
-
-    def test_variable_info_errors(self):
-        # Test errors raised during variable info checking.
-
-        # Test mismatched dimensions (1d versus 2d)
-        d = myokit.DataLog(time='t')
-        d['t'] = [1, 2, 3, 4]
-        d['0.v'] = [1, 2, 3, 4]
-        d['1.1.v'] = [1, 2, 3, 4]
-        self.assertRaisesRegex(
-            RuntimeError, 'Different dimensions', d.variable_info)
-        # Note: Valid log, so not an InvalidDataLogError
-
-        # Test "irregular data": can't be arranged in a rectangular grid
-        d = myokit.DataLog(time='t')
-        d['t'] = [1, 2, 3, 4]
-        d['0.0.v'] = [1, 2, 3, 4]
-        d['0.2.v'] = [1, 2, 3, 4]
-        d['1.0.v'] = [1, 2, 3, 4]
-        d['1.1.v'] = [1, 2, 3, 4]
-        self.assertRaisesRegex(RuntimeError, 'Irregular', d.variable_info)
-        # Note: Valid log, so not an InvalidDataLogError
-
     def test_variable_info(self):
         # Test if correct variable info is returned.
 
@@ -2289,6 +2381,76 @@ class DataLogTest(unittest.TestCase):
         # Check name
         self.assertEqual(v.name(), 'v')
         self.assertEqual(w.name(), 'w')
+
+    def test_variable_info_errors(self):
+        # Test errors raised during variable info checking.
+
+        # Test mismatched dimensions (1d versus 2d)
+        d = myokit.DataLog(time='t')
+        d['t'] = [1, 2, 3, 4]
+        d['0.v'] = [1, 2, 3, 4]
+        d['1.1.v'] = [1, 2, 3, 4]
+        self.assertRaisesRegex(
+            RuntimeError, 'Different dimensions', d.variable_info)
+        # Note: Valid log, so not an InvalidDataLogError
+
+        # Test "irregular data": can't be arranged in a rectangular grid
+        d = myokit.DataLog(time='t')
+        d['t'] = [1, 2, 3, 4]
+        d['0.0.v'] = [1, 2, 3, 4]
+        d['0.2.v'] = [1, 2, 3, 4]
+        d['1.0.v'] = [1, 2, 3, 4]
+        d['1.1.v'] = [1, 2, 3, 4]
+        self.assertRaisesRegex(RuntimeError, 'Irregular', d.variable_info)
+        # Note: Valid log, so not an InvalidDataLogError
+
+
+class ColumnMetaDataTest(unittest.TestCase):
+    """ Tests for the ColumnMetaData class. """
+
+    def test_set_and_del(self):
+        # Both are "disabled": Should only be handled by parent DataLog
+
+        m = myokit.ColumnMetaData()
+        self.assertEqual(list(m.keys()), [])
+        with self.assertRaisesRegex(ValueError, 'managed by a DataLog'):
+            m['x'] = 123
+        self.assertEqual(list(m.keys()), [])
+        m._add('x')
+        self.assertEqual(list(m.keys()), ['x'])
+        self.assertEqual(type(m['x']), myokit.MetaDataContainer)
+        with self.assertRaisesRegex(ValueError, 'managed by a DataLog'):
+            m['x'] = 123
+        with self.assertRaisesRegex(ValueError, 'managed by a DataLog'):
+            del m['x']
+        self.assertEqual(list(m.keys()), ['x'])
+        m._remove('x')
+        self.assertEqual(list(m.keys()), [])
+
+    def test_clone(self):
+        # Test cloning via constructor
+
+        m = myokit.ColumnMetaData()
+        m._add('x')
+        m._add('y')
+        self.assertFalse(m['x'] is m['y'])
+        m['x']['keyx1'] = 'value1'
+        m['y']['keyy1'] = 15
+        m2 = myokit.ColumnMetaData(m)
+        self.assertFalse(m2 is m)
+        self.assertIn('x', m2)
+        self.assertEqual(len(m2['x']), 1)
+        self.assertIn('keyx1', m2['x'])
+        self.assertEqual(m2['x']['keyx1'], 'value1')
+        self.assertIn('y', m2)
+        self.assertEqual(len(m2['y']), 1)
+        self.assertIn('keyy1', m2['y'])
+        self.assertEqual(m2['y']['keyy1'], '15')
+        self.assertFalse(m2['x'] is m['x'])
+        self.assertFalse(m2['y'] is m['y'])
+
+        with self.assertRaisesRegex(ValueError, 'ColumnMetaData or None'):
+            myokit.ColumnMetaData({})
 
 
 if __name__ == '__main__':

@@ -874,24 +874,61 @@ class Series(TreeNode, myokit.formats.SweepSource):
                        else self._sweep_starts_s)
             log['time'] = np.concatenate(
                 [offset + s[0].times() for s, offset in zip(self, offsets)])
+            log.cmeta['time']['unit'] = myokit.units.s
             for c, name in enumerate(channel_names):
                 log[name] = np.concatenate(
                     [sweep[c].values() for sweep in self])
+                log.cmeta[name]['original_name'] = self._channel_names[c]
+                log.cmeta[name]['unit'] = self._channel_units[c]
             if include_da and len(da_names) == 1:
                 log[da_names[0]] = self.da(join_sweeps=True)[1]
+                log.cmeta[name]['original_name'] = self._da_names[0]
+                log.cmeta[name]['unit'] = self._da_units[0]
 
         else:
             # Individual sweeps
             log['time'] = self[0][0].times()
+            log.cmeta['time']['unit'] = myokit.units.s
             for i, sweep in enumerate(self):
                 for j, name in enumerate(channel_names):
-                    log[name, i] = sweep[j].values()
+                    name = f'{i}.{name}'
+                    log[name] = sweep[j].values()
+                    log.cmeta[name]['original_name'] = self._channel_names[j]
+                    log.cmeta[name]['unit'] = self._channel_units[j]
             if include_da and len(da_names) == 1:
                 _, vs = self.da(join_sweeps=False)
                 for i, v in enumerate(vs):
-                    log[da_names[0], i] = v
+                    name = f'{i}.{da_names[0]}'
+                    log[name] = v
+                    log.cmeta[name]['original_name'] = self._da_names[0]
+                    log.cmeta[name]['unit'] = self._da_units[0]
 
+        # Add meta data
         log.set_time_key('time')
+        a = self.amplifier_state()
+        log.meta['ljp_correction_mV'] = a.ljp()
+        log.meta['c_slow_compensation_pF'] = a.c_slow()
+        if a.c_fast_enabled():
+            log.meta['c_fast_compensation_enabled'] = 'true'
+            log.meta['c_fast_pF'] = a.c_fast()
+            log.meta['c_fast_tau_micro_s'] = a.c_fast_tau()
+        else:
+            log.meta['c_fast_compensation_enabled'] = 'false'
+        log.meta['r_series_MOhm'] = a.r_series()
+        if a.r_series_enabled():
+            log.meta['r_series_compensation_enabled'] = 'true'
+            log.meta['r_series_compensation_percent'] = round(
+                a.r_series_fraction() * 100, 1)
+        else:
+            log.meta['r_series_compensation_enabled'] = 'false'
+        if len(self) and len(self[0]):
+            t = self[0][0]
+            log.meta['r_pipette_MOhm'] = t.r_pipette()
+            log.meta['r_seal_MOhm'] = t.r_series()
+            log.meta['r_series_post_compensation_MOhm'] = \
+                t.r_series_remaining()
+            log.meta['c_slow_pF'] = t.c_slow()
+
         return log
 
     def meta_str(self, verbose=False):

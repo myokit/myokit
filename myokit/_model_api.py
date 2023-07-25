@@ -43,8 +43,17 @@ def check_name(name):
 
 class MetaDataContainer(dict):
     """
-    Dictionary that stores meta-data.
+    Dictionary that stores string meta-data.
+
+    Each key must be a valid Myokit name (so start with at least one letter,
+    and contain only letters, numbers, and underscores), or a series of valid
+    Myokit names separated by colons (``:``). Values can be any string.
+
+    A MetaDataContainer can be cloned using
+    ``clone = MetaDataContainer(original)``.
     """
+    # Note: Cloning doesn't need to be deep, as keys and values are both
+    # immutable strings.
 
     def __getitem__(self, key):
         # Check key
@@ -65,7 +74,7 @@ class MetaDataContainer(dict):
         super().__setitem__(key, item)
 
 
-class ObjectWithMeta:
+class ObjectWithMetaData:
     """
     Base class for objects with meta data.
 
@@ -110,7 +119,7 @@ class ObjectWithMeta:
                 b.write(key + v + eol)
 
 
-class ModelPart(ObjectWithMeta):
+class ModelPart(ObjectWithMetaData):
     """
     Base class for model parts.
     """
@@ -741,7 +750,7 @@ class VarOwner(ModelPart, VarProvider):
                 raise myokit.UnresolvedReferenceError(name, sa(name))
 
 
-class Model(ObjectWithMeta, VarProvider):
+class Model(ObjectWithMetaData, VarProvider):
     """
     Represents an electrophysiological cell model, structured in components.
 

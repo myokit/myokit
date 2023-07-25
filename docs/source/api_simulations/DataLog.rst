@@ -12,6 +12,8 @@ useful to convert to a :class:`DataBlock1d` or :class:`DataBlock2d`.
 
 .. autoclass:: DataLog
 
+.. autoclass:: ColumnMetaData
+
 .. autoclass:: LoggedVariableInfo
 
 .. autofunction:: prepare_log
