@@ -2291,6 +2291,54 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(w.name(), 'w')
 
 
+class ColumnMetaDataTest(unittest.TestCase):
+    """ Tests for the ColumnMetaData class. """
+
+    def test_set_and_del(self):
+        # Both are "disabled": Should only be handled by parent DataLog
+
+        m = myokit.ColumnMetaData()
+        self.assertEqual(list(m.keys()), [])
+        with self.assertRaisesRegex(ValueError, 'managed by a DataLog'):
+            m['x'] = 123
+        self.assertEqual(list(m.keys()), [])
+        m._add('x')
+        self.assertEqual(list(m.keys()), ['x'])
+        self.assertEqual(type(m['x']), myokit.MetaDataContainer)
+        with self.assertRaisesRegex(ValueError, 'managed by a DataLog'):
+            m['x'] = 123
+        with self.assertRaisesRegex(ValueError, 'managed by a DataLog'):
+            del m['x']
+        self.assertEqual(list(m.keys()), ['x'])
+        m._remove('x')
+        self.assertEqual(list(m.keys()), [])
+
+    def test_clone(self):
+        # Test cloning via constructor
+
+        m = myokit.ColumnMetaData()
+        m._add('x')
+        m._add('y')
+        self.assertFalse(m['x'] is m['y'])
+        m['x']['keyx1'] = 'value1'
+        m['y']['keyy1'] = 15
+        m2 = myokit.ColumnMetaData(m)
+        self.assertFalse(m2 is m)
+        self.assertIn('x', m2)
+        self.assertEqual(len(m2['x']), 1)
+        self.assertIn('keyx1', m2['x'])
+        self.assertEqual(m2['x']['keyx1'], 'value1')
+        self.assertIn('y', m2)
+        self.assertEqual(len(m2['y']), 1)
+        self.assertIn('keyy1', m2['y'])
+        self.assertEqual(m2['y']['keyy1'], '15')
+        self.assertFalse(m2['x'] is m['x'])
+        self.assertFalse(m2['y'] is m['y'])
+
+        with self.assertRaisesRegex(ValueError, 'ColumnMetaData or None'):
+            myokit.ColumnMetaData({})
+
+
 if __name__ == '__main__':
     print('Add -v for more debug output')
     import sys
