@@ -14,6 +14,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1006](https://github.com/myokit/myokit/pull/1006) `DataLog.clone()` no longer replaces `array.array` objects with lists.
 
 ## [1.35.2] - 2023-07-19
 - Fixed

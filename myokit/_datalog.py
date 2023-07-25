@@ -112,16 +112,17 @@ class DataLog(OrderedDict):
             self.meta = myokit.MetaDataContainer()
             self.cmeta = ColumnMetaData()
         elif isinstance(other, DataLog):
+            super().__init__()
+            for k, v in other.items():
+                # Don't use the overwritten setitem, which calls _add
+                super().__setitem__(k, v)
             self._time = other._time
             self.meta = myokit.MetaDataContainer(other.meta)
             self.cmeta = ColumnMetaData(other.cmeta)
-            super().__init__(other)  # Let dict do the conversion
         else:
             self._time = None
             self.meta = myokit.MetaDataContainer()
             self.cmeta = ColumnMetaData()
-            for key in other:
-                self.cmeta._add(key)
             super().__init__(other)  # Let dict do the conversion
 
         # Set time key, allow overruling when cloning
@@ -214,20 +215,30 @@ class DataLog(OrderedDict):
         """
         Returns a deep clone of this log.
 
-        All lists in the log will be duplicated, but the list contents are
+        All arrays in the log will be copied, but the array contents are
         assumed to be numerical (and thereby immutable) and won't be cloned.
 
-        A log with numpy arrays instead of lists can be created by setting
+        A log with numpy arrays instead of arrays can be created by setting
         ``numpy=True``.
         """
+        # Copy data
         log = DataLog()
-        log._time = self._time
         if numpy:
             for k, v in self.items():
                 log[str(k)] = np.array(v, copy=True, dtype=float)
         else:
+            typecode = 'd'
+            for v in self.values():
+                if isinstance(v, array.array):
+                    typecode = v.typecode
+                break
             for k, v in self.items():
-                log[str(k)] = list(v)
+                log[str(k)] = array.array(typecode, v)
+
+        # Copy meta data
+        log._time = self._time
+        log.meta = myokit.MetaDataContainer(self.meta)
+        log.cmeta = ColumnMetaData(self.cmeta)
         return log
 
     def __contains__(self, key):
@@ -804,10 +815,13 @@ class DataLog(OrderedDict):
         """
         Returns a ``DataLog`` with numpy array views of this log's data.
         """
+        # Create log, copy time key
         log = DataLog()
-        log._time = self._time
         for k, v in self.items():
             log[k] = np.asarray(v)
+        log._time = self._time
+        log.meta = myokit.MetaDataContainer(self.meta)
+        log.cmeta = ColumnMetaData(self.cmeta)
         return log
 
     def _parse_key(self, key):
@@ -1100,10 +1114,9 @@ class DataLog(OrderedDict):
 
         # Write meta data file
         if meta:
-            meta_name = f'{filename}-metadata.json'
-            meta_json = self._meta_json(meta_name)
+            meta_json = self._meta_json(filename)
             if meta_json:
-                with open(meta_name, 'w') as f:
+                with open(f'{filename}-metadata.json', 'w') as f:
                     json.dump(meta_json, f, indent=2)
 
     def _meta_json(self, path):
@@ -1114,13 +1127,13 @@ class DataLog(OrderedDict):
 
         If there is no meta data in the log, ``None`` is returned.
         """
-        if len(self.meta) == 0 and all(len(x) == 0 for x in self.cmeta):
-            return None
+        if len(self.meta) == 0:
+            if (len(x) == 0 for x in self.cmeta.values()):
+                return None
 
         meta = {}
-        meta['@context'] = ['http://www.w3.org/ns/csvw', {'@language': 'en'}]
-        table = {'url': path}
-        meta['tables'] = [table]
+        meta['@context'] = 'http://www.w3.org/ns/csvw'
+        meta['url'] = os.path.basename(path)
 
         # Add table schema and column meta data
         columns = []
@@ -1129,11 +1142,11 @@ class DataLog(OrderedDict):
             for k, v in cmeta.items():
                 column[f'myokit:{k}'] = v
             columns.append(column)
-        table['tableSchema'] = {'columns': columns}
+        meta['tableSchema'] = {'columns': columns}
 
         # Add data log meta data
         for k, v in self.meta.items():
-            table[f'myokit:{k}'] = v
+            meta[f'myokit:{k}'] = v
 
         return meta
 

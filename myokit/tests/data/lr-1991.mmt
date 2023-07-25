@@ -132,6 +132,7 @@ IKp = gKp * (V + 87.8789) / (1 + exp((7.488 - V) / 5.98))
 use membrane.V as V
 dot(Ca_i) =  -1e-4 * ICa + 0.07 * (1e-4 - Ca_i)
     desc: Intracellular Calcium concentration
+    in [mM]
 E = 7.7 - 13.0287 * log(Ca_i / cell.Ca_o)
     desc: Nernst potential
     in [mV]
