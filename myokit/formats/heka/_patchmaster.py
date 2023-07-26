@@ -703,7 +703,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         return self._amplifier_state
 
     def channel(self, channel_id, join_sweeps=False,
-                use_real_start_times=False):
+                use_real_start_times=False, ignore_zero_segment=True):
         """
         Implementation of :meth:`myokit.formats.SweepSource.channel`.
 
@@ -712,6 +712,12 @@ class Series(TreeNode, myokit.formats.SweepSource):
         start of each sweep. Ideally these should be the same. By default the
         intended start times are used, but this can be changed to the system
         clock derived times by setting ``use_real_start_times=True``.
+
+        PatchMaster stimuli can specify a segment to use as the "zero segment".
+        Current measured in the latter part of this segment is measured and can
+        then be subtracted from the total signal. By default, this class does
+        not perform this zeroing, but this can be applied by setting
+        ``ignore_zero_segment`` to ``False``.
         """
         # Check channel id
         if isinstance(channel_id, str):
@@ -728,7 +734,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         time, data = [], []
         for sweep, offset in zip(self, offsets):
             time.append(offset + sweep[channel_id].times())
-            data.append(sweep[channel_id].values())
+            data.append(sweep[channel_id].values(ignore_zero_segment))
         if join_sweeps:
             return (np.concatenate(time), np.concatenate(data))
         return time, data
@@ -836,7 +842,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         return self._label
 
     def log(self, join_sweeps=False, use_names=False, include_da=True,
-            use_real_start_times=False):
+            use_real_start_times=False, ignore_zero_segment=True):
         """
         See :meth:`myokit.formats.SweepSource.log`.
 
@@ -847,6 +853,12 @@ class Series(TreeNode, myokit.formats.SweepSource):
         information (the intended start) or from the logged system time at the
         start of each sweep. This method uses the intended start times, but
         this can be changed by setting ``use_real_start_times=True``.
+
+        PatchMaster stimuli can specify a segment to use as the "zero segment".
+        Current measured in the latter part of this segment is measured and can
+        then be subtracted from the total signal. By default, this class does
+        not perform this zeroing, but this can be applied by setting
+        ``ignore_zero_segment`` to ``False``.
         """
 
         # Create log
@@ -877,7 +889,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
             log.cmeta['time']['unit'] = myokit.units.s
             for c, name in enumerate(channel_names):
                 log[name] = np.concatenate(
-                    [sweep[c].values() for sweep in self])
+                    [sweep[c].values(ignore_zero_segment) for sweep in self])
                 log.cmeta[name]['original_name'] = self._channel_names[c]
                 log.cmeta[name]['unit'] = self._channel_units[c]
             if include_da and len(da_names) == 1:
@@ -892,7 +904,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
             for i, sweep in enumerate(self):
                 for j, name in enumerate(channel_names):
                     name = f'{i}.{name}'
-                    log[name] = sweep[j].values()
+                    log[name] = sweep[j].values(ignore_zero_segment)
                     log.cmeta[name]['original_name'] = self._channel_names[j]
                     log.cmeta[name]['unit'] = self._channel_units[j]
             if include_da and len(da_names) == 1:
@@ -906,6 +918,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         # Add meta data
         log.set_time_key('time')
         a = self.amplifier_state()
+        log.meta['current_gain_mV_per_pA'] = a.current_gain()
         log.meta['ljp_correction_mV'] = a.ljp()
         log.meta['c_slow_compensation_pF'] = a.c_slow()
         if a.c_fast_enabled():
@@ -960,6 +973,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         # Resistance, capacitance, etc.
         a = self.amplifier_state()
         out.append('Information from amplifier state:')
+        out.append('  Current gain: {a.current_gain()} mV/pA')
         if a.ljp():
             out.append('  LJP correction applied using'
                        f' LJP={round(a.ljp(), 4)} mV.')
@@ -1010,6 +1024,8 @@ class Series(TreeNode, myokit.formats.SweepSource):
                 out.append(f'  Channel {i}, in {ch.unit()}, amplifier in'
                            f' {ch.amplifier_mode()} mode.')
                 out.append(f'  Stimulus reconstruction: {ch.support_str()}.')
+                z = ch.zero_segment() or '0 (disabled)'
+                out.append(f'  Zero segment: {z}.')
                 for j, seg in enumerate(ch):
                     out.append(f'   Segment {j}, {seg.storage()}')
                     out.append(f'    {seg.segment_class()}, {seg}')
@@ -1175,7 +1191,8 @@ class Trace(TreeNode):
     """
     A trace from a :class:`Sweep`.
 
-    Data can be accessed via :meth:`values` (causing it to be read from disk).
+    Data can be accessed via :meth:`values`. Before calling this method, only
+    meta data will be read from disk.
 
     The number of data points can be accessed with :meth:`count_samples()` or
     ``len(trace)`` (this does not require reading anything from disk).
@@ -1195,6 +1212,7 @@ class Trace(TreeNode):
         self._data_type = None      # Data type (struct code)
         self._data_size = None      # Size of a point
         self._data_scale = None     # Scaling from raw to with-unit
+        self._data_zero = None      # Value during "zero segment"
         self._data_interleave_size = None  # 0 or more if interleaved
         self._data_interleave_skip = None  # distance to next block
 
@@ -1331,8 +1349,16 @@ class Trace(TreeNode):
         """ Returns a string version of the units on the time axis. """
         return myokit.units.s
 
-    def values(self):
-        """ Reads and returns this trace's data. """
+    def values(self, ignore_zero_offset=True):
+        """
+        Reads and returns this trace's data.
+
+        PatchMaster stimuli can specify a segment to use as the "zero segment".
+        Current measured in the latter part of this segment is measured and can
+        then be subtracted from the total signal. By default, this method does
+        not perform this zeroing, but it can be applied by setting
+        ``ignore_zero_segment`` to ``False``.
+        """
 
         if self._data_interleave_size == 0 or self._data_interleave_skip == 0:
             # Read continuous data
@@ -1344,6 +1370,8 @@ class Trace(TreeNode):
             # n_blocks = np.ceil(self._n / points_per_block)
             raise NotImplementedError('Interleaved data is not supported.')
 
+        if ignore_zero_offset:
+            return d * self._data_scale
         return d * self._data_scale - self._data_zero
 
     def value_unit(self):
@@ -1489,6 +1517,10 @@ class AmplifierState:
         # Read properties
         i = handle.tell()
 
+        # Current gain (V/A)
+        handle.seek(i + 8)      # sCurrentGain = 8;  (* LONGREAL *)
+        self._current_gain = reader.read1('d')
+
         # Series resistance compensation
         handle.seek(i + 40)     # sRsFraction = 40; (* LONGREAL *)
         self._rs_fraction = reader.read1('d')
@@ -1538,6 +1570,12 @@ class AmplifierState:
         Returns the capacitance (cF) used in slow capacitance correction.
         """
         return self._cs * 1e12
+
+    def current_gain(self):
+        """
+        The gain setting for current measurements, in mV/pA.
+        """
+        return self._current_gain * 1e-9
 
     def ljp(self):
         """
@@ -1897,6 +1935,9 @@ class StimulusChannel(TreeNode):
         self._use_relative = None
         self._use_file_template = None
 
+        # Segment used to determine TrZeroData
+        self._zero_segment = None
+
     def _read_properties(self, handle, reader):
         # See TreeNode._read_properties
         start = handle.tell()
@@ -1913,6 +1954,9 @@ class StimulusChannel(TreeNode):
         self._use_stim_scale = flags.use_stim_scale
         self._use_relative = flags.use_relative
         self._use_file_template = flags.use_file_template
+
+        handle.seek(start + 88)     # chZeroSeg =  88; (* INT32 *)
+        self._zero_segment = reader.read1('i')
 
         # Convert unit
         if self._unit == 'A':
@@ -2111,6 +2155,15 @@ class StimulusChannel(TreeNode):
         return np.sum(
             np.array([s.samples(sweep_count, dt) for s in self]),
             axis=0)
+
+    def zero_segment(self):
+        """
+        Returns the index of the segment to use for "zero offset subtraction".
+
+        Counting starts at 1, a zero segment of 0 indicates subtraction is
+        disabled.
+        """
+        return self._zero_segment
 
     def unit(self):
         """ Returns the units that this channel's output is in. """
