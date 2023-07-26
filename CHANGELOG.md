@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.35.2] - 2023-07-26
 - Added
   - [#1006](https://github.com/myokit/myokit/pull/1006) The `DataLog` class can now store global meta data in `.meta` and per-column meta data in `.cmeta`. Both must be string-string key-value pairs.
