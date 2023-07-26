@@ -6,6 +6,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import array
+import json
 import os
 import unittest
 
@@ -592,6 +593,80 @@ class DataLogTest(unittest.TestCase):
         path = os.path.join(DIR_IO, 'badlog-7-not-enough-data.zip')
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'larger data', myokit.DataLog.load, path)
+
+    def test_load_meta(self):
+        # Tests error handling in meta data loading.
+
+        # Should really be done by mocking up a zip file instead of testing the
+        # private interface...
+
+        # Create log for which CSV_META is appropriate
+        org = myokit.DataLog()
+        org['a.b'] = [1, 2, 3]
+        org['c.d'] = [4, 5, 6]
+        org['e.f'] = [7, 8, 9]
+
+        # Test loading
+        log = org.clone()
+        meta = json.loads(CSV_META)
+        myokit.DataLog._load_meta_json(meta, log)
+        self.assertIn('test', log.meta)
+        self.assertEqual(log.meta['test'], 'A nice sandwich')
+        self.assertIn('number', log.meta)
+        self.assertEqual(log.meta['number'], '4')
+        self.assertIn('one:two', log.meta)
+        self.assertEqual(log.meta['one:two'], '5')
+        self.assertIn('extra', log.cmeta['c.d'])
+        self.assertEqual(log.cmeta['c.d']['extra'], 'This is the best column')
+
+        # Invalid context (not a csv-on-the-web)
+        meta['@context'] = 'jippie'
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Invalid meta data file context',
+            myokit.DataLog._load_meta_json, meta, log)
+        del meta['@context']
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'Invalid meta data file context',
+            myokit.DataLog._load_meta_json, meta, log)
+
+        # Missing required key other than context
+        meta = json.loads(CSV_META)
+        del meta['tableSchema']['columns']
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'missing "columns" inside "tableSchema"',
+            myokit.DataLog._load_meta_json, meta, log)
+        del meta['tableSchema']
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'missing "tableSchema"',
+            myokit.DataLog._load_meta_json, meta, log)
+
+        # Wrong type
+        meta['tableSchema'] = [1, 2, 3]
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'expecting tableSchema of type',
+            myokit.DataLog._load_meta_json, meta, log)
+
+        # Non-string value
+        meta = json.loads(CSV_META)
+        meta['myokit:tosti'] = 123
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'starting with "myokit:" must have',
+            myokit.DataLog._load_meta_json, meta, log)
+
+        # Missing column
+        del meta['myokit:tosti']
+        meta['tableSchema']['columns'] = meta['tableSchema']['columns'][1:]
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'expected table schema with 3 columns',
+            myokit.DataLog._load_meta_json, meta, log)
+
+        # Extra column
+        meta = json.loads(CSV_META)
+        meta['tableSchema']['columns'].append(
+            {'titles': 'Bert', 'datatype': 'double'})
+        self.assertRaisesRegex(
+            myokit.DataLogReadError, 'unknown column: "Bert"',
+            myokit.DataLog._load_meta_json, meta, log)
 
     def test_load_with_progress(self):
         # Test loading with a progress reporter.
@@ -1610,8 +1685,11 @@ class DataLogTest(unittest.TestCase):
             self.assertEqual(e['a.b'].typecode, 'd')
             self.assertEqual(e['c.d'].typecode, 'd')
 
-            #TODO: If we decide that meta data should be read as well, then
-            # check that it was loaded correctly here.
+            # Test that meta data was loaded too
+            self.assertIn('one', e.meta)
+            self.assertEqual(e.meta['one'], '1')
+            self.assertIn('two', e.cmeta['a.b'])
+            self.assertEqual(e.cmeta['a.b']['two'], '2')
 
         # Test saving with single precision
         d = myokit.DataLog()

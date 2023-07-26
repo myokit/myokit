@@ -563,9 +563,19 @@ class DataLog(OrderedDict):
                 head = f.getinfo('structure.txt')
             except KeyError:
                 raise myokit.DataLogReadError('Invalid log file format.')
+
             # Read file contents
             head = f.read(head).decode(ENC)
             body = f.read(body)
+
+            # Read meta data
+            try:
+                meta = f.getinfo('data.bin-metadata.json')
+            except KeyError:
+                meta = None
+            if meta is not None:
+                meta = f.read(meta)
+
         except zipfile.BadZipfile:
             raise myokit.DataLogReadError('Unable to read log: bad zip file.')
         except zipfile.LargeZipFile:    # pragma: no cover
@@ -593,6 +603,22 @@ class DataLog(OrderedDict):
         if len(fields) != n:
             raise myokit.DataLogReadError(
                 'Invalid number of fields specified.')
+
+        # Read meta data, if any
+        # Do this before big data conversion operation below, so that we can
+        # fail early.
+        if meta:
+            # Add temporary entries for every field
+            for field in fields:
+                log[field] = tuple()
+
+            # Read meta data
+            try:
+                meta = json.loads(meta)
+            except json.JSONDecodeError as e:   # pragma: no cover
+                raise myokit.DataLogReadError(
+                    'Invalid meta data JSON file: {e}.')
+            DataLog._load_meta_json(meta, log)
 
         # Get size of each entry on disk
         if data_size < 0:
@@ -811,6 +837,71 @@ class DataLog(OrderedDict):
             # Return log
             return log
 
+    @staticmethod
+    def _load_meta_json(meta, log):
+        """
+        Takes a JSON object, attempts to obtain meta data from it and adds it
+        to the given ``log``.
+        """
+        # Check context
+        context = meta.get('@context', None)
+        if context != 'http://www.w3.org/ns/csvw':
+            raise myokit.DataLogReadError(
+                f'Invalid meta data file context: "{context}"')
+
+        # TODO: Check URL? Allow multiple schemas? Alternative syntax?
+
+        # Easier errors
+        def read(parent, key, value_type, parent_str=None):
+            try:
+                value = parent[key]
+            except KeyError:
+                p = '' if parent_str is None else f' inside "{parent_str}"'
+                raise myokit.DataLogReadError(
+                    f'Invalid meta data file: missing "{key}"{p}.')
+            if type(value) != value_type:
+                raise myokit.DataLogReadError(
+                    f'Invalid meta data file: expecting {key} of type'
+                    f' {value_type}, found {type(value)}.')
+            return value
+
+        # Search for Myokit key value pairs
+        def myokit_pairs(parent, container):
+            for key, value in parent.items():
+                if key.startswith('myokit:'):
+                    if type(value) is not str:
+                        raise myokit.DataLogReadError(
+                            'Invalid meta data file: All fields starting with'
+                            ' "myokit:" must have string values, found'
+                            f' {type(value)} for "{key}".')
+                    container[key[7:]] = value
+
+        # Get table schema, read column meta data
+        schema = read(meta, 'tableSchema', dict)
+        columns = read(schema, 'columns', list, 'tableSchema')
+        names = []
+        for column in columns:
+            # Check column exists, get cmeta
+            name = read(column, 'titles', str, 'column')
+            names.append(name)
+            try:
+                cmeta = log.cmeta[name]
+            except KeyError:
+                raise myokit.DataLogReadError(
+                    f'Invalid meta data file: unknown column: "{name}"')
+
+            # Read column meta data
+            myokit_pairs(column, cmeta)
+
+        # Check all columns were listed
+        if len(names) < len(log):
+            raise myokit.DataLogReadError(
+                'Incomplete meta data file: expected table schema with'
+                f' {len(log)} columns, but found {len(names)}.')
+
+        # Read global meta data
+        myokit_pairs(meta, log.meta)
+
     def npview(self):
         """
         Returns a ``DataLog`` with numpy array views of this log's data.
@@ -976,7 +1067,7 @@ class DataLog(OrderedDict):
         body_str = b''.join(body_str)
 
         # Get meta data json, or None
-        meta_json = self._meta_json('data.bin')
+        meta_json = self._save_meta_json('data.bin')
 
         # Write
         head = zipfile.ZipInfo('structure.txt')
@@ -1114,16 +1205,16 @@ class DataLog(OrderedDict):
 
         # Write meta data file
         if meta:
-            meta_json = self._meta_json(filename)
+            meta_json = self._save_meta_json(filename)
             if meta_json:
                 with open(f'{filename}-metadata.json', 'w') as f:
                     json.dump(meta_json, f, indent=2)
 
-    def _meta_json(self, path):
+    def _save_meta_json(self, data_file_path):
         """
-        Creates an object that can be converted to JSON using ``json.dump``,
-        containing the meta data for this DataLog and referencing the data file
-        ``path``.
+        Creates an object that can be passed to ``json.dump``, containing the
+        meta data for this DataLog and referencing the data file
+        ``data_file_path``.
 
         If there is no meta data in the log, ``None`` is returned.
         """
@@ -1133,7 +1224,7 @@ class DataLog(OrderedDict):
 
         meta = {}
         meta['@context'] = 'http://www.w3.org/ns/csvw'
-        meta['url'] = os.path.basename(path)
+        meta['url'] = os.path.basename(data_file_path)
 
         # Add table schema and column meta data
         columns = []
