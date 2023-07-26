@@ -11,6 +11,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1006](https://github.com/myokit/myokit/pull/1006) ABF, WCP, and PatchMaster file classes now add meta data when creating a `DataLog`.
 - Changed
   - [#1006](https://github.com/myokit/myokit/pull/1006) Made core classes `ObjectWithMetaData`, `MetaDataContainer`, `VarOwner`, and `VarProvider` part of the public API. Similarly the method `check_name`.
+  - [#1008](https://github.com/myokit/myokit/pull/1008) The `PatchMasterFile` reader no longer performs "zero offset subtraction" (in which a recorded current trace is shifted until a user-specified segment has zero current) by default.
 - Deprecated
 - Removed
 - Fixed
