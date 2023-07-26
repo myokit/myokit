@@ -2,7 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.35.2] - 2023-07-26
 - Added
   - [#1006](https://github.com/myokit/myokit/pull/1006) The `DataLog` class can now store global meta data in `.meta` and per-column meta data in `.cmeta`. Both must be string-string key-value pairs.
   - [#1006](https://github.com/myokit/myokit/pull/1006) Simulations now automatically add some meta data (units) to the data log.
@@ -12,8 +12,6 @@ This page lists the main changes made to Myokit in each release.
 - Changed
   - [#1006](https://github.com/myokit/myokit/pull/1006) Made core classes `ObjectWithMetaData`, `MetaDataContainer`, `VarOwner`, and `VarProvider` part of the public API. Similarly the method `check_name`.
   - [#1008](https://github.com/myokit/myokit/pull/1008) The `PatchMasterFile` reader no longer performs "zero offset subtraction" (in which a recorded current trace is shifted until a user-specified segment has zero current) by default.
-- Deprecated
-- Removed
 - Fixed
   - [#1006](https://github.com/myokit/myokit/pull/1006) `DataLog.clone()` no longer replaces `array.array` objects with lists.
 
