@@ -348,7 +348,7 @@ rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
     int i;
 
     /* Time-series pacing? Then look-up correct value of pacing variable */
-    for (int i = 0; i < n_pace; i++) {
+    for (i=0; i<n_pace; i++) {
         if (pacing_types[i] == TSys_TYPE) {
             pacing[i] = TSys_GetLevel(pacing_systems[i].tsys, t, &flag_fpacing);
             if (flag_fpacing != TSys_OK) { /* This should never happen */
@@ -425,6 +425,8 @@ rf_function(realtype t, N_Vector y, realtype *gout, void *user_data)
 PyObject*
 sim_clean(void)
 {
+    int i;
+
     if (initialized) {
         #ifdef MYOKIT_DEBUG_PROFILING
         benchmarker_print("CP Entered sim_clean.");
@@ -477,7 +479,7 @@ sim_clean(void)
         #ifdef MYOKIT_DEBUG_MESSAGES
         printf("CM ..Pacing systems.\n");
         #endif
-        for (int i = 0; i < n_pace; i++) {
+        for (i=0; i<n_pace; i++) {
             // Note: Type is ESys, TSys, or not set!
             if (pacing_types[i] == ESys_TYPE) {
                 ESys_Destroy(pacing_systems[i].esys);
@@ -564,6 +566,7 @@ sim_init(PyObject *self, PyObject *args)
     /* Pacing systems */
     ESys epacing;
     TSys fpacing;
+    const char* protocol_type_name;
 
     /* General purpose ints for iterating */
     int i, j;
@@ -578,6 +581,7 @@ sim_init(PyObject *self, PyObject *args)
     Py_ssize_t pos;
     PyObject *val;
     PyObject *ret;
+
 
     /* Check if already initialized */
     if (initialized) {
@@ -1001,9 +1005,9 @@ sim_init(PyObject *self, PyObject *args)
      * Set up event-based and/or time-series pacing.
      */
     if (protocols != Py_None) {
-        for (int i = 0; i < PyList_Size(protocols); i++) {
-            PyObject *protocol = PyList_GetItem(protocols, i);
-            const char* protocol_type_name = Py_TYPE(protocol)->tp_name;
+        for (i=0; i<PyList_Size(protocols); i++) {
+            val = PyList_GetItem(protocols, i);
+            protocol_type_name = Py_TYPE(val)->tp_name;
             if (strcmp(protocol_type_name, "Protocol") == 0) {
 
                 epacing = ESys_Create(tmin, &flag_epacing);
@@ -1011,7 +1015,7 @@ sim_init(PyObject *self, PyObject *args)
                 pacing_systems[i].esys = epacing;
                 pacing_types[i] = ESys_TYPE;
 
-                flag_epacing = ESys_Populate(epacing, protocol);
+                flag_epacing = ESys_Populate(epacing, val);
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
 
                 flag_epacing = ESys_AdvanceTime(epacing, tmin);
@@ -1034,7 +1038,7 @@ sim_init(PyObject *self, PyObject *args)
                 pacing_types[i] = TSys_TYPE;
 
                 if (flag_fpacing != TSys_OK) { TSys_SetPyErr(flag_fpacing); return sim_clean(); }
-                flag_fpacing = TSys_Populate(fpacing, protocol);
+                flag_fpacing = TSys_Populate(fpacing, val);
                 if (flag_fpacing != TSys_OK) { TSys_SetPyErr(flag_fpacing); return sim_clean(); }
                 pacing[i] = 0;
 
@@ -1377,7 +1381,7 @@ sim_step(PyObject *self, PyObject *args)
                 PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));
                 PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
                 PyList_SetItem(bound_py, 2, PyFloat_FromDouble((double)evaluations));
-                for (int i = 0; i < n_pace; i++) {
+                for (i=0; i<n_pace; i++) {
                     PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
                 }
                 return sim_clean();
@@ -1559,7 +1563,7 @@ sim_step(PyObject *self, PyObject *args)
              * is safe to update the pacing mechanism to time t.
              */
             tnext = tmax;
-            for (int i = 0; i < n_pace; i++) {
+            for (i=0; i<n_pace; i++) {
                 if (pacing_types[i] == ESys_TYPE) {
                     epacing = pacing_systems[i].esys;
                     flag_epacing = ESys_AdvanceTime(epacing, t);
@@ -1677,7 +1681,7 @@ sim_step(PyObject *self, PyObject *args)
     PyList_SetItem(bound_py, 0, PyFloat_FromDouble(t));
     PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
     PyList_SetItem(bound_py, 2, PyFloat_FromDouble((double)evaluations));
-    for (int i = 0; i < n_pace; i++) {
+    for (i=0; i<n_pace; i++) {
         PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
     }
 
@@ -1771,7 +1775,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
 
     /* Set pacing values */
     pacing_in = (double*)malloc((size_t)n_pace * sizeof(double));
-    for (int i = 0; i < n_pace; i++) {
+    for (i=0; i<n_pace; i++) {
         val = PyList_GetItem(pace_in, i); /* Don't decref */
         if (!PyFloat_Check(val)) {
             PyErr_Format(PyExc_Exception, "Item %d in pace vector is not a float.", i);

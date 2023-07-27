@@ -464,6 +464,7 @@ Model_ClearCache(Model model)
 Model_Flag
 Model_SetupPacing(Model model, int n_pace)
 {
+    int i;
     if (model == NULL) return Model_INVALID_MODEL;
     if (n_pace < 0) return Model_INVALID_PACING;
 
@@ -480,7 +481,7 @@ Model_SetupPacing(Model model, int n_pace)
     }
 
     /* Clear values */
-    for (int i = 0; i < n_pace; i++) {
+    for (i = 0; i < n_pace; i++) {
         model->pace_values[i] = 0;
         /* Note: This will be overruled by the first call to SetBoundVariables */
     }
@@ -706,6 +707,7 @@ Model_SetBoundVariables(
     const realtype realtime,
     const realtype evaluations)
 {
+    int i;
     #ifdef Model_CACHING
     int changed;
     #endif
@@ -721,7 +723,7 @@ Model_SetBoundVariables(
         #endif
     }
 
-    for (int i = 0; i < model->n_pace; i++) {
+    for (i=0; i<model->n_pace; i++) {
         if (pace_values[i] != model->pace_values[i]) {
             model->pace_values[i] = pace_values[i];
             #ifdef Model_CACHING
