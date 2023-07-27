@@ -157,6 +157,7 @@ class CModule:
                         '-Wdeclaration-after-statement',
                         '-Wconversion',
                         '-Wno-unused-parameter',
+                        #'-std=c89',
                     ])
 
             # Add runtime_library_dirs to prevent LD_LIBRARY_PATH errors on
