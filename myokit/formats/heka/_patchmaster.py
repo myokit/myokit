@@ -2312,6 +2312,37 @@ class Segment(TreeNode):
 
         return f'{t}; {v}'
 
+    def duration_base(self):
+        """
+        Returns the base level (first sweep) duration for this segment, or
+        ``None`` if the duration is set from a parameter.
+        """
+        if self._duration_from_holding or self._duration_from_parameter:
+            return None
+        return self._duration
+
+    def duration_delta(self):
+        """
+        Returns the duration "delta" for this segment, or 0 if not set.
+
+        The interpretation of the returned value depends on the increment mode
+        given by :meth:`duration_increment_mode`.
+        """
+        return self._duration_delta
+
+    def duration_factor(self):
+        """
+        Returns the duration "factor" for this segment, or 0 if not set.
+
+        The interpretation of the returned value depends on the increment mode
+        given by :meth:`duration_increment_mode`.
+        """
+        return self._duration_factor
+
+    def duration_increment_mode(self):
+        """ Returns the duration ``SegmentIncrement`` for this segment. """
+        return self._duration_increment
+
     def durations(self, sweep_count):
         """
         Returns the (intended) durations of this segment, for the given number
@@ -2365,6 +2396,37 @@ class Segment(TreeNode):
     def storage(self):
         """ Returns this segment's :class:`SegmentStorage`. """
         return self._storage
+
+    def value_base(self):
+        """
+        Returns the base level (first sweep) value for this segment, or
+        ``None`` if the value is set from a parameter or from holding.
+        """
+        if self._value_from_holding or self._value_from_parameter:
+            return None
+        return self._value
+
+    def value_delta(self):
+        """
+        Returns the value "delta" for this segment, or 0 if not set.
+
+        The interpretation of the returned value depends on the increment mode
+        given by :meth:`value_increment_mode`.
+        """
+        return self._value_delta
+
+    def value_factor(self):
+        """
+        Returns the value "factor" for this segment, or 0 if not set.
+
+        The interpretation of the returned value depends on the increment mode
+        given by :meth:`value_increment_mode`.
+        """
+        return self._value_factor
+
+    def value_increment_mode(self):
+        """ Returns the value ``SegmentIncrement`` for this segment. """
+        return self._value_increment
 
     def values(self, sweep_count, holding, relative):
         """

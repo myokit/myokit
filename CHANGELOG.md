@@ -4,6 +4,7 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - []() Added more information methods to `formats.heka.Segment`
 - Changed
 - Deprecated
 - Removed
