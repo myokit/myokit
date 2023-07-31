@@ -16,6 +16,10 @@ ignore=
     # Not if it's a commented out line
     E265,
 
+    # "Do not compare types"
+    # Usually fine yeah, but lots and lots of exceptions
+    E721,
+
     # "Do not assign a labmda expression, use a def".
     # T'is a silly rule.
     E731,
