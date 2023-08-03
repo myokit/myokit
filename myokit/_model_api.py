@@ -467,7 +467,7 @@ class VarOwner(ModelPart, VarProvider):
             self._component = self._component.parent()
 
     def add_variable(self, name, unit=None, rhs=None, label=None,
-                     binding=None):
+                     binding=None, initial_value=None):
         """
         Adds a child variable with the given ``name`` to this
         :class:`VarOwner`.
@@ -476,6 +476,9 @@ class VarOwner(ModelPart, VarProvider):
 
         If given, the ``unit``, ``rhs``, and a ``label`` or ``binding`` will
         also be set.
+
+        If an ``initial_value`` is given the variable will be promoted to a
+        state and its initial value will be set.
         """
         # Check if we can add it
         if not self.can_add_variable(name):
@@ -497,6 +500,8 @@ class VarOwner(ModelPart, VarProvider):
             var.set_unit(unit)
         if rhs is not None:
             var.set_rhs(rhs)
+        if initial_value is not None:
+            var.promote(initial_value)
         if label is not None:
             var.set_label(label)
         if binding is not None:
@@ -4487,6 +4492,9 @@ class Variable(VarOwner):
 
         Calling ``promote`` will reset the validation status of the model this
         variable belongs to.
+
+        (The argument ``state_value`` is a deprecated alias for
+        ``initial_value``.)
         """
         if self._index is not None:
             raise Exception('Variable is already a state variable')

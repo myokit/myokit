@@ -107,6 +107,11 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(v.binding(), 'x')
         self.assertEqual(v.label(), 'y')
         self.assertEqual(v.rhs(), myokit.Number(2))
+        self.assertFalse(v.is_state())
+        v = c.add_variable('f', rhs='3', initial_value='2 + comp.b')
+        self.assertEqual(v.rhs(), myokit.Number(3))
+        self.assertEqual(v.initial_value().code(), '2 + comp.b')
+        self.assertTrue(v.is_state())
 
     def test_binding(self):
         # Tests setting and getting of bindings
