@@ -539,8 +539,8 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
 
             # Re-route standard outputs, execute code
             oldstdout = oldstderr = None
-            oldprogress = myokit._Simulation_progress
-            myokit._Simulation_progress = self.progress
+            oldprogress = myokit._simulation_progress
+            myokit._simulation_progress = self.progress
             try:
                 if self.stdout is not None:
                     oldstdout = sys.stdout
@@ -558,7 +558,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
                     sys.stdout = oldstdout
                 if oldstderr is not None:
                     sys.stderr = oldstderr
-                myokit._Simulation_progress = oldprogress
+                myokit._simulation_progress = oldprogress
 
     r = Runner(model, protocol, script, stdout, stderr, progress)
     r.run()
