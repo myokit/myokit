@@ -435,7 +435,7 @@ class FiberTissueSimulation(myokit.CModule):
         Returns the shape of this simulation's grid of fiber cells as a tuple
         ``(ny, nx)``.
         """
-        # TODO: See https://github.com/MichaelClerx/myokit/issues/764
+        # TODO: See https://github.com/myokit/myokit/issues/764
         return (self._ncellsf[1], self._ncellsf[0])
 
     def fiber_state(self, x=None, y=None):
@@ -1223,7 +1223,7 @@ class FiberTissueSimulation(myokit.CModule):
         Returns the shape of this simulation's grid of tissue cells as a tuple
         ``(ny, nx)``.
         """
-        # TODO: See https://github.com/MichaelClerx/myokit/issues/764
+        # TODO: See https://github.com/myokit/myokit/issues/764
         return (self._ncellst[1], self._ncellst[0])
 
     def tissue_state(self, x=None, y=None):
