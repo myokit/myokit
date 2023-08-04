@@ -344,17 +344,18 @@ from ._err import (  # noqa
 #  import an error creates a hard to debug bug (something needs to go wrong
 #  before the interpreter reaches the code raising the error and notices it's
 #  not there).
-from . import _err  # noqa
-import inspect  # noqa
-_globals = globals()
-ex, name, clas = None, None, None
-for ex in inspect.getmembers(_err):
-    name, clas = ex
-    if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-        if name not in _globals:    # pragma: no cover
-            raise Exception('Failed to import exception: ' + name)
-del ex, name, clas, _globals, inspect  # Prevent public visibility
-del _err
+if not __release__:
+    from . import _err  # noqa
+    import inspect  # noqa
+    _globals = globals()
+    ex, name, clas = None, None, None
+    for ex in inspect.getmembers(_err):
+        name, clas = ex
+        if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
+            if name not in _globals:    # pragma: no cover
+                raise Exception('Failed to import exception: ' + name)
+    del ex, name, clas, _globals, inspect  # Prevent public visibility
+    del _err
 
 # Tools
 from . import float  # noqa
