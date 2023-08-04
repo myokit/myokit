@@ -553,7 +553,7 @@ from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
 #
 # Globally shared progress reporter
 #
-_Simulation_progress = None
+_simulation_progress = None
 
 
 #

@@ -885,7 +885,7 @@ class FiberTissueSimulation(myokit.CModule):
 
         # Get progress indication function (if any)
         if progress is None:
-            progress = myokit._Simulation_progress
+            progress = myokit._simulation_progress
         if progress:
             if not isinstance(progress, myokit.ProgressReporter):
                 raise ValueError(
