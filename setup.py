@@ -45,9 +45,9 @@ setup(
     # URLs
     url='http://myokit.org',
     project_urls={
-        'Bug Tracker': 'https://github.com/MichaelClerx/myokit/issues',
+        'Bug Tracker': 'https://github.com/myokit/myokit/issues',
         'Documentation': 'http://docs.myokit.org',
-        'Source Code': 'https://github.com/MichaelClerx/myokit',
+        'Source Code': 'https://github.com/myokit/myokit',
     },
 
     # Classifiers for pypi

@@ -442,7 +442,7 @@ def install():
     elif plat == 'Darwin':
         print(
             'Icons for MacOS are not available (yet). See '
-            'https://github.com/MichaelClerx/myokit/issues/38')
+            'https://github.com/myokit/myokit/issues/38')
 
     else:
         print('Unknown platform: ' + plat)

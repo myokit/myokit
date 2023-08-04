@@ -7,12 +7,12 @@
 
 ![Myokit](http://myokit.org/static/img/logo.png)
 
-[Myokit](http://myokit.org) is an [open-source](https://github.com/MichaelClerx/myokit/blob/main/LICENSE.txt) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
-It's hosted on [GitHub](https://github.com/MichaelClerx/myokit/) and available on [PyPi](https://pypi.org/project/myokit/).
+[Myokit](http://myokit.org) is an [open-source](https://github.com/myokit/myokit/blob/main/LICENSE.txt) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
+It's hosted on [GitHub](https://github.com/myokit/myokit/) and available on [PyPi](https://pypi.org/project/myokit/).
 For the latest documentation, see [myokit.readthedocs.io](https://myokit.readthedocs.io/).
 
 More information, including examples and an installation guide, is available on [myokit.org](http://myokit.org).
-A list of changes introduced in each Myokit release is provided in the [Changelog](https://github.com/MichaelClerx/myokit/blob/main/CHANGELOG.md).
+A list of changes introduced in each Myokit release is provided in the [Changelog](https://github.com/myokit/myokit/blob/main/CHANGELOG.md).
 
 
 ## Install
@@ -65,12 +65,12 @@ To see what else Myokit can do, type
 
 ## Contributing to Myokit
 
-You can contribute to Myokit by [reporting issues](https://github.com/MichaelClerx/myokit/issues), but code contributions (bugfixes, new formats, new features etc.) are also very welcome!
-New features are best discussed in an issue before starting any implementation work, and guidelines for code style (and more) can be found in [CONTRIBUTING.md](https://github.com/MichaelClerx/myokit/blob/main/CONTRIBUTING.md).
+You can contribute to Myokit by [reporting issues](https://github.com/myokit/myokit/issues), but code contributions (bugfixes, new formats, new features etc.) are also very welcome!
+New features are best discussed in an issue before starting any implementation work, and guidelines for code style (and more) can be found in [CONTRIBUTING.md](https://github.com/myokit/myokit/blob/main/CONTRIBUTING.md).
 
 
 ## Citing Myokit
 
-If you use Myokit in your research, please cite it using the information in our [CITATION file](https://github.com/MichaelClerx/myokit/blob/main/CITATION).
+If you use Myokit in your research, please cite it using the information in our [CITATION file](https://github.com/myokit/myokit/blob/main/CITATION).
 
 I like to [keep track of who's using Myokit](http://myokit.org/publications/) (for my CV!). If you are using Myokit for teaching, I'd love to hear about it. You can drop me a line at michael[at]myokit.org.
