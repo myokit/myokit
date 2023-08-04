@@ -186,7 +186,7 @@ class ModelBuildTest(unittest.TestCase):
         y.set_initial_value(5)
         self.assertEqual(y.rhs().code(), '-Y.c * Y.y + Y.d * X.x * Y.y')
 
-        # Add ano component, variables
+        # Add component, variables
         Z = m.add_component('Z')
         self.assertNotEqual(X, Z)
         self.assertNotEqual(Y, Z)

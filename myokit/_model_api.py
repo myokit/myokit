@@ -233,7 +233,7 @@ class ModelPart(ObjectWithMetaData):
         return self._parent.qname(hide) + '.' + self._name
 
     def __repr__(self):
-        return '<' + str(type(self)) + '(' + self.qname() + ')>'
+        return f'<{type(self)}({self.qname()})>'
 
     def __str__(self):
         return self.qname()
@@ -466,16 +466,27 @@ class VarOwner(ModelPart, VarProvider):
         while type(self._component) != Component:
             self._component = self._component.parent()
 
-    def add_variable(self, name):
+    def add_variable(self, name, unit=None, rhs=None, label=None,
+                     binding=None, initial_value=None):
         """
-        Adds a child variable with the given `name` to this :class:`VarOwner`.
+        Adds a child variable with the given ``name`` to this
+        :class:`VarOwner`.
 
         Returns the newly created :class:`myokit.Variable` object.
+
+        If given, the ``unit``, ``rhs``, and a ``label`` or ``binding`` will
+        also be set.
+
+        If an ``initial_value`` is given the variable will be promoted to a
+        state and its initial value will be set.
         """
+        # Check if we can add it
         if not self.can_add_variable(name):
             raise myokit.DuplicateName(
                 'The name <' + str(name) + '> is already in use within this'
                 ' scope.')
+
+        # Try adding it
         try:
             var = None
             self._variables[name] = var = Variable(self, name)
@@ -483,6 +494,19 @@ class VarOwner(ModelPart, VarProvider):
             self.model()._reset_validation()
             if var is not None:
                 var._reset_cache()
+
+        # Allow one-line creation
+        if unit is not None:
+            var.set_unit(unit)
+        if rhs is not None:
+            var.set_rhs(rhs)
+        if initial_value is not None:
+            var.promote(initial_value)
+        if label is not None:
+            var.set_label(label)
+        if binding is not None:
+            var.set_binding(binding)
+
         return var
 
     def add_variable_allow_renaming(self, name):
@@ -645,8 +669,8 @@ class VarOwner(ModelPart, VarProvider):
         """
         if variable.parent() != self:
             raise ValueError(
-                'move_variable failed: variable <' + variable.qname()
-                + '> does not have parent <' + self.qname() + '>.')
+                f'move_variable failed: variable <{variable.qname()}> does not'
+                f' have parent <{self.qname()}>.')
 
         # Check names
         old_name = variable.name()
@@ -662,8 +686,8 @@ class VarOwner(ModelPart, VarProvider):
         # Check if name is allowed in new parent
         if not new_parent.can_add_variable(new_name, [variable]):
             raise myokit.DuplicateName(
-                'The name <' + new_name + '> is already in use as a variable'
-                ' name within this scope.')
+                f'The name <{new_name}> is already in use as a variable name'
+                ' within this scope.')
 
         # Check state variables aren't made nested
         if variable.is_state():
@@ -694,8 +718,8 @@ class VarOwner(ModelPart, VarProvider):
         """
         if variable.parent() != self:
             raise ValueError(
-                'remove_variable failed: variable <' + variable.qname()
-                + '> does not have parent <' + self.qname() + '>.')
+                f'remove_variable failed: variable <{variable.qname()} does'
+                f' not have parent <{self.qname()}>.')
 
         # Handle internal variable deletion steps
         variable._delete(recursive=recursive)
@@ -3725,10 +3749,10 @@ class Component(VarOwner):
                 if c != self:
                     reffers.add(c)
         if reffers:
+            c = ' and '.join([f'<{c.qname()}>' for c in reffers])
             raise myokit.IntegrityError(
-                'Can not delete component <' + self.qname() + '>'
-                ' it is used by components '
-                + ' and '.join(['<' + c.qname() + '>' for c in reffers]))
+                f'Can not delete component <{self.qname()}> it is used by'
+                f' components {c}')
 
         # No problems? Then delete all variables from component
         for var in self.variables():
@@ -3817,7 +3841,7 @@ class Component(VarOwner):
         """
         Returns a representation of this component.
         """
-        return '<Component(' + self.qname() + ')>'
+        return f'<Component({self.qname()})>'
 
     def validate(self):
         """
@@ -3827,7 +3851,7 @@ class Component(VarOwner):
         if m is None:   # pragma: no cover
             # Cover pragma: Can only be reached through an API bug.
             raise myokit.IntegrityError(
-                'No model found in hierarchy for <' + self.qname() + '>.')
+                f'No model found in hierarchy for <{self.qname()}>.')
 
         # Validate child variables
         for v in self.variables():
@@ -3835,9 +3859,9 @@ class Component(VarOwner):
                 # Cover pragma: Can only be reached through an API bug
                 raise myokit.IntegrityError(
                     'Child variable\'s parent does not match with actual'
-                    ' parent: parent of <' + v.qname() + '> is set to <'
-                    + str(v._parent.qname()) + '>, but the variable is'
-                    ' stored in <' + str(self.qname()) + '>.')
+                    f' parent: parent of <{v.qname()}> is set to '
+                    f' <{v._parent.qname()}>, but the variable is stored in'
+                    f' <{self.qname()}>.')
 
             # Deep validation
             v.validate()
@@ -4184,10 +4208,10 @@ class Variable(VarOwner):
         # First check: Are there child variables that prevent deletion?
         kids = list(self.variables())
         if kids and not recursive:
+            kids = ' and '.join([f'<{v.qname()}>' for v in kids])
             raise myokit.IntegrityError(
-                'Variable <' + self.qname() + '>'
-                ' can not be removed: it has children ' + ' and '.join(
-                    ['<' + v.qname() + '>' for v in kids]) + '.')
+                f'Variable <{self.qname()}> can not be removed: it has'
+                f' children {kids}.')
 
         # Second check: Are there dependent variables that prevent deletion?
         if self._refs_by or self._srefs_by:
@@ -4210,10 +4234,10 @@ class Variable(VarOwner):
                     set([x for x in refs if x.has_ancestor(self._parent)]))
 
             if refs:
+                refs = ' and '.join([f'<{v.qname()}>' for v in refs])
                 raise myokit.IntegrityError(
-                    'Variable <' + self.qname() + '>'
-                    ' can not be removed: it is used by ' + ' and '.join(
-                        ['<' + v.qname() + '>' for v in refs]) + '.')
+                    f'Variable <{self.qname()}> can not be removed: it is used'
+                    f' by {refs}.')
 
         # Third check: Do initial values depend on this variable?
         # Note that, instead of using a cached set in every variable, this
@@ -4233,10 +4257,10 @@ class Variable(VarOwner):
             refs = refs.difference(
                 set([x for x in refs if x.has_ancestor(self._parent)]))
         if refs:
+            refs = ' and '.join([f'<{v.qname()}>' for v in refs])
             raise myokit.IntegrityError(
-                'Variable <' + self.qname() + '> can not be removed: it is'
-                ' used in the inital value(s) for ' + ' and '.join(
-                    ['<' + v.qname() + '>' for v in refs]) + '.')
+                f'Variable <{self.qname()}> can not be removed: it is used in'
+                f' the inital value(s) for {refs}.')
 
         # At this point it's OK to delete. Rest of the code makes changes,
         # shouldn't raise errors.
@@ -4468,6 +4492,9 @@ class Variable(VarOwner):
 
         Calling ``promote`` will reset the validation status of the model this
         variable belongs to.
+
+        (The argument ``state_value`` is a deprecated alias for
+        ``initial_value``.)
         """
         if self._index is not None:
             raise Exception('Variable is already a state variable')
@@ -4659,9 +4686,9 @@ class Variable(VarOwner):
 
     def __repr__(self):
         if self._index is not None:
-            return '<State(' + self.qname() + ')>'
+            return f'<State({self.qname()})>'
         else:
-            return '<Var(' + self.qname() + ')>'
+            return f'<Var({self.qname()})>'
 
     def _reset_cache(self, bubble=False):
         """
@@ -4716,8 +4743,8 @@ class Variable(VarOwner):
             # Check for existing binding
             if self._binding is not None:
                 raise myokit.InvalidBindingError(
-                    'The variable <' + self.qname() + '>'
-                    ' is already bound to "' + self._binding + '".')
+                    f'The variable <{self.qname()}> is already bound to'
+                    f' "{self._binding}".')
 
             # Check if not a state
             if self._index is not None:
@@ -4796,8 +4823,8 @@ class Variable(VarOwner):
         # Check for existing label or binding
         if self._label:
             raise myokit.InvalidLabelError(
-                'The variable <' + self.qname() + '>'
-                ' already has a label "' + self._label + '".')
+                f'The variable <{self.qname()}> already has a label'
+                f' "{self._label}".')
 
         # Set label (model checks uniqueness)
         self.model()._register_label(label, self)
@@ -4931,19 +4958,19 @@ class Variable(VarOwner):
         if self._rhs.contains_type(myokit.PartialDerivative):
             raise myokit.IntegrityError(
                 'Partial derivatives may not appear in expressions set as'
-                ' right-hand side of a variable: <' + self.qname() + '>.')
+                f' right-hand side of a variable: <{self.qname()}>.')
 
         # RHS: No InitialValue objects
         if self._rhs.contains_type(myokit.InitialValue):
             raise myokit.IntegrityError(
                 'Initial value operators may not appear in expressions set as'
-                ' right-hand side of a variable: <' + self.qname() + '>.')
+                f' right-hand side of a variable: <{self.qname()}>.')
 
         # RHS: Can't evaluate to True or False
         if isinstance(self._rhs, myokit.Condition):
             raise myokit.IntegrityError(
                 'The right-hand side expression for a variable can not be a'
-                ' condition: <' + self.qname() + '>.')
+                f' condition: <{self.qname()}>.')
 
         #
         # Check state variables
@@ -4954,44 +4981,43 @@ class Variable(VarOwner):
             # Derivative is set
             if not is_deriv:        # pragma: no cover
                 raise myokit.IntegrityError(
-                    'Variable <' + self.qname() + '> is listed as a state'
-                    ' variable but its lhs is not a derivative.')
+                    f'Variable <{self.qname()}> is listed as a state variable'
+                    ' but its LHS is not a derivative.')
 
             # Not nested
             if self._is_nested:     # pragma: no cover
                 raise myokit.IntegrityError(
-                    'State variables should not be nested: <'
-                    + str(self.qname()) + '>.')
+                    f'State variables should not be nested: <{self.qname()}>.')
 
             # Index matches model
             m = self.model()
             if not m._state_vars[self._index] == self:  # pragma: no cover
                 raise myokit.IntegrityError(
                     'State variable not listed in model state vector at'
-                    ' correct index: <' + self.qname() + '>.')
+                    f' correct index: <{self.qname()}>.')
 
             # Initial value is an expression
             i = m._state_init[self._index]
             if not isinstance(i, myokit.Expression):  # pragma: no cover
                 raise myokit.IntegrityError(
-                    'Initial value for <' + self.qname() + '> is not an'
+                    f'Initial value for <{self.qname()}> is not an'
                     ' expression.')
 
             # Init: No PartialDerivative or InitialValue operators
             if i.contains_type(myokit.PartialDerivative):
                 raise myokit.IntegrityError(
                     'Partial derivatives may not appear in model expressions:'
-                    ' initial value for <' + self.qname() + '>.')
+                    f' initial value for <{self.qname()}>.')
             if i.contains_type(myokit.InitialValue):
                 raise myokit.IntegrityError(
                     'Initial values may not appear in model expressions:'
-                    ' initial value for < ' + self.qname() + '>.')
+                    f' initial value for <{self.qname()}>.')
 
             # Init: Can't evaluate to True or False
             if isinstance(i, myokit.Condition):
                 raise myokit.IntegrityError(
-                    'The initial value for a variable can not be a'
-                    ' condition: <' + self.qname() + '>.')
+                    'The initial value for a variable can not be a condition:'
+                    f' <{self.qname()}>.')
 
             # Init: No nested variables or non-constants
             for ref in i.references():
@@ -5000,19 +5026,19 @@ class Variable(VarOwner):
                     raise myokit.IllegalReferenceInInitialValueError(self, ref)
                 if not var.is_constant():
                     raise myokit.IntegrityError(
-                        'Initial value for variable <' + self.qname() + '> is'
-                        ' not constant: ' + i.code() + '.')
+                        f'Initial value for variable <{self.qname()}> is not'
+                        f' constant: {i.code()}.')
 
         elif is_deriv:  # pragma: no cover
             raise myokit.IntegrityError(
-                'A derivative was set for <' + self.qname() + '> but this is'
-                ' not a state variable.')
+                f'A derivative was set for <{self.qname()}> but this is not a'
+                ' state variable.')
 
         # Check for component as parent
         m = self.parent(Component)
         if m is None:   # pragma: no cover
             raise myokit.IntegrityError(
-                'No component found in hierarchy for <' + self.qname() + '>.')
+                f'No component found in hierarchy for <{self.qname()}>.')
 
         # Validate references
         for ref in self._refs_to.union(self._srefs_to):
@@ -5036,10 +5062,10 @@ class Variable(VarOwner):
         # Check no-one thinks this is a state unless it really is.
         if self._srefs_by and not is_state:  # pragma: no cover
             # Cover pragma: Can only be reached through an API bug
-            refs = ', '.join([r.qname() for r in self._srefs_by])
+            refs = ', '.join([f'<{r.qname()}>' for r in self._srefs_by])
             raise myokit.IntegrityError(
-                'Variable <' + self.qname() + '> is not a state, but is'
-                ' referred to as a state by (' + refs + ').')
+                f'Variable <{self.qname()}> is not a state, but is referred to'
+                f' as a state by ({refs}).')
 
         # Validate child variables
         for v in self.variables():
@@ -5047,9 +5073,9 @@ class Variable(VarOwner):
                 # Cover pragma: Can only be reached through an API bug
                 raise myokit.IntegrityError(
                     'Child variable\'s parent does not match with actual'
-                    ' parent: parent of <' + v.qname() + '> is set to <'
-                    + str(v._parent.qname()) + '>, but the variable is'
-                    ' stored in <' + self.qname() + '>.')
+                    f' parent: parent of <{v.qname()}> is set to'
+                    f' <{v._parent.qname()}>, but the variable is stored in'
+                    f' <{self.qname()}>.')
 
             # Deep validation
             v.validate()

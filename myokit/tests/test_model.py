@@ -87,6 +87,32 @@ class ModelTest(unittest.TestCase):
             myokit.InvalidFunction, 'never declared',
             m.add_function, 'fun', ('a', ), 'a + b')
 
+    def test_add_variable_extended(self):
+        # Extended add_variable syntax
+
+        m = myokit.Model()
+        c = m.add_component('comp')
+        v = c.add_variable('a', unit='ms', rhs='5 [ms]', label='a_time')
+        self.assertEqual(v.unit(), myokit.units.ms)
+        self.assertEqual(v.rhs().code(), '5 [ms]')
+        self.assertEqual(v.label(), 'a_time')
+        v = c.add_variable('b', unit='V', rhs='3 [V] + a * 7 [V/ms]')
+        self.assertEqual(v.unit(), myokit.units.V)
+        self.assertEqual(v.rhs().code(), '3 [V] + comp.a * 7 [A/F (1000)]')
+        v = c.add_variable('c', rhs='1', binding='time')
+        self.assertEqual(v.unit(), None)
+        self.assertEqual(v.rhs(), myokit.Number(1))
+        self.assertEqual(v.binding(), 'time')
+        v = c.add_variable('e', rhs=2, binding='x', label='y')
+        self.assertEqual(v.binding(), 'x')
+        self.assertEqual(v.label(), 'y')
+        self.assertEqual(v.rhs(), myokit.Number(2))
+        self.assertFalse(v.is_state())
+        v = c.add_variable('f', rhs='3', initial_value='2 + comp.b')
+        self.assertEqual(v.rhs(), myokit.Number(3))
+        self.assertEqual(v.initial_value().code(), '2 + comp.b')
+        self.assertTrue(v.is_state())
+
     def test_binding(self):
         # Tests setting and getting of bindings
 
