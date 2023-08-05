@@ -33,7 +33,7 @@ setup(
     version=version,
 
     # Description
-    description='A simple interface to cardiac cellular electrophysiology',
+    description='A modeling and simulation tool for cardiac cellular electrophysiology',
     long_description=readme,
     long_description_content_type='text/markdown',
 
