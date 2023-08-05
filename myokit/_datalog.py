@@ -327,12 +327,13 @@ class DataLog(OrderedDict):
 
     def fold(self, period, discard_remainder=True):
         """
-        Creates a copy of the log, split with the given period. Split signals
-        are given indexes so that "current" becomes "0.current", "1.current"
-        "2.current", etc.
+        Creates a copy of the log, split with the given ``period``.
 
-        If the logs entries do not divide well by 'period', the remainder will
-        be ignored. This happens commonly due to rounding point errors (in
+        Split signals are given indexes so that "current" becomes "0.current",
+        "1.current", "2.current", etc.
+
+        If the logs entries do not divide well by ``period``, the remainder
+        will be ignored. This happens commonly due to rounding point errors (in
         which case the remainder is a single entry). To disable this behavior,
         set ``discard_remainder=False``.
         """
