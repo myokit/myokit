@@ -437,6 +437,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
 
     def load_dat_file(self, filename):
         """ Loads a PatchMaster dat file. """
+        complete_only = False
 
         pbar = myokit.gui.progress.ProgressBar(
             self, 'Loading groups and series')
@@ -449,11 +450,16 @@ class DataLogViewer(myokit.gui.MyokitApplication):
 
         try:
             with myokit.formats.heka.PatchMasterFile(filename) as f:
-                n = sum([len(list(g.complete_series())) for g in f])
+                if complete_only:
+                    n = sum([len(list(g.complete_series())) for g in f])
+                else:
+                    n = sum(len(g) for g in f)
                 i = 0
                 stop = False
                 for group in f:
-                    for series in group.complete_series():
+                    if complete_only:
+                        group = group.complete_series()
+                    for series in group:
                         self._tabs.addTab(
                             PatchMasterTab(self, series),
                             f'{group.label()} {series.label()}')

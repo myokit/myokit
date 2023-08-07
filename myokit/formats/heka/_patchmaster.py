@@ -158,7 +158,8 @@ class PatchMasterFile:
             pass
 
         if not self._version.startswith('v2x90.2'):
-            warnings.warn('Only PatchMaster version v2x90.2 is supported.')
+            warnings.warn('Only PatchMaster version v2x90.2 is supported.'
+                          f' Attempting to read version {self._version}.')
 
         # Endianness
         f.seek(52)
@@ -208,7 +209,15 @@ class PatchMasterFile:
                     ' more than once: ' + ext)
             self._items[ext] = (start, size)
 
-        # Read stimulus template
+        # Read amplifier tree
+        self._amp_tree = None
+        if self._items['.amp'] is not None:
+            f.seek(self._items['.amp'][0])
+            self._amp_tree = TreeNode.read(
+                self, f, (AmplifierFile, AmplifierSeries, AmplifierStateRecord)
+            )
+
+        # Read stimulus tree
         f.seek(self._items['.pgf'][0])
         self._stimulus_tree = TreeNode.read(
             self, f, (StimulusFile, Stimulus, StimulusChannel, Segment))
@@ -226,6 +235,10 @@ class PatchMasterFile:
 
     def __iter__(self):
         return iter(self._pulsed_tree)
+
+    def amplifier_tree(self):
+        """ Returns this file's amplifier tree, or None. """
+        return self._amp_tree
 
     def close(self):
         """
@@ -636,7 +649,9 @@ class Series(TreeNode, myokit.formats.SweepSource):
         self._sweep_starts_r = None
 
         # Info from amplifier
-        self._amplifier_state = None
+        self._amplifier_state = None      # Local amplifier state
+        self._amplifier_states = None     # List of externally stored states
+        self._amplifier_state_id = None   # Index of states in .amp file
 
     def _read_properties(self, handle, reader):
         # See TreeNode._read_properties
@@ -645,8 +660,19 @@ class Series(TreeNode, myokit.formats.SweepSource):
         self._label = reader.str(32)
         handle.seek(i + 136)    # SeTime
         self._time = reader.time()
-        handle.seek(i + 472)    # SeAmplifierState = 472; (* Size = 400 *)
-        self._amplifier_state = AmplifierState(handle, reader)
+
+        # Read amplifier state, if present
+        handle.seek(i + 124)    # SeAmplStateOffset = 124; (* INT32 *)
+        offset = reader.read1('i')
+        handle.seek(i + 128)    # SeAmplStateSeries = 128; (* INT32 *)
+        self._amplifier_state_id = reader.read1('i') - 1
+        if offset == 472:
+            handle.seek(i + 472)    # SeAmplifierState = 472; (* Size = 400 *)
+            self._amplifier_state = AmplifierState(handle, reader)
+        elif offset != 0:
+            warnings.warn(
+                'Unexpected amplifier state offset: expecting 472 (information'
+                ' stored with Series) or 0 (information stored in .amp file).')
 
     def _read_finalize(self):
         # See TreeNode._read_finalize
@@ -680,6 +706,12 @@ class Series(TreeNode, myokit.formats.SweepSource):
             self._sweep_starts_r = [
                 (s.time() - t0).total_seconds() for s in self]
 
+        # Amplifier states (if stored in .amp file)
+        if self._amplifier_state_id >= 0:
+            tree = self._file.amplifier_tree()
+            self._amplifier_states = [
+                r.amplifier_state() for r in tree[self._amplifier_state_id]]
+
         # Either 0 or 1 supported D/A output
         c = self._stimulus.supported_channel()
         if c is None:
@@ -698,9 +730,20 @@ class Series(TreeNode, myokit.formats.SweepSource):
     def amplifier_state(self):
         """
         Returns this series's :class:`AmplifierState`, containing meta data
-        about the recording.
+        about the recording stored locally with this Series.
+
+        This will be ``None`` if multiple amplifiers are used.
         """
         return self._amplifier_state
+
+    def amplifier_states(self):
+        """
+        Returns an array of :class:`AmplifierState` objects, if multiple
+        amplifiers were used.
+
+        Will return ``None`` if a single amplifier state was used.
+        """
+        return self._amplifier_states
 
     def channel(self, channel_id, join_sweeps=False,
                 use_real_start_times=False, ignore_zero_segment=True):
@@ -1545,6 +1588,44 @@ class AmplifierState:
         handle.seek(i + 136)  # sVLiquidJunction = 136; (* LONGREAL *)
         self._ljp = reader.read1('d')
 
+        #TODO: Add these are proper properties with a docstring'd method that
+        # returns them and says what the units are etc. or stop reading them.
+        self._temp = {}
+        handle.seek(i + 281)  # sFilter1 = 281; (* BYTE *)
+        self._temp['sFilter1'] = reader.read1('b')
+        handle.seek(i + 294)  # sF1Mode = 294; (* BYTE *)
+        self._temp['sF1Mode'] = reader.read1('b')
+
+        handle.seek(i + 16)  # sF2Bandwidth = 16; (* LONGREAL *)
+        self._temp['sF2Bandwidth'] = reader.read1('d')
+        handle.seek(i + 24)  # sF2Frequency = 24; (* LONGREAL *)
+        self._temp['sF2Frequency'] = reader.read1('d')
+        handle.seek(i + 230)  # sHasF2Bypass = 230; (* BYTE *)
+        self._temp['sHasF2Bypass'] = reader.read1('b')
+        handle.seek(i + 231)  # sF2Mode = 231; (* BYTE *)
+        self._temp['sF2Mode'] = reader.read1('b')
+        handle.seek(i + 239)  # sF2Response = 239; (* BYTE *)
+        self._temp['sF2Response'] = reader.read1('b')
+        handle.seek(i + 287)  # sF2Source = 287; (* BYTE *)
+        self._temp['sF2Source'] = reader.read1('b')
+
+        handle.seek(i + 296)  # sStimFilterHz = 296; (* LONGREAL *)
+        self._temp['sStimFilterHz'] = reader.read1('d')
+        handle.seek(i + 320)  # sInputFilterTau = 320; (* LONGREAL *)
+        self._temp['sInputFilterTau'] = reader.read1('d')
+        handle.seek(i + 328)  # sOutputFilterTau = 328; (* LONGREAL *)
+        self._temp['sOutputFilterTau'] = reader.read1('d')
+
+        handle.seek(i + 384)  # sVmonFiltBandwidth = 384; (* LONGREAL *)
+        self._temp['sVmonFiltBandwidth'] = reader.read1('d')
+        handle.seek(i + 392)  # sVmonFiltFrequency = 392; (* LONGREAL *)
+        self._temp['sVmonFiltFrequency'] = reader.read1('d')
+
+        handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
+        self._temp['sImon1Bandwidth'] = reader.read1('d')
+        handle.seek(i + 304)  # sRsTau = 304; (* LONGREAL *)
+        self._temp['sRsTau'] = reader.read1('d')
+
     def c_fast(self):
         """
         Return the capacitance (pF) used in fast capacitance correction
@@ -1729,6 +1810,10 @@ class Stimulus(TreeNode):
         self._sweep_interval = reader.read1('d')
         handle.seek(start + 144)  # stNumberSweeps = 144; (* INT32 *)
         self._sweep_count = reader.read1('i')
+
+        # TODO: Add method to return this w explanation etc.
+        handle.seek(start + 136)  # stFilterFactor = 136; (* LONGREAL *)
+        self._filter_factor = reader.read1('d')
 
     def _read_finalize(self):
         # See TreeNode._read_finalize
@@ -2650,6 +2735,97 @@ class NoSupportedDAChannelError(myokit.MyokitError):
     """
     def __init__(self):
         super().__init__('No supported DAC Channel found')
+
+
+#
+# From AmplTreeFile_v9.txt
+# (* RootRecord        = RECORD *)
+# RoVersion            =   0; (* INT32 *)
+# RoMark               =   4; (* INT32 *)
+# RoVersionName        =   8; (* String32Type *)
+# RoAmplifierName      =  40; (* String32Type *)
+# RoAmplifier          =  72; (* CHAR *)
+# RoADBoard            =  73; (* CHAR *)
+# RoCreator            =  74; (* CHAR *)
+#    RoFiller1         =  75; (* BYTE *)
+# RoCRC                =  76; (* CARD32 *)
+# RootRecSize          =  80;      (* = 10 * 8 *)
+#
+class AmplifierFile(TreeNode):
+    """
+    Represents the "amplifier file" section of a PatchMaster bundle (.amp).
+    """
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._version = None
+        self._name = None
+
+    def _read_properties(self, handle, reader):
+        # See TreeNode._read_properties
+        start = handle.tell()
+        handle.seek(start + 8)
+        self._version = reader.str(32)
+        self._name = reader.str(32)
+
+    def version(self):
+        """ Returns a string representation of this file's format version. """
+        return self._version
+
+
+#
+# From AmplTreeFile_v9.txt
+# (* SeriesRecord      = RECORD *)
+# SeMark               =   0; (* INT32 *)
+# SeSeriesCount        =   4; (* INT32 *)
+#    SeFiller1         =   8; (* INT32 *)
+# SeCRC                =  12; (* CARD32 *)
+# SeriesRecSize        =  16;      (* = 2 * 8 *)
+#
+class AmplifierSeries(TreeNode):
+    """
+    Represents a Series record in an amplifier file.
+    """
+    def __init__(self, parent):
+        super().__init__(parent)
+
+
+#
+# From AmplTreeFile_v9.txt
+# (* AmplStateRecord   = RECORD *)
+# AmMark               =   0; (* INT32 *)
+# AmStateCount         =   4; (* INT32 *)
+# AmStateVersion       =   8; (* CHAR *)
+#    AmFiller1         =   9; (* BYTE *)
+#    AmFiller2         =  10; (* BYTE *)
+#    AmFiller3         =  11; (* BYTE *)
+#    AmFiller4         =  12; (* INT32 *)
+# AmLockInParams       =  16; (* LockInParamsSize = 96 *)
+# AmAmplifierState     = 112; (* AmplifierStateSize = 400 *)
+# AmIntSol             = 512; (* INT32 *)
+# AmExtSol             = 516; (* INT32 *)
+#    AmFiller5         = 520; (* spares: 36 bytes *)
+# AmCRC                = 556; (* CARD32 *)
+# StateRecSize         = 560;      (* = 70 * 8 *)
+#
+class AmplifierStateRecord(TreeNode):
+    """
+    Represents an AmplifierState record in an amplifier file.
+
+    Each AmplifierStateRecord contains an :class:`AmplifierState`.
+    """
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._amplifier_state = None
+
+    def _read_properties(self, handle, reader):
+        # See TreeNode._read_properties
+        start = handle.tell()
+        handle.seek(start + 112)
+        self._amplifier_state = AmplifierState(handle, reader)
+
+    def amplifier_state(self):
+        """ Returns this record's :class:`AmplifierState`. """
+        return self._amplifier_state
 
 
 # Encoding for text parts of files
