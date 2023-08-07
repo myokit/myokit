@@ -2767,6 +2767,10 @@ class AmplifierFile(TreeNode):
         self._version = reader.str(32)
         self._name = reader.str(32)
 
+    def name(self):
+        """ Returns an amplifier name. """
+        return self._name
+
     def version(self):
         """ Returns a string representation of this file's format version. """
         return self._version
