@@ -1584,6 +1584,8 @@ class AmplifierState:
 
         handle.seek(i + 80)    # sCSlow = 80; (* LONGREAL *)
         self._cs = reader.read1('d')
+        handle.seek(i + 152)    # sCSlowStimVolts = 152; (* LONGREAL *)
+        self._cs_stim = reader.read1('d')
 
         handle.seek(i + 136)  # sVLiquidJunction = 136; (* LONGREAL *)
         self._ljp = reader.read1('d')
@@ -1651,6 +1653,12 @@ class AmplifierState:
         Returns the capacitance (cF) used in slow capacitance correction.
         """
         return self._cs * 1e12
+
+    def c_slow_stim_voltage(self):
+        """
+        Returns the test voltage (mV) used in estimating slow capacitance.
+        """
+        return self._cs_stim * 1e3
 
     def current_gain(self):
         """
