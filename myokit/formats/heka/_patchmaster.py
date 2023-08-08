@@ -1595,6 +1595,11 @@ class AmplifierState:
         #TODO: Add these are proper properties with a docstring'd method that
         # returns them and says what the units are etc. or stop reading them.
         self._temp = {}
+        handle.seek(i + 304)  # sRsTau = 304; (* LONGREAL *)
+        self._temp['sRsTau'] = reader.read1('d')
+
+        handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
+        self._temp['sImon1Bandwidth'] = reader.read1('d')
         handle.seek(i + 281)  # sFilter1 = 281; (* BYTE *)
         self._temp['sFilter1'] = reader.read1('b')
         handle.seek(i + 294)  # sF1Mode = 294; (* BYTE *)
@@ -1624,11 +1629,6 @@ class AmplifierState:
         self._temp['sVmonFiltBandwidth'] = reader.read1('d')
         handle.seek(i + 392)  # sVmonFiltFrequency = 392; (* LONGREAL *)
         self._temp['sVmonFiltFrequency'] = reader.read1('d')
-
-        handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
-        self._temp['sImon1Bandwidth'] = reader.read1('d')
-        handle.seek(i + 304)  # sRsTau = 304; (* LONGREAL *)
-        self._temp['sRsTau'] = reader.read1('d')
 
     def c_fast(self):
         """
