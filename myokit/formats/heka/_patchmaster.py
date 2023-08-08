@@ -1587,6 +1587,8 @@ class AmplifierState:
         handle.seek(i + 152)    # sCSlowStimVolts = 152; (* LONGREAL *)
         self._cs_stim = reader.read1('d')
 
+        handle.seek(i + 128)  # sVpOffset = 128; (* LONGREAL *)
+        self._voff = reader.read1('d')
         handle.seek(i + 136)  # sVLiquidJunction = 136; (* LONGREAL *)
         self._ljp = reader.read1('d')
 
@@ -1702,6 +1704,12 @@ class AmplifierState:
         acquiring the trace.
         """
         return 1e-6 / self._g_series
+
+    def v_off(self):
+        """
+        Returns the Vp offset (in mV) used.
+        """
+        return self._voff * 1e3
 
 
 #
