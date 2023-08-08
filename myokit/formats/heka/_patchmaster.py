@@ -1630,6 +1630,11 @@ class AmplifierState:
         handle.seek(i + 392)  # sVmonFiltFrequency = 392; (* LONGREAL *)
         self._temp['sVmonFiltFrequency'] = reader.read1('d')
 
+        handle.seek(i + 112)  # sVHold = 112; (* LONGREAL *)
+        self._temp['sVHold'] = reader.read1('d')
+        handle.seek(i + 120)  # sLastVHold = 120; (* LONGREAL *)
+        self._temp['sLastVHold'] = reader.read1('d')
+
     def c_fast(self):
         """
         Return the capacitance (pF) used in fast capacitance correction
