@@ -1016,7 +1016,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         # Resistance, capacitance, etc.
         a = self.amplifier_state()
         out.append('Information from amplifier state:')
-        out.append('  Current gain: {a.current_gain()} mV/pA')
+        out.append(f'  Current gain: {a.current_gain()} mV/pA')
         if a.ljp():
             out.append('  LJP correction applied using'
                        f' LJP={round(a.ljp(), 4)} mV.')
