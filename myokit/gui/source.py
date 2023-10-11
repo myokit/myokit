@@ -57,10 +57,8 @@ def _adapt_for_dark_mode(palette):
     Checks the default editor background color, and adjusts the color scheme
     if it looks like dark-mode is enabled.
     """
-    dark = myokit.gui._in_dark_mode(palette)
-
     # Don't mess with these directly: Use the SVG in myokit-docs
-    if not dark:
+    if not myokit.gui._in_dark_mode(palette):
         STYLE_HEADER.setForeground(QtGui.QColor(0, 31, 231))
         STYLE_COMMENT.setForeground(QtGui.QColor(103, 161, 107))
         STYLE_ANNOT_KEY.setForeground(QtGui.QColor(0, 31, 231))

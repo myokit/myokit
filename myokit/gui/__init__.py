@@ -183,7 +183,7 @@ def _in_dark_mode(palette):
     """
     c = palette.base().color()
     c = (c.blueF() + c.greenF() + c.redF()) / 3
-    dark = c < 0.5
+    return c < 0.5
 
 
 def qtMonospaceFont():
