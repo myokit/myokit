@@ -7,6 +7,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import myokit
+import myokit.gui
 
 from myokit.gui import Qt, QtCore, QtGui, QtWidgets
 
@@ -51,14 +52,12 @@ COLOR_BRACKET = QtGui.QColor(240, 100, 0)
 COLOR_SELECTED_LINE = QtGui.QColor(238, 238, 238)
 
 
-def _check_for_dark_mode(palette):
+def _adapt_for_dark_mode(palette):
     """
     Checks the default editor background color, and adjusts the color scheme
     if it looks like dark-mode is enabled.
     """
-    c = palette.base().color()
-    c = (c.blueF() + c.greenF() + c.redF()) / 3
-    dark = c < 0.5
+    dark = myokit.gui._in_dark_mode(palette)
 
     # Don't mess with these directly: Use the SVG in myokit-docs
     if not dark:
@@ -100,7 +99,7 @@ class Editor(QtWidgets.QPlainTextEdit):
 
         # Current style
         self._palette = QtGui.QGuiApplication.palette()
-        _check_for_dark_mode(self._palette)
+        _adapt_for_dark_mode(self._palette)
 
         # Apply default settings
         self._default_settings()

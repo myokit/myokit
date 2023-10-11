@@ -176,6 +176,16 @@ def icon(name):
     return QtGui.QIcon.fromTheme(name, QtGui.QIcon(ICONS[name]))
 
 
+def _in_dark_mode(palette):
+    """
+    Returns True if it looks like we're in Dark mode, based on the palette
+    returned by ``QtGui.QGuiApplication.palette()``.
+    """
+    c = palette.base().color()
+    c = (c.blueF() + c.greenF() + c.redF()) / 3
+    dark = c < 0.5
+
+
 def qtMonospaceFont():
     """
     Attempts to create and return a monospace font.
