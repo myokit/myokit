@@ -10,6 +10,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1020](https://github.com/myokit/myokit/pull/1020) Fixed an issue where the explorer time fields had a white background in dark mode.
 
 ## [1.35.2] - 2023-07-26
 - Added
