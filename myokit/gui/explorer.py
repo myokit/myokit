@@ -39,14 +39,19 @@ class Explorer(QtWidgets.QDialog):
         self.setWindowTitle('Myokit Explorer')
         self._sim_method = sim_method
         self._stream = output_stream
+
         # Set guess for run times
         guess_pre = 0
         guess_run = duration
+
         # Explorer data
         self._data = None
         self._keys = None
+
         # Fix background color of line edits
-        self.setStyleSheet('QLineEdit{background: white;}')
+        if not myokit.gui._in_dark_mode(QtGui.QGuiApplication.palette()):
+            self.setStyleSheet('QLineEdit{background: white;}')
+
         # Create top widgets
         label1 = QtWidgets.QLabel('Run unlogged for ')
         label2 = QtWidgets.QLabel(' and then log for ')
@@ -62,6 +67,7 @@ class Explorer(QtWidgets.QDialog):
         self._clear_button.clicked.connect(self.action_clear)
         self._run_button = QtWidgets.QPushButton('Run')
         self._run_button.clicked.connect(self.action_run)
+
         # Create graph widgets
         self._axes = None
         self._figure = matplotlib.figure.Figure()
@@ -71,9 +77,11 @@ class Explorer(QtWidgets.QDialog):
         self._select_x.currentIndexChanged.connect(self.combo_changed)
         self._select_y = QtWidgets.QComboBox()
         self._select_y.currentIndexChanged.connect(self.combo_changed)
+
         # Create bottom widgets
         self._close_button = QtWidgets.QPushButton('Close')
         self._close_button.clicked.connect(self.action_close)
+
         # Create button layout
         button_layout = QtWidgets.QBoxLayout(
             QtWidgets.QBoxLayout.Direction.LeftToRight)
@@ -83,15 +91,18 @@ class Explorer(QtWidgets.QDialog):
         button_layout.addWidget(self._run_field)
         button_layout.addWidget(self._clear_button)
         button_layout.addWidget(self._run_button)
+
         # Create graph options layout
         graph_option_layout = QtWidgets.QBoxLayout(
             QtWidgets.QBoxLayout.Direction.LeftToRight)
         graph_option_layout.addWidget(self._select_x)
         graph_option_layout.addWidget(self._select_y)
+
         # Create bottom layout
         bottom_layout = QtWidgets.QBoxLayout(
             QtWidgets.QBoxLayout.Direction.LeftToRight)
         bottom_layout.addWidget(self._close_button)
+
         # Create central layout
         layout = QtWidgets.QBoxLayout(
             QtWidgets.QBoxLayout.Direction.TopToBottom)

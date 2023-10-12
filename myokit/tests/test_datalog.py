@@ -345,12 +345,9 @@ class DataLogTest(unittest.TestCase):
         # Test the integrate method.
 
         # Create an irregular time array
-        from random import random
-        t = []
-        for i in range(0, 100):
-            t.append(5 * random())
+        np.random.seed(1)
+        t = np.random.uniform(0, 5, 100)
         t.sort()
-        t = np.array(t)
 
         # Create a signal and its derivative
         i = 15 * t**2 + 4 * t + 2
