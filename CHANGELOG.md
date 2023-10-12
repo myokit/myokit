@@ -5,7 +5,8 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
   - [#1010](https://github.com/myokit/myokit/pull/1010) Added more information methods to `formats.heka.Segment`
-  - [#1012](https://github.com/myokit/myokit/pull/1012) The method `add_variable` now has keyword arguments `unit`, `rhs`, `label`, `binding`, and `initial_value` to allow one-line variable creation and initialisation.
+  - [#1012](https://github.com/myokit/myokit/pull/1012) The method `Model.add_variable` now has keyword arguments `unit`, `rhs`, `label`, `binding`, and `initial_value` to allow one-line variable creation and initialisation.
+  - [#1018](https://github.com/myokit/myokit/pull/1018) The PatchMaster file reading can now extract information for multiple amplifiers (if used), and more information methods were added.
 - Changed
 - Deprecated
 - Removed

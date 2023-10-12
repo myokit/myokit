@@ -122,7 +122,11 @@ myokit.formats.easyml
 
 myokit.formats.heka
 ---------------------
+- :class:`myokit.formats.heka.AmplifierFile`
 - :class:`myokit.formats.heka.AmplifierMode`
+- :class:`myokit.formats.heka.AmplifierSeries`
+- :class:`myokit.formats.heka.AmplifierState`
+- :class:`myokit.formats.heka.AmplifierStateRecord`
 - :class:`myokit.formats.heka.EndianAwareReader`
 - :class:`myokit.formats.heka.Group`
 - :meth:`myokit.formats.heka.importers`
