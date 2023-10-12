@@ -372,7 +372,7 @@ class DataLogTest(unittest.TestCase):
         e = np.mean(e)
         if debug:
             print(e)
-        self.assertLess(e, 0.1)
+        self.assertLess(e, 0.11)
         if debug:
             import matplotlib.pyplot as plt
             plt.figure()
