@@ -1682,7 +1682,7 @@ class AmplifierState:
     def c_slow_auto_settings(self):
         """
         Returns a tuple with the settings used when automatically estimating
-        C-slow: (Pulse amplitude in mV, number of cycles, Timeouet in s).
+        C-slow: (Pulse amplitude in mV, number of cycles, Timeout in s).
 
         See :meth:`c_slow`.
         """
