@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.35.4] - 2023-10-12
 - Added
   - [#1010](https://github.com/myokit/myokit/pull/1010) Added more information methods to `formats.heka.Segment`
