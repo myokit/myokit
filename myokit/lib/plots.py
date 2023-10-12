@@ -309,8 +309,8 @@ def cumulative_current(
     import matplotlib
     import matplotlib.pyplot as plt
 
-    # Deprecated on 2023-06-7
-    if normalize is not None:
+    # Deprecated on 2023-10-12
+    if normalise is not None:
         import warnings
         warnings.warn(
             'The keyword argument `normalise` is deprecated. Please use'
