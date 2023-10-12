@@ -2,20 +2,16 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.35.4] - 2023-10-12
 - Added
   - [#1010](https://github.com/myokit/myokit/pull/1010) Added more information methods to `formats.heka.Segment`
   - [#1012](https://github.com/myokit/myokit/pull/1012) The method `Model.add_variable` now has keyword arguments `unit`, `rhs`, `label`, `binding`, and `initial_value` to allow one-line variable creation and initialisation.
   - [#1018](https://github.com/myokit/myokit/pull/1018) The PatchMaster file reading can now extract information for multiple amplifiers (if used), and more information methods were added.
-- Changed
-- Deprecated
-- Removed
 - Fixed
   - [#1020](https://github.com/myokit/myokit/pull/1020) Fixed an issue where the explorer time fields had a white background in dark mode.
   - [#1021](https://github.com/myokit/myokit/pull/1021) Fixed a buggy deprecation warning in `lib.plots.cumulative_current`.
   
-
-## [1.35.2] - 2023-07-26
+## [1.35.3] - 2023-07-26
 - Added
   - [#1006](https://github.com/myokit/myokit/pull/1006) The `DataLog` class can now store global meta data in `.meta` and per-column meta data in `.cmeta`. Both must be string-string key-value pairs.
   - [#1006](https://github.com/myokit/myokit/pull/1006) Simulations now automatically add some meta data (units) to the data log.
