@@ -74,6 +74,21 @@ stimuli, channels, and segments.
 
 .. autoclass:: NoSupportedDAChannelError
 
+"Amplifier file" classes
+------------------------
+
+An "amplifier file" provides access to amplifier information in situations
+where more than one amplifier was used.
+
+.. autoclass:: AmplifierFile
+
+.. autoclass:: AmplifierSeries
+
+.. autoclass:: AmplifierState
+
+.. autoclass:: AmplifierStateRecord
+
+
 Internals
 =========
 

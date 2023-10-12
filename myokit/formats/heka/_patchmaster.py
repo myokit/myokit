@@ -237,7 +237,10 @@ class PatchMasterFile:
         return iter(self._pulsed_tree)
 
     def amplifier_tree(self):
-        """ Returns this file's amplifier tree, or None. """
+        """
+        Returns this file's amplifier tree (an :class:`AmplifierFile` object),
+        or None.
+        """
         return self._amp_tree
 
     def close(self):
@@ -262,11 +265,13 @@ class PatchMasterFile:
         return self._filepath
 
     def stimulus_tree(self):
-        """ Returns this file's stimulus tree. """
+        """
+        Returns this file's stimulus tree (a :class:`StimulusFile` object).
+        """
         return self._stimulus_tree
 
     def version(self):
-        """ Returns this file's version number. """
+        """ Returns this file's version number (as a string). """
         return self._version
 
 
@@ -732,7 +737,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         Returns this series's :class:`AmplifierState`, containing meta data
         about the recording stored locally with this Series.
 
-        This will be ``None`` if multiple amplifiers are used.
+        Will return ``None`` if multiple amplifiers were used.
         """
         return self._amplifier_state
 
@@ -1555,6 +1560,13 @@ class AmplifierState:
     """
     Describes the state of an amplifier used by PatchMaster.
     """
+    _filter1_options = [
+        'Bessel 100 kHz',
+        'Bessel 30 kHz',
+        'Bessel 10 kHz',
+        'HQ 30 kHz',
+    ]
+
     def __init__(self, handle, reader):
 
         # Read properties
@@ -1564,15 +1576,17 @@ class AmplifierState:
         handle.seek(i + 8)      # sCurrentGain = 8;  (* LONGREAL *)
         self._current_gain = reader.read1('d')
 
-        # Series resistance compensation
+        # Series resistance and compensation
         handle.seek(i + 40)     # sRsFraction = 40; (* LONGREAL *)
         self._rs_fraction = reader.read1('d')
-        handle.seek(i + 240)    # sRsOn = 240; (* BYTE *)
-        self._rs_enabled = bool(reader.read1('b'))
-
         handle.seek(i + 88)    # sGSeries = 88; (* LONGREAL *)
         self._g_series = reader.read1('d')
+        handle.seek(i + 240)    # sRsOn = 240; (* BYTE *)
+        self._rs_enabled = bool(reader.read1('b'))
+        handle.seek(i + 304)  # sRsTau = 304; (* LONGREAL *)
+        self._rs_tau = reader.read1('d')
 
+        # Fast capacitance correction
         handle.seek(i + 56)    # sCFastAmp1 = 56; (* LONGREAL *)
         self._cf_amp1 = reader.read1('d')
         handle.seek(i + 64)    # sCFastAmp2 = 64; (* LONGREAL *)
@@ -1582,58 +1596,62 @@ class AmplifierState:
         handle.seek(i + 285)   # sCCCFastOn = 285; (* BYTE *)
         self._cf_enabled = bool(reader.read1('b'))
 
+        # Slow capacitance correction
         handle.seek(i + 80)    # sCSlow = 80; (* LONGREAL *)
         self._cs = reader.read1('d')
+        # Auto CSlow settings. See 4.9 "EPC 10 USB Menu" in the manual.
         handle.seek(i + 152)    # sCSlowStimVolts = 152; (* LONGREAL *)
-        self._cs_stim = reader.read1('d')
+        self._cs_auto_stim = reader.read1('d')
+        handle.seek(i + 168)    # sTimeoutCSlow = 168; (* LONGREAL *)
+        self._cs_auto_timeout = reader.read1('d')
+        handle.seek(i + 210)    # sCSlowCycles = 210; (* INT16 *)
+        self._cs_auto_cycles = reader.read1('h')
 
+        # Voltage offsets
         handle.seek(i + 128)  # sVpOffset = 128; (* LONGREAL *)
         self._voff = reader.read1('d')
         handle.seek(i + 136)  # sVLiquidJunction = 136; (* LONGREAL *)
         self._ljp = reader.read1('d')
 
+        # Filter 1
+        handle.seek(i + 281)  # sFilter1 = 281; (* BYTE *)
+        self._filter1 = reader.read1('b')
+
         #TODO: Add these are proper properties with a docstring'd method that
         # returns them and says what the units are etc. or stop reading them.
-        self._temp = {}
-        handle.seek(i + 304)  # sRsTau = 304; (* LONGREAL *)
-        self._temp['sRsTau'] = reader.read1('d')
+        # self._temp = {}
+        # handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
+        # self._temp['sImon1Bandwidth'] = reader.read1('d')
 
-        handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
-        self._temp['sImon1Bandwidth'] = reader.read1('d')
-        handle.seek(i + 281)  # sFilter1 = 281; (* BYTE *)
-        self._temp['sFilter1'] = reader.read1('b')
-        handle.seek(i + 294)  # sF1Mode = 294; (* BYTE *)
-        self._temp['sF1Mode'] = reader.read1('b')
+        # handle.seek(i + 16)  # sF2Bandwidth = 16; (* LONGREAL *)
+        # self._temp['sF2Bandwidth'] = reader.read1('d')
+        # handle.seek(i + 24)  # sF2Frequency = 24; (* LONGREAL *)
+        # self._temp['sF2Frequency'] = reader.read1('d')
+        # handle.seek(i + 230)  # sHasF2Bypass = 230; (* BYTE *)
+        # self._temp['sHasF2Bypass'] = reader.read1('b')
+        # handle.seek(i + 231)  # sF2Mode = 231; (* BYTE *)
+        # self._temp['sF2Mode'] = reader.read1('b')
+        # handle.seek(i + 239)  # sF2Response = 239; (* BYTE *)
+        # self._temp['sF2Response'] = reader.read1('b')
+        # handle.seek(i + 287)  # sF2Source = 287; (* BYTE *)
+        # self._temp['sF2Source'] = reader.read1('b')
 
-        handle.seek(i + 16)  # sF2Bandwidth = 16; (* LONGREAL *)
-        self._temp['sF2Bandwidth'] = reader.read1('d')
-        handle.seek(i + 24)  # sF2Frequency = 24; (* LONGREAL *)
-        self._temp['sF2Frequency'] = reader.read1('d')
-        handle.seek(i + 230)  # sHasF2Bypass = 230; (* BYTE *)
-        self._temp['sHasF2Bypass'] = reader.read1('b')
-        handle.seek(i + 231)  # sF2Mode = 231; (* BYTE *)
-        self._temp['sF2Mode'] = reader.read1('b')
-        handle.seek(i + 239)  # sF2Response = 239; (* BYTE *)
-        self._temp['sF2Response'] = reader.read1('b')
-        handle.seek(i + 287)  # sF2Source = 287; (* BYTE *)
-        self._temp['sF2Source'] = reader.read1('b')
+        # handle.seek(i + 296)  # sStimFilterHz = 296; (* LONGREAL *)
+        # self._temp['sStimFilterHz'] = reader.read1('d')
+        # handle.seek(i + 320)  # sInputFilterTau = 320; (* LONGREAL *)
+        # self._temp['sInputFilterTau'] = reader.read1('d')
+        # handle.seek(i + 328)  # sOutputFilterTau = 328; (* LONGREAL *)
+        # self._temp['sOutputFilterTau'] = reader.read1('d')
 
-        handle.seek(i + 296)  # sStimFilterHz = 296; (* LONGREAL *)
-        self._temp['sStimFilterHz'] = reader.read1('d')
-        handle.seek(i + 320)  # sInputFilterTau = 320; (* LONGREAL *)
-        self._temp['sInputFilterTau'] = reader.read1('d')
-        handle.seek(i + 328)  # sOutputFilterTau = 328; (* LONGREAL *)
-        self._temp['sOutputFilterTau'] = reader.read1('d')
+        # handle.seek(i + 384)  # sVmonFiltBandwidth = 384; (* LONGREAL *)
+        # self._temp['sVmonFiltBandwidth'] = reader.read1('d')
+        # handle.seek(i + 392)  # sVmonFiltFrequency = 392; (* LONGREAL *)
+        # self._temp['sVmonFiltFrequency'] = reader.read1('d')
 
-        handle.seek(i + 384)  # sVmonFiltBandwidth = 384; (* LONGREAL *)
-        self._temp['sVmonFiltBandwidth'] = reader.read1('d')
-        handle.seek(i + 392)  # sVmonFiltFrequency = 392; (* LONGREAL *)
-        self._temp['sVmonFiltFrequency'] = reader.read1('d')
-
-        handle.seek(i + 112)  # sVHold = 112; (* LONGREAL *)
-        self._temp['sVHold'] = reader.read1('d')
-        handle.seek(i + 120)  # sLastVHold = 120; (* LONGREAL *)
-        self._temp['sLastVHold'] = reader.read1('d')
+        # handle.seek(i + 112)  # sVHold = 112; (* LONGREAL *)
+        # self._temp['sVHold'] = reader.read1('d')
+        # handle.seek(i + 120)  # sLastVHold = 120; (* LONGREAL *)
+        # self._temp['sLastVHold'] = reader.read1('d')
 
     def c_fast(self):
         """
@@ -1661,17 +1679,27 @@ class AmplifierState:
         """
         return self._cs * 1e12
 
-    def c_slow_stim_voltage(self):
+    def c_slow_auto_settings(self):
         """
-        Returns the test voltage (mV) used in estimating slow capacitance.
+        Returns a tuple with the settings used when automatically estimating
+        C-slow: (Pulse amplitude in mV, number of cycles, Timeouet in s).
+
+        See :meth:`c_slow`.
         """
-        return self._cs_stim * 1e3
+        return (self._cs_auto_stim * 1e3, self._cs_auto_cycles,
+                self._cs_auto_timeout)
 
     def current_gain(self):
         """
         The gain setting for current measurements, in mV/pA.
         """
         return self._current_gain * 1e-9
+
+    def filter1(self):
+        """
+        Returns a string describing the used (always-on) analog Filter 1.
+        """
+        return self._filter1_options[self._filter1]
 
     def ljp(self):
         """
@@ -1689,6 +1717,13 @@ class AmplifierState:
         """
         return self._ljp * 1e3
 
+    def r_series(self):
+        """
+        Returns the last (uncompensated) series resistance (MOhm) before
+        acquiring the trace.
+        """
+        return 1e-6 / self._g_series
+
     def r_series_enabled(self):
         """
         Returns ``True`` if series resistance compensation was enabled and set
@@ -1703,16 +1738,16 @@ class AmplifierState:
         """
         return self._rs_fraction if self._rs_enabled else 0
 
-    def r_series(self):
+    def r_series_tau(self):
         """
-        Returns the last (uncompensated) series resistance (MOhm) before
-        acquiring the trace.
+        Returns the series resistance compensation time constant, in
+        microseconds, or 0 if series resistance compensation was not enabled.
         """
-        return 1e-6 / self._g_series
+        return self._rs_tau * 1e6 if self._rs_enabled else 0
 
     def v_off(self):
         """
-        Returns the Vp offset (in mV) used.
+        Returns the used voltage offset (in mV), also called V0.
         """
         return self._voff * 1e3
 
@@ -1832,9 +1867,8 @@ class Stimulus(TreeNode):
         handle.seek(start + 144)  # stNumberSweeps = 144; (* INT32 *)
         self._sweep_count = reader.read1('i')
 
-        # TODO: Add method to return this w explanation etc.
-        handle.seek(start + 136)  # stFilterFactor = 136; (* LONGREAL *)
-        self._filter_factor = reader.read1('d')
+        # handle.seek(start + 136)  # stFilterFactor = 136; (* LONGREAL *)
+        # self._filter_factor = reader.read1('d')
 
     def _read_finalize(self):
         # See TreeNode._read_finalize
@@ -2056,7 +2090,7 @@ class StimulusChannel(TreeNode):
         self._holding = reader.read1('d')
 
         handle.seek(start + 76)     # chStimToDacID = 76; (* SET16 *)
-        flags = StimulusChannelDACFlags(reader.read('?' * 16))
+        flags = _StimulusChannelDACFlags(reader.read('?' * 16))
         self._use_stim_scale = flags.use_stim_scale
         self._use_relative = flags.use_relative
         self._use_file_template = flags.use_file_template
@@ -2293,7 +2327,7 @@ class StimulusChannel(TreeNode):
 #        bit 15 (UseReserved)
 # *)
 #
-class StimulusChannelDACFlags:
+class _StimulusChannelDACFlags:
     """
     Takes a ``StimToDacID`` list of bools and sets them as named properties.
 

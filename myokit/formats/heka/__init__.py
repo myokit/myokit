@@ -4,7 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 from ._patchmaster import ( # noqa
+    AmplifierFile,
     AmplifierMode,
+    AmplifierSeries,
+    AmplifierState,
+    AmplifierStateRecord,
     EndianAwareReader,
     Group,
     NoSupportedDAChannelError,
