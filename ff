@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+import myokit
+import myokit.formats
+
+m, p, _ = myokit.load('example')
+
+e = myokit.formats.exporter('chaste')
+
+e.runnable('chaste', m, p)
