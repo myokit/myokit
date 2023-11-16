@@ -66,7 +66,11 @@ To see what else Myokit can do, type
 ## Contributing to Myokit
 
 You can contribute to Myokit by [reporting issues](https://github.com/myokit/myokit/issues), but code contributions (bugfixes, new formats, new features etc.) are also very welcome!
-New features are best discussed in an issue before starting any implementation work, and guidelines for code style (and more) can be found in [CONTRIBUTING.md](https://github.com/myokit/myokit/blob/main/CONTRIBUTING.md).
+
+Before writing significant chunks of code, it's usually best to discuss your proposal in an [Issue](https://github.com/myokit/myokit/issues).
+Guidelines for code style (and more) can be found in [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+A high-level plan for Myokit's future is provided in the [roadmap](./ROADMAP.md).
 
 
 ## Citing Myokit
