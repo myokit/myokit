@@ -123,7 +123,7 @@ For example, the code for `myokit.Model` lives in the hidden module `myokit._mod
 - Configuration loading and storing is handled in `_config.py`.
 - System information is be queried in `_system.py`
 
-
+More information can be found in Myokit's [Technical Notes](https://github.com/myokit/examples#technical-notes).
 
 
 
