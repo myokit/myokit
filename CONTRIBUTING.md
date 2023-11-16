@@ -124,6 +124,7 @@ For example, the code for `myokit.Model` lives in the hidden module `myokit._mod
 - System information is be queried in `_system.py`
 
 More information can be found in Myokit's [Technical Notes](https://github.com/myokit/examples#technical-notes).
+A high-level plan for Myokit's future is provided by the [roadmap](./ROADMAP.md).
 
 
 
