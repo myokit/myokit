@@ -4,23 +4,23 @@ This document presents a high-level overview of the goals for Myokit's future de
 
 ## Compatibility, performance, and ease-of-installation
 
-Myokit's `Simulation` class currently requires users to have a specific compiler installed, as well as a version of Sundials compiled with that compiler.
-In addition, the on-the-fly compilation via `distutils`/`setuptools` has gotten slightly slower on linux in recent versions, but significantly slower on some Windows installations.
+Myokit's `Simulation` class currently requires users to have a Python-specific C compiler installed, along with compatibly compiled Sundials binaries.
+In addition, in recent Python versions on-the-fly compilation via `distutils`/`setuptools` has gotten slightly slower on linux, but significantly slower on some Windows installs.
 A rewrite of the simulation class to use a precompiled simulation engine and model code generated through llvmlite could solve both problems.
 
-- Tickets related to this "Simulation revamp" are grouped in a [project](https://github.com/myokit/myokit/projects/5), but currently represent only a fraction of the expected work.
-- Including precompiled parts will require a change in the way Myokit is distributed; a proof-of-concept can be found [here](https://github.com/myokit/beta/).
+- Tickets related to this "Simulation revamp" are grouped in a [project](https://github.com/myokit/myokit/projects/5), but represent a fraction of the expected work.
+- Including precompiled parts will require a change in the way Myokit is distributed; a proof-of-concept is found [here](https://github.com/myokit/beta/).
 
 ## Improved documentation
 
-Myokit's current documentation is extensive but too fragmented, consisting of:
+Myokit's current documentation is extensive but fragmented, consisting of:
 
 - A [full API documentation](https://myokit.readthedocs.io/) which includes a short user guide.
 - A set of [static examples](http://myokit.org/examples/) and [tutorial hand-outs](http://myokit.org/tutorial/).
 - [Technical notes](https://github.com/myokit/examples#technical-notes).
 - [Contributing guidelines](https://github.com/myokit/myokit/blob/main/CONTRIBUTING.md), which also contain a high-level overview of Myokit's code.
 
-To improve the fragmentation, we plan to create an extensive set of Jupyter notebook examples which replace the user guide, examples, and technical notes.
+To reduce fragmentation, an extensive set of Jupyter notebook examples is planned, which will combine and replace the user guide, examples, and technical notes.
 The API documentation and contributing guidelines will remain separate.
 
 The planned index can be viewed at [https://github.com/myokit/examples](https://github.com/myokit/examples).
@@ -30,19 +30,19 @@ Chapters will gradually build up in complexity, and function as a "live textbook
 
 Two major improvements are planned:
 
-- Improved calculation of "sensitivities" of simulation results w.r.t. parameters, see this [project](https://github.com/myokit/myokit/projects/6).
- - Issues related to initial conditions with parameter dependecies are group in a separate [project](https://github.com/myokit/myokit/projects/13).
+- Improved calculation of "sensitivities" of simulation results with respect to model parameters, see this [project](https://github.com/myokit/myokit/projects/6).
+ - Issues related to initial conditions with parameter dependecies are grouped in a separate [project](https://github.com/myokit/myokit/projects/13).
 - A rewrite of the HH and Markov model simulations ([project](https://github.com/myokit/myokit/projects/8)).
   - Allow these models to be created independent of the `myokit.Model` class (for model selection studies) based on [pilot work by Joey](https://github.com/CardiacModelling/markov-builder).
-  - Provide compiled simulations for better performance during inference (relies on llvm revamp described above).
+  - Provide compiled simulations for better performance during inference (relies on LLVM simulation revamp described above).
 
 ## Maintenance
 
 - Implement singularity fixes created for [cellmlmanip with Maurice](https://github.com/myokit/myokit/issues/809).
 - Units should have the option to "remember" a preferred representation [#783](https://github.com/myokit/myokit/issues/783).
 - Creation of symbolic expressions should be simplified through operator overloading [#798](https://github.com/myokit/myokit/issues/798).
-- Low-priority possible bugs need looking into. [Tickets here](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3Abug).
-- Various potential code improvements have been identified. [Tickets here](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3Acode).
+- Some possible, but low-priority, bugs have been reported: [Tickets here](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3Abug).
+- Various potential code improvements have been identified: [Tickets here](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3Acode).
 - Use of IDE components needs to be made easier on Mac [#38](https://github.com/myokit/myokit/issues/38) and may even be broken [#692](https://github.com/myokit/myokit/issues/692).
 
 ## Back-burner
