@@ -2198,5 +2198,5 @@ functions['abs'] = myokit.Abs
 functions['dot'] = myokit.Derivative
 functions['if'] = myokit.If
 functions['piecewise'] = myokit.Piecewise
-# TODO: 'partial' and 'init' are also function names used in output, but are
-# not currently handled by the parser. Not sure if they should be!
+# TODO: 'partial' is also a function name used in output, but is not currently
+# handled by the parser. Not sure if it should be!

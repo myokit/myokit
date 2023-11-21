@@ -59,8 +59,7 @@ class CModel:
         :class:`myokit.Derivative`).
     ``independents``
         A list of "independent variables" for sensitivity calculations, all
-        specified as expressions (:class:`myokit.Name` or
-        :class:`myokit.InitialValue`).
+        specified as expressions (:class:`myokit.Name` objects).
 
     Constants (and parameters) are all stored inside ordered dicts mapping
     variable objects onto equations. Each dict is stored in a solvable order.
@@ -107,7 +106,6 @@ class CModel:
             output_equations = []
 
         # Partition constants into 4 types
-
         literals, literal_derived, parameters, parameter_derived = \
             self._partition_constants(equations, independents)
 
@@ -146,13 +144,13 @@ class CModel:
 
         - Variable (state or intermediary)
         - Name or Derivative
-        - "ina.INa" or "dot(membrane.V)"
+        - String "ina.INa" or "dot(membrane.V)"
 
         Acceptable input for independents (x in dy/dx):
 
         - Variable (literal)
-        - Name or InitialValue
-        - "ikr.gKr" or "init(membrane.V)"
+        - Name
+        - "ikr.gKr"
 
         The resulting lists contain Expression objects.
         """
@@ -207,36 +205,21 @@ class CModel:
             # easy, e.g. when working with multiple models.
             dependents.append(lhs)
 
-        # Check independents, make sure all are Name or InitialValue
+        # Check independents, make sure all are Name
         # objects from the cloned model.
         for x in indeps:
-            init = False
             if isinstance(x, myokit.Variable):
                 var = model.get(x.qname())
             elif isinstance(x, myokit.Name):
                 var = model.get(x.var().qname())
-            elif isinstance(x, myokit.InitialValue):
-                init = True
-                var = model.get(x.var().qname())
             else:
-                x = str(x)
-                if x[:5] == 'init(' and x[-1:] == ')':
-                    init = True
-                    x = x[5:-1]
-                var = model.get(x)
+                var = model.get(str(x))
             lhs = myokit.Name(var)
-            if init:
-                lhs = myokit.InitialValue(myokit.Name(var))
-                if not var.is_state():
-                    raise ValueError(
-                        'Sensitivity with respect to ' + lhs.code() +
-                        ' requested, but ' + var.qname() + ' is not a'
-                        ' state variable.')
-            elif not var.is_literal():
+            if not var.is_literal():
                 raise ValueError(
-                    'Sensitivity with respect to ' + var.qname() +
-                    ' requested, but this is not a literal variable (it'
-                    ' depends on other variables).')
+                    f'Sensitivity with respect to <{var.qname()}> requested,'
+                    ' but this is not a literal variable (it depends on other'
+                    ' variables).')
             independents.append(lhs)
 
         return True, dependents, independents
@@ -398,10 +381,6 @@ class CModel:
             parameter_derived, v, w):
         """ Generates and returns the model code. """
 
-        # Get states whose initial value is used in sensivitity calculations
-        initials = [p.var().index() for p in independents
-                    if isinstance(p, myokit.InitialValue)]
-
         # Arguments
         args = {
             'model': model,
@@ -410,7 +389,6 @@ class CModel:
             's_dependents': dependents,
             's_independents': independents,
             's_output_equations': output_equations,
-            'initials': initials,
             'parameters': parameters,
             'parameter_derived': parameter_derived,
             'literals': literals,

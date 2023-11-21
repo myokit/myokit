@@ -60,7 +60,6 @@ myokit
 - :class:`myokit.IncompatibleUnitError`
 - :class:`myokit.InfixCondition`
 - :class:`myokit.InfixExpression`
-- :class:`myokit.InitialValue`
 - :class:`myokit.IntegrityError`
 - :class:`myokit.InvalidBindingError`
 - :class:`myokit.InvalidDataLogError`

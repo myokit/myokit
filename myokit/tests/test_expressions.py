@@ -127,27 +127,18 @@ class ExpressionTest(unittest.TestCase):
         self.assertTrue(p.depends_on(myokit.Name('x'), True))
         self.assertFalse(p.depends_on(v, True))
 
-        # Deep checking can handle partial derivs and inits
+        # Deep checking can handle partial derivs
         q = myokit.PartialDerivative(myokit.Name(v.var()), c)
         self.assertFalse(q.depends_on(c, True))
         self.assertFalse(q.depends_on(c, False))
         self.assertFalse(q.depends_on(myokit.Name(v.var()), True))
         self.assertFalse(q.depends_on(myokit.Name(v.var()), False))
-        q = myokit.InitialValue(myokit.Name(v.var()))
-        self.assertFalse(q.depends_on(c, True))
-        self.assertFalse(q.depends_on(c, False))
-        self.assertFalse(q.depends_on(myokit.Name(v.var()), True))
-        self.assertFalse(q.depends_on(myokit.Name(v.var()), False))
 
-        # Deep checking can handle partial derivs and inits & improper names
+        # Deep checking can handle partial derivs and improper names
         # See note above about issue 913
         q = myokit.Plus(p, myokit.PartialDerivative(v, myokit.Name('x')))
         self.assertTrue(q.depends_on(c, True))
         self.assertTrue(q.depends_on(myokit.Name('x'), True))
-        q = myokit.Plus(p, myokit.InitialValue(myokit.Name('x')))
-        self.assertTrue(q.depends_on(c, True))
-        self.assertTrue(q.depends_on(myokit.Name('x'), True))
-        self.assertFalse(q.depends_on(v, True))
 
         # Test with complex web of dependencies
         m.get('ina.E').set_rhs('a + b + c + k1 + k2 + inf')
@@ -191,18 +182,12 @@ class ExpressionTest(unittest.TestCase):
         self.assertFalse(p.depends_on_state(deep=False))
         self.assertFalse(p.depends_on_state(deep=True))
 
-        # Can handle partial derivs and inits (always false)
+        # Can handle partial derivs (always false)
         v = v.lhs()
         q = myokit.PartialDerivative(v, c)
         self.assertFalse(q.depends_on_state(False))
         self.assertFalse(q.depends_on_state(True))
         q = myokit.Plus(c, myokit.PartialDerivative(v, c))
-        self.assertFalse(q.depends_on_state(False))
-        self.assertFalse(q.depends_on_state(True))
-        q = myokit.InitialValue(myokit.Name(v.var()))
-        self.assertFalse(q.depends_on_state(False))
-        self.assertFalse(q.depends_on_state(True))
-        q = myokit.Plus(c, myokit.InitialValue(myokit.Name(v.var())))
         self.assertFalse(q.depends_on_state(False))
         self.assertFalse(q.depends_on_state(True))
 
@@ -262,23 +247,6 @@ class ExpressionTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'only be taken with respect to a myokit.Name or',
             i.rhs().diff, V.lhs())
-
-        # Derivative w.r.t. initial condition is zero when states are
-        # independent, otherwise equates to dependence on any state
-        V0 = myokit.InitialValue(myokit.Name(V))
-        dV = V.lhs()
-        self.assertEqual(
-            dV.diff(V0, independent_states=True),
-            myokit.Number(0, 1 / myokit.units.ms))
-        self.assertEqual(
-            dV.diff(V0, independent_states=False),
-            myokit.PartialDerivative(dV, V0))
-        self.assertEqual(
-            i.lhs().diff(V0, independent_states=True),
-            myokit.Number(0, myokit.units.pA / myokit.units.mV))
-        self.assertEqual(
-            i.lhs().diff(V0, independent_states=False),
-            myokit.PartialDerivative(i.lhs(), V0))
 
     def test_equal(self):
         # Test equality checking on general equations
@@ -1302,9 +1270,8 @@ class PartialDerivativeTest(unittest.TestCase):
 
         n = myokit.Name('v')
         d = myokit.Derivative(n)
-        i = myokit.InitialValue(n)
 
-        # First = name or derivative, Second = name or initial value
+        # First = name or derivative, Second = name
         p = myokit.PartialDerivative(n, n)
         self.assertIs(p.dependent_expression(), n)
         self.assertIs(p.independent_expression(), n)
@@ -1313,18 +1280,10 @@ class PartialDerivativeTest(unittest.TestCase):
         self.assertIs(p.dependent_expression(), d)
         self.assertIs(p.independent_expression(), n)
 
-        p = myokit.PartialDerivative(n, i)
-        self.assertIs(p.dependent_expression(), n)
-        self.assertIs(p.independent_expression(), i)
-
-        p = myokit.PartialDerivative(d, i)
-        self.assertIs(p.dependent_expression(), d)
-        self.assertIs(p.independent_expression(), i)
-
         # Others are not allowed
         self.assertRaisesRegex(
             myokit.IntegrityError, 'first argument to a partial',
-            myokit.PartialDerivative, i, n)
+            myokit.PartialDerivative, d, n)
         self.assertRaisesRegex(
             myokit.IntegrityError, 'first argument to a partial',
             myokit.PartialDerivative, myokit.Number(3), n)
@@ -1427,119 +1386,6 @@ class PartialDerivativeTest(unittest.TestCase):
         C = myokit.Name(m.get('membrane.C'))
         p = myokit.PartialDerivative(V, C)
         self.assertEqual(p.var(), V.var())
-
-
-class InitialValueTest(unittest.TestCase):
-    """ Tests myokit.InitialValue. """
-
-    def test_creation(self):
-        # Tests creating an initial value
-
-        n = myokit.Name('v')
-        d = myokit.Derivative(n)
-        i = myokit.InitialValue(n)
-
-        # Value must be a name
-        self.assertRaisesRegex(
-            myokit.IntegrityError, 'first argument to an initial',
-            myokit.InitialValue, d)
-        self.assertRaisesRegex(
-            myokit.IntegrityError, 'first argument to an initial',
-            myokit.InitialValue, myokit.Number(3),)
-        self.assertRaisesRegex(
-            myokit.IntegrityError, 'first argument to an initial',
-            myokit.InitialValue, myokit.PrefixPlus(n))
-
-    def test_bracket(self):
-        # Tests InitialValue.bracket()
-        n = myokit.Name('v')
-        i = myokit.InitialValue(n)
-        self.assertFalse(i.bracket(n))
-        m = myokit.Name('w')
-        self.assertRaises(ValueError, i.bracket, m)
-
-    def test_clone(self):
-        # Tests InitialValue.clone()
-        n = myokit.Name('v')
-        m = myokit.Name('w')
-        i = myokit.InitialValue(n)
-        self.assertEqual(i, i.clone())
-        self.assertFalse(i is i.clone())
-        self.assertEqual(i.clone(subst={n: m}), myokit.InitialValue(m))
-        self.assertEqual(i.clone(subst={i: m}), m)
-
-    def test_code(self):
-        # Tests InitialValue.code()
-        n = myokit.Name('v')
-        i = myokit.InitialValue(n)
-        self.assertEqual(i.code(), 'init(str:v)')
-
-    def test_diff(self):
-        # Tests InitialValue.diff()
-        m = pd_model
-        V = myokit.Name(m.get('membrane.V'))
-        C = myokit.Name(m.get('membrane.C'))
-        i = myokit.InitialValue(V)
-        self.assertRaises(NotImplementedError, i.diff, C)
-
-    def test_equal(self):
-        # Tests InitialValue.__equal__()
-        n = myokit.Name('v')
-        m = myokit.Name('w')
-        i = myokit.InitialValue(n)
-        j = myokit.InitialValue(n)
-        k = myokit.InitialValue(m)
-        self.assertEqual(i, j)
-        self.assertFalse(i is j)
-        self.assertNotEqual(i, k)
-        self.assertNotEqual(i, m)
-
-    def test_eval_unit(self):
-        # Tests InitialValue.eval_unit()
-
-        m = pd_model.clone()
-        V = myokit.Name(m.get('membrane.V'))
-        i = myokit.InitialValue(V)
-        self.assertEqual(i.eval_unit(), myokit.units.mV)
-
-    def test_repr(self):
-        # Tests InitialValue.__repr__()
-        n = myokit.Name('v')
-        i = myokit.InitialValue(n)
-        self.assertEqual(repr(i), '<InitialValue(' + repr(n) + ')>')
-
-    def test_rhs(self):
-        # Tests InitialValue.rhs()
-        n = myokit.Name('v')
-        i = myokit.InitialValue(n)
-        self.assertIsNone(i.rhs())
-
-    def test_tree_str(self):
-        # Tests InitialValue.tree_str()
-        n = myokit.Name('v')
-        i = myokit.InitialValue(n)
-        self.assertEqual(i.tree_str(), 'init(v)\n')
-        q = myokit.PrefixPlus(i)
-        self.assertEqual(q.tree_str(), '+\n  init(v)\n')
-
-    def test_var(self):
-        # Tests InitialValue.var()
-        m = pd_model
-        V = myokit.Name(m.get('membrane.V'))
-        i = myokit.InitialValue(V)
-        self.assertEqual(i.var(), V.var())
-
-    def test_validate(self):
-        # Tests InitialValue validation
-
-        # Must be a state
-        m = pd_model
-        V = myokit.Name(m.get('membrane.V'))
-        C = myokit.Name(m.get('membrane.C'))
-        i = myokit.InitialValue(V)
-        i.validate()
-        i = myokit.InitialValue(C)
-        self.assertRaises(myokit.IntegrityError, i.validate)
 
 
 class PrefixPlusTest(unittest.TestCase):

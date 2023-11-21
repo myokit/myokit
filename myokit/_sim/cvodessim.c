@@ -2,8 +2,8 @@
 # cvodessim.c
 #
 # A pype template for a single cell CVODES-based simulation that can calculate
-# sensitivities of variables ``v`` w.r.t. parameters or initial conditions and
-# perform root-finding.
+# sensitivities of variables ``v`` with respect to parameters, and can perform
+# root-finding.
 #
 # Note: For compatibility with older Python versions on windows, we need to
 # stick to a slightly outdated C standard (i.e. C90). For a list of which
@@ -504,7 +504,7 @@ sim_clean(void)
         #endif
         Py_XDECREF(benchmarker_time_str); benchmarker_time_str = NULL;
 
-        /* Deinitialisation complete */
+        /* Deinitialization complete */
         initialized = 0;
     }
 
@@ -720,7 +720,7 @@ sim_init(PyObject *self, PyObject *args)
     /* Set up profiling */
     #ifdef MYOKIT_DEBUG_PROFILING
     benchmarker_print_str = PyUnicode_FromString("print");
-    benchmarker_print("CP Initialisation started (entered sim_init()).");
+    benchmarker_print("CP Initialization started (entered sim_init()).");
     #endif
 
     /* Print info about simulation to undertake */
