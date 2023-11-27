@@ -74,5 +74,5 @@ A high-level plan for Myokit's future is provided in the [roadmap](./ROADMAP.md)
 
 If you use Myokit in your research, please cite it using the information in our [CITATION file](https://github.com/myokit/myokit/blob/main/CITATION).
 
-We like to [keep track of who's using Myokit](http://myokit.org/publications/) for research (based on publications) and teaching (based on people letting us know).
-If you've used Myokit in teaching, we're very happy to hear about it via michael[at]myokit.org.
+We like to [keep track of who's using Myokit](http://myokit.org/publications/) for research (based on publications) and teaching (based on peronsal correspondence).
+If you've used Myokit in teaching, we're always happy to hear about it so please get in touch with michael[at]myokit.org.
