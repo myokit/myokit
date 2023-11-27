@@ -19,8 +19,9 @@ Myokit's current documentation is extensive but fragmented, consisting of:
 - A set of [static examples](http://myokit.org/examples/) and [tutorial hand-outs](http://myokit.org/tutorial/).
 - [Technical notes](https://github.com/myokit/examples#technical-notes).
 - [Contributing guidelines](https://github.com/myokit/myokit/blob/main/CONTRIBUTING.md), which also contain a high-level overview of Myokit's code.
+- Installation instructions, at http://myokit.org/install
 
-To reduce fragmentation, an extensive set of Jupyter notebook examples is planned, which will combine and replace the user guide, examples, and technical notes.
+To reduce fragmentation, an extensive set of Jupyter notebook examples is planned, which will combine and replace the user guide, examples, installation guide, and technical notes.
 The API documentation and contributing guidelines will remain separate.
 
 The planned index can be viewed at [https://github.com/myokit/examples](https://github.com/myokit/examples).
