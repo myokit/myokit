@@ -65,16 +65,14 @@ To see what else Myokit can do, type
 
 ## Contributing to Myokit
 
-You can contribute to Myokit by [reporting issues](https://github.com/myokit/myokit/issues), but code contributions (bugfixes, new formats, new features etc.) are also very welcome!
-
-Before writing significant chunks of code, it's usually best to discuss your proposal in an [Issue](https://github.com/myokit/myokit/issues).
-Guidelines for code style (and more) can be found in [CONTRIBUTING.md](./CONTRIBUTING.md).
+You can contribute to Myokit by [asking questions](https://github.com/myokit/myokit/discussions), [reporting issues](https://github.com/myokit/myokit/issues), or contributing  code!
+Detailed instructions on writing code for Myokit are found in [CONTRIBUTING.md](./CONTRIBUTING.md), but before doing anything, open [an issue](https://github.com/myokit/myokit/issues) where we can discuss what can and should be done.
 
 A high-level plan for Myokit's future is provided in the [roadmap](./ROADMAP.md).
-
 
 ## Citing Myokit
 
 If you use Myokit in your research, please cite it using the information in our [CITATION file](https://github.com/myokit/myokit/blob/main/CITATION).
 
-I like to [keep track of who's using Myokit](http://myokit.org/publications/) (for my CV!). If you are using Myokit for teaching, I'd love to hear about it. You can drop me a line at michael[at]myokit.org.
+We like to [keep track of who's using Myokit](http://myokit.org/publications/) for research (based on publications) and teaching (based on peronsal correspondence).
+If you've used Myokit in teaching, we're always happy to hear about it so please get in touch with michael[at]myokit.org.
