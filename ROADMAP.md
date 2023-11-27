@@ -15,17 +15,18 @@ A rewrite of the simulation class to use a precompiled simulation engine and mod
 
 Myokit's current documentation is extensive but fragmented, consisting of:
 
-- A [full API documentation](https://myokit.readthedocs.io/) which includes a short user guide.
+- The developer docs, including the [full API documentation](https://myokit.readthedocs.io/), and the `mmt` syntax specification.
+- A brief "User guide", included with the developer documentation.
 - A set of [static examples](http://myokit.org/examples/) and [tutorial hand-outs](http://myokit.org/tutorial/).
 - [Technical notes](https://github.com/myokit/examples#technical-notes).
 - [Contributing guidelines](https://github.com/myokit/myokit/blob/main/CONTRIBUTING.md), which also contain a high-level overview of Myokit's code.
 - Installation instructions, at http://myokit.org/install
 
-To reduce fragmentation, an extensive set of Jupyter notebook examples is planned, which will combine and replace the user guide, examples, installation guide, and technical notes.
-The API documentation and contributing guidelines will remain separate.
-
+To reduce fragmentation, an extensive set of Jupyter notebook examples is planned, which will bring together the user guide, examples, installation guide, and technical notes.
 The planned index can be viewed at [https://github.com/myokit/examples](https://github.com/myokit/examples).
 Chapters will gradually build up in complexity, and function as a "live textbook" that is regularly tested using CI.
+
+The API documentation and contributing guidelines will remain separate documents.
 
 ## Features for parameter estimation
 
