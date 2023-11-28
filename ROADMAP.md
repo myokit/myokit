@@ -9,7 +9,7 @@ In addition, in recent Python versions on-the-fly compilation via `distutils` / 
 A rewrite of the C-based simulation classes to use precompiled simulation engines and model code generated with llvmlite can solve both problems.
 The significant change in Myokit's core functionality would warrant an upgrade in major version number.
 
-- Initial tasks related to this conversion are listed in [this issue][https://github.com/myokit/myokit/issues/295]
+- Initial tasks related to this conversion are listed in [this issue](https://github.com/myokit/myokit/issues/295).
 
 ## Improved documentation
 
