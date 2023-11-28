@@ -33,7 +33,6 @@ The API documentation and contributing guidelines will remain separate documents
 Two major improvements are planned:
 
 - Improved calculation of "sensitivities" of simulation results with respect to model parameters, see this [project](https://github.com/myokit/myokit/projects/6).
-  - Issues related to initial conditions with parameter dependecies are grouped in a separate [project](https://github.com/myokit/myokit/projects/13).
 - A rewrite of the HH and Markov model simulations ([project](https://github.com/myokit/myokit/projects/8)).
   - Set up an interface to quickly create and edit these models (independent of the `myokit.Model` class) for model selection (e.g. drug-binding mechanism) studies, based on [pilot work by Joey](https://github.com/CardiacModelling/markov-builder).
   - Provide compiled simulations for better performance during inference (relies on LLVM work described above).
