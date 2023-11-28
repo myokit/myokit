@@ -70,11 +70,10 @@ Detailed instructions on writing code for Myokit are found in [CONTRIBUTING.md](
 
 A high-level plan for Myokit's future is provided in the [roadmap](./ROADMAP.md).
 
-
-## Meet the team!
+### Meet the team!
 
 Myokit is developed by a [team](https://github.com/orgs/myokit/people) at the Universities of Nottingham, Oxford, and Macao, led by Michael Clerx (michael[at]myokit.org).
-It has an external advisory board composed of Jordi Heijman (Maastricht University), Trine Krogh-Madsen (Weill Cornell Medicine), prof David Gavaghan (Oxford).
+It has an external advisory board composed of Jordi Heijman (Maastricht University), Trine Krogh-Madsen (Weill Cornell Medicine), and David Gavaghan (Oxford).
 
 
 ## Citing Myokit
