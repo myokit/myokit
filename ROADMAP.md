@@ -37,6 +37,7 @@ Two major improvements are planned:
 - A rewrite of the HH and Markov model simulations ([project](https://github.com/myokit/myokit/projects/8)).
   - Allow these models to be created independent of the `myokit.Model` class (for model selection studies) based on [pilot work by Joey](https://github.com/CardiacModelling/markov-builder).
   - Provide compiled simulations for better performance during inference (relies on LLVM simulation revamp described above).
+  - Provide fast parameter sensitivities for HH model simulations.
 
 ## Maintenance
 
