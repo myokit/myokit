@@ -70,9 +70,17 @@ Detailed instructions on writing code for Myokit are found in [CONTRIBUTING.md](
 
 A high-level plan for Myokit's future is provided in the [roadmap](./ROADMAP.md).
 
+
+## Meet the team!
+
+Myokit is developed by a [team](https://github.com/orgs/myokit/people) at the Universities of Nottingham, Oxford, and Macao, led by Michael Clerx (michael[at]myokit.org).
+It has an external advisory board composed of Jordi Heijman (Maastricht University), Trine Krogh-Madsen (Weill Cornell Medicine), prof David Gavaghan (Oxford).
+
+
 ## Citing Myokit
 
 If you use Myokit in your research, please cite it using the information in our [CITATION file](https://github.com/myokit/myokit/blob/main/CITATION).
 
 We like to [keep track of who's using Myokit](http://myokit.org/publications/) for research (based on publications) and teaching (based on peronsal correspondence).
 If you've used Myokit in teaching, we're always happy to hear about it so please get in touch with michael[at]myokit.org.
+
