@@ -6,8 +6,8 @@ This document presents a high-level overview of the goals for Myokit's future de
 
 Myokit's C-based simulation classes require users to install a Python version-specific C compiler and compatible Sundials binaries, which complicates installation (especially on non-linux platforms).
 In addition, in recent Python versions on-the-fly compilation via `distutils` / `setuptools` has gotten slightly slower (ms on linux) to significantly slower (minutes on some Windows installs).
-A rewrite of the C-based simulated classes to use precompiled simulation engines and model code generated with llvmlite can solve both problems.
-The significant change in Myokit's core engines would warrant an upgrade in major version number.
+A rewrite of the C-based simulation classes to use precompiled simulation engines and model code generated with llvmlite can solve both problems.
+The significant change in Myokit's core functionality would warrant an upgrade in major version number.
 
 - Initial tasks related to this conversion are listed in [this issue][https://github.com/myokit/myokit/issues/295]
 
