@@ -65,11 +65,13 @@ To see what else Myokit can do, type
 
 ## Contributing to Myokit
 
-Contributing to Myokit is as easy as [asking questions](https://github.com/myokit/myokit/discussions) or [reporting issues or feature requests](https://github.com/myokit/myokit/issues), and we have [pledged](./CODE_OF_CONDUCT.md) to make this an inclusive experience.
+Contributing to Myokit is as easy as [asking questions](https://github.com/myokit/myokit/discussions) or posting [issues and feature requests](https://github.com/myokit/myokit/issues), and we have [pledged](./CODE_OF_CONDUCT.md) to make this an inclusive experience.
 
-We are always looking for people to contribute code, and have provide [extensive guidelines](./CONTRIBUTING.md) to help you do so, but before diving in, please open [an issue](https://github.com/myokit/myokit/issues) so that we can discuss what can and should be done.
+We are always looking for people to contribute code too!
+Guidelines to help you do this are provided in [CONTRIBUTING.md](./CONTRIBUTING.md), but before diving in please [open an issue](https://github.com/myokit/myokit/issues) so that we can first discuss what needs to be done.
 
 A high-level plan for Myokit's future is provided in the [roadmap](./ROADMAP.md).
+
 
 ### Meet the team!
 
