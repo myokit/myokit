@@ -23,7 +23,8 @@ _natural_sort_regex = re.compile('([0-9]+)')
 
 class Benchmarker:
     """
-    Allows benchmarking using the with statement.
+    Provides reasonably precise benchmarking (with times obtained from
+    ``timeit.default_timer()``) and formats times.
 
     Example::
 
@@ -34,7 +35,7 @@ class Benchmarker:
         print(b.time())
         b.reset()
         s.run()
-        print(b.time())
+        print(b.format())
 
     """
     def __init__(self):
