@@ -5,19 +5,19 @@
 [![codecov](https://codecov.io/gh/myokit/myokit/branch/main/graph/badge.svg)](https://codecov.io/gh/myokit/myokit)
 [![Documentation Status](https://readthedocs.org/projects/myokit/badge/?version=latest)](https://myokit.readthedocs.io/?badge=latest)
 
-![Myokit](http://myokit.org/static/img/logo.png)
+![Myokit](https://myokit.org/static/img/logo.png)
 
-[Myokit](http://myokit.org) is a tool for modeling and simulation of cardiac cellular electrophysiology.
+[Myokit](https://myokit.org) is a tool for modeling and simulation of cardiac cellular electrophysiology.
 It's [open-source](https://github.com/myokit/myokit/blob/main/LICENSE.txt), written in Python, hosted on [GitHub](https://github.com/myokit/myokit/) and available on [PyPi](https://pypi.org/project/myokit/).
 For the latest documentation, see [myokit.readthedocs.io](https://myokit.readthedocs.io/).
 
-More information, including examples and an installation guide, is available on [myokit.org](http://myokit.org).
+More information, including examples and an installation guide, is available on [myokit.org](https://myokit.org).
 A list of changes introduced in each Myokit release is provided in the [Changelog](https://github.com/myokit/myokit/blob/main/CHANGELOG.md).
 
 
 ## Install
 
-For full installation details (on linux, mac, or windows), please see [http://myokit.org/install](http://myokit.org/install).
+For full installation details (on linux, mac, or windows), please see [https://myokit.org/install](https://myokit.org/install).
 A shorter installation guide for experienced users is given below.
 
 To install Myokit, using PyQt5 for Myokit's GUI components, run:
@@ -83,5 +83,5 @@ It is guided by an external advisory board composed of Jordi Heijman (Maastricht
 
 If you use Myokit in your research, please cite it using the information in our [CITATION file](https://github.com/myokit/myokit/blob/main/CITATION).
 
-We like to [keep track of who's using Myokit](http://myokit.org/publications/) for research (based on publications) and teaching (based on peronsal correspondence).
+We like to [keep track of who's using Myokit](https://myokit.org/publications/) for research (based on publications) and teaching (based on peronsal correspondence).
 If you've used Myokit in teaching, we're always happy to hear about it so please get in touch via the [discussion board](https://github.com/myokit/myokit/discussions)!
