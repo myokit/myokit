@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1045](https://github.com/myokit/myokit/pull/1045) Fixed an issue where the cache used in MarkovModel was not invalidated if `set_constant()` changed simulation parameters.
 
 ## [1.35.4] - 2023-10-12
 - Added
