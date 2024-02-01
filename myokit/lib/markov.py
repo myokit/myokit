@@ -1496,6 +1496,8 @@ class DiscreteSimulation:
         Updates a single parameter to a new value.
         """
         self._parameters[self._parameter_map[variable]] = float(value)
+        self._cached_rates = None
+        self._cached_matrix = None
 
     def set_default_state(self, state):
         """
