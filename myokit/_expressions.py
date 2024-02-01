@@ -54,14 +54,11 @@ class Expression:
         for op in self._operands:
             self._references |= op._references
 
-        # Contains partial derivatives or initial values?
+        # Contains partial derivatives?
         self._has_partials = False
-        self._has_initials = False
         for op in self._operands:
             if op._has_partials:
                 self._has_partials = True
-            if op._has_initials:
-                self._has_initials = True
 
         # Cached results:
         # Since expressions are immutable, the results of many methods can be
@@ -153,8 +150,6 @@ class Expression:
             return True
         if kind == PartialDerivative:
             return self._has_partials
-        if kind == InitialValue:
-            return self._has_initials
         for op in self:
             if op.contains_type(kind):
                 return True
@@ -184,8 +179,8 @@ class Expression:
             done.add(ref)
             if ref == lhs:
                 return True
-            elif ref._has_partials or ref._has_initials:
-                # Partial derivatives and initial values have no rhs
+            elif ref._has_partials:
+                # Partial derivatives have no RHS
                 continue
             elif not ref._proper:
                 # Values that are not variables count as independent
@@ -226,8 +221,8 @@ class Expression:
             done.add(ref)
             if ref.is_state_value():
                 return True
-            elif ref._has_partials or ref._has_initials:
-                # Partial derivatives and initial values have no rhs
+            elif ref._has_partials:
+                # Partial derivatives have no RHS
                 continue
             elif not ref._proper:
                 # Values that are not variables count as independent
@@ -242,9 +237,9 @@ class Expression:
         Returns an expression representing the partial derivative of this
         expression with respect to the expression ``lhs``.
 
-        The argument ``lhs`` must be a :class:`Name` or a
-        :class:`InitialValue`, taking derivatives with respect to
-        a class:`Derivative` or :class:`PartialDerivative` is not supported.
+        The argument ``lhs`` must be a :class:`Name`. Taking derivatives with
+        respect to a class:`Derivative` or :class:`PartialDerivative` is not
+        supported.
 
         **Expressions involving variables**
 
@@ -318,10 +313,9 @@ class Expression:
 
         """
         # Check LHS
-        if not isinstance(lhs, (Name, InitialValue)):
-            raise ValueError(
-                'Partial derivatives can only be taken with respect to a'
-                ' myokit.Name or myokit.InitialValue.')
+        if not isinstance(lhs, Name):
+            raise ValueError('Partial derivatives can only be taken with'
+                             ' respect to a myokit.Name.')
 
         # Get derivative or None for 0
         derivative = self._diff(lhs, bool(independent_states))
@@ -1282,10 +1276,10 @@ class PartialDerivative(LhsExpression):
             raise IntegrityError(
                 'The first argument to a partial derivative must be a'
                 ' variable name or a dot() expression.')
-        if not isinstance(var2, (Name, InitialValue)):
+        if not isinstance(var2, Name):
             raise IntegrityError(
                 'The second argument to a partial derivative must be a'
-                ' variable name or an initial value.')
+                ' variable name.')
         super().__init__((var1, var2))
 
         self._var1 = var1
@@ -1373,88 +1367,6 @@ class PartialDerivative(LhsExpression):
         derivative is taken (i.e. the dependent variable "y" in "dy/dx").
         """
         return self._var1.var()
-
-
-class InitialValue(LhsExpression):
-    """
-    Represents a reference to the initial value of a state variable.
-
-    This class is used when writing out derivatives of equations, but may _not_
-    appear in right-hand-side expressions for model variables!
-
-    *Extends:* :class:`LhsExpression`
-    """
-    _rbp = FUNCTION_CALL
-    _nargs = [1]    # Allows parsing as a function
-    __hash__ = LhsExpression.__hash__
-
-    def __init__(self, var):
-        super().__init__((var, ))
-        if not isinstance(var, Name):
-            raise IntegrityError(
-                'The first argument to an initial value must be a variable'
-                ' name.', self._token)
-
-        self._var = var
-        self._references = set([self])
-        self._has_initials = True
-
-    def bracket(self, op=None):
-        """See :meth:`Expression.bracket()`."""
-        if op not in self._operands:
-            raise ValueError('Given operand is not used in this expression.')
-        return False
-
-    def clone(self, subst=None, expand=False, retain=None):
-        """See :meth:`Expression.clone()`."""
-        if subst and self in subst:
-            return subst[self]
-        return InitialValue(self._var.clone(subst, expand, retain))
-
-    def _code(self, b, c):
-        b.write('init(')
-        self._var._code(b, c)
-        b.write(')')
-
-    def _diff(self, lhs, idstates):
-        raise NotImplementedError(
-            'Partial derivatives of initial values are not supported.')
-
-    def _eval_unit(self, mode):
-        return self._var._eval_unit(mode)
-
-    def _polishb(self, b):
-        b.write('init ')
-        self._var._polishb(b)
-
-    def __repr__(self):
-        return '<InitialValue(' + repr(self._var) + ')>'
-
-    def rhs(self):
-        """
-        See :meth:`LhsExpression.rhs()`.
-
-        The RHS returned in this case will be ``None``, as there is no RHS
-        associated with initial values in the model.
-        """
-        # Note: This _could_ return a Number(init, var unit) instead...
-        return None
-
-    def _tree_str(self, b, n):
-        b.write(' ' * n + 'init(' + str(self._var._value) + ')\n')
-
-    def var(self):
-        """See :meth:`LhsExpression.var()`."""
-        return self._var._value
-
-    def _validate(self, trail):
-        super()._validate(trail)
-        # Check if value is the name of a state variable
-        var = self._var._value
-        if not (isinstance(var, myokit.Variable) and var.is_state()):
-            raise IntegrityError(
-                'Initial values can only be defined for state variables.',
-                self._token)
 
 
 class PrefixExpression(Expression):

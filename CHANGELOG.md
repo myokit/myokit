@@ -5,8 +5,10 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#1023](https://github.com/myokit/myokit/pull/1023) Initial values in `Simulation` AND TODO are now stored as expressions.
 - Deprecated
 - Removed
+  - [#1023](https://github.com/myokit/myokit/pull/1023) The `InitialValue` class and the `mmt` keyword `init` have been removed.
 - Fixed
   - [#1045](https://github.com/myokit/myokit/pull/1045) Fixed an issue where the cache used in MarkovModel was not invalidated if `set_constant()` changed simulation parameters.
 

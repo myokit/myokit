@@ -65,11 +65,10 @@ class Simulation(myokit.CModule):
     :class:`myokit.Derivative` expressions, or as strings e.g. ``"ina.INa"`` or
     ``"dot(membrane.V)"``.
 
-    The "independent variables" in sensitivities must refer to either literal
-    variables (variables with no dependencies) or initial values of state
-    variables. These can be specified as :class:`myokit.Variable` objects, as
-    :class:`myokit.Name` or :class:`myokit.InitialValue` expressions, or as
-    strings e.g. ``"ikr.gKr"`` or ``"init(membrane.V)"``.
+    The "independent variables" in sensitivities must refer to literal
+    variables (variables with no dependencies). These can be specified as
+    :class:`myokit.Variable` objects, as :class:`myokit.Name` expressions, or
+    as strings e.g. ``"ikr.gKr"``.
 
     **Bound variables and labels**
 
@@ -146,8 +145,7 @@ class Simulation(myokit.CModule):
         :class:`myokit.Name`, a :class:`myokit.Derivative`, or a string with
         either a fully qualified variable name or a ``dot()`` expression.
         Each entry in ``independents`` must be a :class:`myokit.Variable`, a
-        :class:`myokit.Name`, a :class:`myokit.InitialValue`, or a string with
-        either a fully qualified variable name or an ``init()`` expression.
+        :class:`myokit.Name`, or a string with a fully qualified variable name.
     ``path``
         An optional path used to load or store compiled simulation objects. See
         "Storing and loading simulation objects", above.
@@ -186,23 +184,10 @@ class Simulation(myokit.CModule):
             self.set_protocol(protocol, label)
 
         # Generate C Model code, get sensitivity and constants info
+        self._sensitivities = None
         cmodel = myokit.CModel(self._model, self._pacing_labels, sensitivities)
         if cmodel.has_sensitivities:
             self._sensitivities = (cmodel.dependents, cmodel.independents)
-
-            # Check for sensitivities w.r.t. variables used in initial state
-            # expressions. This is not implemented yet.
-            inits = self._model.initial_values()
-            for i in self._sensitivities[1]:  # Expressions
-                if isinstance(i, myokit.Name):
-                    for e in inits:
-                        if e.depends_on(i, deep=True):
-                            raise NotImplementedError(
-                                'Sensitivities with respect to parameters used'
-                                ' in initial conditions is not implemented ('
-                                + e.code() + ' depends on ' + i.code() + ').')
-        else:
-            self._sensitivities = None
 
         # Ordered dicts mapping Variable objects to float values
         self._literals = OrderedDict()

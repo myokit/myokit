@@ -16,8 +16,6 @@
 #                       objects or InitialValue objects).
 # s_output_equations    Equations needed to calculate requested sensitivities
 #                       of non-state variables.
-# initials              A list of state indices for initial values in
-#                       s_independents
 # parameters            An ordered dict mapping variables to equations.
 # parameter_derived     An ordered dict mapping variables to equations.
 # literals              An ordered dict mapping variables to equations.
@@ -82,8 +80,8 @@ To use a model, start by creating a model instance:
     model = Model_Create()
 
 This allocates memory, sets default values for all constants and sets the model
-to its initial state. Derivatives and sensitivity outputs are not set at this
-point, but can be set by calling the Model_EvaluateX() methods.
+state to its initial state. Derivatives and sensitivity outputs are not set at
+this point, but can be set by calling the Model_EvaluateX() methods.
 
 To avoid unnecessary evaluations, a model maintains an internal cache of recent
 evaluations. Changing variables through the model functions described below
@@ -315,8 +313,7 @@ struct Model_Memory {
     /* Number of outputs (y in dy/dx) to calculate sensitivities of */
     int ns_dependents;
 
-    /* Number of parameters and initial states (x in dy/dx) to calculate
-       sensitivities w.r.t. */
+    /* Number of parameters (x in dy/dx) to calculate sensitivities w.r.t. */
     int ns_independents;
 
     /* Pointers to the independent variables */

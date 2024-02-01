@@ -195,16 +195,13 @@ Discontinuous functions
 .. _api/myokit.Remainder:
 .. autoclass:: Remainder
 
-Partial derivatives
---------------------
-.. _api/myokit.PartialDerivative:
-.. autoclass:: PartialDerivative
-
-.. _api/myokit.InitialValue:
-.. autoclass:: InitialValue
-
 User-defined functions
 ----------------------
 .. _api/myokit.UserFunction:
 .. autoclass:: UserFunction
+
+Partial derivatives
+--------------------
+.. _api/myokit.PartialDerivative:
+.. autoclass:: PartialDerivative
 
