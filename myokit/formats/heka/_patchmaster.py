@@ -1359,8 +1359,17 @@ class Trace(TreeNode):
 
     def r_seal(self):
         """
-        Returns the seal resistance (MOhm) determined from the test pulse
+        Returns the "seal resistance" (MOhm) determined in the waiting time
         before the trace was acquired.
+
+        This is equal to the value "R-memb" on the display. If a test pulse is
+        being used, it is calculated as dV/dI where dV and dI are the
+        differences in (command) voltage and current before and during the
+        pulse. If no test pulse is used it is simply the ratio between the V
+        and I measurements.
+
+        This is the same measurement as :meth:`r_pipette`, but logged
+        automatically before each trace.
         """
         return self._r_seal * 1e-6
 
@@ -1384,8 +1393,11 @@ class Trace(TreeNode):
         Returns the pipette resistance (MOhm) determined from the test pulse
         before breaking the seal.
 
-        This was manually logged when the "R-memb to R-pip" button was pressed
-        before acquiring the data.
+        This is equal to the value "R-memb" on the display, but logged when a
+        "R-memb to R-pip" button was pressed (or called programmatically). It
+        uses the same measurement as  :meth:`r_seal`, but logged at a different
+        time. The intended use is to store the resistance of the pipette tip
+        before touching a cell.
         """
         return self._r_pipette * 1e-6
 
