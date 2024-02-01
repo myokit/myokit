@@ -975,6 +975,10 @@ class AnalyticalSimulation:
         """
         self._parameters[self._parameter_map[variable]] = float(value)
 
+        # Invalidate cache
+        self._cached_matrices = {}
+        self._cached_solution = {}
+
     def set_default_state(self, state):
         """
         Changes this simulation's default state.
