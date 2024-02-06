@@ -551,8 +551,11 @@ class SimulationTest(unittest.TestCase):
         self.assertNotEqual(
             s.last_number_of_evaluations(), s.last_number_of_steps())
 
-    def test_default_state_sensitivites(self):
-        # Test :meth:`Simulation.default_state_sensitivies`
+    def test_state_sensitivites(self):
+        # Test :meth:`Simulation.default_state_sensitivies`,
+        # :meth:`Simulation.state_sensitivies`,
+        # :meth:`Simulation.set_default_state_sensitivies`,
+        # and :meth:`Simulation.set_state_sensitivies`
 
         # Create bolus infusion model with linear clearance
         model = myokit.Model()
@@ -580,16 +583,34 @@ class SimulationTest(unittest.TestCase):
         # Check no sensitivities set
         sim = myokit.Simulation(model)
         self.assertIsNone(sim.default_state_sensitivities())
+        self.assertIsNone(sim.state_sensitivities())
 
-        # Check for set sensitvities
+        # Check for set sensitivities
         sensitivities = (
             ['myokit.amount'],
             ['init(myokit.amount)', 'myokit.elimination_rate'])
         sim = myokit.Simulation(model, sensitivities=sensitivities)
-        s = sim.default_state_sensitivities()
+        sd = sim.default_state_sensitivities()
+        s = sim.state_sensitivities()
+        self.assertEqual(len(sd), 2)
         self.assertEqual(len(s), 2)
+        self.assertEqual(sd[0][0], 1)
         self.assertEqual(s[0][0], 1)
+        self.assertEqual(sd[1][0], 0)
         self.assertEqual(s[1][0], 0)
+
+        # Set sensitivities and check set values
+        s_values = [[2], [3]]
+        sim.set_state_sensitivities(s_values)
+        sim.set_default_state_sensitivities(s_values)
+        sd = sim.default_state_sensitivities()
+        s = sim.state_sensitivities()
+        self.assertEqual(len(sd), 2)
+        self.assertEqual(len(s), 2)
+        self.assertEqual(sd[0][0], 2)
+        self.assertEqual(s[0][0], 2)
+        self.assertEqual(sd[1][0], 3)
+        self.assertEqual(s[1][0], 3)
 
     def test_eval_derivatives(self):
         # Test :meth:`Simulation.eval_derivatives()`.

@@ -12,6 +12,7 @@ import tempfile
 from collections import OrderedDict
 
 import myokit
+import copy
 
 # Location of C template
 SOURCE_FILE = 'cvodessim.c'
@@ -401,6 +402,69 @@ class Simulation(myokit.CModule):
         if self._sensitivities:
             return [list(x) for x in self._s_default_state]
         return None
+
+    def state_sensitivities(self):
+        """
+        Returns the sensitivities with respect to state variables, or
+        ``None`` if sensitivities are not enabled.
+        """
+        if self._sensitivities:
+            return [list(x) for x in self._s_state]
+        return None
+
+    def set_state_sensitivities(self, s_values):
+        """
+        Sets the sensitivities with respect to state variables if
+        sensitivities are enabled.
+
+        The N x M list of lists 's_values', defines the sensitivities
+        dz/dx for the N dependent variables and M independent variables.
+        Here we define z as a vector of dependent variables (state or
+        state-derived) of length N, and x as a vector of independent
+        variables (parameters or initial conditions) of length M.
+        """
+        if self._sensitivities:
+            if isinstance(s_values, list):
+                if [len(s_values), len(s_values[0])] == [len(
+                        self._s_state), len(self._s_state[0])]:
+                    s_val_copy = copy.deepcopy(s_values)
+                    self._s_state = s_val_copy
+                else:
+                    raise Exception('Specified sensitivities must be of'
+                                    ' shape N x M for N dependent variables'
+                                    ' and M independent variables.')
+            else:
+                raise Exception('Specified sensitivities must be a'
+                                ' list.')
+        else:
+            raise Exception('Sensitivities are not currently enabled')
+
+    def set_default_state_sensitivities(self, s_values):
+        """
+        Sets the default sensitivities with respect to state variables if
+        sensitivities are enabled.
+
+        The N x M list of lists 's_values', defines the sensitivities
+        dz/dx for the N dependent variables and M independent variables.
+        Here we define z as a vector of dependent variables (state or
+        state-derived) of length N, and x as a vector of independent
+        variables (parameters or initial conditions) of length M.
+        """
+        if self._sensitivities:
+            if isinstance(s_values, list):
+                if [len(s_values), len(s_values[0])] == [len(
+                        self._s_default_state), len(self._s_default_state[0])]:
+                    s_val_copy = copy.deepcopy(s_values)
+                    self._s_default_state = s_val_copy
+                else:
+                    raise Exception('Specified sensitivities must be of'
+                                    ' shape N x M for N dependent variables'
+                                    ' and M independent variables.')
+            else:
+                raise Exception('Specified sensitivities must be a'
+                                ' list.')
+        else:
+            raise Exception('Sensitivities are not currently enabled')
 
     def last_state(self):
         """
