@@ -591,59 +591,93 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s[0][0], 1)
         self.assertEqual(s[1][0], 0)
 
-    def test_eval_derivatives(self):
+    def test_evaluate_derivatives(self):
         # Test :meth:`Simulation.eval_derivatives()`.
 
-        self.sim.reset()
-        s1 = self.sim.state()
-        d1 = self.sim.eval_derivatives()
-        self.sim.run(1)
-        d2 = self.sim.eval_derivatives()
-        self.assertNotEqual(d1, d2)
-        self.assertEqual(d1, self.sim.eval_derivatives(s1))
-        self.sim.set_state(s1)
-        self.assertEqual(d1, self.sim.eval_derivatives())
+        m = myokit.Model()
+        z = m.add_component('z')
+        t = z.add_variable('t', rhs=0, binding='time')
+        a = z.add_variable('a', rhs=1, binding='pace')
+        b = z.add_variable('b', rhs=2, binding='pace1')
+        c = z.add_variable('c', rhs=4, binding='pace2')
+        d = z.add_variable('d', rhs=8, binding='evaluations')
+        e = z.add_variable('e', rhs=12, binding='realtime')
+        f = z.add_variable('f', rhs=100)
+        p = z.add_variable('p', rhs='p+t+a+b+c+d+e+f', initial_value=0)
+        q = z.add_variable('q', rhs='p + q', initial_value=1)
 
-    def test_eval_derivatives_with_pacing(self):
-        # Test :meth:`Simulation.eval_derivatives()`.
+        sim = myokit.Simulation(m)
 
-        model = myokit.Model()
-        c = model.add_component('c')
+        # Test without input
+        self.assertEqual(sim.evaluate_derivatives(), [106, 1])
 
-        a = c.add_variable('a')
-        a.set_binding('a')
-        a.set_rhs(0)
-        b = c.add_variable('b')
-        b.set_binding('b')
-        b.set_rhs(0)
+        # Test with new state
+        self.assertEqual(sim.evaluate_derivatives([1, 2]), [107, 3])
 
-        y = c.add_variable('y')
-        t = c.add_variable('t')
-        t.set_binding('time')
-        t.set_rhs(0)
-        y.promote(1)
-        y.set_rhs('- a * y - b * y')
+        # Test with changed constant
+        sim.set_constant('z.f', 200)
+        self.assertEqual(sim.evaluate_derivatives(), [206, 1])
+        sim.set_constant('z.f', 300)
+        self.assertEqual(sim.evaluate_derivatives([1, 2]), [307, 3])
+        sim.set_constant('z.f', 0)
+        self.assertEqual(sim.evaluate_derivatives([1, 2]), [7, 3])
 
-        pa = myokit.Protocol()
-        pa.schedule(1, 0, 0.5)
+        # Test with inputs
+        d = {'time': 1}
+        self.assertEqual(sim.evaluate_derivatives([1, 2], d), [8, 3])
+        d = {'time': 2}
+        self.assertEqual(sim.evaluate_derivatives([1, 2], d), [9, 3])
+        d = {'time': 2, 'evaluations': 3}
+        self.assertEqual(sim.evaluate_derivatives([1, 2], d), [12, 3])
+        d = {'time': 2, 'evaluations': 3, 'realtime': 1.23}
+        self.assertEqual(sim.evaluate_derivatives([1, 2], d), [13.23, 3])
 
-        pb = myokit.Protocol()
-        pb.schedule(2, 1.0, 0.5)
+        # Test with unknown inputs
+        d = {'toime': 1}
+        self.assertRaisesRegex(ValueError, 'Unknown binding or',
+                               sim.evaluate_derivatives, [1, 2], d)
 
-        sim = myokit.Simulation(model, {'a': pa, 'b': pb})
+        # Test with pacing: not passed on to sim
+        sim.set_protocol(myokit.pacing.constant(1000))
+
+        # Running doesn't change anything
+        self.assertEqual(sim.evaluate_derivatives(), [6, 1])
         sim.run(1)
-        d1 = sim.eval_derivatives(pacing={'a': 0.5, 'b': 0.5})
-        d2 = sim.eval_derivatives(pacing={'a': 1.5, 'b': 0.5})
-        self.assertNotEqual(d1, d2)
-        d1 = sim.eval_derivatives(pacing={'b': 0.5})
-        d2 = sim.eval_derivatives(pacing={'a': 0.0, 'b': 0.5})
-        self.assertEqual(d1, d2)
-        d1 = sim.eval_derivatives()
-        d2 = sim.eval_derivatives(pacing={'a': 0.0, 'b': 0.0})
-        self.assertEqual(d1, d2)
-        d1 = sim.eval_derivatives(pacing={'a': 0.0, 'b': 0.5})
-        d2 = sim.eval_derivatives(pacing={'aaaaa': 1.0, 'b': 0.5})
-        self.assertEqual(d1, d2)
+        self.assertEqual(sim.evaluate_derivatives(), [6, 1])
+        self.assertEqual(sim.evaluate_derivatives([2, 3]), [8, 5])
+        sim.run(10)
+        self.assertEqual(sim.evaluate_derivatives(), [6, 1])
+        self.assertEqual(sim.evaluate_derivatives([2, 3]), [8, 5])
+        sim.reset()
+        self.assertEqual(sim.evaluate_derivatives([2, 3]), [8, 5])
+        d = {'time': 123}
+        self.assertEqual(sim.evaluate_derivatives([2, 3], d), [131, 5])
+
+        # Changing the pacing labels
+        d = {'pace': 1000}
+        self.assertEqual(sim.evaluate_derivatives(inputs=d), [1006, 1])
+        d = {'pace1': 1}
+        self.assertRaisesRegex(ValueError, 'Unknown binding or',
+                               sim.evaluate_derivatives, inputs=d)
+
+        sim = myokit.Simulation(m, {
+            'pace1': myokit.pacing.constant(1000),
+            'pace2': myokit.pacing.constant(2000)})
+        d = {'pace': 1}
+        self.assertRaisesRegex(ValueError, 'Unknown binding or',
+                               sim.evaluate_derivatives, [1, 2], d)
+        self.assertEqual(sim.evaluate_derivatives(), [101, 1])
+        d = {'pace1': 100}
+        self.assertEqual(sim.evaluate_derivatives(inputs=d), [201, 1])
+        d = {'pace2': 200}
+        self.assertEqual(sim.evaluate_derivatives(inputs=d), [301, 1])
+        d = {'pace1': 123, 'pace2': 200}
+        self.assertEqual(sim.evaluate_derivatives(inputs=d), [424, 1])
+
+        d1 = self.sim.evaluate_derivatives()
+        with WarningCollector() as w:
+            self.assertEqual(self.sim.eval_derivatives(), d1)
+        self.assertIn('eprecated', w.text())
 
     def test_sensitivities_initial(self):
         # Test setting initial sensitivity values.

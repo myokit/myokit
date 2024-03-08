@@ -4,11 +4,17 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1051](https://github.com/myokit/myokit/pull/1051) Added a method `Simulation.crash_inputs` that returns the inputs (binding values) if the last run raised a `SimulationError`.
 - Changed
+  - [#1051](https://github.com/myokit/myokit/pull/1051) `Model.evaluate_derivatives` will now use `numpy.errstate(all='raise')` when `ignore_errors` is set to `False`, causing more numerical issues to be reported.
 - Deprecated
+  - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.eval_derivatives` is deprecated in favour of an `evaluate_derivatives` method that uses `default_state` instead of `state` when no state is given, and has better support and clearer rules for handling bindings.
+  - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.last_state` is deprecated in favour of `crash_state`.
 - Removed
 - Fixed
   - [#1045](https://github.com/myokit/myokit/pull/1045) Fixed an issue where the cache used in MarkovModel was not invalidated if `set_constant()` changed simulation parameters.
+  - [#1050](https://github.com/myokit/myokit/pull/1050) Fixed warnings about unknown escape sequences.
+  - [#1051](https://github.com/myokit/myokit/pull/1051) Numerical simulation errors in `Simulation` now re-evaluate the state using the last inputs, as well as the last state.
 
 ## [1.35.4] - 2023-10-12
 - Added
