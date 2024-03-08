@@ -985,7 +985,7 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
 
         # Headers
         name = r'[a-zA-Z]+[a-zA-Z0-9_]*'
-        self._rule_head = R(r'^\s*(\[{1,2}' + name + '\]{1,2})')
+        self._rule_head = R(r'^\s*(\[{1,2}' + name + r'\]{1,2})')
 
         # Simple rules
         self._rules = []
