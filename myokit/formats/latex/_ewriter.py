@@ -64,7 +64,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         Prepares a name for use in latex
         """
         text = str(text)
-        return text.replace('_', '\_')
+        return text.replace('_', r'\_')
 
     def _ex(self, e, b):
         try:

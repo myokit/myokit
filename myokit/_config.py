@@ -139,7 +139,7 @@ def _create(path):
         config.set('opencl', 'lib', ';'.join([
             c64 + 'Intel\\OpenCL SDK\\6.3\\lib\\x64',
             c64 + 'AMD APP SDK\\2.9\\bin\\x64',
-            c64 + 'NVIDIA GPU Computing Toolkit\CUDA\\v11.8\\lib\\x64',
+            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v11.8\\lib\\x64',
         ]))
     else:
         # Linux and mac
@@ -199,7 +199,7 @@ def _load():
             lines = f.readlines()
 
         import re
-        inline_comment = re.compile('[\w]+[\s]*=[\s]*.+?\s+(;)')
+        inline_comment = re.compile(r'[\w]+[\s]*=[\s]*.+?\s+(;)')
         for i, line in enumerate(lines):
             m = inline_comment.match(line)
             if m is not None:
