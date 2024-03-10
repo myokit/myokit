@@ -909,7 +909,7 @@ class Simulation(myokit.CModule):
 
                 # Store error state
                 self._error_state = state
-                self._error_inputs = {'time': myokit.float.str(bound[0])}
+                self._error_inputs = {'time': bound[0]}
                 for i, label in enumerate(('realtime', 'evaluations')):
                     if self._model.binding(label) is not None:
                         self._error_inputs[label] = bound[1 + i]
@@ -918,7 +918,8 @@ class Simulation(myokit.CModule):
 
                 # Create long error message
                 txt = ['A numerical error occurred during simulation at'
-                       ' t = ' + str(t) + '.', 'Last reached state: ']
+                       ' t = ' + myokit.float.str(t) + '.',
+                       'Last reached state: ']
                 txt.extend(['  ' + x for x
                             in self._model.format_state(state).splitlines()])
                 txt.append('Inputs for binding:')

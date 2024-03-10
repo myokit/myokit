@@ -1367,12 +1367,21 @@ sim_step(PyObject *self, PyObject *args)
 
             /* Take a single ODE step */
             #ifdef MYOKIT_DEBUG_MESSAGES
-            printf("\nCM Taking CVODE step from time %g to %g.\n", t, tnext);
+            printf("\nCM Taking CVODE step from time %g to %g", t, tnext);
             #endif
             flag_cvode = CVode(cvode_mem, tnext, y, &t, CV_ONE_STEP);
+            #ifdef MYOKIT_DEBUG_MESSAGES
+            printf(" : flag %d\n", flag_cvode);
+            #endif
 
             /* Check for errors */
             if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+                #ifdef MYOKIT_DEBUG_MESSAGES
+                printf("\nCM CVODE flag %d. Setting error output and returning.\n", flag_cvode);
+                #endif
+
+
+
                 /* Something went wrong... Set outputs and return */
                 for (i=0; i<model->n_states; i++) {
                     PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(ylast, i)));
@@ -1384,6 +1393,8 @@ sim_step(PyObject *self, PyObject *args)
                 for (i=0; i<n_pace; i++) {
                     PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
                 }
+
+                /* Error state set by check_cvode_flag, so use ordinary return. */
                 return sim_clean();
             }
 
@@ -1400,6 +1411,17 @@ sim_step(PyObject *self, PyObject *args)
         /* Check if progress is being made */
         if (t == tlast) {
             if (++zero_step_count >= max_zero_step_count) {
+                /* Something went wrong: set outputs and return */
+                for (i=0; i<model->n_states; i++) {
+                    PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(ylast, i)));
+                    /* PyList_SetItem steals a reference: no need to decref the double! */
+                }
+                PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));
+                PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
+                PyList_SetItem(bound_py, 2, PyFloat_FromDouble((double)evaluations));
+                for (i=0; i<n_pace; i++) {
+                    PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
+                }
                 return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken at t=%g", t);
             }
         } else {
@@ -1794,8 +1816,8 @@ sim_evaluate_derivatives(PyObject *self, PyObject *args)
     Model_SetBoundVariables(
         model,
         (realtype)time_in,
-        (realtype*)pacing_values, 
-        (realtype)realtime_in, 
+        (realtype*)pacing_values,
+        (realtype)realtime_in,
         (realtype)evaluations_in);
 
     /* Set literal values */

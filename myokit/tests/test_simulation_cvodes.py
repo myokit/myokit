@@ -522,21 +522,62 @@ class SimulationTest(unittest.TestCase):
             ValueError, 'no `apd_variable` specified',
             self.sim.run, 1, apd_threshold=12)
 
-    def test_last_state(self):
-        # Returns the last state before an error, or None.
+    def test_crash_state_and_inputs(self):
+        # Tests Simulation.crash_state
 
         m = self.model.clone()
         istim = m.get('membrane.i_stim')
         istim.set_rhs('engine.pace / stim_amplitude')
+        '''
         s = myokit.Simulation(m, self.protocol)
-        self.assertIsNone(s.last_state())
+        self.assertIsNone(s.crash_state())
+        self.assertIsNone(s.crash_inputs())
         s.run(1)
-        self.assertIsNone(s.last_state())
+        self.assertIsNone(s.crash_state())
         s.set_constant('membrane.i_stim.stim_amplitude', 0)
         s.reset()
         self.assertRaisesRegex(myokit.SimulationError, "at t = 0", s.run, 5)
-        self.assertEqual(len(s.last_state()), len(s.state()))
-        self.assertEqual(s.last_state(), s.state())
+        self.assertEqual(s.crash_state(), s.state())
+        self.assertEqual(
+            set(s.crash_inputs()), {'time', 'pace', 'realtime', 'evaluations'})
+        t = s.crash_inputs()['time']
+        self.assertEqual(s.crash_inputs()['time'], 0)
+        self.assertEqual(s.crash_inputs()['pace'], 0)
+        self.assertGreaterEqual(s.crash_inputs()['realtime'], 0)
+        self.assertGreater(s.crash_inputs()['evaluations'], 0)
+        '''
+
+        # Test crash at later time
+        istim.set_rhs('if(engine.time == 5, 1 / (5 - engine.time), 0)')
+        # Ensure t=5 is visited
+        p = myokit.pacing.blocktrain(duration=0.1, period=5)
+        # Test evaluations and realtime only present if used
+        m.binding('evaluations').set_binding(None)
+        s = myokit.Simulation(m, p)
+        with myokit.tools.capture():
+            self.assertRaisesRegex(myokit.SimulationError, 'CV_CONV', s.run, 6)
+        self.assertEqual(
+            set(s.crash_inputs()), {'time', 'pace', 'realtime'})
+        self.assertEqual(s.crash_inputs()['time'], 5)
+        self.assertEqual(s.crash_inputs()['pace'], 1)
+        self.assertGreater(s.crash_inputs()['realtime'], 0)
+
+        # Above should both crash via cvode flag set. Next should be halted by
+        # C code for too many zero steps
+        istim.set_rhs('1 / (5 - engine.time)')
+        s = myokit.Simulation(m, p)
+        with myokit.tools.capture():
+            self.assertRaisesRegex(
+                myokit.SimulationError, 'zero-length', s.run, 6)
+        self.assertAlmostEqual(s.crash_inputs()['time'], 5)
+        self.assertEqual(s.crash_inputs()['pace'], 1)
+        self.assertGreater(s.crash_inputs()['realtime'], 0)
+
+        # Test deprecated alias of crash_state
+        x = s.crash_state()
+        with WarningCollector() as w:
+            self.assertEqual(s.last_state(), x)
+        self.assertIn('eprecated', w.text())
 
     def test_last_evaluations_and_steps(self):
         # Test :meth:`Simulation.last_number_of_evaluations()` and
@@ -592,7 +633,7 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s[1][0], 0)
 
     def test_evaluate_derivatives(self):
-        # Test :meth:`Simulation.eval_derivatives()`.
+        # Test :meth:`Simulation.evaluate_derivatives()`.
 
         m = myokit.Model()
         z = m.add_component('z')
@@ -674,10 +715,16 @@ class SimulationTest(unittest.TestCase):
         d = {'pace1': 123, 'pace2': 200}
         self.assertEqual(sim.evaluate_derivatives(inputs=d), [424, 1])
 
+        # Test deprecated method
+        self.sim.reset()
         d1 = self.sim.evaluate_derivatives()
         with WarningCollector() as w:
             self.assertEqual(self.sim.eval_derivatives(), d1)
         self.assertIn('eprecated', w.text())
+        # ...which uses state() instead of default state
+        self.sim.run(1)
+        with WarningCollector() as w:
+            self.assertNotEqual(self.sim.eval_derivatives(), d1)
 
     def test_sensitivities_initial(self):
         # Test setting initial sensitivity values.
