@@ -196,7 +196,7 @@ union PSys *pacing_systems;   /* Array of pacing systems (event based or time se
 enum PSysType *pacing_types;  /* Array of pacing system types */
 PyObject *protocols;          /* The protocols used to generate the pacing systems */
 double* pacing;               /* Pacing values, same size as pacing_systems and pacing_types */
-int n_pace;                   /* The number of pacing systems */
+int n_pace;                   /* The number of pacing systems: Must be set with every call from Python that uses it */
 
 /*
  * CVODE Memory
@@ -1367,12 +1367,21 @@ sim_step(PyObject *self, PyObject *args)
 
             /* Take a single ODE step */
             #ifdef MYOKIT_DEBUG_MESSAGES
-            printf("\nCM Taking CVODE step from time %g to %g.\n", t, tnext);
+            printf("\nCM Taking CVODE step from time %g to %g", t, tnext);
             #endif
             flag_cvode = CVode(cvode_mem, tnext, y, &t, CV_ONE_STEP);
+            #ifdef MYOKIT_DEBUG_MESSAGES
+            printf(" : flag %d\n", flag_cvode);
+            #endif
 
             /* Check for errors */
             if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+                #ifdef MYOKIT_DEBUG_MESSAGES
+                printf("\nCM CVODE flag %d. Setting error output and returning.\n", flag_cvode);
+                #endif
+
+
+
                 /* Something went wrong... Set outputs and return */
                 for (i=0; i<model->n_states; i++) {
                     PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(ylast, i)));
@@ -1384,6 +1393,8 @@ sim_step(PyObject *self, PyObject *args)
                 for (i=0; i<n_pace; i++) {
                     PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
                 }
+
+                /* Error state set by check_cvode_flag, so use ordinary return. */
                 return sim_clean();
             }
 
@@ -1400,6 +1411,17 @@ sim_step(PyObject *self, PyObject *args)
         /* Check if progress is being made */
         if (t == tlast) {
             if (++zero_step_count >= max_zero_step_count) {
+                /* Something went wrong: set outputs and return */
+                for (i=0; i<model->n_states; i++) {
+                    PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(ylast, i)));
+                    /* PyList_SetItem steals a reference: no need to decref the double! */
+                }
+                PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));
+                PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
+                PyList_SetItem(bound_py, 2, PyFloat_FromDouble((double)evaluations));
+                for (i=0; i<n_pace; i++) {
+                    PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
+                }
                 return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken at t=%g", t);
             }
         } else {
@@ -1697,36 +1719,40 @@ sim_step(PyObject *self, PyObject *args)
  * Evaluates the state derivatives at the given state
  */
 PyObject*
-sim_eval_derivatives(PyObject *self, PyObject *args)
+sim_evaluate_derivatives(PyObject *self, PyObject *args)
 {
     /* Declare variables here for C89 compatibility */
     int i;
     int success;
     double time_in;
+    double realtime_in;
+    double evaluations_in;
     PyObject *pace_in;
-    double *pacing_in;
-    Model model;
-    Model_Flag flag_model;
-    PyObject *state;
-    PyObject *deriv;
+    double *pacing_values;
     PyObject *literals;
     PyObject *parameters;
+    PyObject *state;
+    PyObject *deriv;
     PyObject *val;
+    Model model;
+    Model_Flag flag_model;
 
     /* Start */
     success = 0;
 
     /* Check input arguments */
     /* Check input arguments     0123456789ABCDEF*/
-    if (!PyArg_ParseTuple(args, "dOOOOO",
+    if (!PyArg_ParseTuple(args, "dOddOOOO",
             &time_in,           /* 0. Float: time */
-            &pace_in,           /* 1. List: pace */
-            &state,             /* 2. List: state */
-            &deriv,             /* 3. List: store derivatives here */
+            &pace_in,           /* 1. List: pacing values */
+            &realtime_in,       /* 2. Float: realtime */
+            &evaluations_in,    /* 3. Float: evaluations */
             &literals,          /* 4. List: literal constant values */
-            &parameters         /* 5. List: parameter values */
-            )) {
-        PyErr_SetString(PyExc_Exception, "Incorrect input arguments in sim_eval_derivatives.");
+            &parameters,        /* 5. List: parameter values */
+            &state,             /* 6. List: state */
+            &deriv              /* 7. List: store derivatives here */
+    )) {
+        PyErr_SetString(PyExc_Exception, "Incorrect input arguments in sim_evaluate_derivatives.");
         /* Nothing allocated yet, no pyobjects _created_, return directly */
         return 0;
     }
@@ -1736,20 +1762,20 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "Pace argument must be a list.");
         return 0;
     }
-    if (!PyList_Check(state)) {
-        PyErr_SetString(PyExc_Exception, "State argument must be a list.");
-        return 0;
-    }
-    if (!PyList_Check(deriv)) {
-        PyErr_SetString(PyExc_Exception, "Derivatives argument must be a list.");
-        return 0;
-    }
     if (!PyList_Check(literals)) {
         PyErr_SetString(PyExc_Exception, "Literals argument must be a list.");
         return 0;
     }
     if (!PyList_Check(parameters)) {
         PyErr_SetString(PyExc_Exception, "Parameters argument must be a list.");
+        return 0;
+    }
+    if (!PyList_Check(state)) {
+        PyErr_SetString(PyExc_Exception, "State argument must be a list.");
+        return 0;
+    }
+    if (!PyList_Check(deriv)) {
+        PyErr_SetString(PyExc_Exception, "Derivatives argument must be a list.");
         return 0;
     }
 
@@ -1767,6 +1793,8 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
         goto error;
     }
 
+    /* Set up pacing (but without protocols) */
+    n_pace = (int)PyList_Size(pace_in);
     flag_model = Model_SetupPacing(model, n_pace);
     if (flag_model != Model_OK) {
         Model_SetPyErr(flag_model);
@@ -1774,18 +1802,23 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     }
 
     /* Set pacing values */
-    pacing_in = (double*)malloc((size_t)n_pace * sizeof(double));
+    pacing_values = (double*)malloc((size_t)n_pace * sizeof(double));
     for (i=0; i<n_pace; i++) {
         val = PyList_GetItem(pace_in, i); /* Don't decref */
         if (!PyFloat_Check(val)) {
             PyErr_Format(PyExc_Exception, "Item %d in pace vector is not a float.", i);
             goto error;
         }
-        pacing_in[i] = PyFloat_AsDouble(val);
+        pacing_values[i] = PyFloat_AsDouble(val);
     }
 
     /* Set bound variables */
-    Model_SetBoundVariables(model, (realtype)time_in, (realtype*)pacing_in, 0, 0);
+    Model_SetBoundVariables(
+        model,
+        (realtype)time_in,
+        (realtype*)pacing_values,
+        (realtype)realtime_in,
+        (realtype)evaluations_in);
 
     /* Set literal values */
     for (i=0; i<model->n_literals; i++) {
@@ -1925,7 +1958,7 @@ PyMethodDef SimMethods[] = {
     {"sim_init", sim_init, METH_VARARGS, "Initialize the simulation."},
     {"sim_step", sim_step, METH_VARARGS, "Perform the next step in the simulation."},
     {"sim_clean", py_sim_clean, METH_VARARGS, "Clean up after an aborted simulation."},
-    {"eval_derivatives", sim_eval_derivatives, METH_VARARGS, "Evaluate the state derivatives."},
+    {"evaluate_derivatives", sim_evaluate_derivatives, METH_VARARGS, "Evaluate the state derivatives."},
     {"set_tolerance", sim_set_tolerance, METH_VARARGS, "Set the absolute and relative solver tolerance."},
     {"set_max_step_size", sim_set_max_step_size, METH_VARARGS, "Set the maximum solver step size (0 for none)."},
     {"set_min_step_size", sim_set_min_step_size, METH_VARARGS, "Set the minimum solver step size (0 for none)."},

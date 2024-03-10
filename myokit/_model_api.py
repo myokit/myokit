@@ -10,6 +10,8 @@ import re
 
 from collections import OrderedDict
 
+import numpy
+
 import myokit
 
 
@@ -1406,11 +1408,13 @@ class Model(ObjectWithMetaData, VarProvider):
                         value = float('nan')
                     values[eq.lhs] = value
         else:
-            for group in order.values():
-                for eq in group:
-                    if eq.lhs in values:
-                        continue
-                    values[eq.lhs] = eq.rhs.eval(values, precision=precision)
+            with numpy.errstate(all='raise'):
+                for group in order.values():
+                    for eq in group:
+                        if eq.lhs in values:
+                            continue
+                        values[eq.lhs] = eq.rhs.eval(
+                            values, precision=precision)
 
         # Return calculated state
         return [values[state.lhs()] for state in self._state_vars]
@@ -1571,7 +1575,7 @@ class Model(ObjectWithMetaData, VarProvider):
         ``derivatives=None``
             An optional list or other sequence of evaluated derivatives. If not
             given, the values will be calculed from ``state`` using
-            :meth:`eval_derivatives()`.
+            :meth:`evaluate_derivatives()`.
         ``precision=myokit.DOUBLE_PRECISION``
             An optional precision argument to use when evaluating the state
             derivatives, and to pass into :meth:`myokit.float.str` when

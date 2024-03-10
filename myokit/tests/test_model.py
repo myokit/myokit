@@ -438,6 +438,7 @@ class ModelTest(unittest.TestCase):
         b = component.add_variable('b')
         c = component.add_variable('c')
         d = component.add_variable('d')
+        e = component.add_variable('e')
         a.promote(1)
         a.set_rhs('1')
         b.promote(2)
@@ -445,6 +446,7 @@ class ModelTest(unittest.TestCase):
         c.promote(3)
         c.set_rhs('b + d')
         d.set_rhs('1 * c')
+        e.set_rhs(0)
         model.validate()
 
         # Test without input
@@ -476,13 +478,31 @@ class ModelTest(unittest.TestCase):
             model.evaluate_derivatives(
                 state=[2, 3, 4], inputs={'time': 10}, ignore_errors=True),
             [1, 6, 17])
+        d.set_rhs(10)
+        e.set_rhs(20)
+        d.set_binding('realtime')
+        e.set_binding('evaluations')
+        c.set_rhs('d + e + time')
+        self.assertEqual(model.evaluate_derivatives(), [1, 4, 31])
+        self.assertEqual(
+            model.evaluate_derivatives(inputs={'evaluations': 1.2}),
+            [1, 4, 12.2])
+        e.set_binding(None)
+        self.assertEqual(model.evaluate_derivatives(), [1, 4, 31])
+        e.set_binding('pace')
+        self.assertEqual(model.evaluate_derivatives(), [1, 4, 31])
+        self.assertEqual(
+            model.evaluate_derivatives(inputs={'pace': 10}), [1, 4, 21])
+        self.assertEqual(
+            model.evaluate_derivatives(inputs={'pace': 10, 'time': 20}),
+            [1, 4, 40])
 
         # Deprecated name
         with WarningCollector() as w:
             self.assertEqual(
                 model.eval_state_derivatives(
                     state=[1, 1, 2], inputs={'time': 0}),
-                [1, 2, 3])
+                [1, 2, 30])
         self.assertIn('deprecated', w.text())
 
         # Ignoring errors should lead to Nans
