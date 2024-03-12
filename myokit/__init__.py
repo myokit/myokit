@@ -220,8 +220,10 @@ DEBUG_WG = False
 DEBUG_SC = False
 # Show C debug Messages when running compiled code:
 DEBUG_SM = False
-# Show C Profiling information when running compiled code:
+# Show C profiling information when running compiled code:
 DEBUG_SP = False
+# Show C detailed simulator stats when running simulations
+DEBUG_SS = False
 
 #
 # Compatibility settings: Some users report problems with output capturing.

@@ -54,6 +54,13 @@ if myokit.DEBUG_SP:
     print('#ifndef MYOKIT_DEBUG_PROFILING')
     print('#define MYOKIT_DEBUG_PROFILING')
     print('#endif')
+
+if myokit.DEBUG_SS:
+    print('// Show simulator stats')
+    print('#ifndef MYOKIT_DEBUG_STATS')
+    print('#define MYOKIT_DEBUG_STATS')
+    print('#endif')
+
 ?>
 
 #include "pacing.h"
@@ -1302,6 +1309,22 @@ sim_init(PyObject *self, PyObject *args)
     benchmarker_print("CP Logging times and strategy initialized.");
     #endif
 
+    #ifdef MYOKIT_DEBUG_STATS
+    if (model->is_ode) {
+        printf(" 1. number of steps taken by cvodes.\n");
+        printf(" 2. number of calls to the user's f function.\n");
+        printf(" 3. number of calls made to the linear solver setup function.\n");
+        printf(" 4. number of error test failures.\n");
+        printf(" 5. method order used on the last internal step.\n");
+        printf(" 6. method order to be used on the next internal step.\n");
+        printf(" 7. actual value of initial step size.\n");
+        printf(" 8. step size taken on the last internal step.\n");
+        printf(" 9. step size to be attempted on the next internal step.\n");
+        printf("10. current internal time reached.\n");
+        printf("1\t2\t3\t4\t5\t6\t\t7\t\t8\t\t9\t\t10\n");
+    }
+    #endif
+
     /*
      * Done!
      */
@@ -1340,6 +1363,13 @@ sim_step(PyObject *self, PyObject *args)
     PyObject *val;
     PyObject* ret;
 
+    #ifdef MYOKIT_DEBUG_STATS
+    /* CVODE stats */
+    long int cv_nsteps, cv_nfevals, cv_nlinsetups, cv_netfails;
+    int cv_qlast, cv_qcur;
+    realtype cv_hinused, cv_hlast, cv_hcur, cv_tcur;
+    #endif
+
     /*
      * Set start time for logging of realtime.
      * This is handled here instead of in sim_init so it only includes time
@@ -1374,13 +1404,22 @@ sim_step(PyObject *self, PyObject *args)
             printf(" : flag %d\n", flag_cvode);
             #endif
 
+            /* Show cvodes stats */
+            #ifdef MYOKIT_DEBUG_STATS
+            CVodeGetIntegratorStats(cvode_mem, &cv_nsteps, &cv_nfevals,
+                                    &cv_nlinsetups, &cv_netfails, &cv_qlast, &cv_qcur,
+                                    &cv_hinused, &cv_hlast, &cv_hcur, &cv_tcur);
+            printf("%ld,\t%ld,\t%ld,\t%ld,\t%d,\t%d,\t%g,\t%g,\t%g,\t%g\n",
+                   cv_nsteps, cv_nfevals, cv_nlinsetups, cv_netfails,
+                   cv_qlast, cv_qcur,
+                   cv_hinused, cv_hlast, cv_hcur, cv_tcur);
+            #endif
+
             /* Check for errors */
             if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
                 #ifdef MYOKIT_DEBUG_MESSAGES
                 printf("\nCM CVODE flag %d. Setting error output and returning.\n", flag_cvode);
                 #endif
-
-
 
                 /* Something went wrong... Set outputs and return */
                 for (i=0; i<model->n_states; i++) {
@@ -1422,7 +1461,7 @@ sim_step(PyObject *self, PyObject *args)
                 for (i=0; i<n_pace; i++) {
                     PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
                 }
-                return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken at t=%g", t);
+                return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken.");
             }
         } else {
             /* Only count consecutive zero steps */

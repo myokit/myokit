@@ -924,10 +924,8 @@ def add_reset_parser(subparsers):
 # Run
 #
 
-def run(source, debug_sg, debug_wg, debug_sc, debug_sm, debug_sp):
-    """
-    Runs an mmt file script.
-    """
+def run(source, debug_sg, debug_wg, debug_sc, debug_sm, debug_sp, debug_ss):
+    """ Runs an mmt file script. """
     import sys
     import myokit
 
@@ -942,6 +940,8 @@ def run(source, debug_sg, debug_wg, debug_sc, debug_sm, debug_sp):
     myokit.DEBUG_SM = myokit.DEBUG_SM or debug_sm
     # Show profiling information when running compiled code
     myokit.DEBUG_SP = myokit.DEBUG_SP or debug_sp
+    # Show CVODES stats
+    myokit.DEBUG_SS = myokit.DEBUG_SS or debug_ss
 
     # Read mmt file
     try:
@@ -1011,31 +1011,31 @@ def add_run_parser(subparsers):
         '--debug-sg',
         action='store_true',
         help='Show the generated code instead of executing it.',
-        #metavar='debug_sg',
     )
     parser.add_argument(
         '--debug-wg',
         action='store_true',
         help='Write the generated code to file(s) instead of executing it.',
-        #metavar='debug_wg',
     )
     parser.add_argument(
         '--debug-sc',
         action='store_true',
         help='Show compiler output.',
-        #metavar='debug_sc',
     )
     parser.add_argument(
         '--debug-sm',
         action='store_true',
         help='Show debug messages when executing compiled code.',
-        #metavar='debug_sm',
     )
     parser.add_argument(
         '--debug-sp',
         action='store_true',
         help='Show profiling information when executing compiled code.',
-        #metavar='debug_sp',
+    )
+    parser.add_argument(
+        '--debug-ss',
+        action='store_true',
+        help='Show CVODES stats when running simulations.',
     )
     parser.set_defaults(func=run)
 

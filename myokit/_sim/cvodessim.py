@@ -918,7 +918,7 @@ class Simulation(myokit.CModule):
 
                 # Create long error message
                 txt = ['A numerical error occurred during simulation at'
-                       ' t = ' + myokit.float.str(t) + '.',
+                       ' t = ' + myokit.float.str(bound[0]) + '.',
                        'Last reached state: ']
                 txt.extend(['  ' + x for x
                             in self._model.format_state(state).splitlines()])
