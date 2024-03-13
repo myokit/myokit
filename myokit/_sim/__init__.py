@@ -150,6 +150,7 @@ class CModule:
                 if platform.system() == 'Linux':
                     carg.extend([
                         '-Wextra',
+                        #'-Wpedantic',
                         '-Wstrict-prototypes',
                         '-Wold-style-definition',
                         #'-Wmissing-prototypes',

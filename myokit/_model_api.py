@@ -2200,7 +2200,7 @@ class Model(ObjectWithMetaData, VarProvider):
         """
         # Deprecated since 2023-02-22
         import warnings
-        warnings.warn('The method `load_state` is deprecated.')
+        warnings.warn('The method `Model.load_state` is deprecated.')
         self.set_initial_values(myokit.load_state(filename, self))
 
     def map_component_dependencies(
