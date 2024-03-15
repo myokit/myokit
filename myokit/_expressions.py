@@ -665,8 +665,8 @@ class Expression:
 
         # Create function text
         args = [w.ex(x) for x in self._references]
-        c = 'def ex_pyfunc_generated(' + ','.join(args) + '):\n    return ' \
-            + w.ex(self)
+        c = ('def ex_pyfunc_generated(' + ','.join(sorted(args))
+             + '):\n    return ' + w.ex(self))
 
         # Create function
         local = {}
@@ -682,8 +682,8 @@ class Expression:
         """
         Returns a string representing this expression in Python syntax.
 
-        By default, built-in functions such as 'exp' are converted to the
-        Python version 'math.exp'. To use the numpy versions, set
+        By default, built-in functions such as ``exp`` are converted to the
+        Python version ``math.exp``. To use the numpy versions, set
         ``numpy=True``.
         """
         # Get expression writer
@@ -1474,7 +1474,7 @@ class PrefixExpression(Expression):
         """See :meth:`Expression.bracket()`."""
         if op != self._op:
             raise ValueError('Given operand is not used in this expression.')
-        return (self._op._rbp > LITERAL) and (self._op._rbp < self._rbp)
+        return self._op._rbp > LITERAL and self._op._rbp < self._rbp
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""

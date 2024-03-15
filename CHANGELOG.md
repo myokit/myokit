@@ -7,6 +7,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1051](https://github.com/myokit/myokit/pull/1051) Added a method `Simulation.crash_inputs` that returns the inputs (binding values) if the last run raised a `SimulationError`.
 - Changed
   - [#1051](https://github.com/myokit/myokit/pull/1051) `Model.evaluate_derivatives` will now use `numpy.errstate(all='raise')` when `ignore_errors` is set to `False`, causing more numerical issues to be reported.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) `Expression.pyfunc` now sorts its arguments in alphabetical order.
 - Deprecated
   - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.eval_derivatives` is deprecated in favour of an `evaluate_derivatives` method that uses `default_state` instead of `state` when no state is given, and has better support and clearer rules for handling bindings.
   - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.last_state` is deprecated in favour of `crash_state`.
