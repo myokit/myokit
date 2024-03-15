@@ -24,6 +24,9 @@ _EWRITERS = None
 class Exporter:
     """
     Abstract base class for exporters.
+
+    An exporter is a class that can produce model code or runnable code from a
+    Myokit model or a model & protocol combination (runnable).
     """
     def __init__(self):
         super().__init__()
@@ -106,8 +109,38 @@ def exporters():
 
 class ExpressionWriter:
     """
-    Base class for expression writers, that take myokit expressions as input
-    and convert them to text or other formats.
+    Base class for expression writers.
+
+    Expression writers take :class:`myokit.Expression` objects and produce code
+    in some language other than Myokit.
+
+    When implementing an expression writer, there are a few important edge
+    cases to consider:
+
+    1. Simplifications must not be made at this stage. For example, if the user
+       writes "+1" instead of "1", the code should output "+1". If
+       simplifications are desired, these should be made at an earlier stage,
+       when everything is still in symbolic form.
+
+    2. Powers (exponentiation) can be left or right-associative. In Myokit and,
+       for example, in Matlab, the expression ``a^b^c`` is interpreted as
+       ``(a^b)^c``. By in Python (and e.g. in many spreadsheet applications)
+       ``a**b**c`` is interpreted as ``a**(b**c)``, necessitating a different
+       bracket-adding logic than used in Myokit.
+
+    3. Binary operators are sometimes implemented as n-ary operators. In
+       Myokit, ``0 == 0 == 0`` is a sequence of two binary operators,
+       interpreted as ``(0 == 0) == 0``. Because ``(0 == 0)`` evaluates to
+       ``1``, this expression returns ``0`` (1 does not equal 0). In Python,
+       the expression ``0 == 0 == 0`` is a ternary (n-ary) operator,
+       interpreted as ``all_equal(0, 0, 0)``, which evaluates to ``1``. For
+       languages that use this convention, extra brackets must be added.
+
+    4. Myokit does not have increment or decrement operators ``--`` and ``++``,
+       so the expression ``--x`` is interpreted as ``-(-x)``. This is the same
+       in Python. But in C-based languages, this is interpreted as a decrement
+       operator so care must be taken to add extra brackets.
+
     """
     def __init__(self):
         self._op_map = self._build_op_map()
@@ -178,19 +211,29 @@ class ExpressionWriter:
     def _ex_derivative(self, e):
         raise NotImplementedError
 
-    def _ex_partial_derivative(self, e):
-        raise NotImplementedError
-
     def _ex_initial_value(self, e):
-        raise NotImplementedError
+        raise NotImplementedError(
+            'Initial values are not supported in expression writers.')
+
+    def _ex_partial_derivative(self, e):
+        raise NotImplementedError(
+            'Partial derivatives are not supported in expression writers.')
 
     def _ex_number(self, e):
         raise NotImplementedError
 
     def _ex_prefix_plus(self, e):
+        #
+        # Note: Spaces or brackets should be used in languages where ++ is an
+        #       operator
+        #
         raise NotImplementedError
 
     def _ex_prefix_minus(self, e):
+        #
+        # Note: Spaces or brackets should be used in languages where -- is an
+        #       operator
+        #
         raise NotImplementedError
 
     def _ex_plus(self, e):
@@ -212,6 +255,13 @@ class ExpressionWriter:
         raise NotImplementedError
 
     def _ex_power(self, e):
+        #
+        # Note: Languages differ in what a**b**c should mean
+        #       https://codeplea.com/exponentiation-associativity-options
+        #
+        # Note: Most languages agree that -a**b means -(a**b)
+        #       https://codeplea.com/exponentiation-associativity-options
+        #
         raise NotImplementedError
 
     def _ex_sqrt(self, e):
@@ -239,6 +289,11 @@ class ExpressionWriter:
         raise NotImplementedError
 
     def _ex_log(self, e):
+        #
+        # Log can have 1 or 2 arguments. If the language does not support
+        # 2-argument log, use (log(a) / log(b)), including the outer
+        # brackets (because a function is expected, which is never bracketed).
+        #
         raise NotImplementedError
 
     def _ex_log10(self, e):
@@ -253,10 +308,11 @@ class ExpressionWriter:
     def _ex_abs(self, e):
         raise NotImplementedError
 
-    def _ex_not(self, e):
-        raise NotImplementedError
-
     def _ex_equal(self, e):
+        #
+        # To obtain the desired `(0 == 0) == 0` behaviour, this and other
+        # conditions are best rendered with brackets.
+        #
         raise NotImplementedError
 
     def _ex_not_equal(self, e):
@@ -278,6 +334,9 @@ class ExpressionWriter:
         raise NotImplementedError
 
     def _ex_or(self, e):
+        raise NotImplementedError
+
+    def _ex_not(self, e):
         raise NotImplementedError
 
     def _ex_if(self, e):
