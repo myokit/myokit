@@ -41,14 +41,12 @@ class LibPlotTest(unittest.TestCase):
         # Stair
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'stair')
-        plt.show()
         plt.close(fig)
         self.assertRaises(ValueError, plots.simulation_times, mode='stair')
 
         # Inverse stair
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'stair_inverse')
-        plt.show()
         plt.close(fig)
         self.assertRaises(
             ValueError, plots.simulation_times, mode='stair_inverse')
@@ -56,21 +54,18 @@ class LibPlotTest(unittest.TestCase):
         # Load
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'load')
-        plt.show()
         plt.close(fig)
         self.assertRaises(ValueError, plots.simulation_times, mode='load')
 
         # Histogram
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'histo')
-        plt.show()
         plt.close(fig)
         self.assertRaises(ValueError, plots.simulation_times, mode='histo')
 
         # Time per step
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'time_per_step')
-        plt.show()
         plt.close(fig)
         self.assertRaises(
             ValueError, plots.simulation_times, mode='time_per_step')
@@ -78,7 +73,6 @@ class LibPlotTest(unittest.TestCase):
         # Evaluations per step
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'eval_per_step')
-        plt.show()
         plt.close(fig)
         self.assertRaises(
             ValueError, plots.simulation_times, mode='eval_per_step')
@@ -111,7 +105,6 @@ class LibPlotTest(unittest.TestCase):
         fig = plt.figure()
         plots.current_arrows(d, 'membrane.V', currents)
         plt.close(fig)
-        plt.show()
 
         # Massive peak at final point
         d = d.npview()
@@ -119,7 +112,6 @@ class LibPlotTest(unittest.TestCase):
         fig = plt.figure()
         plots.current_arrows(d, 'membrane.V', currents)
         plt.close(fig)
-        plt.show()
 
     def test_cumulative_current(self):
         # Test the cumulative current plot.
@@ -140,7 +132,6 @@ class LibPlotTest(unittest.TestCase):
         plots.cumulative_current(d, currents)
         plt.legend()
         plt.close(fig)
-        plt.show()
 
         # Labels set
         labels = ['I_Ca', 'I_K', 'I_K1', 'I_Kp', 'I_b']
@@ -148,7 +139,6 @@ class LibPlotTest(unittest.TestCase):
         plots.cumulative_current(d, currents, labels=labels)
         plt.legend()
         plt.close(fig)
-        plt.show()
 
         # Colors set
         colors = ['green', 'blue', 'yellow', 'brown', 'gray']
@@ -156,7 +146,6 @@ class LibPlotTest(unittest.TestCase):
         plots.cumulative_current(d, currents, colors=colors)
         plt.legend()
         plt.close(fig)
-        plt.show()
 
         # Not enough colors set (will repeat array)
         colors = ['green', 'blue']
@@ -164,35 +153,30 @@ class LibPlotTest(unittest.TestCase):
         plots.cumulative_current(d, currents, colors=colors)
         plt.legend()
         plt.close(fig)
-        plt.show()
 
         # Integrate currents to charges
         fig = plt.figure()
         plots.cumulative_current(d, currents, integrate=True)
         plt.legend()
         plt.close(fig)
-        plt.show()
 
         # Normalize currents
         fig = plt.figure()
         plots.cumulative_current(d, currents, normalize=True)
         plt.legend()
         plt.close(fig)
-        plt.show()
 
         # Normalize currents and set maximum number of currents shown
         fig = plt.figure()
         plots.cumulative_current(d, currents, normalize=True, max_currents=3)
         plt.legend()
         plt.close(fig)
-        plt.show()
 
         with WarningCollector() as w:
             fig = plt.figure()
             plots.cumulative_current(d, currents, normalise=True)
             plt.legend()
             plt.close(fig)
-            plt.show()
         self.assertIn('deprecated', w.text())
 
 
