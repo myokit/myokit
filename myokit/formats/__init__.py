@@ -147,7 +147,8 @@ class ExpressionWriter:
 
     def _build_op_map(self):
         """
-        Returns a mapping from myokit operators to lambda functions on expr.
+        Returns a mapping from Myokit operators to lambda functions on
+        expressions.
         """
         return {
             myokit.Name: self._ex_name,
@@ -191,15 +192,11 @@ class ExpressionWriter:
         }
 
     def eq(self, q):
-        """
-        Converts an equation to a string
-        """
+        """ Converts a :class:`myokit.Equation` to a string. """
         return self.ex(q.lhs) + ' = ' + self.ex(q.rhs)
 
     def ex(self, e):
-        """
-        Converts an Expression to a string.
-        """
+        """ Converts a :class:`myokit.Expression` to a string. """
         t = type(e)
         if t not in self._op_map:   # pragma: no cover
             raise ValueError('Unknown expression type: ' + str(t))
@@ -211,13 +208,11 @@ class ExpressionWriter:
     def _ex_derivative(self, e):
         raise NotImplementedError
 
-    def _ex_initial_value(self, e):
-        raise NotImplementedError(
-            'Initial values are not supported in expression writers.')
-
     def _ex_partial_derivative(self, e):
-        raise NotImplementedError(
-            'Partial derivatives are not supported in expression writers.')
+        raise NotImplementedError
+
+    def _ex_initial_value(self, e):
+        raise NotImplementedError
 
     def _ex_number(self, e):
         raise NotImplementedError

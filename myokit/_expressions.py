@@ -810,7 +810,6 @@ class Expression:
 class Number(Expression):
     """
     Represents a number with an optional unit for use in Myokit expressions.
-    All numbers used in Myokit expressions are floating point.
 
     >>> import myokit
     >>> x = myokit.Number(10)
@@ -821,11 +820,12 @@ class Number(Expression):
     >>> print(x)
     5 [V]
 
+    All numbers used in Myokit expressions are floating point.
+
     Arguments:
 
     ``value``
         A numerical value (something that can be converted to a ``float``).
-        Number objects are immutable so no clone constructor is provided.
     ``unit``
         A unit to associate with this number. If no unit is specified the
         number's unit will be left undefined.

@@ -6,10 +6,10 @@
 #
 import myokit
 
-from myokit.formats.python import PythonExpressionWriter
+from myokit.formats.ansic import AnsiCExpressionWriter
 
 
-class CudaExpressionWriter(PythonExpressionWriter):
+class CudaExpressionWriter(AnsiCExpressionWriter):
     """
     This :class:`ExpressionWriter <myokit.formats.ExpressionWriter>` translates
     Myokit :class:`expressions <myokit.Expression>` to their CUDA equivalents.
@@ -22,6 +22,14 @@ class CudaExpressionWriter(PythonExpressionWriter):
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
 
+    def _ex_initial_value(self, e):
+        raise NotImplementedError(
+            'Initial values are not supported by this expression writer.')
+
+    def _ex_partial_derivative(self, e):
+        raise NotImplementedError(
+            'Partial derivatives are not supported by this expression writer.')
+
     def _ex_number(self, e):
         return myokit.float.str(e) + 'f' if self._sp else myokit.float.str(e)
 
@@ -32,30 +40,12 @@ class CudaExpressionWriter(PythonExpressionWriter):
     #def _ex_multiply(self, e):
     #def _ex_divide(self, e):
 
-    def _ex_quotient(self, e):
-        # Note that this _must_ round towards minus infinity.
-        # See myokit.Quotient
-        # CUDA docs are unclear on convention, so assuming it follows C and
-        # so we need a custom implementation.
-        return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])))
-
-    def _ex_remainder(self, e):
-        # Note that this _must_ use the same round-to-neg-inf convention as
-        # myokit.Quotient.
-        # CUDA docs are unclear on convention, so assuming it follows C and
-        # so we need a custom implementation.
-        return self.ex(myokit.Minus(
-            e[0], myokit.Multiply(e[1], myokit.Quotient(e[0], e[1]))))
+    #def _ex_quotient(self, e):
+    #def _ex_remainder(self, e):
 
     def _ex_power(self, e):
-        if e[1] == myokit.Number(2):
-            if e.bracket(e[0]):
-                return '((' + self.ex(e[0]) + ') * (' + self.ex(e[0]) + '))'
-            else:
-                return '(' + self.ex(e[0]) + ' * ' + self.ex(e[0]) + ')'
-        else:
-            f = 'powf' if self._sp else 'pow'
-            return f + '(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
+        pow = 'powf' if self._sp else 'pow'
+        return f'{pow}({self.ex(e[0])}, {self.ex(e[1])})'
 
     def _ex_sqrt(self, e):
         f = 'sqrtf' if self._sp else 'sqrt'
@@ -112,35 +102,15 @@ class CudaExpressionWriter(PythonExpressionWriter):
         f = 'fabsf' if self._sp else 'fabs'
         return self._ex_function(e, f)
 
-    def _ex_not(self, e):
-        return '!(' + self.ex(e[0]) + ')'
-
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
     #def _ex_more(self, e):
     #def _ex_less(self, e):
     #def _ex_more_equal(self, e):
     #def _ex_less_equal(self, e):
-
-    def _ex_and(self, e):
-        return self._ex_infix_condition(e, '&&')
-
-    def _ex_or(self, e):
-        return self._ex_infix_condition(e, '||')
-
-    def _ex_if(self, e):
-        return '(%s ? %s : %s)' % (self.ex(e._i), self.ex(e._t), self.ex(e._e))
-
-    def _ex_piecewise(self, e):
-        s = []
-        n = len(e._i)
-        for i in range(0, n):
-            s.append('(')
-            s.append(self.ex(e._i[i]))
-            s.append(' ? ')
-            s.append(self.ex(e._e[i]))
-            s.append(' : ')
-        s.append(self.ex(e._e[n]))
-        s.append(')' * n)
-        return ''.join(s)
+    #def _ex_and(self, e):
+    #def _ex_or(self, e):
+    #def _ex_not(self, e):
+    #def _ex_if(self, e):
+    #def _ex_piecewise(self, e):
 

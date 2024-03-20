@@ -17,6 +17,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1050](https://github.com/myokit/myokit/pull/1050) Fixed warnings about unknown escape sequences.
   - [#1051](https://github.com/myokit/myokit/pull/1051) Numerical simulation errors in `Simulation` now re-evaluate the state using the last inputs, as well as the last state.
   - [#1051](https://github.com/myokit/myokit/pull/1051) The `Simulation` class now provides error states and inputs for both cvode-detected crashes and too many zero-length step crashes.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) The `PythonExpressionWriter` and `NumPyExpressionWriter` now output brackets around double `Power` operations, so that the Myokit expression ``a**b**c`` is rendered as ``(a**b)**c`` in Python.
 
 ## [1.35.4] - 2023-10-12
 - Added

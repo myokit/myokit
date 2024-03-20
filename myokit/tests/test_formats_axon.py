@@ -11,6 +11,7 @@ import unittest
 import numpy as np
 
 import myokit
+import myokit.formats
 import myokit.formats.axon as axon
 
 from myokit.tests import TemporaryDirectory, DIR_FORMATS, WarningCollector
@@ -851,6 +852,22 @@ class AtfTest(unittest.TestCase):
 
             # Test version
             self.assertEqual(atf.version(), '1.0')
+
+
+class AbfImporterInterfaceTest(unittest.TestCase):
+    """ Tests ABF importer interface. """
+
+    def test_capability_reporting(self):
+        # Test if the right capabilities are reported.
+        i = myokit.formats.importer('abf')
+        self.assertFalse(i.supports_component())
+        self.assertFalse(i.supports_model())
+        self.assertTrue(i.supports_protocol())
+
+    def test_protocol(self):
+        i = myokit.formats.importer('abf')
+        self.assertTrue(i.supports_protocol())
+        i.protocol(os.path.join(DIR_FORMATS, 'abf-v1.abf'))
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Tests the expression writer for OpenCL.
+# Tests the expression writer for CUDA.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -8,7 +8,7 @@
 import unittest
 
 import myokit
-import myokit.formats.opencl
+import myokit.formats.cuda
 
 from myokit import (
     Name, Number, Derivative, PartialDerivative, InitialValue,
@@ -22,13 +22,13 @@ from myokit import (
 import myokit.tests
 
 
-class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
+class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     """
     Test conversion to Ansi C, as used by the Simulation.
     Numerical tests are provided by composing and evaluating a single RHS.
     """
-    _name = 'opencl'
-    _target = myokit.formats.opencl.OpenCLExpressionWriter
+    _name = 'cuda'
+    _target = myokit.formats.cuda.CudaExpressionWriter
 
     def test_number(self):
         self.eq(Number(1), '1.0f')
@@ -61,6 +61,7 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             self.w.ex, myokit.PartialDerivative(self.a, self.b))
 
     def test_prefix_plus_minus(self):
+        # Inherited from ansi C: only test a few
 
         p = Number(11, 'kV')
         self.eq(PrefixPlus(p), '+11.0f')
@@ -113,30 +114,41 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         # Inherited from ansi C: only test a few
 
         a, b, c = self.abc
-        self.eq(myokit.Quotient(a, myokit.Divide(b, c)), 'floor(a / (b / c))')
+        self.eq(myokit.Quotient(a, myokit.Divide(b, c)), 'floorf(a / (b / c))')
         self.eq(myokit.Remainder(myokit.Plus(a, c), b),
-                '(a + c - b * floor((a + c) / b))')
-        self.eq(Divide(c, Remainder(b, a)), 'c / ((b - a * floor(b / a)))')
+                '(a + c - b * floorf((a + c) / b))')
+        self.eq(Divide(c, Remainder(b, a)), 'c / ((b - a * floorf(b / a)))')
+
+    def test_quotient_remainder_double(self):
+        w = self._target(precision=myokit.DOUBLE_PRECISION)
+        a, b, c = self.abc
+        self.assertEqual(w.ex(myokit.Quotient(a, b)), 'floor(c.a / c.b)')
 
     def test_power(self):
         a, b, c = self.abc
-        self.eq(Power(a, b), 'pow(a, b)')
-        self.eq(Power(Power(a, b), c), 'pow(pow(a, b), c)')
-        self.eq(Power(a, Power(b, c)), 'pow(a, pow(b, c))')
+        self.eq(Power(a, b), 'powf(a, b)')
+        self.eq(Power(Power(a, b), c), 'powf(powf(a, b), c)')
+        self.eq(Power(a, Power(b, c)), 'powf(a, powf(b, c))')
 
-        self.eq(Power(Plus(a, b), c), 'pow(a + b, c)')
-        self.eq(Power(a, Minus(b, c)), 'pow(a, b - c)')
-        self.eq(Power(Multiply(a, b), c), 'pow(a * b, c)')
-        self.eq(Power(a, Divide(b, c)), 'pow(a, b / c)')
+        self.eq(Power(Plus(a, b), c), 'powf(a + b, c)')
+        self.eq(Power(a, Minus(b, c)), 'powf(a, b - c)')
+        self.eq(Power(Multiply(a, b), c), 'powf(a * b, c)')
+        self.eq(Power(a, Divide(b, c)), 'powf(a, b / c)')
+
+    def test_power_double(self):
+        w = self._target(precision=myokit.DOUBLE_PRECISION)
+        a, b, c = self.abc
+        self.assertEqual(w.ex(Power(a, b)), 'pow(c.a, c.b)')
+        self.assertEqual(w.ex(Power(Plus(a, b), c)), 'pow(c.a + c.b, c.c)')
 
     def test_log(self):
         a, b = self.ab
-        self.eq(Log(a), 'native_log(a)')
-        self.eq(Log10(a), 'native_log10(a)')
-        self.eq(Log(a, b), '(native_log(a) / native_log(b))')
+        self.eq(Log(a), 'logf(a)')
+        self.eq(Log10(a), 'log10f(a)')
+        self.eq(Log(a, b), '(logf(a) / logf(b))')
 
-    def test_log_no_native(self):
-        w = self._target(native_math=False)
+    def test_log_double(self):
+        w = self._target(precision=myokit.DOUBLE_PRECISION)
         a, b = self.ab
         self.assertEqual(w.ex(Log(a)), 'log(c.a)')
         self.assertEqual(w.ex(Log10(b)), 'log10(c.b)')
@@ -144,20 +156,20 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_functions(self):
         a = self.a
-        self.eq(Sqrt(self.a), 'native_sqrt(a)')
-        self.eq(Exp(self.a), 'native_exp(a)')
-        self.eq(Sin(self.a), 'native_sin(a)')
-        self.eq(Cos(self.a), 'native_cos(a)')
-        self.eq(Tan(self.a), 'native_tan(a)')
-        self.eq(ASin(self.a), 'asin(a)')
-        self.eq(ACos(self.a), 'acos(a)')
-        self.eq(ATan(self.a), 'atan(a)')
-        self.eq(Floor(self.a), 'floor(a)')
-        self.eq(Ceil(self.a), 'ceil(a)')
-        self.eq(Abs(self.a), 'fabs(a)')
+        self.eq(Sqrt(self.a), 'sqrtf(a)')
+        self.eq(Exp(self.a), 'expf(a)')
+        self.eq(Sin(self.a), 'sinf(a)')
+        self.eq(Cos(self.a), 'cosf(a)')
+        self.eq(Tan(self.a), 'tanf(a)')
+        self.eq(ASin(self.a), 'asinf(a)')
+        self.eq(ACos(self.a), 'acosf(a)')
+        self.eq(ATan(self.a), 'atanf(a)')
+        self.eq(Floor(self.a), 'floorf(a)')
+        self.eq(Ceil(self.a), 'ceilf(a)')
+        self.eq(Abs(self.a), 'fabsf(a)')
 
-    def test_functions_no_native(self):
-        w = self._target(native_math=False)
+    def test_functions_double(self):
+        w = self._target(precision=myokit.DOUBLE_PRECISION)
         self.assertEqual(w.ex(Sqrt(self.a)), 'sqrt(c.a)')
         self.assertEqual(w.ex(Exp(self.a)), 'exp(c.a)')
         self.assertEqual(w.ex(Sin(self.a)), 'sin(c.a)')
@@ -171,15 +183,13 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.assertEqual(w.ex(Abs(self.a)), 'fabs(c.a)')
 
     def test_conditions(self):
-        # Can be greatly simplified after
-        # https://github.com/myokit/myokit/issues/1056
+        # Inherited from ansi C: only test a few
 
         a, b, c, d = self.abcd
-
-        self.eq(And(a, b), '((a != 0.0f) && (b != 0.0f))')
-        self.eq(Or(d, c), '((d != 0.0f) || (c != 0.0f))')
-        self.eq(Not(And(a, b)), '(!((a != 0.0f) && (b != 0.0f)))')
-        self.eq(Not(c), '(!(c != 0.0f))')
+        self.eq(And(a, b), '(a && b)')
+        self.eq(Or(d, c), '(d || c)')
+        self.eq(Not(And(a, b)), '(!(a && b))')
+        self.eq(Not(c), '(!(c))')
 
         self.eq(Equal(a, b), '(a == b)')
         self.eq(NotEqual(a, b), '(a != b)')
@@ -190,23 +200,12 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) && (c != d))')
         self.eq(Or(More(d, c), Less(b, a)), '((d > c) || (b < a))')
-        self.eq(Not(Or(Number(1), Number(2))),
-                '(!((1.0f != 0.0f) || (2.0f != 0.0f)))')
+        self.eq(Not(Or(Number(1), Number(2))), '(!(1.0f || 2.0f))')
         self.eq(Not(Less(Number(1), Number(2))), '(!(1.0f < 2.0f))')
-        self.eq(Not(Plus(Number(1), Number(2))), '(!(1.0f + 2.0f != 0.0f))')
+        self.eq(Not(Plus(Number(1), Number(2))), '(!(1.0f + 2.0f))')
 
         self.eq(Equal(Equal(Number(0), Number(0)), Number(0)),
-                '((0.0f == 0.0f) == (0.0f != 0.0f))')
-
-    def test_boolean_comparisons(self):
-        # Can be removed after https://github.com/myokit/myokit/issues/1056
-
-        a, b = self.ab
-        c1, c2 = More(Number(5), Number(3)), Less(Number(2), Number(1))
-        self.eq(Equal(c1, c2), '((5.0f > 3.0f) == (2.0f < 1.0f))')
-        self.eq(NotEqual(c1, a), '((5.0f > 3.0f) != (a != 0.0f))')
-        self.eq(More(b, c2), '((b != 0.0f) > (2.0f < 1.0f))')
-        self.eq(LessEqual(a, b), '(a <= b)')
+                '((0.0f == 0.0f) == 0.0f)')
 
     def test_conditionals(self):
 
@@ -217,9 +216,9 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '((a == b) ? c : ((a == d) ? 3.0f : 4.0f))')
 
         # If condition is not a condition
-        self.eq(If(a, d, c), '((a != 0.0f) ? d : c)')
+        self.eq(If(a, d, c), '((a) ? d : c)')
         self.eq(Piecewise(a, b, c, d, Number(4)),
-                '((a != 0.0f) ? b : ((c != 0.0f) ? d : 4.0f))')
+                '((a) ? b : ((c) ? d : 4.0f))')
 
         # Using if-then-else function
         w = self._target()
@@ -232,12 +231,11 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.assertEqual(w.ex(
             Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4))),
             'ite((a == b), c, ite((a == d), 3.0f, 4.0f))')
-        self.assertEqual(w.ex(If(a, c, d)), 'ite((a != 0.0f), c, d)')
-        self.assertEqual(w.ex(Piecewise(c, b, a)),
-                         'ite((c != 0.0f), b, a)')
-        self.assertEqual(w.ex(
-            Piecewise(a, b, c, d, Number(4))),
-            'ite((a != 0.0f), b, ite((c != 0.0f), d, 4.0f))')
+        self.assertEqual(w.ex(If(a, c, d)), 'ite((a), c, d)')
+        self.assertEqual(w.ex(Piecewise(c, b, a)), 'ite((c), b, a)')
+        self.assertEqual(
+            w.ex(Piecewise(a, b, c, d, Number(4))),
+            'ite((a), b, ite((c), d, 4.0f))')
 
 
 if __name__ == '__main__':
