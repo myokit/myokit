@@ -9,26 +9,13 @@ import myokit
 from myokit.formats.python import PythonExpressionWriter
 
 
-class AnsiCExpressionWriter(PythonExpressionWriter):
+class CBasedExpressionWriter(PythonExpressionWriter):
     """
-    This :class:`ExpressionWriter <myokit.formats.ExpressionWriter>` writes
-    equations for variables in a C-style syntax.
+    Base class for C-style expression writers.
     """
     def __init__(self):
         super().__init__()
         self._function_prefix = ''
-        self._fcond = None
-
-    def set_condition_function(self, func=None):
-        """
-        Sets a function name to use for :class:`myokit.If`; if not set the
-        ternary operatur will be used.
-
-        If given, the function arguments should be ``(condition, value_if_true,
-         value_if_false)``. To revert to using the ternary operator, call with
-         ``func=None``.
-        """
-        self._fcond = func
 
     def _ex_prefix(self, e, op):
         # PrefixPlus and PrefixMinus. No simplifications should be made here
@@ -46,16 +33,8 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
 
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
-
-    def _ex_initial_value(self, e):
-        # These are disabled by default, but enabled here to support CVODES
-        # sensitivity calculations.
-        return self._flhs(e)
-
-    def _ex_partial_derivative(self, e):
-        # These are disabled by default, but enabled here to support CVODES
-        # sensitivity calculations.
-        return self._flhs(e)
+    #def _ex_initial_value(self, e):
+    #def _ex_partial_derivative(self, e):
 
     #def _ex_number(self, e):
 
@@ -134,6 +113,100 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
         # then add brackets
         if not isinstance(e._i, myokit.Condition):
             _if = f'({_if})'
+        return f'({_if} ? {_then} : {_else})'
+
+    def _ex_piecewise(self, e):
+        # Render ifs; add extra bracket if not a condition (see _ex_if)
+        _ifs = [self.ex(x) if isinstance(x, myokit.Condition)
+                else f'({self.ex(x)})' for x in e._i]
+        _thens = [self.ex(x) for x in e._e]
+
+        s = []
+        n = len(_ifs)
+        for _if, _then in zip(_ifs, _thens):
+            s.append(f'({_if} ? {_then} : ')
+        s.append(_thens[-1])
+        s.append(')' * len(_ifs))
+        return ''.join(s)
+
+
+class AnsiCExpressionWriter(CBasedExpressionWriter):
+    """
+    This :class:`ExpressionWriter <myokit.formats.ExpressionWriter>` writes
+    equations for variables in a C-style syntax.
+    """
+    def __init__(self):
+        super().__init__()
+        self._fcond = None
+
+    def set_condition_function(self, func=None):
+        """
+        Sets a function name to use for :class:`myokit.If`; if not set the
+        ternary operatur will be used.
+
+        If given, the function arguments should be ``(condition, value_if_true,
+         value_if_false)``. To revert to using the ternary operator, call with
+         ``func=None``.
+        """
+        self._fcond = func
+
+    #def _ex_name(self, e):
+    #def _ex_derivative(self, e):
+
+    def _ex_initial_value(self, e):
+        # These are disabled by default, but enabled here to support CVODES
+        # sensitivity calculations.
+        return self._flhs(e)
+
+    def _ex_partial_derivative(self, e):
+        # These are disabled by default, but enabled here to support CVODES
+        # sensitivity calculations.
+        return self._flhs(e)
+
+    #def _ex_number(self, e):
+
+    #def _ex_prefix_plus(self, e):
+    #def _ex_prefix_minus(self, e):
+
+    #def _ex_plus(self, e):
+    #def _ex_minus(self, e):
+    #def _ex_multiply(self, e):
+    #def _ex_divide(self, e):
+
+    #def _ex_quotient(self, e):
+    #def _ex_remainder(self, e):
+    #def _ex_power(self, e):
+    #def _ex_sqrt(self, e):
+    #def _ex_sin(self, e):
+    #def _ex_cos(self, e):
+    #def _ex_tan(self, e):
+    #def _ex_asin(self, e):
+    #def _ex_acos(self, e):
+    #def _ex_atan(self, e):
+    #def _ex_exp(self, e):
+    #def _ex_log(self, e):
+    #def _ex_log10(self, e):
+    #def _ex_floor(self, e):
+    #def _ex_ceil(self, e):
+    #def _ex_abs(self, e):
+    #def _ex_equal(self, e):
+    #def _ex_not_equal(self, e):
+    #def _ex_more(self, e):
+    #def _ex_less(self, e):
+    #def _ex_more_equal(self, e):
+    #def _ex_less_equal(self, e):
+    #def _ex_and(self, e):
+    #def _ex_or(self, e):
+    #def _ex_not(self, e):
+
+    def _ex_if(self, e):
+        # Allow _fcond
+
+        _if, _then, _else = self.ex(e._i), self.ex(e._t), self.ex(e._e)
+        # If i is not a condtion (which always gets brackets from this writer)
+        # then add brackets
+        if not isinstance(e._i, myokit.Condition):
+            _if = f'({_if})'
 
         # Use if-then-else function?
         if self._fcond is not None:
@@ -143,6 +216,8 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
         return f'({_if} ? {_then} : {_else})'
 
     def _ex_piecewise(self, e):
+        # Allow _fcond
+
         # Render ifs; add extra bracket if not a condition (see _ex_if)
         _ifs = [self.ex(x) if isinstance(x, myokit.Condition)
                 else f'({self.ex(x)})' for x in e._i]

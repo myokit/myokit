@@ -60,7 +60,7 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             self.w.ex, myokit.PartialDerivative(self.a, self.b))
 
     def test_prefix_plus_minus(self):
-        # Inherited from ansi C: only test a few
+        # Inherited from c-based
 
         p = Number(11, 'kV')
         self.eq(PrefixPlus(p), '+11.0f')
@@ -82,6 +82,7 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(PrefixMinus(Divide(b, a)), '-(b / a)')
 
     def test_prefix_plus_minus_double(self):
+        # Inherited from c-based
 
         w = self._target(precision=myokit.DOUBLE_PRECISION)
         p = Number(3, 'mA')
@@ -97,7 +98,7 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             w.ex(PrefixMinus(PrefixMinus(Number(-2)))), '-(-(-2.0))')
 
     def test_arithmetic(self):
-        # Inherited from ansi C: only test a few
+        # Inherited from c-based
 
         a, b, c = self.abc
         self.eq(Minus(Plus(a, b), c), 'a + b - c')
@@ -110,7 +111,7 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Divide(Divide(a, b), c), 'a / b / c')
 
     def test_quotient_remainder(self):
-        # Inherited from ansi C: only test a few
+        # Inherited from c-based
 
         a, b, c = self.abc
         self.eq(Quotient(a, Divide(b, c)), 'floorf(a / (b / c))')
@@ -181,7 +182,7 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.assertEqual(w.ex(Abs(self.a)), 'fabs(c.a)')
 
     def test_conditions(self):
-        # Inherited from ansi C: only test a few
+        # Inherited from c-based
 
         a, b, c, d = self.abcd
         self.eq(And(a, b), '(a && b)')
@@ -206,6 +207,7 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '((0.0f == 0.0f) == 0.0f)')
 
     def test_conditionals(self):
+        # Inherited from c-based
 
         a, b, c, d = self.abcd
         self.eq(If(Equal(a, b), d, c), '((a == b) ? d : c)')
@@ -217,23 +219,6 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(If(a, d, c), '((a) ? d : c)')
         self.eq(Piecewise(a, b, c, d, Number(4)),
                 '((a) ? b : ((c) ? d : 4.0f))')
-
-        # Using if-then-else function
-        w = self._target()
-        w.set_lhs_function(lambda v: v.var().name())
-        w.set_condition_function('ite')
-
-        self.assertEqual(w.ex(If(More(b, a), c, d)), 'ite((b > a), c, d)')
-        self.assertEqual(w.ex(Piecewise(Less(d, c), b, a)),
-                         'ite((d < c), b, a)')
-        self.assertEqual(w.ex(
-            Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4))),
-            'ite((a == b), c, ite((a == d), 3.0f, 4.0f))')
-        self.assertEqual(w.ex(If(a, c, d)), 'ite((a), c, d)')
-        self.assertEqual(w.ex(Piecewise(c, b, a)), 'ite((c), b, a)')
-        self.assertEqual(
-            w.ex(Piecewise(a, b, c, d, Number(4))),
-            'ite((a), b, ite((c), d, 4.0f))')
 
 
 if __name__ == '__main__':

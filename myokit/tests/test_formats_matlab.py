@@ -58,6 +58,7 @@ class MatlabExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         a, b, c = self.abc
         self.eq(PrefixPlus(Plus(a, b)), '+(a + b)')
         self.eq(Divide(PrefixPlus(Plus(a, b)), c), '+(a + b) / c')
+        self.eq(Power(PrefixPlus(a), b), '(+a)^b')
 
     def test_prefix_minus(self):
         # Inherited from Python writer
@@ -70,6 +71,7 @@ class MatlabExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         a, b, c = self.abc
         self.eq(PrefixMinus(Minus(a, b)), '-(a - b)')
         self.eq(Multiply(PrefixMinus(Plus(b, a)), c), '-(b + a) * c')
+        self.eq(Power(PrefixMinus(a), b), '(-a)^b')
 
     def test_plus_minus(self):
         # Inherited from Python writer
@@ -200,6 +202,16 @@ class MatlabExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Piecewise(NotEqual(d, c), b, a), 'ifthenelse((d != c), b, a)')
         self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
                 'ifthenelse((a == b), c, ifthenelse((a == d), 3.0, 4.0))')
+
+    def test_unset_condition_function(self):
+        # No ternary operator, so matlab must always have an ifthenelse
+        w = self._target()
+        self.assertRaisesRegex(
+            ValueError, 'needs a condition function',
+            w.set_condition_function, None)
+        self.assertRaisesRegex(
+            ValueError, 'needs a condition function',
+            w.set_condition_function, '')
 
 
 if __name__ == '__main__':

@@ -80,7 +80,8 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(PrefixPlus(Plus(a, b)), '+(a + b)')
         self.eq(Divide(PrefixPlus(Plus(a, b)), c), '+(a + b) / c')
         self.eq(PrefixPlus(Remainder(b, a)), '+(b % a)')
-        self.eq(Power(PrefixPlus(Power(b, b)), c), '(+b**b)**c')
+        self.eq(Power(PrefixPlus(a), b), '(+a)**b')
+        self.eq(Power(PrefixPlus(Power(b, a)), c), '(+b**a)**c')
         self.eq(Power(a, PrefixPlus(Power(b, c))), 'a**(+b**c)')
 
     def test_prefix_minus(self):
@@ -96,6 +97,7 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(PrefixMinus(Minus(a, b)), '-(a - b)')
         self.eq(Multiply(PrefixMinus(Plus(b, a)), c), '-(b + a) * c')
         self.eq(PrefixMinus(Quotient(b, a)), '-(b // a)')
+        self.eq(Power(PrefixMinus(a), b), '(-a)**b')
         self.eq(Power(PrefixMinus(Power(c, b)), a), '(-c**b)**a')
         self.eq(Power(a, PrefixMinus(Power(b, c))), 'a**(-b**c)')
 

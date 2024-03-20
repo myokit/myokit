@@ -6,32 +6,26 @@
 #
 import myokit
 
-from myokit.formats.ansic import AnsiCExpressionWriter
+from myokit.formats.ansic import CBasedExpressionWriter
 
 
-class CudaExpressionWriter(AnsiCExpressionWriter):
+class CudaExpressionWriter(CBasedExpressionWriter):
     """
     This :class:`ExpressionWriter <myokit.formats.ExpressionWriter>` translates
     Myokit :class:`expressions <myokit.Expression>` to their CUDA equivalents.
     """
     def __init__(self, precision=myokit.SINGLE_PRECISION):
         super().__init__()
-        self._function_prefix = ''
         self._sp = (precision == myokit.SINGLE_PRECISION)
 
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
-
-    def _ex_initial_value(self, e):
-        raise NotImplementedError(
-            'Initial values are not supported by this expression writer.')
-
-    def _ex_partial_derivative(self, e):
-        raise NotImplementedError(
-            'Partial derivatives are not supported by this expression writer.')
+    #def _ex_initial_value(self, e):
+    #def _ex_partial_derivative(self, e):
 
     def _ex_number(self, e):
-        return myokit.float.str(e) + 'f' if self._sp else myokit.float.str(e)
+        x = super()._ex_number(e)
+        return x + 'f' if self._sp else x
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):

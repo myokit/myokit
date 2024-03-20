@@ -39,6 +39,8 @@ class MatlabExpressionWriter(PythonExpressionWriter):
             end
 
         """
+        if func is not None:
+            func = str(func).strip()
         if func is None or func == '':
             raise ValueError(
                 'The MatlabExpressionWriter needs a condition function to be'

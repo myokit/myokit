@@ -26,13 +26,14 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
             if isinstance(lhs, myokit.Derivative):
                 var = '\\frac{d}{d\\text{t}}' + var
             return var
+
         self._flhs = None
         self.set_lhs_function(fhls)
 
     def set_lhs_function(self, f):
         """
         Sets a naming function, will be called to get the variable name from a
-         ``myokit.LhsExpression`` object.
+         :class:`myokit.LhsExpression`.
 
         The argument ``f`` should be a function that takes an ``LhsExpression``
         as input and returns a string.
@@ -40,31 +41,22 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         self._flhs = f
 
     def set_time_variable_name(self, name='t'):
-        """
-        Sets a name to use for the time variable in derivatives
-        """
+        """ Sets a name to use for the time variable in derivatives. """
         self._time = self._prepare_name(name)
 
     def eq(self, eq):
-        """
-        Converts an equation to a string.
-        """
+        """ See :meth:`myokit.formats.ExpressionWriter.eq()`. """
         return self.ex(eq.lhs) + ' = ' + self.ex(eq.rhs)
 
     def ex(self, e):
-        """
-        Converts an expression to a string.
-        """
+        """ See :meth:`myokit.formats.ExpressionWriter.ex()`. """
         b = []
         self._ex(e, b)
         return ''.join(b)
 
     def _prepare_name(self, text):
-        """
-        Prepares a name for use in latex
-        """
-        text = str(text)
-        return text.replace('_', r'\_')
+        """ Sanitises a name for use in latex. """
+        return str(text).replace('_', r'\_')
 
     def _ex(self, e, b):
         try:
@@ -73,10 +65,17 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
             raise ValueError('Unknown expression type: ' + str(type(e)))
         action(e, b)
 
+    def _ex_prefix(self, e, b, op):
+        """ Handles _ex() for prefix operators. """
+        b.append(op)
+        if e.bracket(e[0]):
+            b.append('\\left(')
+        self._ex(e[0], b)
+        if e.bracket(e[0]):
+            b.append('\\right)')
+
     def _ex_infix(self, e, b, op):
-        """
-        Handles _ex() for infix operators
-        """
+        """ Handles _ex() for infix operators. """
         if e.bracket(e[0]):
             b.append('\\left(')
         self._ex(e[0], b)
@@ -90,19 +89,16 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
             b.append('\\right)')
 
     def _ex_function(self, e, b, func):
-        """
-        Handles _ex() for function operators
-        """
+        """ Handles _ex() for function operators. """
         b.append(func)
         b.append('\\left(')
         b.append(','.join([self.ex(x) for x in e]))
         b.append('\\right)')
 
     def _ex_infix_condition(self, e, b, op):
-        """
-        Handles _ex() for infix condition operators
-        """
+        """ Handles _ex() for infix condition operators. """
         b.append('\\left(')
+        raise ValueError('More brackets?')
         self._ex(e[0], b)
         b.append(op)
         self._ex(e[1], b)
@@ -114,21 +110,22 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
     def _ex_derivative(self, e, b):
         b.append(self._flhs(e))
 
+    def _ex_initial_value(self, e):
+        raise NotImplementedError(
+            'Initial values are not supported by this expression writer.')
+
+    def _ex_partial_derivative(self, e):
+        raise NotImplementedError(
+            'Partial derivatives are not supported by this expression writer.')
+
     def _ex_number(self, e, b):
-        b.append(myokit.float.str(e))
+        b.append(myokit.float.str(e).strip())
 
     def _ex_prefix_plus(self, e, b):
-        self._ex(e[0], b)
+        self._ex_prefix(e, b, '+')
 
     def _ex_prefix_minus(self, e, b):
-        b.append('\\left(')
-        b.append('-')
-        if e.bracket(e[0]):
-            b.append('\\left(')
-        self._ex(e[0], b)
-        if e.bracket(e[0]):
-            b.append('\\right)')
-        b.append('\\right)')
+        self._ex_prefix(e, b, '-')
 
     def _ex_plus(self, e, b):
         self._ex_infix(e, b, '+')

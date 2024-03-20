@@ -36,6 +36,7 @@ class CppExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(myokit.Divide(a, myokit.Multiply(b, c)), 'a / (b * c)')
         self.eq(myokit.Quotient(myokit.Divide(a, c), b), 'floor(a / c / b)')
         self.eq(myokit.ASin(a), 'asin(a)')
+        self.eq(myokit.Power(myokit.PrefixMinus(a), b), 'pow(-a, b)')
         self.eq(myokit.Power(a, myokit.Minus(b, c)), 'pow(a, b - c)')
         self.eq(myokit.Power(myokit.Multiply(a, b), c), 'pow(a * b, c)')
         self.eq(myokit.Log(a, b), '(log(a) / log(b))')
@@ -58,6 +59,38 @@ class CppExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.assertRaisesRegex(
             NotImplementedError, 'Partial',
             self.w.ex, myokit.PartialDerivative(self.a, self.b))
+
+    def test_conditionals(self):
+        # Inherited from AnsiCExpressionWriter
+
+        a, b, c, d = self.abcd
+        self.eq(myokit.If(myokit.Equal(a, b), d, c), '((a == b) ? d : c)')
+        self.eq(myokit.Piecewise(myokit.NotEqual(d, c), b, a),
+                '((d != c) ? b : a)')
+        self.eq(myokit.Piecewise(myokit.Equal(a, b), c,
+                                 myokit.Equal(a, d), myokit.Number(3),
+                                 myokit.Number(4)),
+                '((a == b) ? c : ((a == d) ? 3.0 : 4.0))')
+
+        # Extra parentheses if condition is not a condition
+        self.eq(myokit.If(a, d, c), '((a) ? d : c)')
+        self.eq(myokit.Piecewise(a, b, c, d, myokit.Number(4)),
+                '((a) ? b : ((c) ? d : 4.0))')
+
+        # Using if-then-else function
+        w = self._target()
+        w.set_lhs_function(lambda v: v.var().name())
+        w.set_condition_function('ite')
+
+        self.assertEqual(w.ex(myokit.If(myokit.More(b, a), c, d)),
+                         'ite((b > a), c, d)')
+        self.assertEqual(w.ex(myokit.Piecewise(myokit.Less(d, c), b, a)),
+                         'ite((d < c), b, a)')
+        self.assertEqual(
+            w.ex(myokit.Piecewise(myokit.Equal(a, b), c,
+                                  myokit.Equal(a, d), myokit.Number(3),
+                                  myokit.Number(4))),
+            'ite((a == b), c, ite((a == d), 3.0, 4.0))')
 
 
 if __name__ == '__main__':

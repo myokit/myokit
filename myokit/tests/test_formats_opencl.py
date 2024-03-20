@@ -60,6 +60,7 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             self.w.ex, myokit.PartialDerivative(self.a, self.b))
 
     def test_prefix_plus_minus(self):
+        # Inherited from c-based
 
         p = Number(11, 'kV')
         self.eq(PrefixPlus(p), '+11.0f')
@@ -96,7 +97,7 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             w.ex(PrefixMinus(PrefixMinus(Number(-2)))), '-(-(-2.0))')
 
     def test_arithmetic(self):
-        # Inherited from ansi C: only test a few
+        # Inherited from c-based
 
         a, b, c = self.abc
         self.eq(Minus(Plus(a, b), c), 'a + b - c')
@@ -109,7 +110,7 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Divide(Divide(a, b), c), 'a / b / c')
 
     def test_quotient_remainder(self):
-        # Inherited from ansi C: only test a few
+        # Inherited from c-based
 
         a, b, c = self.abc
         self.eq(Quotient(a, Divide(b, c)), 'floor(a / (b / c))')
@@ -207,6 +208,7 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(LessEqual(a, b), '(a <= b)')
 
     def test_conditionals(self):
+        # Inherited from c-based
 
         a, b, c, d = self.abcd
         self.eq(If(Equal(a, b), d, c), '((a == b) ? d : c)')
@@ -218,24 +220,6 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(If(a, d, c), '((a != 0.0f) ? d : c)')
         self.eq(Piecewise(a, b, c, d, Number(4)),
                 '((a != 0.0f) ? b : ((c != 0.0f) ? d : 4.0f))')
-
-        # Using if-then-else function
-        w = self._target()
-        w.set_lhs_function(lambda v: v.var().name())
-        w.set_condition_function('ite')
-
-        self.assertEqual(w.ex(If(More(b, a), c, d)), 'ite((b > a), c, d)')
-        self.assertEqual(w.ex(Piecewise(Less(d, c), b, a)),
-                         'ite((d < c), b, a)')
-        self.assertEqual(w.ex(
-            Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4))),
-            'ite((a == b), c, ite((a == d), 3.0f, 4.0f))')
-        self.assertEqual(w.ex(If(a, c, d)), 'ite((a != 0.0f), c, d)')
-        self.assertEqual(w.ex(Piecewise(c, b, a)),
-                         'ite((c != 0.0f), b, a)')
-        self.assertEqual(w.ex(
-            Piecewise(a, b, c, d, Number(4))),
-            'ite((a != 0.0f), b, ite((c != 0.0f), d, 4.0f))')
 
 
 if __name__ == '__main__':

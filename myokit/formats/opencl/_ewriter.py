@@ -6,10 +6,10 @@
 #
 import myokit
 
-from myokit.formats.ansic import AnsiCExpressionWriter
+from myokit.formats.ansic import CBasedExpressionWriter
 
 
-class OpenCLExpressionWriter(AnsiCExpressionWriter):
+class OpenCLExpressionWriter(CBasedExpressionWriter):
     """
     This :class:`ExpressionWriter <myokit.formats.ExpressionWriter>` translates
     Myokit :class:`expressions <myokit.Expression>` to OpenCL syntax.
@@ -28,7 +28,6 @@ class OpenCLExpressionWriter(AnsiCExpressionWriter):
     """
     def __init__(self, precision=myokit.SINGLE_PRECISION, native_math=True):
         super().__init__()
-        self._function_prefix = ''
         self._sp = (precision == myokit.SINGLE_PRECISION)
         self._nm = bool(native_math)
 
@@ -55,17 +54,12 @@ class OpenCLExpressionWriter(AnsiCExpressionWriter):
 
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
-
-    def _ex_initial_value(self, e):
-        raise NotImplementedError(
-            'Initial values are not supported by this expression writer.')
-
-    def _ex_partial_derivative(self, e):
-        raise NotImplementedError(
-            'Partial derivatives are not supported by this expression writer.')
+    #def _ex_initial_value(self, e):
+    #def _ex_partial_derivative(self, e):
 
     def _ex_number(self, e):
-        return myokit.float.str(e) + 'f' if self._sp else myokit.float.str(e)
+        x = super()._ex_number(e)
+        return x + 'f' if self._sp else x
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):
@@ -140,27 +134,16 @@ class OpenCLExpressionWriter(AnsiCExpressionWriter):
     def _ex_if(self, e):
         # Can be removed after https://github.com/myokit/myokit/issues/1056
         _if, _then, _else = self._exc(e._i), self.ex(e._t), self.ex(e._e)
-
-        # Use if-then-else function?
-        if self._fcond is not None:
-            return f'{self._fcond}({_if}, {_then}, {_else})'
-
-        # Default: use ternary operator
         return f'({_if} ? {_then} : {_else})'
 
     def _ex_piecewise(self, e):
         # Can be removed after https://github.com/myokit/myokit/issues/1056
-
         _ifs = [self._exc(x) for x in e._i]
         _thens = [self.ex(x) for x in e._e]
         s = []
         n = len(_ifs)
-        if self._fcond is not None:
-            for _if, _then in zip(_ifs, _thens):
-                s.append(f'{self._fcond}({_if}, {_then}, ')
-        else:
-            for _if, _then in zip(_ifs, _thens):
-                s.append(f'({_if} ? {_then} : ')
+        for _if, _then in zip(_ifs, _thens):
+            s.append(f'({_if} ? {_then} : ')
         s.append(_thens[-1])
         s.append(')' * len(_ifs))
         return ''.join(s)

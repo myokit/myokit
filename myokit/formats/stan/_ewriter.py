@@ -20,20 +20,6 @@ class StanExpressionWriter(PythonExpressionWriter):
         super().__init__()
         self._function_prefix = ''
 
-        self._fcond = None
-        self.set_condition_function('ifthenelse')
-
-    def set_condition_function(self, func=None):
-        """
-        Sets a function name to use for if statements
-
-        By setting func to None you can revert back to the default behavior
-         (the ternary operator). Any other value will be interpreted as the
-         name of a function taking arguments (condition, value_if_true,
-         value_if_false).
-        """
-        self._fcond = func
-
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
     #def _ex_number(self, e):

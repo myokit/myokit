@@ -340,48 +340,5 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         c.run()
 
 
-class CppExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
-    """
-    Test the C++ expression writer.
-    This inherits from Ansi C, only dropping support for initial values and
-    partial derivatives.
-    """
-    _name = 'cpp'
-    _target = myokit.formats.cpp.CppExpressionWriter
-
-    def test_basics(self):
-        # Test a few arbitrary expressions, just to check the inheritcance has
-        # worked.
-        a, b, c, d = self.abcd
-        self.eq(Number(1), '1.0')
-        self.eq(Number(13, 'mV'), '13.0')
-        self.eq(Divide(PrefixPlus(Plus(a, b)), c), '+(a + b) / c')
-        self.eq(Multiply(PrefixMinus(Plus(b, a)), c), '-(b + a) * c')
-        self.eq(Multiply(Divide(a, b), c), 'a / b * c')
-        self.eq(Divide(a, Multiply(b, c)), 'a / (b * c)')
-        self.eq(Quotient(Divide(a, c), b), 'floor(a / c / b)')
-        self.eq(ASin(a), 'asin(a)')
-        self.eq(Power(a, Minus(b, c)), 'pow(a, b - c)')
-        self.eq(Power(Multiply(a, b), c), 'pow(a * b, c)')
-        self.eq(Log(a, b), '(log(a) / log(b))')
-        self.eq(Sin(a), 'sin(a)')
-        self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) && (c != d))')
-        self.eq(Not(Less(Number(1), Number(2))), '(!(1.0 < 2.0))')
-        self.eq(If(Equal(a, b), d, c), '((a == b) ? d : c)')
-
-    def test_derivative(self):
-        self.eq(myokit.Derivative(self.a), 'dot(a)')
-
-    def test_partial_derivative(self):
-        self.assertRaisesRegex(
-            NotImplementedError, 'Initial',
-            self.w.ex, myokit.InitialValue(self.a))
-
-    def test_initial_value(self):
-        self.assertRaisesRegex(
-            NotImplementedError, 'Partial',
-            self.w.ex, myokit.PartialDerivative(self.a, self.b))
-
-
 if __name__ == '__main__':
     unittest.main()
