@@ -14,8 +14,7 @@ import myokit.formats.ansic
 import myokit.formats.cpp
 
 from myokit import (
-    Name, Number, Derivative, PartialDerivative, InitialValue,
-    PrefixPlus, PrefixMinus, Plus, Minus,
+    Number, PrefixPlus, PrefixMinus, Plus, Minus,
     Multiply, Divide, Quotient, Remainder, Power, Sqrt,
     Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
     Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
@@ -48,10 +47,10 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(myokit.Derivative(self.a), 'dot(a)')
 
     def test_partial_derivative(self):
-        self.eq(InitialValue(self.a), 'initial(a)')
+        self.eq(myokit.InitialValue(self.a), 'initial(a)')
 
     def test_initial_value(self):
-        self.eq(PartialDerivative(self.a, self.b), 'partial(a, b)')
+        self.eq(myokit.PartialDerivative(self.a, self.b), 'partial(a, b)')
 
     def test_prefix_plus(self):
         # Test with numbers
@@ -125,10 +124,10 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_quotient(self):
         a, b, c = self.abc
-        self.eq(myokit.Quotient(a, b), 'floor(a / b)')
-        self.eq(myokit.Quotient(myokit.Plus(a, c), b), 'floor((a + c) / b)')
-        self.eq(myokit.Quotient(myokit.Divide(a, c), b), 'floor(a / c / b)')
-        self.eq(myokit.Quotient(a, myokit.Divide(b, c)), 'floor(a / (b / c))')
+        self.eq(Quotient(a, b), 'floor(a / b)')
+        self.eq(Quotient(Plus(a, c), b), 'floor((a + c) / b)')
+        self.eq(Quotient(Divide(a, c), b), 'floor(a / c / b)')
+        self.eq(Quotient(a, Divide(b, c)), 'floor(a / (b / c))')
         self.eq(Multiply(Quotient(a, b), c), 'floor(a / b) * c')
         # Bracket() method expects a PRODUCT level operation, so will add
         # unnecessary brackets here
@@ -136,9 +135,8 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_remainder(self):
         a, b, c = self.abc
-        self.eq(myokit.Remainder(a, b), '(a - b * floor(a / b))')
-        self.eq(myokit.Remainder(myokit.Plus(a, c), b),
-                '(a + c - b * floor((a + c) / b))')
+        self.eq(Remainder(a, b), '(a - b * floor(a / b))')
+        self.eq(Remainder(Plus(a, c), b), '(a + c - b * floor((a + c) / b))')
         self.eq(Multiply(Remainder(a, b), c), '(a - b * floor(a / b)) * c')
         # Bracket() method expects a PRODUCT level operation, so will add
         # unnecessary brackets here
@@ -361,7 +359,7 @@ class CppExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Multiply(PrefixMinus(Plus(b, a)), c), '-(b + a) * c')
         self.eq(Multiply(Divide(a, b), c), 'a / b * c')
         self.eq(Divide(a, Multiply(b, c)), 'a / (b * c)')
-        self.eq(myokit.Quotient(myokit.Divide(a, c), b), 'floor(a / c / b)')
+        self.eq(Quotient(Divide(a, c), b), 'floor(a / c / b)')
         self.eq(ASin(a), 'asin(a)')
         self.eq(Power(a, Minus(b, c)), 'pow(a, b - c)')
         self.eq(Power(Multiply(a, b), c), 'pow(a * b, c)')
@@ -376,11 +374,13 @@ class CppExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_partial_derivative(self):
         self.assertRaisesRegex(
-            NotImplementedError, 'Initial', self.w.ex, InitialValue(self.a))
+            NotImplementedError, 'Initial',
+            self.w.ex, myokit.InitialValue(self.a))
 
     def test_initial_value(self):
-        self.assertRaisesRegex(NotImplementedError, 'Partial',
-                               self.w.ex, PartialDerivative(self.a, self.b))
+        self.assertRaisesRegex(
+            NotImplementedError, 'Partial',
+            self.w.ex, myokit.PartialDerivative(self.a, self.b))
 
 
 if __name__ == '__main__':

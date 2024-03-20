@@ -79,9 +79,6 @@ class StanExpressionWriter(PythonExpressionWriter):
     def _ex_abs(self, e):
         return self._ex_function(e, 'abs')
 
-    def _ex_not(self, e):
-        return '!(' + self.ex(e[0]) + ')'
-
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
     #def _ex_more(self, e):
@@ -90,10 +87,13 @@ class StanExpressionWriter(PythonExpressionWriter):
     #def _ex_less_equal(self, e):
 
     def _ex_and(self, e):
-        return self._ex_infix_condition(e, '&&')
+        return self._ex_infix_logical(e, '&&')
 
     def _ex_or(self, e):
-        return self._ex_infix_condition(e, '||')
+        return self._ex_infix_logical(e, '||')
+
+    def _ex_not(self, e):
+        return '!(' + self.ex(e[0]) + ')'
 
     def _ex_if(self, e):
         return ('(' + self.ex(e._i) + ' ? ' + self.ex(e._t) + ' : ' +

@@ -270,10 +270,10 @@ class EasyMLExpressionWriterTest(unittest.TestCase):
 
         # Prefix plus
         x = myokit.PrefixPlus(b)
-        self.assertEqual(w.ex(x), '12.0')
+        self.assertEqual(w.ex(x), '+12.0')
         # Prefix minus
         x = myokit.PrefixMinus(b)
-        self.assertEqual(w.ex(x), '(-12.0)')
+        self.assertEqual(w.ex(x), '-12.0')
 
         # Plus
         x = myokit.Plus(a, b)

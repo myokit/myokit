@@ -1,4 +1,27 @@
-class LatexExpressionWriterTest(unittest.TestCase):
+#!/usr/bin/env python3
+#
+# Tests writing of Stan equations.
+#
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
+#
+import unittest
+
+import myokit
+import myokit.formats.latex
+
+from myokit import (
+    Number, PrefixPlus, PrefixMinus, Plus, Minus,
+    Multiply, Divide, Quotient, Remainder, Power, Sqrt,
+    Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
+    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
+    If, Piecewise,
+)
+
+import myokit.tests
+
+
+class OldLatexExpressionWriterTest(unittest.TestCase):
     """ Test the Latex ewriter class. """
 
     def test_all(self):
@@ -162,3 +185,5 @@ class LatexExpressionWriterTest(unittest.TestCase):
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
+if __name__ == '__main__':
+    unittest.main()

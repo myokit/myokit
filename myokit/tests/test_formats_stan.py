@@ -1,6 +1,27 @@
+#!/usr/bin/env python3
+#
+# Tests writing of Stan equations.
+#
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
+#
+import unittest
+
+import myokit
+import myokit.formats.stan
+
+from myokit import (
+    Number, PrefixPlus, PrefixMinus, Plus, Minus,
+    Multiply, Divide, Quotient, Remainder, Power, Sqrt,
+    Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
+    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
+    If, Piecewise,
+)
+
+import myokit.tests
 
 
-class StanExpressionWriterTest(unittest.TestCase):
+class OldStanExpressionWriterTest(unittest.TestCase):
     """ Test the Stan ewriter class. """
 
     def test_all(self):
@@ -19,10 +40,10 @@ class StanExpressionWriterTest(unittest.TestCase):
 
         # Prefix plus
         x = myokit.PrefixPlus(b)
-        self.assertEqual(w.ex(x), '12.0')
+        self.assertEqual(w.ex(x), '+12.0')
         # Prefix minus
         x = myokit.PrefixMinus(b)
-        self.assertEqual(w.ex(x), '(-12.0)')
+        self.assertEqual(w.ex(x), '-12.0')
 
         # Plus
         x = myokit.Plus(a, b)
@@ -140,5 +161,7 @@ class StanExpressionWriterTest(unittest.TestCase):
         # Test without a Myokit expression
         self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
-'''
 
+
+if __name__ == '__main__':
+    unittest.main()

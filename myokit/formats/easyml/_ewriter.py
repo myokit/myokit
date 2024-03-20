@@ -22,10 +22,7 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
 
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
-
-    def _ex_number(self, e):
-        return myokit.float.str(e)
-
+    #def _ex_number(self, e):
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):
     #def _ex_plus(self, e):
@@ -105,10 +102,10 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     #def _ex_less_equal(self, e):
 
     def _ex_and(self, e):
-        return self._ex_infix_condition(e, 'and')
+        return self._ex_infix_logical(e, 'and')
 
     def _ex_or(self, e):
-        return self._ex_infix_condition(e, 'or')
+        return self._ex_infix_logical(e, 'or')
 
     def _ex_if(self, e):
         ite = (self.ex(e._i), self.ex(e._t), self.ex(e._e))

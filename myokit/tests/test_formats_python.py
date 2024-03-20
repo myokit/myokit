@@ -16,8 +16,7 @@ import myokit
 import myokit.formats.python
 
 from myokit import (
-    Name, Number, Derivative, PartialDerivative, InitialValue,
-    PrefixPlus, PrefixMinus, Plus, Minus,
+    Number, PrefixPlus, PrefixMinus, Plus, Minus,
     Multiply, Divide, Quotient, Remainder, Power, Sqrt,
     Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
     Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
@@ -45,6 +44,8 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_number(self):
         self.eq(Number(1), '1.0')
+        self.eq(Number(-1.3274924373284374), '-1.32749243732843736e+00')
+        self.eq(Number(+1.3274924373284374), '1.32749243732843736e+00')
         self.eq(Number(-2), '-2.0')
         self.eq(Number(13, 'mV'), '13.0')
         self.py(Number(14, 'mV'), 14)
@@ -59,11 +60,11 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(myokit.Derivative(self.a), 'dot(a)')
 
     def test_partial_derivative(self):
-        e = InitialValue(self.a)
+        e = myokit.InitialValue(self.a)
         self.assertRaisesRegex(NotImplementedError, 'Initial', self.w.ex, e)
 
     def test_initial_value(self):
-        e = PartialDerivative(self.a, self.b)
+        e = myokit.PartialDerivative(self.a, self.b)
         self.assertRaisesRegex(NotImplementedError, 'Partial', self.w.ex, e)
 
     def test_prefix_plus(self):
@@ -313,11 +314,11 @@ class NumPyExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(myokit.Derivative(self.d), 'dot(d)')
 
     def test_partial_derivative(self):
-        e = InitialValue(self.a)
+        e = myokit.InitialValue(self.a)
         self.assertRaisesRegex(NotImplementedError, 'Initial', self.w.ex, e)
 
     def test_initial_value(self):
-        e = PartialDerivative(self.a, self.b)
+        e = myokit.PartialDerivative(self.a, self.b)
         self.assertRaisesRegex(NotImplementedError, 'Partial', self.w.ex, e)
 
     def test_prefix_plus(self):

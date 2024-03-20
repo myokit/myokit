@@ -78,7 +78,7 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
             'Partial derivatives are not supported by this expression writer.')
 
     def _ex_number(self, e):
-        return myokit.float.str(e)
+        return myokit.float.str(e).lstrip()
 
     def _ex_prefix_plus(self, e):
         return self._ex_prefix(e, '+')

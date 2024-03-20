@@ -11,8 +11,7 @@ import myokit
 import myokit.formats.opencl
 
 from myokit import (
-    Name, Number, Derivative, PartialDerivative, InitialValue,
-    PrefixPlus, PrefixMinus, Plus, Minus,
+    Number, PrefixPlus, PrefixMinus, Plus, Minus,
     Multiply, Divide, Quotient, Remainder, Power, Sqrt,
     Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
     Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
@@ -113,9 +112,8 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         # Inherited from ansi C: only test a few
 
         a, b, c = self.abc
-        self.eq(myokit.Quotient(a, myokit.Divide(b, c)), 'floor(a / (b / c))')
-        self.eq(myokit.Remainder(myokit.Plus(a, c), b),
-                '(a + c - b * floor((a + c) / b))')
+        self.eq(Quotient(a, Divide(b, c)), 'floor(a / (b / c))')
+        self.eq(Remainder(Plus(a, c), b), '(a + c - b * floor((a + c) / b))')
         self.eq(Divide(c, Remainder(b, a)), 'c / ((b - a * floor(b / a)))')
 
     def test_power(self):

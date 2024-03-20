@@ -11,8 +11,7 @@ import myokit
 import myokit.formats.cuda
 
 from myokit import (
-    Name, Number, Derivative, PartialDerivative, InitialValue,
-    PrefixPlus, PrefixMinus, Plus, Minus,
+    Number, PrefixPlus, PrefixMinus, Plus, Minus,
     Multiply, Divide, Quotient, Remainder, Power, Sqrt,
     Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
     Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
@@ -114,15 +113,14 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         # Inherited from ansi C: only test a few
 
         a, b, c = self.abc
-        self.eq(myokit.Quotient(a, myokit.Divide(b, c)), 'floorf(a / (b / c))')
-        self.eq(myokit.Remainder(myokit.Plus(a, c), b),
-                '(a + c - b * floorf((a + c) / b))')
+        self.eq(Quotient(a, Divide(b, c)), 'floorf(a / (b / c))')
+        self.eq(Remainder(Plus(a, c), b), '(a + c - b * floorf((a + c) / b))')
         self.eq(Divide(c, Remainder(b, a)), 'c / ((b - a * floorf(b / a)))')
 
     def test_quotient_remainder_double(self):
         w = self._target(precision=myokit.DOUBLE_PRECISION)
         a, b, c = self.abc
-        self.assertEqual(w.ex(myokit.Quotient(a, b)), 'floor(c.a / c.b)')
+        self.assertEqual(w.ex(Quotient(a, b)), 'floor(c.a / c.b)')
 
     def test_power(self):
         a, b, c = self.abc
