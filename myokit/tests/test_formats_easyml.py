@@ -278,12 +278,12 @@ class EasyMLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(myokit.Derivative(self.a), 'dot(a)')
 
     def test_partial_derivative(self):
-        e = myokit.InitialValue(self.a)
-        self.assertRaisesRegex(NotImplementedError, 'Initial', self.w.ex, e)
-
-    def test_initial_value(self):
         e = myokit.PartialDerivative(self.a, self.b)
         self.assertRaisesRegex(NotImplementedError, 'Partial', self.w.ex, e)
+
+    def test_initial_value(self):
+        e = myokit.InitialValue(self.a)
+        self.assertRaisesRegex(NotImplementedError, 'Initial', self.w.ex, e)
 
     def test_prefix_plus_minus(self):
         # Inherited from CBasedExpressionWriter

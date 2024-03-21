@@ -264,12 +264,13 @@ class ExpressionWriterTestCase(unittest.TestCase):
 
     _name = None
     _target = None
+    _update_lhs_function = True
 
     @classmethod
     def setUpClass(cls):
         # Create a model with some variables for testing
         cls.model = m = myokit.Model()
-        cls.component = c = m.add_component('c')
+        cls.component = c = m.add_component('comp')
         cls.a = myokit.Name(c.add_variable('a', rhs=1))
         cls.b = myokit.Name(c.add_variable('b', rhs=2))
         cls.c = myokit.Name(c.add_variable('c', rhs=3))
@@ -284,7 +285,8 @@ class ExpressionWriterTestCase(unittest.TestCase):
 
         # Create writer
         cls.w = cls._target()
-        cls.w.set_lhs_function(cls.lhs)
+        if cls._update_lhs_function:
+            cls.w.set_lhs_function(cls.lhs)
 
         # Easy access to properties
         cls.ab = (cls.a, cls.b)

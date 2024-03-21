@@ -51,13 +51,13 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_partial_derivative(self):
         self.assertRaisesRegex(
-            NotImplementedError, 'Initial',
-            self.w.ex, myokit.InitialValue(self.a))
+            NotImplementedError, 'Partial',
+            self.w.ex, myokit.PartialDerivative(self.a, self.b))
 
     def test_initial_value(self):
         self.assertRaisesRegex(
-            NotImplementedError, 'Partial',
-            self.w.ex, myokit.PartialDerivative(self.a, self.b))
+            NotImplementedError, 'Initial',
+            self.w.ex, myokit.InitialValue(self.a))
 
     def test_prefix_plus_minus(self):
         # Inherited from c-based

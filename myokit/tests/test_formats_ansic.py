@@ -47,10 +47,10 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(myokit.Derivative(self.a), 'dot(a)')
 
     def test_partial_derivative(self):
-        self.eq(myokit.InitialValue(self.a), 'initial(a)')
+        self.eq(myokit.PartialDerivative(self.a, self.b), 'partial(a, b)')
 
     def test_initial_value(self):
-        self.eq(myokit.PartialDerivative(self.a, self.b), 'partial(a, b)')
+        self.eq(myokit.InitialValue(self.a), 'initial(a)')
 
     def test_prefix_plus(self):
         # Test with numbers
