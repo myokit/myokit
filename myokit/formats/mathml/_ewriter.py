@@ -130,11 +130,11 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         bra = e.bracket(e[0])
         if self._pres:
             row = etree.SubElement(t, 'mrow')
+            x = etree.SubElement(row, 'mo')
+            x.text = e.operator_rep()
             if bra:
                 x = etree.SubElement(row, 'mo')
                 x.text = '('
-            x = etree.SubElement(row, 'mo')
-            x.text = e.operator_rep()
             self._ex(e[0], row)
             if bra:
                 x = etree.SubElement(row, 'mo')

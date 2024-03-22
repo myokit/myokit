@@ -4,6 +4,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import myokit
+
 from myokit.formats.python import PythonExpressionWriter
 
 
@@ -17,15 +19,32 @@ class MatlabExpressionWriter(PythonExpressionWriter):
         self._function_prefix = ''
         self._fcond = 'ifthenelse'
 
-    def set_condition_function(self, func=None):
+    def set_condition_function(self, func):
         """
-        Sets a function name to use for if statements
+        Sets a function name to output to handle :class:`myokit.If`.
 
-        By setting func to None you can revert back to the default behavior
-         (the ternary operator). Any other value will be interpreted as the
-         name of a function taking arguments (condition, value_if_true,
-         value_if_false).
+        The function must take arguments ``(condition, value_if_true,
+        value_if_false)`` and will be used to handle both :class:`myokit.If`
+        and :class:`myokit.Piecewise`.
+
+        By default, `ifthenelse` is used, which the user is expected to define
+        if ``If`` or ``Piecewise`` will be used. For example::
+
+            function y = ifthenelse(condition, value_if_true, value_if_false)
+                if (condition)
+                    y = value_if_true;
+                else
+                    y = value_if_false;
+                end
+            end
+
         """
+        if func is not None:
+            func = str(func).strip()
+        if func is None or func == '':
+            raise ValueError(
+                'The MatlabExpressionWriter needs a condition function to be'
+                ' set.')
         self._fcond = func
 
     #def _ex_name(self, e):
@@ -40,14 +59,17 @@ class MatlabExpressionWriter(PythonExpressionWriter):
 
     def _ex_quotient(self, e):
         # Round towards minus infinity
-        return 'floor(' + self._ex_infix(e, '/') + ')'
+        return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])))
 
     def _ex_remainder(self, e):
         # Uses the round-towards-minus-infinity convention!
-        return 'mod(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
+        return f'mod({self.ex(e[0])}, {self.ex(e[1])})'
 
     def _ex_power(self, e):
-        return self._ex_infix(e, '^')
+        # Same associativity as Myokit, not Python! So override
+        e1 = f'({self.ex(e[0])})' if e.bracket(e[0]) else f'{self.ex(e[0])}'
+        e2 = f'({self.ex(e[1])})' if e.bracket(e[1]) else f'{self.ex(e[1])}'
+        return f'{e1}^{e2}'
 
     #def _ex_sqrt(self, e):
     #    Ignore imaginary part
@@ -63,8 +85,9 @@ class MatlabExpressionWriter(PythonExpressionWriter):
     def _ex_log(self, e):
         if len(e) == 1:
             return self._ex_function(e, 'log')
-        else:
-            return '(log(' + self.ex(e[0]) + ') / log(' + self.ex(e[1]) + '))'
+        # Always add brackets: Parent was expecting a function so will never
+        # have added them.
+        return f'(log({self.ex(e[0])}) / log({self.ex(e[1])}))'
 
     #def _ex_log10(self, e):
     #def _ex_floor(self, e):
@@ -72,9 +95,6 @@ class MatlabExpressionWriter(PythonExpressionWriter):
 
     def _ex_abs(self, e):
         return self._ex_function(e, 'abs')
-
-    def _ex_not(self, e):
-        return '!(' + self.ex(e[0]) + ')'
 
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
@@ -84,26 +104,28 @@ class MatlabExpressionWriter(PythonExpressionWriter):
     #def _ex_less_equal(self, e):
 
     def _ex_and(self, e):
-        return self._ex_infix_condition(e, '&&')
+        return self._ex_infix_logical(e, '&&')
 
     def _ex_or(self, e):
-        return self._ex_infix_condition(e, '||')
+        return self._ex_infix_logical(e, '||')
+
+    def _ex_not(self, e):
+        return f'(!{self.ex(e[0])})'
 
     def _ex_if(self, e):
-        return '%s(%s, %s, %s)' % (
-            self._fcond, self.ex(e._i), self.ex(e._t), self.ex(e._e))
+        _if, _then, _else = self.ex(e._i), self.ex(e._t), self.ex(e._e)
+        return f'{self._fcond}({_if}, {_then}, {_else})'
 
     def _ex_piecewise(self, e):
+        # Render ifs; add extra bracket if not a condition (see _ex_if)
+        _ifs = [self.ex(x) for x in e._i]
+        _thens = [self.ex(x) for x in e._e]
+
         s = []
-        n = len(e._i)
-        for i in range(0, n):
-            s.append(self._fcond)
-            s.append('(')
-            s.append(self.ex(e._i[i]))
-            s.append(', ')
-            s.append(self.ex(e._e[i]))
-            s.append(', ')
-        s.append(self.ex(e._e[n]))
-        s.append(')' * n)
+        n = len(_ifs)
+        for _if, _then in zip(_ifs, _thens):
+            s.append(f'{self._fcond}({_if}, {_then}, ')
+        s.append(_thens[-1])
+        s.append(')' * len(_ifs))
         return ''.join(s)
 

@@ -112,9 +112,7 @@ line break.
 
 
 class AsciifierTest(unittest.TestCase):
-    """
-    Tests the method to convert html to ascii.
-    """
+    """ Tests converting HTML to ASCII. """
     def test_asciify(self):
 
         # Compare line by line

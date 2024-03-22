@@ -33,3 +33,6 @@ provided:
 
 .. autoclass:: AnsiCExpressionWriter
     :inherited-members:
+
+.. autoclass:: CBasedExpressionWriter
+    :inherited-members:

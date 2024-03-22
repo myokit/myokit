@@ -10,6 +10,7 @@
 #
 import os
 import tempfile
+import unittest
 import warnings
 
 import myokit
@@ -256,3 +257,72 @@ def test_case_pk_model(parameters, times):
     partials = np.vstack([damount_dinitial_amount, damount_delimination_rate])
 
     return amount, partials
+
+
+class ExpressionWriterTestCase(unittest.TestCase):
+    """ Abstract class for expression writer tests. """
+
+    _name = None
+    _target = None
+    _update_lhs_function = True
+
+    @classmethod
+    def setUpClass(cls):
+        # Create a model with some variables for testing
+        cls.model = m = myokit.Model()
+        cls.component = c = m.add_component('comp')
+        cls.a = myokit.Name(c.add_variable('a', rhs=1))
+        cls.b = myokit.Name(c.add_variable('b', rhs=2))
+        cls.c = myokit.Name(c.add_variable('c', rhs=3))
+        cls.d = myokit.Name(c.add_variable('d', rhs=4))
+        cls.e = myokit.Name(c.add_variable('e', rhs=5))
+        cls.f = myokit.Name(c.add_variable('f', rhs=6))
+        cls.g = myokit.Name(c.add_variable('g', rhs=7))
+        cls.t = c.add_variable('t', rhs=0, binding='time')
+
+        # Set unames
+        m.validate()
+
+        # Create writer
+        cls.w = cls._target()
+        if cls._update_lhs_function:
+            cls.w.set_lhs_function(cls.lhs)
+
+        # Easy access to properties
+        cls.ab = (cls.a, cls.b)
+        cls.abc = (cls.a, cls.b, cls.c)
+        cls.abcd = (cls.a, cls.b, cls.c, cls.d)
+        cls.efg = (cls.e, cls.f, cls.g)
+
+    @classmethod
+    def lhs(cls, ex):
+        """
+        Easier to read LHS function: ignores components.
+
+        All LHS types are supported here: Lack of support for e.g. partial
+        derivatives should be implemented in the expression writers themselves.
+        """
+        if isinstance(ex, myokit.Name):
+            return ex.var().name()
+        elif isinstance(ex, myokit.Derivative):
+            return f'dot({ex.var().name()})'
+        elif isinstance(ex, myokit.InitialValue):
+            return f'initial({ex.var().name()})'
+        elif isinstance(ex, myokit.PartialDerivative):
+            v1 = ex.dependent_expression()
+            v2 = ex.independent_expression()
+            return f'partial({v1.var().name()}, {v2.var().name()})'
+        raise ValueError(f'Untested LHS type {type(ex)}')
+
+    def test_fetching(self):
+        # Test fetching using ewriter method
+        w = myokit.formats.ewriter(self._name)
+        self.assertIsInstance(w, self._target)
+
+    def test_bad_argument(self):
+        # Test without a Myokit expression
+        self.assertRaisesRegex(
+            ValueError, 'Unknown expression type', self.w.ex, 7)
+
+    def eq(self, expression, expected_output):
+        self.assertEqual(self.w.ex(expression), expected_output)

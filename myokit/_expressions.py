@@ -665,8 +665,8 @@ class Expression:
 
         # Create function text
         args = [w.ex(x) for x in self._references]
-        c = 'def ex_pyfunc_generated(' + ','.join(args) + '):\n    return ' \
-            + w.ex(self)
+        c = ('def ex_pyfunc_generated(' + ','.join(sorted(args))
+             + '):\n    return ' + w.ex(self))
 
         # Create function
         local = {}
@@ -682,8 +682,8 @@ class Expression:
         """
         Returns a string representing this expression in Python syntax.
 
-        By default, built-in functions such as 'exp' are converted to the
-        Python version 'math.exp'. To use the numpy versions, set
+        By default, built-in functions such as ``exp`` are converted to the
+        Python version ``math.exp``. To use the numpy versions, set
         ``numpy=True``.
         """
         # Get expression writer
@@ -810,7 +810,6 @@ class Expression:
 class Number(Expression):
     """
     Represents a number with an optional unit for use in Myokit expressions.
-    All numbers used in Myokit expressions are floating point.
 
     >>> import myokit
     >>> x = myokit.Number(10)
@@ -821,11 +820,12 @@ class Number(Expression):
     >>> print(x)
     5 [V]
 
+    All numbers used in Myokit expressions are floating point.
+
     Arguments:
 
     ``value``
         A numerical value (something that can be converted to a ``float``).
-        Number objects are immutable so no clone constructor is provided.
     ``unit``
         A unit to associate with this number. If no unit is specified the
         number's unit will be left undefined.
