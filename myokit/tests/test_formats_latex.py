@@ -15,7 +15,6 @@ from myokit import (
     Multiply, Divide, Quotient, Remainder, Power, Sqrt,
     Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
     Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
-    If, Piecewise,
 )
 
 import myokit.tests
@@ -121,14 +120,13 @@ class LatexExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Minus(Plus(a, b), c), f'{ta}+{tb}-{tc}')
         self.eq(Minus(a, Plus(b, c)), rf'{ta}-\left({tb}+{tc}\right)')
 
-
     def test_multiply_divide(self):
         a, b, c = self.abc
         ta, tb, tc = r'\text{a}', r'\text{b}', r'\text{c}'
         l, r = r'\left(', r'\right)'
-        self.eq(Multiply(a, b), f'{ta}\cdot{tb}')
-        self.eq(Multiply(Multiply(a, b), c), f'{ta}\cdot{tb}\cdot{tc}')
-        self.eq(Multiply(a, Multiply(b, c)), f'{ta}\cdot{l}{tb}\cdot{tc}{r}')
+        self.eq(Multiply(a, b), rf'{ta}\cdot{tb}')
+        self.eq(Multiply(Multiply(a, b), c), rf'{ta}\cdot{tb}\cdot{tc}')
+        self.eq(Multiply(a, Multiply(b, c)), rf'{ta}\cdot{l}{tb}\cdot{tc}{r}')
         self.eq(Divide(a, b), r'\frac{\text{a}}{\text{b}}')
         self.eq(Divide(Divide(a, b), c),
                 r'\frac{\frac{\text{a}}{\text{b}}}{\text{c}}')
@@ -139,9 +137,9 @@ class LatexExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Divide(Multiply(a, b), c),
                 r'\frac{\text{a}\cdot\text{b}}{\text{c}}')
 
-        self.eq(Multiply(Minus(a, b), c), f'{l}{ta}-{tb}{r}\cdot{tc}')
-        self.eq(Multiply(a, Plus(b, c)), f'{ta}\cdot{l}{tb}+{tc}{r}')
-        self.eq(Plus(a, Multiply(b, c)), f'{ta}+{tb}\cdot{tc}')
+        self.eq(Multiply(Minus(a, b), c), rf'{l}{ta}-{tb}{r}\cdot{tc}')
+        self.eq(Multiply(a, Plus(b, c)), rf'{ta}\cdot{l}{tb}+{tc}{r}')
+        self.eq(Plus(a, Multiply(b, c)), rf'{ta}+{tb}\cdot{tc}')
 
     def test_remainder_quotient(self):
         a, b = self.ab

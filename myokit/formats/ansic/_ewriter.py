@@ -57,8 +57,8 @@ class CBasedExpressionWriter(PythonExpressionWriter):
         # myokit.Quotient! Implementation below is consistent with Python
         # convention.
         # Extra brackets needed! Minus has lower precedence than division.
-        i = myokit.Minus(e[0], myokit.Multiply(e[1],
-                myokit.Floor(myokit.Divide(e[0], e[1]))))
+        i = myokit.Minus(e[0], myokit.Multiply(
+            e[1], myokit.Floor(myokit.Divide(e[0], e[1]))))
         return f'({self.ex(i)})'
 
     def _ex_power(self, e):

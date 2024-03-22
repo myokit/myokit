@@ -92,7 +92,6 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = '<apply><minus/><cn>1.0</cn></apply>'
         self.assertEqual(self.p(x), e)
 
-
     def test_conditionals(self):
         # Tests if and piecewise parsing
 

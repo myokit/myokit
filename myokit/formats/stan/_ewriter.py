@@ -36,8 +36,8 @@ class StanExpressionWriter(PythonExpressionWriter):
 
     def _ex_remainder(self, e):
         # Extra brackets needed: Minus has lower precedence than division.
-        i = myokit.Minus(e[0], myokit.Multiply(e[1],
-                myokit.Floor(myokit.Divide(e[0], e[1]))))
+        i = myokit.Minus(e[0], myokit.Multiply(
+            e[1], myokit.Floor(myokit.Divide(e[0], e[1]))))
         return f'({self.ex(i)})'
 
     def _ex_power(self, e):
@@ -87,7 +87,7 @@ class StanExpressionWriter(PythonExpressionWriter):
         return self._ex_infix_logical(e, '||')
 
     def _ex_not(self, e):
-        return f'(!' + self.ex(e[0]) + ')'
+        return f'(!{self.ex(e[0])})'
 
     def _ex_if(self, e):
         return f'({self.ex(e._i)} ? {self.ex(e._t)} : {self.ex(e._e)})'
