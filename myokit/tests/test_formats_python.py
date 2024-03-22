@@ -54,7 +54,7 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(self.a, 'a')
         w = self._target()
         w.set_lhs_function(lambda v: v.var().qname().upper())
-        self.assertEqual(w.ex(self.a), 'C.A')
+        self.assertEqual(w.ex(self.a), 'COMP.A')
 
     def test_derivative(self):
         self.eq(myokit.Derivative(self.a), 'dot(a)')
@@ -138,6 +138,23 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Divide(a, Multiply(b, c)), 'a / (b * c)')
         self.eq(Multiply(a, Divide(b, c)), 'a * (b / c)')
 
+        self.eq(Multiply(Minus(a, b), c), '(a - b) * c')
+        self.eq(Multiply(a, Plus(b, c)), 'a * (b + c)')
+        self.eq(Minus(Multiply(a, b), c), 'a * b - c')
+        self.eq(Plus(a, Multiply(b, c)), 'a + b * c')
+        self.eq(Divide(Plus(a, b), c), '(a + b) / c')
+        self.eq(Divide(a, Minus(b, c)), 'a / (b - c)')
+        self.eq(Plus(Divide(a, b), c), 'a / b + c')
+        self.eq(Minus(a, Divide(b, c)), 'a - b / c')
+
+        self.py(Multiply(Number(7), Number(9)), 63)
+        self.py(Divide(Number(5), Number(2)), 2.5)
+        self.py(Multiply(Number(7), Plus(Number(1), Number(9))), 70)
+        self.py(Divide(Minus(Number(19), Number(5)), Number(2)), 7)
+
+    def test_quotient_remainder(self):
+        a, b, c = self.abc
+
         self.eq(Remainder(Multiply(a, b), c), 'a * b % c')
         self.eq(Multiply(Quotient(a, b), c), 'a // b * c')
         self.eq(Quotient(a, Multiply(b, c)), 'a // (b * c)')
@@ -148,19 +165,19 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Divide(a, Remainder(b, c)), 'a / (b % c)')
         self.eq(Divide(Remainder(b, c), a), 'b % c / a')
 
-        self.eq(Multiply(Minus(a, b), c), '(a - b) * c')
-        self.eq(Multiply(a, Plus(b, c)), 'a * (b + c)')
-        self.eq(Minus(Multiply(a, b), c), 'a * b - c')
-        self.eq(Plus(a, Multiply(b, c)), 'a + b * c')
-        self.eq(Divide(Plus(a, b), c), '(a + b) / c')
-        self.eq(Divide(a, Minus(b, c)), 'a / (b - c)')
-        self.eq(Plus(Divide(a, b), c), 'a / b + c')
-        self.eq(Minus(a, Divide(b, c)), 'a - b / c')
-        self.eq(Divide(a, Divide(b, c)), 'a / (b / c)')
-        self.eq(Divide(Divide(a, b), c), 'a / b / c')
-
-        self.py(Multiply(Number(7), Number(9)), 63)
-        self.py(Divide(Number(5), Number(2)), 2.5)
+        self.py(Quotient(Number(10), Number(4)), 2)     # 2*4 + 2
+        self.py(Remainder(Number(10), Number(4)), 2)
+        self.py(Quotient(Number(10), Number(6)), 1)     # 6 + 4
+        self.py(Remainder(Number(10), Number(6)), 4)
+        self.py(Quotient(Number(5), Number(3)), 1)      # 1*3 + 2
+        self.py(Remainder(Number(5), Number(3)), 2)
+        self.py(Quotient(Number(-5), Number(3)), -2)    # -2*3 + 1
+        self.py(Remainder(Number(-5), Number(3)), 1)
+        self.py(Quotient(Number(5), Number(-3)), -2)    # -2*-3 - 1
+        self.py(Remainder(Number(5), Number(-3)), -1)
+        self.py(Quotient(Number(-5), Number(-3)), 1)    # 1*-3 - 2
+        self.py(Remainder(Number(-5), Number(-3)), -2)
+        # The quotient has sign sign(a)*sign(b)
 
     def test_power(self):
         a, b, c = self.abc
@@ -310,7 +327,7 @@ class NumPyExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(self.b, 'b')
         w = self._target()
         w.set_lhs_function(lambda v: v.var().qname().upper())
-        self.assertEqual(w.ex(self.d), 'C.D')
+        self.assertEqual(w.ex(self.d), 'COMP.D')
 
     def test_derivative(self):
         self.eq(myokit.Derivative(self.d), 'dot(d)')

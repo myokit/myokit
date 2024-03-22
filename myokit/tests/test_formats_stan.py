@@ -21,146 +21,154 @@ from myokit import (
 import myokit.tests
 
 
-class OldStanExpressionWriterTest(unittest.TestCase):
-    """ Test the Stan ewriter class. """
+class StanExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
+    """ Test conversion of expressions to Stan. """
+    _name = 'stan'
+    _target = myokit.formats.stan.StanExpressionWriter
 
-    def test_all(self):
-        w = myokit.formats.stan.StanExpressionWriter()
+    def test_number(self):
+        self.eq(Number(1), '1.0')
+        self.eq(Number(-1.3274924373284374), '-1.32749243732843736e+00')
+        self.eq(Number(+1.3274924373284374), '1.32749243732843736e+00')
+        self.eq(Number(-2), '-2.0')
+        self.eq(Number(13, 'mV'), '13.0')
 
-        model = myokit.Model()
-        component = model.add_component('c')
-        avar = component.add_variable('a')
+    def test_name(self):
+        self.eq(self.a, 'a')
+        w = self._target()
+        w.set_lhs_function(lambda v: v.var().qname().upper())
+        self.assertEqual(w.ex(self.a), 'COMP.A')
 
-        # Name
-        a = myokit.Name(avar)
-        self.assertEqual(w.ex(a), 'c.a')
-        # Number with unit
-        b = myokit.Number('12', 'pF')
-        self.assertEqual(w.ex(b), '12.0')
+    def test_derivative(self):
+        self.eq(myokit.Derivative(self.a), 'dot(a)')
 
-        # Prefix plus
-        x = myokit.PrefixPlus(b)
-        self.assertEqual(w.ex(x), '+12.0')
-        # Prefix minus
-        x = myokit.PrefixMinus(b)
-        self.assertEqual(w.ex(x), '-12.0')
+    def test_partial_derivative(self):
+        e = myokit.PartialDerivative(self.a, self.b)
+        self.assertRaisesRegex(NotImplementedError, 'Partial', self.w.ex, e)
 
-        # Plus
-        x = myokit.Plus(a, b)
-        self.assertEqual(w.ex(x), 'c.a + 12.0')
-        # Minus
-        x = myokit.Minus(a, b)
-        self.assertEqual(w.ex(x), 'c.a - 12.0')
-        # Multiply
-        x = myokit.Multiply(a, b)
-        self.assertEqual(w.ex(x), 'c.a * 12.0')
-        # Divide
-        x = myokit.Divide(a, b)
-        self.assertEqual(w.ex(x), 'c.a / 12.0')
+    def test_initial_value(self):
+        e = myokit.InitialValue(self.a)
+        self.assertRaisesRegex(NotImplementedError, 'Initial', self.w.ex, e)
 
-        # Quotient
-        x = myokit.Quotient(a, b)
-        self.assertEqual(w.ex(x), 'floor(c.a / 12.0)')
-        # Remainder
-        x = myokit.Remainder(a, b)
-        self.assertEqual(w.ex(x), 'fmod(c.a, 12.0)')
+    def test_prefix_plus_minus(self):
+        # Test with numbers
+        p = Number(11, 'kV')
+        self.eq(PrefixPlus(p), '+11.0')
+        self.eq(PrefixPlus(PrefixPlus(p)), '++11.0')
+        self.eq(PrefixMinus(p), '-11.0')
+        self.eq(PrefixMinus(PrefixMinus(p)), '--11.0')
+        self.eq(PrefixMinus(Number(-1)), '--1.0')
 
-        # Power
-        x = myokit.Power(a, b)
-        self.assertEqual(w.ex(x), 'c.a ^ 12.0')
-        # Sqrt
-        x = myokit.Sqrt(b)
-        self.assertEqual(w.ex(x), 'sqrt(12.0)')
-        # Exp
-        x = myokit.Exp(a)
-        self.assertEqual(w.ex(x), 'exp(c.a)')
-        # Log(a)
-        x = myokit.Log(b)
-        self.assertEqual(w.ex(x), 'log(12.0)')
-        # Log(a, b)
-        x = myokit.Log(a, b)
-        self.assertEqual(w.ex(x), '(log(c.a) / log(12.0))')
-        # Log10
-        x = myokit.Log10(b)
-        self.assertEqual(w.ex(x), 'log10(12.0)')
+        a, b, c = self.abc
+        self.eq(PrefixMinus(Plus(a, b)), '-(a + b)')
+        self.eq(Divide(PrefixPlus(Plus(a, b)), c), '+(a + b) / c')
+        self.eq(Power(PrefixMinus(a), b), '(-a)^b')
+        self.eq(Power(PrefixPlus(Power(b, a)), c), '(+b^a)^c')
+        self.eq(Power(a, PrefixMinus(Power(b, c))), 'a^(-b^c)')
 
-        # Sin
-        x = myokit.Sin(b)
-        self.assertEqual(w.ex(x), 'sin(12.0)')
-        # Cos
-        x = myokit.Cos(b)
-        self.assertEqual(w.ex(x), 'cos(12.0)')
-        # Tan
-        x = myokit.Tan(b)
-        self.assertEqual(w.ex(x), 'tan(12.0)')
-        # ASin
-        x = myokit.ASin(b)
-        self.assertEqual(w.ex(x), 'asin(12.0)')
-        # ACos
-        x = myokit.ACos(b)
-        self.assertEqual(w.ex(x), 'acos(12.0)')
-        # ATan
-        x = myokit.ATan(b)
-        self.assertEqual(w.ex(x), 'atan(12.0)')
+    def test_plus_minus(self):
+        a, b, c = self.abc
+        self.eq(Plus(a, b), 'a + b')
+        self.eq(Plus(Plus(a, b), c), 'a + b + c')
+        self.eq(Plus(a, Plus(b, c)), 'a + (b + c)')
+        self.eq(Minus(a, b), 'a - b')
+        self.eq(Minus(Minus(a, b), c), 'a - b - c')
+        self.eq(Minus(a, Minus(b, c)), 'a - (b - c)')
+        self.eq(Minus(a, b), 'a - b')
+        self.eq(Plus(Minus(a, b), c), 'a - b + c')
+        self.eq(Minus(a, Plus(b, c)), 'a - (b + c)')
+        self.eq(Minus(Plus(a, b), c), 'a + b - c')
+        self.eq(Minus(a, Plus(b, c)), 'a - (b + c)')
 
-        # Floor
-        x = myokit.Floor(b)
-        self.assertEqual(w.ex(x), 'floor(12.0)')
-        # Ceil
-        x = myokit.Ceil(b)
-        self.assertEqual(w.ex(x), 'ceil(12.0)')
-        # Abs
-        x = myokit.Abs(b)
-        self.assertEqual(w.ex(x), 'abs(12.0)')
+    def test_multiply_divide(self):
+        a, b, c = self.abc
+        self.eq(Multiply(a, b), 'a * b')
+        self.eq(Multiply(Multiply(a, b), c), 'a * b * c')
+        self.eq(Multiply(a, Multiply(b, c)), 'a * (b * c)')
+        self.eq(Divide(a, b), 'a / b')
+        self.eq(Divide(Divide(a, b), c), 'a / b / c')
+        self.eq(Divide(a, Divide(b, c)), 'a / (b / c)')
 
-        # Equal
-        x = myokit.Equal(a, b)
-        self.assertEqual(w.ex(x), '(c.a == 12.0)')
-        # NotEqual
-        x = myokit.NotEqual(a, b)
-        self.assertEqual(w.ex(x), '(c.a != 12.0)')
-        # More
-        x = myokit.More(a, b)
-        self.assertEqual(w.ex(x), '(c.a > 12.0)')
-        # Less
-        x = myokit.Less(a, b)
-        self.assertEqual(w.ex(x), '(c.a < 12.0)')
-        # MoreEqual
-        x = myokit.MoreEqual(a, b)
-        self.assertEqual(w.ex(x), '(c.a >= 12.0)')
-        # LessEqual
-        x = myokit.LessEqual(a, b)
-        self.assertEqual(w.ex(x), '(c.a <= 12.0)')
+        self.eq(Divide(Multiply(a, b), c), 'a * b / c')
+        self.eq(Multiply(Divide(a, b), c), 'a / b * c')
+        self.eq(Divide(a, Multiply(b, c)), 'a / (b * c)')
+        self.eq(Multiply(a, Divide(b, c)), 'a * (b / c)')
 
-        # Not
-        cond1 = myokit.parse_expression('5 > 3')
-        cond2 = myokit.parse_expression('2 < 1')
-        x = myokit.Not(cond1)
-        self.assertEqual(w.ex(x), '!((5.0 > 3.0))')
-        # And
-        x = myokit.And(cond1, cond2)
-        self.assertEqual(w.ex(x), '((5.0 > 3.0) && (2.0 < 1.0))')
-        # Or
-        x = myokit.Or(cond1, cond2)
-        self.assertEqual(w.ex(x), '((5.0 > 3.0) || (2.0 < 1.0))')
+        self.eq(Multiply(Minus(a, b), c), '(a - b) * c')
+        self.eq(Divide(a, Plus(b, c)), 'a / (b + c)')
+        self.eq(Minus(Multiply(a, b), c), 'a * b - c')
+        self.eq(Plus(a, Divide(b, c)), 'a + b / c')
 
-        # If
-        x = myokit.If(cond1, a, b)
-        self.assertEqual(w.ex(x), '((5.0 > 3.0) ? c.a : 12.0)')
-        # Piecewise
-        c = myokit.Number(1)
-        x = myokit.Piecewise(cond1, a, cond2, b, c)
-        self.assertEqual(
-            w.ex(x),
-            '((5.0 > 3.0) ? c.a : ((2.0 < 1.0) ? 12.0 : 1.0))')
+    def test_quotient_remainder(self):
+        a, b, c = self.abc
 
-        # Test fetching using ewriter method
-        w = myokit.formats.ewriter('stan')
-        self.assertIsInstance(w, myokit.formats.stan.StanExpressionWriter)
+        self.eq(Quotient(c, a), 'floor(c / a)')
+        self.eq(Remainder(c, a), '(c - a * floor(c / a))')
 
-        # Test without a Myokit expression
-        self.assertRaisesRegex(
-            ValueError, 'Unknown expression type', w.ex, 7)
+    def test_power(self):
+        a, b, c = self.abc
+        self.eq(Power(a, b), 'a^b')
+        self.eq(Power(Plus(a, b), c), '(a + b)^c')
+        self.eq(Power(a, Minus(b, c)), 'a^(b - c)')
+        self.eq(Power(Multiply(a, b), c), '(a * b)^c')
+        self.eq(Power(a, Divide(b, c)), 'a^(b / c)')
+
+        # Stan has a right-associative power operator, so must add brackets
+        # to get Myokit behavuour
+        self.eq(Power(Power(a, b), c), '(a^b)^c')
+        self.eq(Power(a, Power(b, c)), 'a^b^c')
+
+    def test_functions(self):
+        a, b = self.ab
+
+        self.eq(Sqrt(a), 'sqrt(a)')
+        self.eq(Exp(a), 'exp(a)')
+        self.eq(Log(a), 'log(a)')
+        self.eq(Log(a, b), '(log(a) / log(b))')
+        self.eq(Log10(a), 'log10(a)')
+        self.eq(Sin(a), 'sin(a)')
+        self.eq(Cos(a), 'cos(a)')
+        self.eq(Tan(a), 'tan(a)')
+        self.eq(ASin(a), 'asin(a)')
+        self.eq(ACos(a), 'acos(a)')
+        self.eq(ATan(a), 'atan(a)')
+        self.eq(Floor(a), 'floor(a)')
+        self.eq(Ceil(a), 'ceil(a)')
+        self.eq(Abs(a), 'abs(a)')
+
+    def test_conditions(self):
+        a, b, c, d = self.abcd
+
+        self.eq(And(a, b), '(a && b)')
+        self.eq(Or(d, c), '(d || c)')
+        self.eq(Not(c), '(!c)')
+
+        self.eq(Equal(a, b), '(a == b)')
+        self.eq(NotEqual(a, b), '(a != b)')
+        self.eq(More(b, a), '(b > a)')
+        self.eq(Less(d, c), '(d < c)')
+        self.eq(MoreEqual(c, a), '(c >= a)')
+        self.eq(LessEqual(b, d), '(b <= d)')
+
+        self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) && (c != d))')
+        self.eq(Or(More(d, c), Less(b, a)), '((d > c) || (b < a))')
+        self.eq(Not(Equal(d, d)), '(!(d == d))')
+        self.eq(Not(Or(Number(1), Number(2))), '(!(1.0 || 2.0))')
+
+        self.eq(Equal(Equal(Number(0), Number(0)), Number(0)),
+                '((0.0 == 0.0) == 0.0)')
+
+    def test_conditionals(self):
+        a, b, c, d = self.abcd
+        self.eq(If(Equal(a, b), d, c), '((a == b) ? d : c)')
+        self.eq(Piecewise(NotEqual(d, c), b, a), '((d != c) ? b : a)')
+        self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
+                '((a == b) ? c : ((a == d) ? 3.0 : 4.0))')
+
+        # Extra parentheses if condition is not a condition
+        self.eq(If(a, d, c), '(a ? d : c)')
+        self.eq(Piecewise(a, b, c, d, Number(4)),
+                '(a ? b : (c ? d : 4.0))')
 
 
 if __name__ == '__main__':

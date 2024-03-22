@@ -271,7 +271,7 @@ class EasyMLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(self.a, 'a')
         w = self._target()
         w.set_lhs_function(lambda v: v.var().qname().upper())
-        self.assertEqual(w.ex(self.a), 'C.A')
+        self.assertEqual(w.ex(self.a), 'COMP.A')
 
     def test_derivative(self):
         # Inherited from CBasedExpressionWriter

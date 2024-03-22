@@ -154,7 +154,7 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         return self._ex_function(e, 'ceil')
 
     def _ex_abs(self, e):
-        return 'abs(' + self.ex(e[0]) + ')'
+        return f'abs({self.ex(e[0])})'
 
     def _ex_equal(self, e):
         return self._ex_infix_comparison(e, '==')
