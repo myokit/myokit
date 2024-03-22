@@ -2,9 +2,15 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.36.0] - 2024-03-22
 This release fixes a potential issue in simulation output, please see [#1055](https://github.com/myokit/myokit/pull/1055) for details.
-
 - Added
   - [#1051](https://github.com/myokit/myokit/pull/1051) Added a method `Simulation.crash_inputs` that returns the inputs (binding values) if the last run raised a `SimulationError`.
   - [#1055](https://github.com/myokit/myokit/pull/1055) Added an abstract class `CBasedExpressionWriter` to use as base class for expression writers for C-like languages.
