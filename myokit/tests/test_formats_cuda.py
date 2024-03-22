@@ -121,7 +121,7 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_quotient_remainder_double(self):
         w = self._target(precision=myokit.DOUBLE_PRECISION)
         a, b, c = self.abc
-        self.assertEqual(w.ex(Quotient(a, b)), 'floor(c.a / c.b)')
+        self.assertEqual(w.ex(Quotient(a, b)), 'floor(comp.a / comp.b)')
 
     def test_power(self):
         a, b, c = self.abc
@@ -137,8 +137,9 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_power_double(self):
         w = self._target(precision=myokit.DOUBLE_PRECISION)
         a, b, c = self.abc
-        self.assertEqual(w.ex(Power(a, b)), 'pow(c.a, c.b)')
-        self.assertEqual(w.ex(Power(Plus(a, b), c)), 'pow(c.a + c.b, c.c)')
+        self.assertEqual(w.ex(Power(a, b)), 'pow(comp.a, comp.b)')
+        self.assertEqual(w.ex(Power(Plus(a, b), c)),
+                         'pow(comp.a + comp.b, comp.c)')
 
     def test_log(self):
         a, b = self.ab
@@ -149,9 +150,9 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_log_double(self):
         w = self._target(precision=myokit.DOUBLE_PRECISION)
         a, b = self.ab
-        self.assertEqual(w.ex(Log(a)), 'log(c.a)')
-        self.assertEqual(w.ex(Log10(b)), 'log10(c.b)')
-        self.assertEqual(w.ex(Log(b, a)), '(log(c.b) / log(c.a))')
+        self.assertEqual(w.ex(Log(a)), 'log(comp.a)')
+        self.assertEqual(w.ex(Log10(b)), 'log10(comp.b)')
+        self.assertEqual(w.ex(Log(b, a)), '(log(comp.b) / log(comp.a))')
 
     def test_functions(self):
         a = self.a
@@ -169,17 +170,17 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_functions_double(self):
         w = self._target(precision=myokit.DOUBLE_PRECISION)
-        self.assertEqual(w.ex(Sqrt(self.a)), 'sqrt(c.a)')
-        self.assertEqual(w.ex(Exp(self.a)), 'exp(c.a)')
-        self.assertEqual(w.ex(Sin(self.a)), 'sin(c.a)')
-        self.assertEqual(w.ex(Cos(self.a)), 'cos(c.a)')
-        self.assertEqual(w.ex(Tan(self.a)), 'tan(c.a)')
-        self.assertEqual(w.ex(ASin(self.a)), 'asin(c.a)')
-        self.assertEqual(w.ex(ACos(self.a)), 'acos(c.a)')
-        self.assertEqual(w.ex(ATan(self.a)), 'atan(c.a)')
-        self.assertEqual(w.ex(Floor(self.a)), 'floor(c.a)')
-        self.assertEqual(w.ex(Ceil(self.a)), 'ceil(c.a)')
-        self.assertEqual(w.ex(Abs(self.a)), 'fabs(c.a)')
+        self.assertEqual(w.ex(Sqrt(self.a)), 'sqrt(comp.a)')
+        self.assertEqual(w.ex(Exp(self.a)), 'exp(comp.a)')
+        self.assertEqual(w.ex(Sin(self.a)), 'sin(comp.a)')
+        self.assertEqual(w.ex(Cos(self.a)), 'cos(comp.a)')
+        self.assertEqual(w.ex(Tan(self.a)), 'tan(comp.a)')
+        self.assertEqual(w.ex(ASin(self.a)), 'asin(comp.a)')
+        self.assertEqual(w.ex(ACos(self.a)), 'acos(comp.a)')
+        self.assertEqual(w.ex(ATan(self.a)), 'atan(comp.a)')
+        self.assertEqual(w.ex(Floor(self.a)), 'floor(comp.a)')
+        self.assertEqual(w.ex(Ceil(self.a)), 'ceil(comp.a)')
+        self.assertEqual(w.ex(Abs(self.a)), 'fabs(comp.a)')
 
     def test_conditions(self):
         # Inherited from c-based

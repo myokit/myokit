@@ -24,6 +24,7 @@ myokit.formats.ansic
 - :class:`myokit.formats.ansic.AnsiCCableExporter`
 - :class:`myokit.formats.ansic.AnsiCEulerExporter`
 - :class:`myokit.formats.ansic.AnsiCExpressionWriter`
+- :class:`myokit.formats.ansic.CBasedExpressionWriter`
 - :meth:`myokit.formats.ansic.exporters`
 - :meth:`myokit.formats.ansic.ewriters`
 

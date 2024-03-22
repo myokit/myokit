@@ -1474,7 +1474,7 @@ class PrefixExpression(Expression):
         """See :meth:`Expression.bracket()`."""
         if op != self._op:
             raise ValueError('Given operand is not used in this expression.')
-        return self._op._rbp > LITERAL and self._op._rbp < self._rbp
+        return (self._op._rbp > LITERAL) and (self._op._rbp < self._rbp)
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""

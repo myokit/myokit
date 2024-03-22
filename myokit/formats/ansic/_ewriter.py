@@ -145,8 +145,8 @@ class AnsiCExpressionWriter(CBasedExpressionWriter):
         ternary operatur will be used.
 
         If given, the function arguments should be ``(condition, value_if_true,
-         value_if_false)``. To revert to using the ternary operator, call with
-         ``func=None``.
+        value_if_false)``. To revert to using the ternary operator, call with
+        ``func=None``.
         """
         self._fcond = func
 

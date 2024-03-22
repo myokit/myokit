@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
   - [#1051](https://github.com/myokit/myokit/pull/1051) Added a method `Simulation.crash_inputs` that returns the inputs (binding values) if the last run raised a `SimulationError`.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) Added an abstract class `CBasedExpressionWriter` to use as base class for expression writers for C-like languages.
 - Changed
   - [#1051](https://github.com/myokit/myokit/pull/1051) `Model.evaluate_derivatives` will now use `numpy.errstate(all='raise')` when `ignore_errors` is set to `False`, causing more numerical issues to be reported.
   - [#1055](https://github.com/myokit/myokit/pull/1055) `Expression.pyfunc` now sorts its arguments in alphabetical order.
@@ -17,7 +18,11 @@ This page lists the main changes made to Myokit in each release.
   - [#1050](https://github.com/myokit/myokit/pull/1050) Fixed warnings about unknown escape sequences.
   - [#1051](https://github.com/myokit/myokit/pull/1051) Numerical simulation errors in `Simulation` now re-evaluate the state using the last inputs, as well as the last state.
   - [#1051](https://github.com/myokit/myokit/pull/1051) The `Simulation` class now provides error states and inputs for both cvode-detected crashes and too many zero-length step crashes.
-  - [#1055](https://github.com/myokit/myokit/pull/1055) The `PythonExpressionWriter` and `NumPyExpressionWriter` now output brackets around double `Power` operations, so that the Myokit expression ``a**b**c`` is rendered as ``(a**b)**c`` in Python.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) `ExpressionWriter` classes now always output a `PrefixPlus`, including brackets where necessary.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) The `AnsiCExpressionWriter` and related expression writers now wrap all conditions in brackets.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) The `PythonExpressionWriter`, `NumPyExpressionWriter`, `StanExpressionWriter`, and `LatexExpressionWriter` now output brackets around double `Power` operations, so that the Myokit expression `a**b**c` is interpreted as `(a**b)**c`.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) Fixed bracket adding for `PrefixPlus`, `PrefixMinus`, and `Not` in `LatexExpressionWriter`.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) Fixed bracket adding for `PrefixPlus` and `PrefixMinus` in Presentation MathML.
 
 ## [1.35.4] - 2023-10-12
 - Added

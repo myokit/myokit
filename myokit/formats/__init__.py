@@ -251,9 +251,6 @@ class ExpressionWriter:
 
     def _ex_power(self, e):
         #
-        # Note: Languages differ in what a**b**c should mean
-        #       https://codeplea.com/exponentiation-associativity-options
-        #
         # Note: Most languages agree that -a**b means -(a**b)
         #       https://codeplea.com/exponentiation-associativity-options
         #
