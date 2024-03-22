@@ -82,11 +82,16 @@ class ContentMathMLParserTest(unittest.TestCase):
         e = myokit.PrefixPlus(myokit.Number(1))
         x = '<apply><plus/><cn>1.0</cn></apply>'
         self.assertEqual(self.p(x), e)
+        e = myokit.PrefixPlus(myokit.Plus(myokit.Number(3), myokit.Number(4)))
+        x = ('<apply><plus/><apply><plus /><cn>3.0</cn><cn>4.0</cn></apply>'
+             '</apply>')
+        self.assertEqual(self.p(x), e)
 
         # Prefix minus
         e = myokit.PrefixMinus(myokit.Number(1))
         x = '<apply><minus/><cn>1.0</cn></apply>'
         self.assertEqual(self.p(x), e)
+
 
     def test_conditionals(self):
         # Tests if and piecewise parsing
@@ -358,8 +363,17 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Power
         a = myokit.Name('a')
         b = myokit.Number(1)
+        c = myokit.Number(2)
         e = myokit.Power(a, b)
         x = '<apply><power/><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+        e = myokit.Power(myokit.Power(a, b), c)
+        x = ('<apply><power/><apply><power/><ci>a</ci><cn>1.0</cn></apply>'
+             '<cn>2.0</cn></apply>')
+        self.assertEqual(self.p(x), e)
+        e = myokit.Power(a, myokit.Power(b, c))
+        x = ('<apply><power/><ci>a</ci><apply><power/><cn>1.0</cn><cn>2.0</cn>'
+             '</apply></apply>')
         self.assertEqual(self.p(x), e)
 
         #TODO: Degree etc.
