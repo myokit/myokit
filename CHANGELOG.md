@@ -2,7 +2,9 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.36.0] - 2024-03-22
+This release fixes a potential issue in simulation output, please see [#1055](https://github.com/myokit/myokit/pull/1055) for details.
+
 - Added
   - [#1051](https://github.com/myokit/myokit/pull/1051) Added a method `Simulation.crash_inputs` that returns the inputs (binding values) if the last run raised a `SimulationError`.
   - [#1055](https://github.com/myokit/myokit/pull/1055) Added an abstract class `CBasedExpressionWriter` to use as base class for expression writers for C-like languages.
@@ -12,7 +14,6 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
   - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.eval_derivatives` is deprecated in favour of an `evaluate_derivatives` method that uses `default_state` instead of `state` when no state is given, and has better support and clearer rules for handling bindings.
   - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.last_state` is deprecated in favour of `crash_state`.
-- Removed
 - Fixed
   - [#1045](https://github.com/myokit/myokit/pull/1045) Fixed an issue where the cache used in MarkovModel was not invalidated if `set_constant()` changed simulation parameters.
   - [#1050](https://github.com/myokit/myokit/pull/1050) Fixed warnings about unknown escape sequences.

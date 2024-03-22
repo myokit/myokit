@@ -6,7 +6,7 @@
 #
 
 # True if this is a release, False for a development version
-__release__ = False
+__release__ = True
 
 # Version as a tuple (major, minor, revision)
 #  - Changes to major are rare
@@ -14,7 +14,7 @@ __release__ = False
 #    incompatibility
 #  - Changes to revision indicate bugfixes, tiny new features
 #  - There is no significance to odd/even numbers
-__version_tuple__ = 1, 35, 5
+__version_tuple__ = 1, 36, 0
 
 # String version of the version number
 __version__ = '.'.join([str(x) for x in __version_tuple__])
