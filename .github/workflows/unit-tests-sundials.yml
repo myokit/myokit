@@ -50,6 +50,10 @@ jobs:
         run: |
           python -m myokit system
 
+      - name: Do a simple test
+        run: |
+          python -c "import myokit; myokit.Simulation(myokit.load_model('example'))"
+
       - name: Run unit tests
         run: |
           python myokit/tests/test_simulation_cvodes.py
