@@ -298,6 +298,9 @@ class HHModel:
                 '_y[' + k + '] = ' + state.uname() + ' = '
                 + inf + ' + (_y0[' + k + '] - ' + inf
                 + ') * numpy.exp(-_t / ' + tau + ')')
+            f.append(
+                '_y[' + k + '][_t == 0] = ' + state.uname() + '[_t == 0] = '
+                + '_y0[' + k + ']')
 
         # Add current calculation
         if self._current is not None:
