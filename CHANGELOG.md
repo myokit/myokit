@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1060](https://github.com/myokit/myokit/pull/1060) Fixed an issue with overflows in tau for HH analytical simulations leading to unnecessary NaNs in state and current simulation outputs.
 
 ## [1.36.0] - 2024-03-22
 This release fixes a potential issue in simulation output, please see [#1055](https://github.com/myokit/myokit/pull/1055) for details.
