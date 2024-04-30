@@ -918,6 +918,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
     def test_tau_overflow(self):
         # Overflows leading to tau=0 should still report current
+        # https://github.com/myokit/myokit/issues/1059
 
         # Load model and convert to inf-tau form
         fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
