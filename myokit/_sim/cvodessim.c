@@ -38,7 +38,9 @@ import myokit
 #if SUNDIALS_VERSION_MAJOR >= 3
     #include <sunmatrix/sunmatrix_dense.h>
     #include <sunlinsol/sunlinsol_dense.h>
-    #include <cvodes/cvodes_direct.h>
+    #if SUNDIALS_VERSION_MAJOR < 6
+        #include <cvodes/cvodes_direct.h>
+    #endif
 #else
     #include <cvodes/cvodes_dense.h>
 #endif
