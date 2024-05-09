@@ -4,6 +4,7 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1063](https://github.com/myokit/myokit/pull/1063) Added support for Sundials 7.0.0.
 - Changed
 - Deprecated
 - Removed
