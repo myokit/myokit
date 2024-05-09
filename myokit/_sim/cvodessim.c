@@ -25,7 +25,6 @@ import myokit
 #include <Python.h>
 #include <stdio.h>
 
-#include <cvodes/cvodes.h>
 #include <sundials/sundials_config.h>
 #ifndef SUNDIALS_VERSION_MAJOR
     #define SUNDIALS_VERSION_MAJOR 2
@@ -35,16 +34,17 @@ import myokit
     #define realtype sunrealtype
     #define RCONST SUN_RCONST
 #endif
+#include <nvector/nvector_serial.h>
+#include <cvodes/cvodes.h>
 #if SUNDIALS_VERSION_MAJOR >= 3
     #include <sunmatrix/sunmatrix_dense.h>
     #include <sunlinsol/sunlinsol_dense.h>
-    #if SUNDIALS_VERSION_MAJOR < 6
-        #include <cvodes/cvodes_direct.h>
-    #endif
 #else
     #include <cvodes/cvodes_dense.h>
 #endif
-#include <nvector/nvector_serial.h>
+#if SUNDIALS_VERSION_MAJOR < 6
+    #include <cvodes/cvodes_direct.h>
+#endif
 
 <?
 if myokit.DEBUG_SM:
