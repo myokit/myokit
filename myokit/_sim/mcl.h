@@ -651,6 +651,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     }
 
     // Name
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying name\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_NAME, bufsize, buffer, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyUnicode_FromString(buffer);
@@ -658,6 +661,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Vendor
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying vendor\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_VENDOR, bufsize, buffer, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyUnicode_FromString(buffer);
@@ -665,6 +671,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Device version
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying device version\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_VERSION, bufsize, buffer, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyUnicode_FromString(buffer);
@@ -672,6 +681,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Driver version
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying driver version\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DRIVER_VERSION, bufsize, buffer, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyUnicode_FromString(buffer);
@@ -679,6 +691,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Clock speed (MHz)
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying clock speed\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyLong_FromUnsignedLong(buf_uint);
@@ -686,6 +701,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Global memory (bytes)
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying global memory size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyLong_FromUnsignedLongLong(buf_ulong);
@@ -693,6 +711,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Local memory (bytes)
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying local memory size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyLong_FromUnsignedLongLong(buf_ulong);
@@ -700,6 +721,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Const memory (bytes)
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying max buffer size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyLong_FromUnsignedLongLong(buf_ulong);
@@ -707,6 +731,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Computing units
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying max computing units\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyLong_FromUnsignedLong(buf_uint);
@@ -714,6 +741,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Max workgroup size
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying max work group size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(buf_size_t), &buf_size_t, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyLong_FromSize_t(buf_size_t);
@@ -721,6 +751,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Max workitem sizes
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying max work item sizes\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(buf_uint), &buf_uint, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyLong_FromUnsignedLong(buf_uint);
@@ -739,6 +772,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(items_sizes_tuple);
 
     // Maximum size of a kernel parameter
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying maximum kernel parameter size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_PARAMETER_SIZE, sizeof(buf_size_t), &buf_size_t, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyLong_FromSize_t(buf_size_t);
@@ -834,29 +870,47 @@ mcl_info(void)
 
     // Check all platforms
     for (i=0; i<n_platforms; i++) {
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("Checking platform %u\n", (unsigned int)i);
+        #endif
 
         // Create platform dict
         platform = mcl_info_platform_dict(platform_ids[i], sizeof(buffer), buffer);
         if (platform == NULL) { Py_DECREF(platforms); return NULL; }
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("  Obtained platform info dict.\n");
+        #endif
 
         // Count devices
         flag = clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_ALL, MCL_MAX_DEVICES, device_ids, &n_devices);
         if (flag == CL_DEVICE_NOT_FOUND) {
             n_devices = 0;
+        } else if (flag == CL_INVALID_VALUE) {
+            // This seems to happen on Mac OS 14.4.1
+            n_devices = 0;
         } else if (mcl_flag(flag)) {
             Py_DECREF(platforms);
             return NULL;
         }
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("  Found %u devices.\n", (unsigned int)n_devices);
+        #endif
 
         // Create devices tuple, must decref on exception
         devices = PyTuple_New((size_t)n_devices);
 
         // Add devices
         for (j=0; j<n_devices; j++) {
+            #ifdef MYOKIT_DEBUG_MESSAGES
+            printf("    Checking device %u\n", (unsigned int)j);
+            #endif
 
             // Create device dict, must decref on exception
             device = mcl_info_device_dict(device_ids[j], sizeof(buffer), buffer);
             if (device == NULL) { Py_DECREF(platforms); Py_DECREF(devices); return NULL; }
+            #ifdef MYOKIT_DEBUG_MESSAGES
+            printf("    Obtained device info dict.\n");
+            #endif
 
             // Add device to devices tuple (steals reference)
             PyTuple_SetItem(devices, j, device);

@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Changed
 - Deprecated
 - Removed
+  - [#1061](https://github.com/myokit/myokit/issues/1061) Currently unable to test OpenCL features on Mac OS.
 - Fixed
 
 ## [1.36.0] - 2024-03-22
