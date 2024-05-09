@@ -4,9 +4,11 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1063](https://github.com/myokit/myokit/pull/1063) Added support for Sundials 7.0.0.
 - Changed
 - Deprecated
 - Removed
+  - [#1061](https://github.com/myokit/myokit/issues/1061) Currently unable to test OpenCL features on Mac OS.
 - Fixed
   - [#1060](https://github.com/myokit/myokit/pull/1060) Fixed an issue with overflows in tau for HH analytical simulations leading to unnecessary NaNs in state and current simulation outputs.
 
