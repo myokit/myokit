@@ -31,11 +31,9 @@ import myokit
     #define SUNDIALS_VERSION_MAJOR 2
 #endif
 #include <sundials/sundials_types.h>
-#ifndef realtype
+#if SUNDIALS_VERSION_MAJOR >= 7
     #define realtype sunrealtype
-#endif
-#ifndef RCONST
-    #define RCONST(x) x
+    #define RCONST SUN_RCONST
 #endif
 #if SUNDIALS_VERSION_MAJOR >= 3
     #include <sunmatrix/sunmatrix_dense.h>
