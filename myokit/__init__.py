@@ -346,7 +346,7 @@ from ._err import (  # noqa
 #  import an error creates a hard to debug bug (something needs to go wrong
 #  before the interpreter reaches the code raising the error and notices it's
 #  not there).
-if not __release__:
+if not __release__:  # pragma: no cover
     from . import _err  # noqa
     import inspect  # noqa
     _globals = globals()
@@ -354,7 +354,7 @@ if not __release__:
     for ex in inspect.getmembers(_err):
         name, clas = ex
         if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-            if name not in _globals:    # pragma: no cover
+            if name not in _globals:
                 raise Exception('Failed to import exception: ' + name)
     del ex, name, clas, _globals, inspect  # Prevent public visibility
     del _err
