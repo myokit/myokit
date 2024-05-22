@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#1067](https://github.com/myokit/myokit/pull/1067) Improved the meta data loaded from HEKA files when creating a `myokit.DataLog`.
 - Deprecated
 - Removed
 - Fixed

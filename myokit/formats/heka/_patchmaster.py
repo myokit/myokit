@@ -928,6 +928,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
                 include_da = False
 
         # Populate log
+        log.set_time_key('time')
         if join_sweeps:
             # Join sweeps
             offsets = (self._sweep_starts_r if use_real_start_times
@@ -964,31 +965,34 @@ class Series(TreeNode, myokit.formats.SweepSource):
                     log.cmeta[name]['unit'] = self._da_units[0]
 
         # Add meta data
-        log.set_time_key('time')
+        log.meta['time'] = self._time.strftime(myokit.DATE_FORMAT)
         a = self.amplifier_state()
+        t = self[0][0] if len(self) and len(self[0]) else None
         log.meta['current_gain_mV_per_pA'] = a.current_gain()
+        log.meta['filter1'] = a.filter1()
+        if t is not None:
+            log.meta['r_pipette_MOhm'] = t.r_pipette()
+            log.meta['r_seal_MOhm'] = t.r_seal()
         log.meta['ljp_correction_mV'] = a.ljp()
-        log.meta['c_slow_compensation_pF'] = a.c_slow()
+        log.meta['voltage_offset_mV'] = a.v_off()
         if a.c_fast_enabled():
             log.meta['c_fast_compensation_enabled'] = 'true'
             log.meta['c_fast_pF'] = a.c_fast()
-            log.meta['c_fast_tau_micro_s'] = a.c_fast_tau()
+            log.meta['c_fast_tau_us'] = a.c_fast_tau()
         else:
             log.meta['c_fast_compensation_enabled'] = 'false'
+        log.meta['c_slow_pF'] = a.c_slow()
         log.meta['r_series_MOhm'] = a.r_series()
         if a.r_series_enabled():
             log.meta['r_series_compensation_enabled'] = 'true'
             log.meta['r_series_compensation_percent'] = round(
                 a.r_series_fraction() * 100, 1)
+            log.meta['r_series_compensation_tau_us'] = a.r_series_tau()
+            if t is not None:
+                log.meta['r_series_post_compensation_MOhm'] = \
+                    t.r_series_remaining()
         else:
             log.meta['r_series_compensation_enabled'] = 'false'
-        if len(self) and len(self[0]):
-            t = self[0][0]
-            log.meta['r_pipette_MOhm'] = t.r_pipette()
-            log.meta['r_seal_MOhm'] = t.r_series()
-            log.meta['r_series_post_compensation_MOhm'] = \
-                t.r_series_remaining()
-            log.meta['c_slow_pF'] = t.c_slow()
 
         return log
 
@@ -1035,6 +1039,8 @@ class Series(TreeNode, myokit.formats.SweepSource):
         if a.r_series_enabled():
             p = round(a.r_series_fraction() * 100, 1)
             out.append(f'  R series compensation: {p} %.')
+            p = round(a.r_series_tau(), 1)
+            out.append(f'  R series compensation tau: {p} us')
         else:
             out.append('  R series compensation: not enabled')
         if len(self) and len(self[0]):
