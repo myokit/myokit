@@ -2109,9 +2109,12 @@ class DataLogTest(unittest.TestCase):
         self.assertRaises(ValueError, d.split_periodic, 0)
         self.assertRaises(ValueError, d.split_periodic, -1)
 
-        # Test larger period than log data
+        # Test larger period than log data: Should return length-1 list
         d['x'] = [4, 5, 6, 7]
         e = d.split_periodic(100)
+        self.assertIsInstance(e, list)
+        self.assertEqual(len(e), 1)
+        e = e[0]
         self.assertEqual(set(d.keys()), set(e.keys()))
         self.assertFalse(d is e)
 
