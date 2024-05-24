@@ -27,7 +27,6 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         super().__init__()
 
     # Literals and identifiers
-
     # def _ex_name(self, e):
     # def _ex_number(self, e):
 
@@ -52,7 +51,11 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return super()._ex_ceil(e)
 
     # def _ex_cos(self, e):
-    # def _ex_derivative(self, e):
+
+    # TODO: Implement
+    def _ex_derivative(self, e):
+        return super()._ex_derivative(e)
+
     # def _ex_divide(self, e):
     # def _ex_exp(self, e):
 
@@ -62,26 +65,14 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
     # def _ex_log(self, e):
 
-    # TODO: log10(x) = (log(x) / log(10))
     def _ex_log10(self, e):
-        warnings.warn("Unsupported function: log10()")
-        return super()._ex_log10(e)
+        # Log10(a) = Log(a, 10.0) -> "(log(a) / log(10.0))"
+        return super()._ex_log(myokit.Log(e[0], myokit.Number(10)))
 
-    def _ex_minus(self, e):
-        if isinstance(e[0], myokit.Exp) and isinstance(e[1], myokit.Number):
-            if e[1].eval() == 1:
-                return f"expm1({self.ex(e[0][0])})"
-        if isinstance(e[1], myokit.Exp) and isinstance(e[0], myokit.Number):
-            if e[0].eval() == 1:
-                return f"-expm1({self.ex(e[1][0])})"
-        return super()._ex_minus(e)
-
+    # def _ex_minus(self, e):
     # def _ex_multiply(self, e):
     # def _ex_plus(self, e):
-
-    def _ex_power(self, e):
-        return self._ex_function(e, "pow")
-
+    # def _ex_power(self, e):
     # def _ex_prefix_minus(self, e):
     # def _ex_prefix_plus(self, e):
     # def _ex_quotient(self, e):
