@@ -9,7 +9,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
-  - [#1071](https://github.com/myokit/myokit/pull/1071) Fixed the returned value from DataLog.split_periodic() when no splitting is done.
+  - [#1071](https://github.com/myokit/myokit/pull/1071) When DataLog.split_periodic does not make a split, a length 1 list is returned instead of a `DataLog`.
 
 ## [1.36.1] - 2024-05-10
 - Added
