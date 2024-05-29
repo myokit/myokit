@@ -1305,7 +1305,7 @@ class DataLog(OrderedDict):
 
         # No splitting needed? Return clone!
         if nlogs < 2:
-            return self.clone()
+            return [self.clone()]
 
         # Find split points
         tstarts = tmin + np.arange(nlogs) * period
