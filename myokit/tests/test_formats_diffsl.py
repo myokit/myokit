@@ -12,45 +12,13 @@ import myokit
 import myokit.formats
 import myokit.formats.diffsl
 import myokit.tests
+from myokit import (Abs, ACos, And, ASin, ATan, Ceil, Cos, Divide, Equal, Exp,
+                    Floor, If, Less, LessEqual, Log, Log10, Minus, More,
+                    MoreEqual, Multiply, Not, NotEqual, Number, Or, Piecewise,
+                    Plus, Power, PrefixMinus, PrefixPlus, Quotient, Remainder,
+                    Sin, Sqrt, Tan)
+from myokit.tests import DIR_DATA, TemporaryDirectory, WarningCollector
 
-from myokit import (
-    Number,
-    PrefixPlus,
-    PrefixMinus,
-    Plus,
-    Minus,
-    Multiply,
-    Divide,
-    Quotient,
-    Remainder,
-    Power,
-    Sqrt,
-    Exp,
-    Log,
-    Log10,
-    Sin,
-    Cos,
-    Tan,
-    ASin,
-    ACos,
-    ATan,
-    Floor,
-    Ceil,
-    Abs,
-    Not,
-    And,
-    Or,
-    Equal,
-    NotEqual,
-    More,
-    Less,
-    MoreEqual,
-    LessEqual,
-    If,
-    Piecewise,
-)
-
-from myokit.tests import TemporaryDirectory, WarningCollector, DIR_DATA
 
 class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     """Test conversion to DiffSL syntax."""
@@ -198,41 +166,32 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_boolean_operators(self):
         a, b = self.ab
 
-        with WarningCollector() as wc:
-            self.eq(And(a, b), '(a && b)')
-        self.assertIn('Unsupported', wc.text())
+        self.eq(And(a, b),
+                '((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))')
 
-        with WarningCollector() as wc:
-            self.eq(Equal(a, b), '(a == b)')
-        self.assertIn('Unsupported', wc.text())
+        self.eq(Equal(a, b),
+                '(heaviside(a - b) * heaviside(b - a))')
 
-        with WarningCollector() as wc:
-            self.eq(Less(a, b), '(a < b)')
-        self.assertIn('Unsupported', wc.text())
+        self.eq(Less(a, b),
+                '(1 - heaviside(a - b))')
 
-        with WarningCollector() as wc:
-            self.eq(LessEqual(a, b), '(a <= b)')
-        self.assertIn('Unsupported', wc.text())
+        self.eq(LessEqual(a, b),
+                '(1 - (heaviside(a - b) * (1 - (heaviside(a - b) * heaviside(b - a)))))')
 
-        with WarningCollector() as wc:
-            self.eq(More(a, b), '(a > b)')
-        self.assertIn('Unsupported', wc.text())
+        self.eq(More(a, b),
+                '(heaviside(a - b) * (1 - (heaviside(a - b) * heaviside(b - a))))')
 
-        with WarningCollector() as wc:
-            self.eq(MoreEqual(a, b), '(a >= b)')
-        self.assertIn('Unsupported', wc.text())
+        self.eq(MoreEqual(a, b),
+                'heaviside(a - b)')
 
-        with WarningCollector() as wc:
-            self.eq(Not(a), '(!(a))')
-        self.assertIn('Unsupported', wc.text())
+        self.eq(Not(a),
+                '(heaviside(a) * heaviside(-a))')
 
-        with WarningCollector() as wc:
-            self.eq(NotEqual(a, b), '(a != b)')
-        self.assertIn('Unsupported', wc.text())
+        self.eq(NotEqual(a, b),
+                '(1 - (heaviside(a - b) * heaviside(b - a)))')
 
-        with WarningCollector() as wc:
-            self.eq(Or(a, b), '(a || b)')
-        self.assertIn('Unsupported', wc.text())
+        self.eq(Or(a, b),
+                '((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))')
 
     def test_if_expressions(self):
         a, b, c, d = self.abcd
