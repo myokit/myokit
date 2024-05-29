@@ -135,12 +135,15 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         c = self.ex(e._t)
         d = self.ex(e._e)
 
-        if not isinstance(e._i, myokit.Condition) \
-                or isinstance(e._i, myokit.Or) \
-                or isinstance(e._i, myokit.And):
+        if not isinstance(e._i, myokit.Condition):
             # `if (a)` is the same as `if (a != 0)`
             a = self.ex(e._i)
             return f'({c} + heaviside({a}) * heaviside(-{a}) * ({d} - {c}))'
+
+        if isinstance(e._i, myokit.Or) or isinstance(e._i, myokit.And):
+            # same as `if (a != 0)` where a evaluates to 0 or 1
+            a = self.ex(e._i)
+            return f'({c} + (1 - {a}) * ({d} - {c}))'
 
         a = self.ex(e._i[0])
 
@@ -179,7 +182,8 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         raise NotImplementedError
 
     def _ex_piecewise(self, e):
-        # Convert piecewise to nested ifs such as if(a, b, if(c, d, e))
+        # Convert piecewise to nested ifs
+        # e.g. piecewise(a, b, c, d, e) -> if(a, b, if(c, d, e))
         n = len(e._i)
 
         _nested_ifs = None

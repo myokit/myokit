@@ -200,10 +200,10 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '(c + heaviside(a) * heaviside(-a) * (d - c))')
 
         self.eq(If(Or(a, b), c, d),
-                '(c + heaviside(((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * heaviside(-((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+                '(c + (1 - ((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
 
         self.eq(If(And(a, b), c, d),
-                '(c + heaviside(((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * heaviside(-((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+                '(c + (1 - ((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
 
         self.eq(If(Not(a), c, d),
                 '(d + heaviside(a) * heaviside(-a) * (c - d))')
@@ -233,10 +233,10 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '(c + heaviside(a) * heaviside(-a) * (d - c))')
 
         self.eq(Piecewise(Or(a, b), c, d),
-                '(c + heaviside(((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * heaviside(-((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+                '(c + (1 - ((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
 
         self.eq(Piecewise(And(a, b), c, d),
-                '(c + heaviside(((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * heaviside(-((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+                '(c + (1 - ((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
 
         self.eq(Piecewise(Not(a), c, d),
                 '(d + heaviside(a) * heaviside(-a) * (c - d))')
