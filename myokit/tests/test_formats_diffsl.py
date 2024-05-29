@@ -199,6 +199,12 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(If(a, c, d),
                 '(c + heaviside(a) * heaviside(-a) * (d - c))')
 
+        self.eq(If(Or(a, b), c, d),
+                '(c + heaviside(((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * heaviside(-((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+
+        self.eq(If(And(a, b), c, d),
+                '(c + heaviside(((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * heaviside(-((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+
         self.eq(If(Not(a), c, d),
                 '(d + heaviside(a) * heaviside(-a) * (c - d))')
 
@@ -226,23 +232,38 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Piecewise(a, c, d),
                 '(c + heaviside(a) * heaviside(-a) * (d - c))')
 
+        self.eq(Piecewise(Or(a, b), c, d),
+                '(c + heaviside(((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * heaviside(-((1 - heaviside(a) * heaviside(-a)) + (1 - heaviside(b) * heaviside(-b)) - (1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+
+        self.eq(Piecewise(And(a, b), c, d),
+                '(c + heaviside(((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * heaviside(-((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+
         self.eq(Piecewise(Not(a), c, d),
                 '(d + heaviside(a) * heaviside(-a) * (c - d))')
 
         self.eq(Piecewise(Equal(a, b), c, d),
                 '(d + heaviside(a - b) * heaviside(b - a) * (c - d))')
 
+        self.eq(Piecewise(NotEqual(a, b), c, d),
+                '(c + heaviside(a - b) * heaviside(b - a) * (d - c))')
+
         self.eq(Piecewise(More(a, b), c, d),
                 '(c + heaviside(b - a) * (d - c))')
-
-        self.eq(Piecewise(Less(a, b), c, d),
-                '(c + heaviside(a - b) * (d - c))')
 
         self.eq(Piecewise(MoreEqual(a, b), c, d),
                 '(d + heaviside(a - b) * (c - d))')
 
+        self.eq(Piecewise(Less(a, b), c, d),
+                '(c + heaviside(a - b) * (d - c))')
+
         self.eq(Piecewise(LessEqual(a, b), c, d),
                 '(d + heaviside(b - a) * (c - d))')
+
+        self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
+                '((4.0 + heaviside(a - d) * heaviside(d - a) * (3.0 - 4.0)) + heaviside(a - b) * heaviside(b - a) * (c - (4.0 + heaviside(a - d) * heaviside(d - a) * (3.0 - 4.0))))')
+
+        self.eq(Piecewise(a, b, c, d, Number(4)),
+                '(b + heaviside(a) * heaviside(-a) * ((d + heaviside(c) * heaviside(-c) * (4.0 - d)) - b))')
 
 
 if __name__ == '__main__':
