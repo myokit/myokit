@@ -85,15 +85,11 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
     # -- Boolean operators
 
-    def _bool(self, e):
-        # bool(a) is 1 if (a != 0) else 0
-        a = self.ex(e)
-        return f'(1 - heaviside({a}) * heaviside(-{a}))'
-
     def _ex_and(self, e):
-        a = self._bool(e[0])
-        b = self._bool(e[1])
-        return f'({a} * {b})'
+        # bool(a) and bool(b), where bool(a) = (a == 0) ? 0 : 1
+        a = self.ex(e[0])
+        b = self.ex(e[1])
+        return f'((1 - heaviside({a}) * heaviside(-{a})) * (1 - heaviside({b}) * heaviside(-{b})))'
 
     def _ex_equal(self, e):
         a = self.ex(e[0])
@@ -101,13 +97,19 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return f'(heaviside({a} - {b}) * heaviside({b} - {a}))'
 
     def _ex_less(self, e):
-        return f'(1 - {self._ex_more_equal(e)})'
+        a = self.ex(e[0])
+        b = self.ex(e[1])
+        return f'(1 - heaviside({a} - {b}))'
 
     def _ex_less_equal(self, e):
-        return f'(1 - {self._ex_more(e)})'
+        a = self.ex(e[0])
+        b = self.ex(e[1])
+        return f'(1 - heaviside({a} - {b}) * (1 - heaviside({b} - {a})))'
 
     def _ex_more(self, e):
-        return f'({self._ex_more_equal(e)} * {self._ex_not_equal(e)})'
+        a = self.ex(e[0])
+        b = self.ex(e[1])
+        return f'(heaviside({a} - {b}) * (1 - heaviside({b} - {a})))'
 
     def _ex_more_equal(self, e):
         a = self.ex(e[0])
@@ -115,17 +117,20 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return f'heaviside({a} - {b})'
 
     def _ex_not(self, e):
-        # not(a) is 1 if (a == 0) else 0
+        # not(bool(a)), where bool(a) = (a == 0) ? 0 : 1
         a = self.ex(e[0])
         return f'(heaviside({a}) * heaviside(-{a}))'
 
     def _ex_not_equal(self, e):
-        return f'(1 - {self._ex_equal(e)})'
+        a = self.ex(e[0])
+        b = self.ex(e[1])
+        return f'(1 - heaviside({a} - {b}) * heaviside({b} - {a}))'
 
     def _ex_or(self, e):
-        a = self._bool(e[0])
-        b = self._bool(e[1])
-        return f'({a} + {b} - {a} * {b})'
+        # bool(a) or bool(b), where bool(a) = (a == 0) ? 0 : 1
+        a = self.ex(e[0])
+        b = self.ex(e[1])
+        return f'(1 - heaviside({a}) * heaviside(-{a}) * heaviside({b}) * heaviside(-{b}))'
 
     # -- Conditional expressions
 
