@@ -178,10 +178,10 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '(1 - heaviside(a - b))')
 
         self.eq(LessEqual(a, b),
-                '(1 - heaviside(a - b) * (1 - heaviside(b - a)))')
+                'heaviside(b - a)')
 
         self.eq(More(a, b),
-                '(heaviside(a - b) * (1 - heaviside(b - a)))')
+                '(1 - heaviside(b - a))')
 
         self.eq(MoreEqual(a, b),
                 'heaviside(a - b)')
@@ -217,7 +217,7 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '(c * (1 - heaviside(a - b) * heaviside(b - a)) + d * (1 - (1 - heaviside(a - b) * heaviside(b - a))))')
 
         self.eq(If(More(a, b), c, d),
-                '(c * (heaviside(a - b) * (1 - heaviside(b - a))) + d * (1 - (heaviside(a - b) * (1 - heaviside(b - a)))))')
+                '(c * (1 - heaviside(b - a)) + d * (1 - (1 - heaviside(b - a))))')
 
         self.eq(If(MoreEqual(a, b), c, d),
                 '(c * heaviside(a - b) + d * (1 - heaviside(a - b)))')
@@ -226,7 +226,7 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '(c * (1 - heaviside(a - b)) + d * (1 - (1 - heaviside(a - b))))')
 
         self.eq(If(LessEqual(a, b), c, d),
-                '(c * (1 - heaviside(a - b) * (1 - heaviside(b - a))) + d * (1 - (1 - heaviside(a - b) * (1 - heaviside(b - a)))))')
+                '(c * heaviside(b - a) + d * (1 - heaviside(b - a)))')
 
     def test_piecewise_expressions(self):
         a, b, c, d = self.abcd
@@ -278,9 +278,7 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         a, b, c, d = self.abcd
 
-        values = [
-            x for x in itertools.product([-10, -1, -1e-9, 0, 1e-9, 1, 10], repeat=4)
-        ]
+        values = itertools.product([-10, -1, -1e-9, 0, 1e-9, 1, 10], repeat=4)
 
         for ax, bx, cx, dx in values:
             replacements = {'a': f'{ax}',

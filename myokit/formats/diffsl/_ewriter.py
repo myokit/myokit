@@ -104,12 +104,12 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
     def _ex_less_equal(self, e):
         a = self.ex(e[0])
         b = self.ex(e[1])
-        return f'(1 - heaviside({a} - {b}) * (1 - heaviside({b} - {a})))'
+        return f'heaviside({b} - {a})'
 
     def _ex_more(self, e):
         a = self.ex(e[0])
         b = self.ex(e[1])
-        return f'(heaviside({a} - {b}) * (1 - heaviside({b} - {a})))'
+        return f'(1 - heaviside({b} - {a}))'
 
     def _ex_more_equal(self, e):
         a = self.ex(e[0])
