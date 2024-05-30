@@ -5,7 +5,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import itertools
 import os
+import re
 import unittest
 
 import myokit
@@ -264,6 +266,178 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         self.eq(Piecewise(a, b, c, d, Number(4)),
                 '(b + heaviside(a) * heaviside(-a) * ((d + heaviside(c) * heaviside(-c) * (4.0 - d)) - b))')
+
+    def test_heaviside_numerical(self):
+        """ Test generated heaviside expressions with numerical values """
+
+        def heaviside(x):
+            return 1 if x >= 0 else 0
+
+        def replace_symbols(expr, replacements):
+            for word, value in replacements.items():
+                expr = re.sub(r'\b{}\b'.format(word), value, expr)
+            return expr
+
+        a, b, c, d = self.abcd
+
+        values = [x for x in itertools.product([-10, -1, 0, 1, 10], repeat=4)]
+
+        for ax, bx, cx, dx in values:
+            replacements = {'a': f'{ax}',
+                            'b': f'{bx}',
+                            'c': f'{cx}',
+                            'd': f'{dx}'}
+
+            # not a
+            result = int(not ax)
+            expr = self.w.ex(Not(a))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # a and b
+            result = int(bool(ax) and bool(bx))
+            expr = self.w.ex(And(a, b))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # a or b
+            result = int(bool(ax) or bool(bx))
+            expr = self.w.ex(Or(a, b))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # a > b
+            result = int(ax > bx)
+            expr = self.w.ex(More(a, b))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # a >= b
+            result = int(ax >= bx)
+            expr = self.w.ex(MoreEqual(a, b))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # a < b
+            result = int(ax < bx)
+            expr = self.w.ex(Less(a, b))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # a <= b
+            result = int(ax <= bx)
+            expr = self.w.ex(LessEqual(a, b))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # if(a, c, d)
+            result = cx if (ax) else dx
+            expr = self.w.ex(If(a, c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # if(not a, c, d)
+            result = cx if (not ax) else dx
+            expr = self.w.ex(If(Not(a), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # if(a or b, c, d)
+            result = cx if (bool(ax) or bool(bx)) else dx
+            expr = self.w.ex(If(Or(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # if(a and b, c, d)
+            result = cx if (bool(ax) and bool(bx)) else dx
+            expr = self.w.ex(If(And(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # if(a > b, c, d)
+            result = cx if (ax > bx) else dx
+            expr = self.w.ex(If(More(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # if(a >= b, c, d)
+            result = cx if (ax >= bx) else dx
+            expr = self.w.ex(If(MoreEqual(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # if(a < b, c, d)
+            result = cx if (ax < bx) else dx
+            expr = self.w.ex(If(Less(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # if(a <= b, c, d)
+            result = cx if (ax <= bx) else dx
+            expr = self.w.ex(If(LessEqual(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(a, c, d)
+            result = cx if (ax) else dx
+            expr = self.w.ex(Piecewise(a, c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(not a, c, d)
+            result = cx if (not ax) else dx
+            expr = self.w.ex(Piecewise(Not(a), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(a or b, c, d)
+            result = cx if (bool(ax) or bool(bx)) else dx
+            expr = self.w.ex(Piecewise(Or(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(a and b, c, d)
+            result = cx if (bool(ax) and bool(bx)) else dx
+            expr = self.w.ex(Piecewise(And(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(a > b, c, d)
+            result = cx if (ax > bx) else dx
+            expr = self.w.ex(Piecewise(More(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(a >= b, c, d)
+            result = cx if (ax >= bx) else dx
+            expr = self.w.ex(Piecewise(MoreEqual(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(a < b, c, d)
+            result = cx if (ax < bx) else dx
+            expr = self.w.ex(Piecewise(Less(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(a <= b, c, d)
+            result = cx if (ax <= bx) else dx
+            expr = self.w.ex(Piecewise(LessEqual(a, b), c, d))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(a == b, c, a == d, 3, 4)
+            result = cx if (ax == bx) else (3 if (ax == dx) else 4)
+            expr = self.w.ex(
+                Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # piecewise(a, b, c, d, 4)
+            result = bx if (ax) else (dx if (cx) else 4)
+            expr = self.w.ex(Piecewise(a, b, c, d, Number(4)))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
 
 
 if __name__ == '__main__':
