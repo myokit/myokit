@@ -199,73 +199,71 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         a, b, c, d = self.abcd
 
         self.eq(If(a, c, d),
-                '(c + heaviside(a) * heaviside(-a) * (d - c))')
-
-        self.eq(If(Or(a, b), c, d),
-                '(c + (1 - (1 - heaviside(a) * heaviside(-a) * heaviside(b) * heaviside(-b))) * (d - c))')
-
-        self.eq(If(And(a, b), c, d),
-                '(c + (1 - ((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+                '(c * (1 - (heaviside(a) * heaviside(-a))) + d * (1 - (1 - (heaviside(a) * heaviside(-a)))))')
 
         self.eq(If(Not(a), c, d),
-                '(d + heaviside(a) * heaviside(-a) * (c - d))')
+                '(c * (heaviside(a) * heaviside(-a)) + d * (1 - (heaviside(a) * heaviside(-a))))')
+
+        self.eq(If(Or(a, b), c, d),
+                '(c * (1 - heaviside(a) * heaviside(-a) * heaviside(b) * heaviside(-b)) + d * (1 - (1 - heaviside(a) * heaviside(-a) * heaviside(b) * heaviside(-b))))')
+
+        self.eq(If(And(a, b), c, d),
+                '(c * ((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b))) + d * (1 - ((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))))')
 
         self.eq(If(Equal(a, b), c, d),
-                '(d + heaviside(a - b) * heaviside(b - a) * (c - d))')
+                '(c * (heaviside(a - b) * heaviside(b - a)) + d * (1 - (heaviside(a - b) * heaviside(b - a))))')
 
         self.eq(If(NotEqual(a, b), c, d),
-                '(c + heaviside(a - b) * heaviside(b - a) * (d - c))')
+                '(c * (1 - heaviside(a - b) * heaviside(b - a)) + d * (1 - (1 - heaviside(a - b) * heaviside(b - a))))')
 
         self.eq(If(More(a, b), c, d),
-                '(c + heaviside(b - a) * (d - c))')
+                '(c * (heaviside(a - b) * (1 - heaviside(b - a))) + d * (1 - (heaviside(a - b) * (1 - heaviside(b - a)))))')
 
         self.eq(If(MoreEqual(a, b), c, d),
-                '(d + heaviside(a - b) * (c - d))')
+                '(c * heaviside(a - b) + d * (1 - heaviside(a - b)))')
 
         self.eq(If(Less(a, b), c, d),
-                '(c + heaviside(a - b) * (d - c))')
+                '(c * (1 - heaviside(a - b)) + d * (1 - (1 - heaviside(a - b))))')
 
         self.eq(If(LessEqual(a, b), c, d),
-                '(d + heaviside(b - a) * (c - d))')
+                '(c * (1 - heaviside(a - b) * (1 - heaviside(b - a))) + d * (1 - (1 - heaviside(a - b) * (1 - heaviside(b - a)))))')
 
     def test_piecewise_expressions(self):
         a, b, c, d = self.abcd
 
         self.eq(Piecewise(a, c, d),
-                '(c + heaviside(a) * heaviside(-a) * (d - c))')
-
-        self.eq(Piecewise(Or(a, b), c, d),
-                '(c + (1 - (1 - heaviside(a) * heaviside(-a) * heaviside(b) * heaviside(-b))) * (d - c))')
-
-        self.eq(Piecewise(And(a, b), c, d),
-                '(c + (1 - ((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))) * (d - c))')
+                self.w.ex(If(a, c, d)))
 
         self.eq(Piecewise(Not(a), c, d),
-                '(d + heaviside(a) * heaviside(-a) * (c - d))')
+                self.w.ex(If(Not(a), c, d)))
+
+        self.eq(Piecewise(Or(a, b), c, d),
+                self.w.ex(If(Or(a, b), c, d)))
+
+        self.eq(Piecewise(And(a, b), c, d),
+                self.w.ex(If(And(a, b), c, d)))
 
         self.eq(Piecewise(Equal(a, b), c, d),
-                '(d + heaviside(a - b) * heaviside(b - a) * (c - d))')
+                self.w.ex(If(Equal(a, b), c, d)))
 
         self.eq(Piecewise(NotEqual(a, b), c, d),
-                '(c + heaviside(a - b) * heaviside(b - a) * (d - c))')
+                self.w.ex(If(NotEqual(a, b), c, d),))
 
-        self.eq(Piecewise(More(a, b), c, d),
-                '(c + heaviside(b - a) * (d - c))')
+        self.eq(Piecewise(More(a, b), c, d), self.w.ex(If(More(a, b), c, d),))
 
         self.eq(Piecewise(MoreEqual(a, b), c, d),
-                '(d + heaviside(a - b) * (c - d))')
+                self.w.ex(If(MoreEqual(a, b), c, d)))
 
-        self.eq(Piecewise(Less(a, b), c, d),
-                '(c + heaviside(a - b) * (d - c))')
+        self.eq(Piecewise(Less(a, b), c, d), self.w.ex(If(Less(a, b), c, d)))
 
         self.eq(Piecewise(LessEqual(a, b), c, d),
-                '(d + heaviside(b - a) * (c - d))')
+                self.w.ex(If(LessEqual(a, b), c, d),))
 
         self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
-                '((4.0 + heaviside(a - d) * heaviside(d - a) * (3.0 - 4.0)) + heaviside(a - b) * heaviside(b - a) * (c - (4.0 + heaviside(a - d) * heaviside(d - a) * (3.0 - 4.0))))')
+                self.w.ex(If(Equal(a, b), c, If(Equal(a, d), Number(3), Number(4)))))
 
         self.eq(Piecewise(a, b, c, d, Number(4)),
-                '(b + heaviside(a) * heaviside(-a) * ((d + heaviside(c) * heaviside(-c) * (4.0 - d)) - b))')
+                self.w.ex(If(a, b, If(c, d, Number(4)))))
 
     def test_heaviside_numerical(self):
         """ Test generated heaviside expressions with numerical values """
@@ -280,7 +278,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         a, b, c, d = self.abcd
 
-        values = [x for x in itertools.product([-10, -1, 0, 1, 10], repeat=4)]
+        values = [
+            x for x in itertools.product([-10, -1, -1e-9, 0, 1e-9, 1, 10], repeat=4)
+        ]
 
         for ax, bx, cx, dx in values:
             replacements = {'a': f'{ax}',

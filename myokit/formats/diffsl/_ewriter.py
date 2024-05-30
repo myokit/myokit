@@ -135,56 +135,16 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
     # -- Conditional expressions
 
     def _ex_if(self, e):
-        # General form: if(a op b) then c else d
+        if isinstance(e._i, myokit.Condition):
+            _if = self.ex(e._i)
+        else:
+            # `if (a)` is the same as `if (1 - not(a))`
+            _if = f'(1 - {self.ex(myokit.Not(e._i))})'
 
-        c = self.ex(e._t)
-        d = self.ex(e._e)
+        _then = self.ex(e._t)
+        _else = self.ex(e._e)
 
-        if not isinstance(e._i, myokit.Condition):
-            # `if (a)` is the same as `if (a != 0)`
-            a = self.ex(e._i)
-            return f'({c} + heaviside({a}) * heaviside(-{a}) * ({d} - {c}))'
-
-        if isinstance(e._i, myokit.Or) or isinstance(e._i, myokit.And):
-            # same as `if (a != 0)` where a evaluates to 0 or 1
-            a = self.ex(e._i)
-            return f'({c} + (1 - {a}) * ({d} - {c}))'
-
-        a = self.ex(e._i[0])
-
-        # `if (not a)` is the same as `if (a == 0)`
-        if isinstance(e._i, myokit.Not):
-            return f'({d} + heaviside({a}) * heaviside(-{a}) * ({c} - {d}))'
-
-        # Need b for binary ops from here on
-        b = self.ex(e._i[1])
-
-        # if (a == b)
-        if isinstance(e._i, myokit.Equal):
-            return f'({d} + heaviside({a} - {b}) * heaviside({b} - {a}) * ({c} - {d}))'
-
-        # if (a != b)
-        if isinstance(e._i, myokit.NotEqual):
-            return f'({c} + heaviside({a} - {b}) * heaviside({b} - {a}) * ({d} - {c}))'
-
-        # if (a > b)
-        if isinstance(e._i, myokit.More):
-            return f'({c} + heaviside({b} - {a}) * ({d} - {c}))'
-
-        # if (a >= b)
-        if isinstance(e._i, myokit.MoreEqual):
-            return f'({d} + heaviside({a} - {b}) * ({c} - {d}))'
-
-        # if (a < b)
-        if isinstance(e._i, myokit.Less):
-            return f'({c} + heaviside({a} - {b}) * ({d} - {c}))'
-
-        # if (a <= b)
-        if isinstance(e._i, myokit.LessEqual):
-            return f'({d} + heaviside({b} - {a}) * ({c} - {d}))'
-
-        # Other conditions are not supported
-        raise NotImplementedError
+        return f'({_then} * {_if} + {_else} * (1 - {_if}))'
 
     def _ex_piecewise(self, e):
         # Convert piecewise to nested ifs
