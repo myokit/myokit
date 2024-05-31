@@ -117,8 +117,12 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return f'heaviside({a} - {b})'
 
     def _ex_not(self, e):
-        # not(bool(a)), where bool(a) = (a == 0) ? 0 : 1
+        # not(a) = (a == 0) ? 1 : 0
         a = self.ex(e[0])
+
+        if isinstance(e[0], myokit.Condition):
+            return f'(1 - {a})'
+
         return f'(heaviside({a}) * heaviside(-{a}))'
 
     def _ex_not_equal(self, e):

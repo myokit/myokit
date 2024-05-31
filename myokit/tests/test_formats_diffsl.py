@@ -189,6 +189,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Not(a),
                 '(heaviside(a) * heaviside(-a))')
 
+        self.eq(Not(Not(a)),
+                '(1 - (heaviside(a) * heaviside(-a)))')
+
         self.eq(NotEqual(a, b),
                 '(1 - heaviside(a - b) * heaviside(b - a))')
 
@@ -301,6 +304,12 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             # a or b
             result = int(bool(ax) or bool(bx))
             expr = self.w.ex(Or(a, b))
+            expr = replace_symbols(expr, replacements)
+            self.assertEqual(eval(expr), result)
+
+            # not(a or b)
+            result = int(not (bool(ax) or bool(bx)))
+            expr = self.w.ex(Not(Or(a, b)))
             expr = replace_symbols(expr, replacements)
             self.assertEqual(eval(expr), result)
 
