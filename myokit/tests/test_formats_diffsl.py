@@ -7,7 +7,6 @@
 #
 import itertools
 import os
-import re
 import unittest
 
 import myokit
@@ -169,64 +168,70 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         a, b = self.ab
 
         self.eq(And(a, b),
-                '((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))')
+                '((1 - heaviside(a) * heaviside(-a))'
+                ' * (1 - heaviside(b) * heaviside(-b)))')
 
-        self.eq(Equal(a, b),
-                '(heaviside(a - b) * heaviside(b - a))')
+        self.eq(Equal(a, b), '(heaviside(a - b) * heaviside(b - a))')
 
-        self.eq(Less(a, b),
-                '(1 - heaviside(a - b))')
+        self.eq(Less(a, b), '(1 - heaviside(a - b))')
 
-        self.eq(LessEqual(a, b),
-                'heaviside(b - a)')
+        self.eq(LessEqual(a, b), 'heaviside(b - a)')
 
-        self.eq(More(a, b),
-                '(1 - heaviside(b - a))')
+        self.eq(More(a, b), '(1 - heaviside(b - a))')
 
-        self.eq(MoreEqual(a, b),
-                'heaviside(a - b)')
+        self.eq(MoreEqual(a, b), 'heaviside(a - b)')
 
-        self.eq(Not(a),
-                '(heaviside(a) * heaviside(-a))')
+        self.eq(Not(a), '(heaviside(a) * heaviside(-a))')
 
-        self.eq(Not(Not(a)),
-                '(1 - (heaviside(a) * heaviside(-a)))')
+        self.eq(Not(Not(a)), '(1 - (heaviside(a) * heaviside(-a)))')
 
-        self.eq(NotEqual(a, b),
-                '(1 - heaviside(a - b) * heaviside(b - a))')
+        self.eq(NotEqual(a, b), '(1 - heaviside(a - b) * heaviside(b - a))')
 
         self.eq(Or(a, b),
-                '(1 - heaviside(a) * heaviside(-a) * heaviside(b) * heaviside(-b))')
+                '(1 - heaviside(a) * heaviside(-a)'
+                ' * heaviside(b) * heaviside(-b))')
 
     def test_if_expressions(self):
         a, b, c, d = self.abcd
 
         self.eq(If(a, c, d),
-                '(c * (1 - (heaviside(a) * heaviside(-a))) + d * (1 - (1 - (heaviside(a) * heaviside(-a)))))')
+                '(c * (1 - (heaviside(a) * heaviside(-a)))'
+                ' + d * (1 - (1 - (heaviside(a) * heaviside(-a)))))')
 
         self.eq(If(Not(a), c, d),
-                '(c * (heaviside(a) * heaviside(-a)) + d * (1 - (heaviside(a) * heaviside(-a))))')
+                '(c * (heaviside(a) * heaviside(-a))'
+                ' + d * (1 - (heaviside(a) * heaviside(-a))))')
 
         self.eq(If(Or(a, b), c, d),
-                '(c * (1 - heaviside(a) * heaviside(-a) * heaviside(b) * heaviside(-b)) + d * (1 - (1 - heaviside(a) * heaviside(-a) * heaviside(b) * heaviside(-b))))')
+                '(c * (1 - heaviside(a) * heaviside(-a)'
+                ' * heaviside(b) * heaviside(-b))'
+                ' + d * (1 - (1 - heaviside(a) * heaviside(-a)'
+                ' * heaviside(b) * heaviside(-b))))')
 
         self.eq(If(And(a, b), c, d),
-                '(c * ((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b))) + d * (1 - ((1 - heaviside(a) * heaviside(-a)) * (1 - heaviside(b) * heaviside(-b)))))')
+                '(c * ((1 - heaviside(a) * heaviside(-a))'
+                ' * (1 - heaviside(b) * heaviside(-b)))'
+                ' + d * (1 - ((1 - heaviside(a) * heaviside(-a))'
+                ' * (1 - heaviside(b) * heaviside(-b)))))')
 
         self.eq(If(Equal(a, b), c, d),
-                '(c * (heaviside(a - b) * heaviside(b - a)) + d * (1 - (heaviside(a - b) * heaviside(b - a))))')
+                '(c * (heaviside(a - b) * heaviside(b - a))'
+                ' + d * (1 - (heaviside(a - b) * heaviside(b - a))))')
 
         self.eq(If(NotEqual(a, b), c, d),
-                '(c * (1 - heaviside(a - b) * heaviside(b - a)) + d * (1 - (1 - heaviside(a - b) * heaviside(b - a))))')
+                '(c * (1 - heaviside(a - b) * heaviside(b - a))'
+                ' + d * (1 - (1 - heaviside(a - b) * heaviside(b - a))))')
 
         self.eq(If(More(a, b), c, d),
-                '(c * (1 - heaviside(b - a)) + d * (1 - (1 - heaviside(b - a))))')
+                '(c * (1 - heaviside(b - a))'
+                ' + d * (1 - (1 - heaviside(b - a))))')
 
         self.eq(If(MoreEqual(a, b), c, d),
                 '(c * heaviside(a - b) + d * (1 - heaviside(a - b)))')
 
         self.eq(If(Less(a, b), c, d),
-                '(c * (1 - heaviside(a - b)) + d * (1 - (1 - heaviside(a - b))))')
+                '(c * (1 - heaviside(a - b))'
+                ' + d * (1 - (1 - heaviside(a - b))))')
 
         self.eq(If(LessEqual(a, b), c, d),
                 '(c * heaviside(b - a) + d * (1 - heaviside(b - a)))')
@@ -234,20 +239,15 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_piecewise_expressions(self):
         a, b, c, d = self.abcd
 
-        self.eq(Piecewise(a, c, d),
-                self.w.ex(If(a, c, d)))
+        self.eq(Piecewise(a, c, d), self.w.ex(If(a, c, d)))
 
-        self.eq(Piecewise(Not(a), c, d),
-                self.w.ex(If(Not(a), c, d)))
+        self.eq(Piecewise(Not(a), c, d), self.w.ex(If(Not(a), c, d)))
 
-        self.eq(Piecewise(Or(a, b), c, d),
-                self.w.ex(If(Or(a, b), c, d)))
+        self.eq(Piecewise(Or(a, b), c, d), self.w.ex(If(Or(a, b), c, d)))
 
-        self.eq(Piecewise(And(a, b), c, d),
-                self.w.ex(If(And(a, b), c, d)))
+        self.eq(Piecewise(And(a, b), c, d), self.w.ex(If(And(a, b), c, d)))
 
-        self.eq(Piecewise(Equal(a, b), c, d),
-                self.w.ex(If(Equal(a, b), c, d)))
+        self.eq(Piecewise(Equal(a, b), c, d), self.w.ex(If(Equal(a, b), c, d)))
 
         self.eq(Piecewise(NotEqual(a, b), c, d),
                 self.w.ex(If(NotEqual(a, b), c, d),))
@@ -263,7 +263,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 self.w.ex(If(LessEqual(a, b), c, d),))
 
         self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
-                self.w.ex(If(Equal(a, b), c, If(Equal(a, d), Number(3), Number(4)))))
+                self.w.ex(If(Equal(a, b), c, If(Equal(a, d),
+                                                Number(3),
+                                                Number(4)))))
 
         self.eq(Piecewise(a, b, c, d, Number(4)),
                 self.w.ex(If(a, b, If(c, d, Number(4)))))
@@ -274,176 +276,181 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         def heaviside(x):
             return 1 if x >= 0 else 0
 
-        def replace_symbols(expr, replacements):
-            for word, value in replacements.items():
-                expr = re.sub(r'\b{}\b'.format(word), value, expr)
-            return expr
+        values = itertools.product([-10, -1e-9, 0, 1e-9, 10], repeat=4)
 
-        a, b, c, d = self.abcd
-
-        values = itertools.product([-10, -1, -1e-9, 0, 1e-9, 1, 10], repeat=4)
-
-        for ax, bx, cx, dx in values:
-            replacements = {'a': f'{ax}',
-                            'b': f'{bx}',
-                            'c': f'{cx}',
-                            'd': f'{dx}'}
+        for a, b, c, d in values:
 
             # not a
-            result = int(not ax)
-            expr = self.w.ex(Not(a))
-            expr = replace_symbols(expr, replacements)
+            result = int(not a)
+            expr = self.w.ex(Not(myokit.Number(a)))
             self.assertEqual(eval(expr), result)
 
             # a and b
-            result = int(bool(ax) and bool(bx))
-            expr = self.w.ex(And(a, b))
-            expr = replace_symbols(expr, replacements)
+            result = int(bool(a) and bool(b))
+            expr = self.w.ex(And(myokit.Number(a), myokit.Number(b)))
             self.assertEqual(eval(expr), result)
 
             # a or b
-            result = int(bool(ax) or bool(bx))
-            expr = self.w.ex(Or(a, b))
-            expr = replace_symbols(expr, replacements)
+            result = int(bool(a) or bool(b))
+            expr = self.w.ex(Or(myokit.Number(a), myokit.Number(b)))
             self.assertEqual(eval(expr), result)
 
             # not(a or b)
-            result = int(not (bool(ax) or bool(bx)))
-            expr = self.w.ex(Not(Or(a, b)))
-            expr = replace_symbols(expr, replacements)
+            result = int(not (bool(a) or bool(b)))
+            expr = self.w.ex(Not(Or(myokit.Number(a), myokit.Number(b))))
             self.assertEqual(eval(expr), result)
 
             # a > b
-            result = int(ax > bx)
-            expr = self.w.ex(More(a, b))
-            expr = replace_symbols(expr, replacements)
+            result = int(a > b)
+            expr = self.w.ex(More(myokit.Number(a), myokit.Number(b)))
             self.assertEqual(eval(expr), result)
 
             # a >= b
-            result = int(ax >= bx)
-            expr = self.w.ex(MoreEqual(a, b))
-            expr = replace_symbols(expr, replacements)
+            result = int(a >= b)
+            expr = self.w.ex(MoreEqual(myokit.Number(a), myokit.Number(b)))
             self.assertEqual(eval(expr), result)
 
             # a < b
-            result = int(ax < bx)
-            expr = self.w.ex(Less(a, b))
-            expr = replace_symbols(expr, replacements)
+            result = int(a < b)
+            expr = self.w.ex(Less(myokit.Number(a), myokit.Number(b)))
             self.assertEqual(eval(expr), result)
 
             # a <= b
-            result = int(ax <= bx)
-            expr = self.w.ex(LessEqual(a, b))
-            expr = replace_symbols(expr, replacements)
+            result = int(a <= b)
+            expr = self.w.ex(LessEqual(myokit.Number(a), myokit.Number(b)))
             self.assertEqual(eval(expr), result)
 
             # if(a, c, d)
-            result = cx if (ax) else dx
-            expr = self.w.ex(If(a, c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a) else d
+            expr = self.w.ex(
+                If(myokit.Number(a), myokit.Number(c), myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # if(not a, c, d)
-            result = cx if (not ax) else dx
-            expr = self.w.ex(If(Not(a), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (not a) else d
+            expr = self.w.ex(If(Not(myokit.Number(a)),
+                                myokit.Number(c),
+                                myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # if(a or b, c, d)
-            result = cx if (bool(ax) or bool(bx)) else dx
-            expr = self.w.ex(If(Or(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (bool(a) or bool(b)) else d
+            expr = self.w.ex(If(Or(myokit.Number(a), myokit.Number(b)),
+                                myokit.Number(c),
+                                myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # if(a and b, c, d)
-            result = cx if (bool(ax) and bool(bx)) else dx
-            expr = self.w.ex(If(And(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (bool(a) and bool(b)) else d
+            expr = self.w.ex(If(And(myokit.Number(a), myokit.Number(b)),
+                                myokit.Number(c),
+                                myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # if(a > b, c, d)
-            result = cx if (ax > bx) else dx
-            expr = self.w.ex(If(More(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a > b) else d
+            expr = self.w.ex(If(More(myokit.Number(a), myokit.Number(b)),
+                                myokit.Number(c),
+                                myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # if(a >= b, c, d)
-            result = cx if (ax >= bx) else dx
-            expr = self.w.ex(If(MoreEqual(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a >= b) else d
+            expr = self.w.ex(If(MoreEqual(myokit.Number(a), myokit.Number(b)),
+                                myokit.Number(c),
+                                myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # if(a < b, c, d)
-            result = cx if (ax < bx) else dx
-            expr = self.w.ex(If(Less(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a < b) else d
+            expr = self.w.ex(If(Less(myokit.Number(a), myokit.Number(b)),
+                                myokit.Number(c),
+                                myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # if(a <= b, c, d)
-            result = cx if (ax <= bx) else dx
-            expr = self.w.ex(If(LessEqual(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a <= b) else d
+            expr = self.w.ex(If(LessEqual(myokit.Number(a), myokit.Number(b)),
+                                myokit.Number(c),
+                                myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(a, c, d)
-            result = cx if (ax) else dx
-            expr = self.w.ex(Piecewise(a, c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a) else d
+            expr = self.w.ex(Piecewise(myokit.Number(a),
+                                       myokit.Number(c),
+                                       myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(not a, c, d)
-            result = cx if (not ax) else dx
-            expr = self.w.ex(Piecewise(Not(a), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (not a) else d
+            expr = self.w.ex(Piecewise(Not(myokit.Number(a)),
+                                       myokit.Number(c),
+                                       myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(a or b, c, d)
-            result = cx if (bool(ax) or bool(bx)) else dx
-            expr = self.w.ex(Piecewise(Or(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (bool(a) or bool(b)) else d
+            expr = self.w.ex(Piecewise(Or(myokit.Number(a), myokit.Number(b)),
+                                       myokit.Number(c),
+                                       myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(a and b, c, d)
-            result = cx if (bool(ax) and bool(bx)) else dx
-            expr = self.w.ex(Piecewise(And(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (bool(a) and bool(b)) else d
+            expr = self.w.ex(Piecewise(And(myokit.Number(a), myokit.Number(b)),
+                                       myokit.Number(c),
+                                       myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(a > b, c, d)
-            result = cx if (ax > bx) else dx
-            expr = self.w.ex(Piecewise(More(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a > b) else d
+            expr = self.w.ex(Piecewise(More(myokit.Number(a), myokit.Number(b)),
+                                       myokit.Number(c),
+                                       myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(a >= b, c, d)
-            result = cx if (ax >= bx) else dx
-            expr = self.w.ex(Piecewise(MoreEqual(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a >= b) else d
+            expr = self.w.ex(Piecewise(MoreEqual(myokit.Number(a),
+                                                 myokit.Number(b)),
+                                       myokit.Number(c),
+                                       myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(a < b, c, d)
-            result = cx if (ax < bx) else dx
-            expr = self.w.ex(Piecewise(Less(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a < b) else d
+            expr = self.w.ex(Piecewise(Less(myokit.Number(a), myokit.Number(b)),
+                                       myokit.Number(c),
+                                       myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(a <= b, c, d)
-            result = cx if (ax <= bx) else dx
-            expr = self.w.ex(Piecewise(LessEqual(a, b), c, d))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a <= b) else d
+            expr = self.w.ex(Piecewise(LessEqual(myokit.Number(a),
+                                                 myokit.Number(b)),
+                                       myokit.Number(c),
+                                       myokit.Number(d)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(a == b, c, a == d, 3, 4)
-            result = cx if (ax == bx) else (3 if (ax == dx) else 4)
-            expr = self.w.ex(
-                Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)))
-            expr = replace_symbols(expr, replacements)
+            result = c if (a == b) else (3 if (a == d) else 4)
+            expr = self.w.ex(Piecewise(Equal(myokit.Number(a),
+                                             myokit.Number(b)),
+                                       myokit.Number(c),
+                                       Equal(myokit.Number(a),
+                                             myokit.Number(d)),
+                                       Number(3),
+                                       Number(4)))
             self.assertEqual(eval(expr), result)
 
             # piecewise(a, b, c, d, 4)
-            result = bx if (ax) else (dx if (cx) else 4)
-            expr = self.w.ex(Piecewise(a, b, c, d, Number(4)))
-            expr = replace_symbols(expr, replacements)
+            result = b if (a) else (d if (c) else 4)
+            expr = self.w.ex(Piecewise(myokit.Number(a),
+                                       myokit.Number(b),
+                                       myokit.Number(c),
+                                       myokit.Number(d),
+                                       Number(4)))
             self.assertEqual(eval(expr), result)
 
 
