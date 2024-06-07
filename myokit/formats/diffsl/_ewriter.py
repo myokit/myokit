@@ -89,7 +89,14 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         # bool(a) and bool(b), where bool(a) = (a == 0) ? 0 : 1
         a = self.ex(e[0])
         b = self.ex(e[1])
-        return f'((1 - heaviside({a}) * heaviside(-{a})) * (1 - heaviside({b}) * heaviside(-{b})))'
+
+        if not isinstance(e[0], myokit.Condition):
+            a = f'(1 - heaviside({a}) * heaviside(-{a}))'
+
+        if not isinstance(e[1], myokit.Condition):
+            b = f'(1 - heaviside({b}) * heaviside(-{b}))'
+
+        return f'({a} * {b})'
 
     def _ex_equal(self, e):
         a = self.ex(e[0])
@@ -134,7 +141,27 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         # bool(a) or bool(b), where bool(a) = (a == 0) ? 0 : 1
         a = self.ex(e[0])
         b = self.ex(e[1])
-        return f'(1 - heaviside({a}) * heaviside(-{a}) * heaviside({b}) * heaviside(-{b}))'
+
+        if (isinstance(e[0], myokit.Condition)
+                and isinstance(e[1], myokit.Condition)):
+            return f'(({a} + {b}) - {a} * {b})'
+
+        if isinstance(e[0], myokit.Condition):
+            return (
+                f'(1 - heaviside({b}) * heaviside(-{b})'
+                f' - {a} * heaviside({b}) * heaviside(-{b})'
+            )
+
+        if isinstance(e[1], myokit.Condition):
+            return (
+                f'(1 - heaviside({a}) * heaviside(-{a})'
+                f' - {b} * heaviside({a}) * heaviside(-{a})'
+            )
+
+        return (
+            f'(1 - heaviside({a}) * heaviside(-{a})'
+            f' * heaviside({b}) * heaviside(-{b}))'
+        )
 
     # -- Conditional expressions
 

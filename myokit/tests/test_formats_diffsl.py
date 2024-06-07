@@ -191,6 +191,12 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '(1 - heaviside(a) * heaviside(-a)'
                 ' * heaviside(b) * heaviside(-b))')
 
+        self.eq(Or(Not(a), Not(b)),
+                '(((heaviside(a) * heaviside(-a))'
+                ' + (heaviside(b) * heaviside(-b)))'
+                ' - (heaviside(a) * heaviside(-a))'
+                ' * (heaviside(b) * heaviside(-b)))')
+
     def test_if_expressions(self):
         a, b, c, d = self.abcd
 
@@ -276,7 +282,8 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         def heaviside(x):
             return 1 if x >= 0 else 0
 
-        values = itertools.product([-10, -1e-9, 0, 1e-9, 10], repeat=4)
+        values = itertools.product([-10e9, -1, -1e-9, 0, 1e-9, 1, 10e9],
+                                   repeat=4)
 
         for a, b, c, d in values:
 
@@ -298,6 +305,11 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             # not(a or b)
             result = int(not (bool(a) or bool(b)))
             expr = self.w.ex(Not(Or(myokit.Number(a), myokit.Number(b))))
+            self.assertEqual(eval(expr), result)
+
+            # not(a) or not(b)
+            result = int(not a or not b)
+            expr = self.w.ex(Or(Not(myokit.Number(a)), Not(myokit.Number(b))))
             self.assertEqual(eval(expr), result)
 
             # a > b
