@@ -83,7 +83,7 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
     # def _ex_sqrt(self, e):
     # def _ex_tan(self, e):
 
-    # -- Boolean operators
+    # -- Conditional operators
 
     def _ex_and(self, e):
         # bool(a) and bool(b), where bool(a) = (a == 0) ? 0 : 1
@@ -144,19 +144,13 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
         if (isinstance(e[0], myokit.Condition)
                 and isinstance(e[1], myokit.Condition)):
-            return f'(({a} + {b}) - {a} * {b})'
+            return f'({a} + {b} - {a} * {b})'
 
         if isinstance(e[0], myokit.Condition):
-            return (
-                f'(1 - heaviside({b}) * heaviside(-{b})'
-                f' - {a} * heaviside({b}) * heaviside(-{b})'
-            )
+            return f'(1 - (1 - {a}) * heaviside({b}) * heaviside(-{b}))'
 
         if isinstance(e[1], myokit.Condition):
-            return (
-                f'(1 - heaviside({a}) * heaviside(-{a})'
-                f' - {b} * heaviside({a}) * heaviside(-{a})'
-            )
+            return f'(1 - (1 - {b}) * heaviside({a}) * heaviside(-{a}))'
 
         return (
             f'(1 - heaviside({a}) * heaviside(-{a})'

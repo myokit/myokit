@@ -171,6 +171,14 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '((1 - heaviside(a) * heaviside(-a))'
                 ' * (1 - heaviside(b) * heaviside(-b)))')
 
+        self.eq(And(Not(a), b),
+                '((heaviside(a) * heaviside(-a))'
+                ' * (1 - heaviside(b) * heaviside(-b)))')
+
+        self.eq(And(Not(a), Not(b)),
+                '((heaviside(a) * heaviside(-a))'
+                ' * (heaviside(b) * heaviside(-b)))')
+
         self.eq(Equal(a, b), '(heaviside(a - b) * heaviside(b - a))')
 
         self.eq(Less(a, b), '(1 - heaviside(a - b))')
@@ -191,9 +199,13 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 '(1 - heaviside(a) * heaviside(-a)'
                 ' * heaviside(b) * heaviside(-b))')
 
+        self.eq(Or(Not(a), b),
+                '(1 - (1 - (heaviside(a) * heaviside(-a)))'
+                ' * heaviside(b) * heaviside(-b))')
+
         self.eq(Or(Not(a), Not(b)),
-                '(((heaviside(a) * heaviside(-a))'
-                ' + (heaviside(b) * heaviside(-b)))'
+                '((heaviside(a) * heaviside(-a))'
+                ' + (heaviside(b) * heaviside(-b))'
                 ' - (heaviside(a) * heaviside(-a))'
                 ' * (heaviside(b) * heaviside(-b)))')
 
@@ -297,6 +309,16 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             expr = self.w.ex(And(myokit.Number(a), myokit.Number(b)))
             self.assertEqual(eval(expr), result)
 
+            # not(a) and not(b)
+            result = int(not a and not b)
+            expr = self.w.ex(And(Not(myokit.Number(a)), Not(myokit.Number(b))))
+            self.assertEqual(eval(expr), result)
+
+            # not(a) and b
+            result = int(not a and bool(b))
+            expr = self.w.ex(And(Not(myokit.Number(a)), myokit.Number(b)))
+            self.assertEqual(eval(expr), result)
+
             # a or b
             result = int(bool(a) or bool(b))
             expr = self.w.ex(Or(myokit.Number(a), myokit.Number(b)))
@@ -310,6 +332,11 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             # not(a) or not(b)
             result = int(not a or not b)
             expr = self.w.ex(Or(Not(myokit.Number(a)), Not(myokit.Number(b))))
+            self.assertEqual(eval(expr), result)
+
+            # not(a) or b
+            result = int(not a or bool(b))
+            expr = self.w.ex(Or(Not(myokit.Number(a)), myokit.Number(b)))
             self.assertEqual(eval(expr), result)
 
             # a > b
