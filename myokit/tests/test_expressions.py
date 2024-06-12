@@ -1097,8 +1097,11 @@ class DerivativeTest(unittest.TestCase):
 
         # Derivative of something other than a name: never allowed
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'on variables', myokit.Derivative,
-            myokit.Number(1))
+            myokit.TypeError, 'requires a myokit.Name',
+            myokit.Derivative, myokit.Number(1))
+        self.assertRaisesRegex(  # Not even another LhsExpression
+            myokit.TypeError, 'requires a myokit.Name',
+            myokit.Derivative, myokit.Derivative(myokit.Name(x)))
 
     def test_bracket(self):
         # Test Derivative.bracket()
@@ -1317,22 +1320,22 @@ class PartialDerivativeTest(unittest.TestCase):
 
         # Others are not allowed
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'first argument to a partial',
+            myokit.TypeError, 'first argument to a partial',
             myokit.PartialDerivative, i, n)
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'first argument to a partial',
+            myokit.TypeError, 'first argument to a partial',
             myokit.PartialDerivative, myokit.Number(3), n)
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'first argument to a partial',
+            myokit.TypeError, 'first argument to a partial',
             myokit.PartialDerivative, myokit.PrefixPlus(n), n)
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'second argument to a partial',
+            myokit.TypeError, 'second argument to a partial',
             myokit.PartialDerivative, n, d)
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'second argument to a partial',
+            myokit.TypeError, 'second argument to a partial',
             myokit.PartialDerivative, n, myokit.Number(3))
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'second argument to a partial',
+            myokit.TypeError, 'second argument to a partial',
             myokit.PartialDerivative, n, myokit.PrefixPlus(n))
 
     def test_bracket(self):
@@ -1435,13 +1438,16 @@ class InitialValueTest(unittest.TestCase):
 
         # Value must be a name
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'first argument to an initial',
+            myokit.TypeError, 'argument to an initial value must be a variab',
             myokit.InitialValue, d)
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'first argument to an initial',
+            myokit.TypeError, 'argument to an initial value must be a variab',
+            myokit.InitialValue, i)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'argument to an initial value must be a variab',
             myokit.InitialValue, myokit.Number(3),)
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'first argument to an initial',
+            myokit.TypeError, 'argument to an initial value must be a variab',
             myokit.InitialValue, myokit.PrefixPlus(n))
 
     def test_bracket(self):
@@ -1572,9 +1578,12 @@ class PrefixPlusTest(unittest.TestCase):
         self.assertEqual(y, myokit.PrefixPlus(j))
 
     def test_creation(self):
-        # Operand must be expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.PrefixPlus, 3)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'expected a numerical', myokit.PrefixPlus,
+            myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests PrefixPlus.diff()
@@ -1684,6 +1693,9 @@ class PrefixMinusTest(unittest.TestCase):
         # Operand must be an expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.PrefixMinus, 'test')
+        self.assertRaisesRegex(
+            myokit.TypeError, 'expected a numerical', myokit.PrefixMinus,
+            myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests PrefixMinus.diff()
@@ -1791,9 +1803,16 @@ class PlusTest(unittest.TestCase):
         self.assertEqual(y, myokit.Plus(i, i))
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operands must be numerical expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Plus, 'toast', 4)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.Plus, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.Plus, myokit.Number(1), a)
 
     def test_diff(self):
         # Tests Plus.diff()
@@ -1913,9 +1932,16 @@ class MinusTest(unittest.TestCase):
     """Tests myokit.Minus."""
 
     def test_creation(self):
-        # Operands must be expressions
+        # Operands must be numerical expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Minus, 7, None)
+        a = myokit.NotEqual(myokit.Number(3), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.Minus, a, myokit.Number(3))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.Minus, myokit.Number(3), a)
 
     def test_diff(self):
         # Tests Minus.diff()
@@ -2019,6 +2045,13 @@ class MultiplyTest(unittest.TestCase):
         # Operands must be expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Multiply, 15, 3)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.Multiply, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.Multiply, myokit.Number(1), a)
 
     def test_diff(self):
         # Tests Multiply.diff()
@@ -2112,6 +2145,13 @@ class DivideTest(unittest.TestCase):
         # Operands must be expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Divide, 15, 3)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.Divide, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.Divide, myokit.Number(1), a)
 
     def test_diff(self):
         # Tests Divide.diff()
@@ -2205,6 +2245,13 @@ class QuotientTest(unittest.TestCase):
         # Operands must be expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Quotient, 15, 3)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.Quotient, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.Quotient, myokit.Number(1), a)
 
     def test_diff(self):
         # Tests Quotient.diff()
@@ -2286,6 +2333,13 @@ class RemainderTest(unittest.TestCase):
         # Operands must be expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Remainder, myokit.Number(3), 3)
+        a = myokit.MoreEqual(myokit.Number(1.1), myokit.Number(2.1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.Remainder, a, myokit.Number(1.3))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.Remainder, myokit.Number(-1.2), a)
 
     def test_diff(self):
         # Tests Remainder.diff()
@@ -2415,6 +2469,13 @@ class PowerTest(unittest.TestCase):
         # Operands must be expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Power, myokit.Number(3), 3)
+        a = myokit.Less(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.Power, a, myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.Power, myokit.Number(3.2), a)
 
     def test_diff(self):
         # Tests Power.diff()
@@ -2571,9 +2632,12 @@ class SqrtTest(unittest.TestCase):
             myokit.IntegrityError, 'wrong number', myokit.Sqrt,
             myokit.Number(1), myokit.Number(2))
 
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Sqrt, False)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'sqrt\(\) expects a numerical operand',
+            myokit.Sqrt, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests Sqrt.diff()
@@ -2682,9 +2746,12 @@ class ExpTest(unittest.TestCase):
             myokit.IntegrityError, 'wrong number', myokit.Exp,
             myokit.Number(1), myokit.Number(2))
 
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Exp, 1.2)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'Function exp\(\) expects a numerical operand',
+            myokit.Exp, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests Exp.diff()
@@ -2838,11 +2905,21 @@ class LogTest(unittest.TestCase):
             myokit.IntegrityError, 'wrong number', myokit.Log,
             myokit.Number(1), myokit.Number(2), myokit.Number(3))
 
-        # Operands must be expressions
+        # Operands must be numerical expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Log, 1.2)
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Log, myokit.Number(3), 1.2)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, r'first operand: function log\(\) expects numer',
+            myokit.Log, a)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'first operand: function log\(\) expects numer',
+            myokit.Log, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, r'second operand: function log\(\) expects nume',
+            myokit.Log, myokit.Number(1), a)
 
     def test_diff(self):
         # Tests Log.diff()
@@ -2974,9 +3051,12 @@ class Log10Test(unittest.TestCase):
     """Tests myokit.Log10."""
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Log10, 1.2)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'log10\(\) expects a numerical operand',
+            myokit.Log10, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests Log10.diff()
@@ -3009,9 +3089,12 @@ class SinTest(unittest.TestCase):
     """Tests myokit.Sin."""
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Sin, 2.1)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'sin\(\) expects a numerical operand',
+            myokit.Sin, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests Sin.diff()
@@ -3043,9 +3126,12 @@ class CosTest(unittest.TestCase):
     """Tests myokit.Cos."""
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Cos, myokit.Cos)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'cos\(\) expects a numerical operand',
+            myokit.Cos, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests Cos.diff()
@@ -3076,9 +3162,12 @@ class TanTest(unittest.TestCase):
     """ Tests myokit.Tan. """
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Tan, myokit.Model())
+        self.assertRaisesRegex(
+            myokit.TypeError, r'tan\(\) expects a numerical operand',
+            myokit.Tan, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests Tan.diff()
@@ -3109,9 +3198,12 @@ class ASinTest(unittest.TestCase):
     """ Tests myokit.ASin. """
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.ASin, 4)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'asin\(\) expects a numerical operand',
+            myokit.ASin, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests ASin.diff()
@@ -3143,9 +3235,12 @@ class ACosTest(unittest.TestCase):
     """ Tests myokit.ACos. """
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.ACos, 4)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'acos\(\) expects a numerical operand',
+            myokit.ACos, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests ACos.diff()
@@ -3178,9 +3273,12 @@ class ATanTest(unittest.TestCase):
     """ Tests myokit.ATan. """
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.ATan, 4)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'atan\(\) expects a numerical operand',
+            myokit.ATan, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests ATan.diff()
@@ -3213,9 +3311,13 @@ class FloorTest(unittest.TestCase):
     """ Tests myokit.Floor. """
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Floor, 1.2)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, r'floor\(\) expects a numerical operand',
+            myokit.Floor, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests Floor.diff()
@@ -3269,9 +3371,12 @@ class CeilTest(unittest.TestCase):
     """ Tests myokit.Ceil. """
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Ceil, 3.4)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'ceil\(\) expects a numerical operand',
+            myokit.Ceil, myokit.LessEqual(myokit.Number(3), myokit.Number(2)))
 
     def test_diff(self):
         # Tests Ceil.diff()
@@ -3325,9 +3430,12 @@ class AbsTest(unittest.TestCase):
     """ Tests myokit.Abs. """
 
     def test_creation(self):
-        # Operand must be an expression
+        # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Abs, 3.4)
+        self.assertRaisesRegex(
+            myokit.TypeError, r'abs\(\) expects a numerical operand',
+            myokit.Abs, myokit.Equal(myokit.Number(1), myokit.Number(2)))
 
     def test_diff(self):
         # Tests Abs.diff()
@@ -3402,9 +3510,16 @@ class EqualTest(unittest.TestCase):
     """ Tests myokit.Equal. """
 
     def test_creation(self):
-        # Operands must be expressions
+        # Operands must be numerical expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Equal, 1, 1)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.Equal, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.Equal, myokit.Number(1), a)
 
     def test_diff(self):
         # Tests Equal.diff()
@@ -3424,62 +3539,54 @@ class EqualTest(unittest.TestCase):
     def test_eval_unit(self):
         # Test Equal.eval_unit().
 
-        # Mini model
-        m = myokit.Model()
-        c = m.add_component('c')
-        x = c.add_variable('x')
-        x.set_rhs('3')
-        y = c.add_variable('y')
-        y.set_rhs('3')
-        z = c.add_variable('z')
-        z.set_rhs('x == y')
-
-        # Test in tolerant mode
-        self.assertEqual(z.rhs().eval_unit(), None)
-        x.set_unit(myokit.units.ampere)
-        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
-        y.set_unit(myokit.units.ampere)
-        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
-        y.set_unit(myokit.units.volt)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit)
-        x.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
-        y.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(), None)
-
-        # Test in strict mode
+        # None and None is always fine
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
-        x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit, s)
-        y.set_unit(myokit.units.ampere)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
-        y.set_unit(myokit.units.volt)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit)
-        x.set_unit(None)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit, s)
-        y.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
+        e = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        d = myokit.units.dimensionless
+        self.assertEqual(e.eval_unit(), d)
+        self.assertEqual(e.eval_unit(s), d)
+        # None and dimensionless is always fine
+        e = myokit.Equal(myokit.Number(1), myokit.Number(2, d))
+        self.assertEqual(e.eval_unit(), d)
+        self.assertEqual(e.eval_unit(s), d)
+        # Equal is always fine
+        e = myokit.Equal(myokit.Number(1, d), myokit.Number(2, d))
+        self.assertEqual(e.eval_unit(), d)
+        self.assertEqual(e.eval_unit(s), d)
+        a = myokit.units.ampere
+        e = myokit.Equal(myokit.Number(1, a), myokit.Number(2, a))
+        self.assertEqual(e.eval_unit(), d)
+        self.assertEqual(e.eval_unit(s), d)
+        # Unequal is never fine
+        e = myokit.Equal(myokit.Number(1, d), myokit.Number(2, a))
+        self.assertRaises(myokit.IncompatibleUnitError, e.eval_unit)
+        self.assertRaises(myokit.IncompatibleUnitError, e.eval_unit, s)
+        # One None one not-dimensionless is only fine in tolerant mode
+        e = myokit.Equal(myokit.Number(1, a), myokit.Number(2))
+        self.assertEqual(e.eval_unit(), d)
+        self.assertRaises(myokit.IncompatibleUnitError, e.eval_unit, s)
 
     def test_tree_str(self):
         # Test Equal.tree_str().
         x = myokit.Equal(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '==\n  1\n  2\n')
-        x = myokit.Plus(myokit.Number(3), x)
-        self.assertEqual(x.tree_str(), '+\n  3\n  ==\n    1\n    2\n')
+        self.assertEqual(myokit.Not(x).tree_str(), 'not\n  ==\n    1\n    2\n')
 
 
 class NotEqualTest(unittest.TestCase):
     """ Tests myokit.NotEqual. """
 
     def test_creation(self):
-        # Operands must be expressions
+        # Operands must be numerical expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.NotEqual, 1, 1)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.NotEqual, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.NotEqual, myokit.Number(1), a)
 
     def test_eval(self):
         # Test NotEqual.eval().
@@ -3492,17 +3599,24 @@ class NotEqualTest(unittest.TestCase):
         # Test NotEqual.tree_str().
         x = myokit.NotEqual(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '!=\n  1\n  2\n')
-        x = myokit.Plus(myokit.Number(3), x)
-        self.assertEqual(x.tree_str(), '+\n  3\n  !=\n    1\n    2\n')
+        self.assertEqual(myokit.Not(x).tree_str(),
+                         'not\n  !=\n    1\n    2\n')
 
 
 class MoreTest(unittest.TestCase):
     """ Tests myokit.More. """
 
     def test_creation(self):
-        # Operands must be expressions
+        # Operands must be numerical expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.More, 1, 1)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.More, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.More, myokit.Number(1), a)
 
     def test_eval(self):
         # Test More.eval().
@@ -3515,8 +3629,7 @@ class MoreTest(unittest.TestCase):
         # Test More.tree_str().
         x = myokit.More(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '>\n  1\n  2\n')
-        x = myokit.Plus(myokit.Number(3), x)
-        self.assertEqual(x.tree_str(), '+\n  3\n  >\n    1\n    2\n')
+        self.assertEqual(myokit.Not(x).tree_str(), 'not\n  >\n    1\n    2\n')
 
 
 class LessTest(unittest.TestCase):
@@ -3526,6 +3639,13 @@ class LessTest(unittest.TestCase):
         # Operands must be expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Less, 1, 1)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.Less, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.Less, myokit.Number(1), a)
 
     def test_eval(self):
         # Test Less.eval().
@@ -3538,17 +3658,23 @@ class LessTest(unittest.TestCase):
         # Test Less.tree_str().
         x = myokit.Less(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '<\n  1\n  2\n')
-        x = myokit.Plus(myokit.Number(3), x)
-        self.assertEqual(x.tree_str(), '+\n  3\n  <\n    1\n    2\n')
+        self.assertEqual(myokit.Not(x).tree_str(), 'not\n  <\n    1\n    2\n')
 
 
 class MoreEqualTest(unittest.TestCase):
     """ Tests myokit.MoreEqual. """
 
     def test_creation(self):
-        # Operands must be expressions
+        # Operands must be numerical expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.MoreEqual, 1, 1)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.MoreEqual, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.MoreEqual, myokit.Number(1), a)
 
     def test_eval(self):
         # Test MoreEqual.eval().
@@ -3563,17 +3689,23 @@ class MoreEqualTest(unittest.TestCase):
         # Test MoreEqual.tree_str().
         x = myokit.MoreEqual(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '>=\n  1\n  2\n')
-        x = myokit.Plus(myokit.Number(3), x)
-        self.assertEqual(x.tree_str(), '+\n  3\n  >=\n    1\n    2\n')
+        self.assertEqual(myokit.Not(x).tree_str(), 'not\n  >=\n    1\n    2\n')
 
 
 class LessEqualTest(unittest.TestCase):
     """ Tests myokit.LessEqual. """
 
     def test_creation(self):
-        # Operands must be expressions
+        # Operands must be numerical expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.LessEqual, 1, 1)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a numerical',
+            myokit.LessEqual, a, myokit.Number(1))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a numerical',
+            myokit.LessEqual, myokit.Number(1), a)
 
     def test_eval(self):
         # Test LessEqual.eval().
@@ -3588,17 +3720,23 @@ class LessEqualTest(unittest.TestCase):
         # Test LessEqual.tree_str().
         x = myokit.LessEqual(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '<=\n  1\n  2\n')
-        x = myokit.Plus(myokit.Number(3), x)
-        self.assertEqual(x.tree_str(), '+\n  3\n  <=\n    1\n    2\n')
+        self.assertEqual(myokit.Not(x).tree_str(), 'not\n  <=\n    1\n    2\n')
 
 
 class AndTest(unittest.TestCase):
     """ Tests myokit.And. """
 
     def test_creation(self):
-        # Operands must be expressions
+        # Operands must be conditional expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.And, 1, 1)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a condition',
+            myokit.And, myokit.Number(1), a)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a condition',
+            myokit.And, a, myokit.Number(1))
 
     def test_diff(self):
         # Tests And.diff()
@@ -3613,26 +3751,42 @@ class AndTest(unittest.TestCase):
 
     def test_eval(self):
         # Test And.eval().
-        x = myokit.And(myokit.Number(1), myokit.Number(1))
-        self.assertTrue(x.eval())
-        x = myokit.And(myokit.Number(0), myokit.Number(2))
-        self.assertFalse(x.eval())
+        a = myokit.Equal(myokit.Number(2), myokit.Number(2))
+        b = myokit.Equal(myokit.Number(3), myokit.Number(1))
+        self.assertTrue(myokit.And(a, a).eval())
+        self.assertFalse(myokit.And(a, b).eval())
+        self.assertFalse(myokit.And(b, b).eval())
 
     def test_eval_unit(self):
         # Test And.eval_unit().
 
-        # Mini model
-        m = myokit.Model()
-        c = m.add_component('c')
-        x = c.add_variable('x')
-        x.set_rhs('1')
-        y = c.add_variable('y')
-        y.set_rhs('1')
-        z = c.add_variable('z')
-        z.set_rhs('x and y')
+        # Test in tolerant mode: no own testing, but should test operands!
+        e = myokit.parse_expression('1 == 1 and 2 == 2')
+        self.assertEqual(e.eval_unit(), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 == 1 [1] and 2 [1] == 2')
+        self.assertEqual(e.eval_unit(), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 [1] == 1 [1] and 2 [1] == 2 [1]')
+        self.assertEqual(e.eval_unit(), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 [1] == 1 [1] and 2 [1] == 2 [mg]')
+        self.assertRaises(myokit.IncompatibleUnitError, e.eval_unit)
 
-        # Test in tolerant mode
-        self.assertEqual(z.rhs().eval_unit(), None)
+        # Test in strict mode: no own testing, but should test operands!
+        s = myokit.UNIT_STRICT
+        e = myokit.parse_expression('1 == 1 and 2 == 2')
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 == 1 [1] and 2 [1] == 2')
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 [1] == 1 [1] and 2 [1] == 2 [1]')
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
+
+        e = myokit.parse_expression('1 == 1 [1]')
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
+
+        '''
+        # Test in tolerant mode: will return dimensionless if OK because both
+        # operands are conditions and so will return dimensionless (no
+        # propagating None's).
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
@@ -3650,7 +3804,7 @@ class AndTest(unittest.TestCase):
         self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
-        s = myokit.UNIT_STRICT
+
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegex(
@@ -3667,13 +3821,17 @@ class AndTest(unittest.TestCase):
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         y.set_unit(None)
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
+        '''
 
     def test_tree_str(self):
         # Test And.tree_str().
-        x = myokit.And(myokit.Number(1), myokit.Number(2))
-        self.assertEqual(x.tree_str(), 'and\n  1\n  2\n')
-        x = myokit.Plus(myokit.Number(3), x)
-        self.assertEqual(x.tree_str(), '+\n  3\n  and\n    1\n    2\n')
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        b = myokit.Less(myokit.Number(4), myokit.Number(3))
+        self.assertEqual(myokit.And(a, b).tree_str(),
+                         'and\n  ==\n    1\n    2\n  <\n    4\n    3\n')
+        self.assertEqual(
+            myokit.Not(myokit.And(b, a)).tree_str(),
+            'not\n  and\n    <\n      4\n      3\n    ==\n      1\n      2\n')
 
 
 class OrTest(unittest.TestCase):
@@ -3683,15 +3841,21 @@ class OrTest(unittest.TestCase):
         # Operands must be expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Or, 1, 1)
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand: expected a condition',
+            myokit.Or, myokit.Number(1), a)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand: expected a condition',
+            myokit.Or, a, myokit.Number(1))
 
     def test_eval(self):
         # Test Or.eval().
-        x = myokit.Or(myokit.Number(1), myokit.Number(1))
-        self.assertTrue(x.eval())
-        x = myokit.Or(myokit.Number(0), myokit.Number(2))
-        self.assertTrue(x.eval())
-        x = myokit.Or(myokit.Number(0), myokit.Number(0))
-        self.assertFalse(x.eval())
+        a = myokit.Equal(myokit.Number(2), myokit.Number(2))
+        b = myokit.Equal(myokit.Number(3), myokit.Number(1))
+        self.assertTrue(myokit.Or(a, a).eval())
+        self.assertTrue(myokit.Or(a, b).eval())
+        self.assertFalse(myokit.Or(b, b).eval())
 
     def test_eval_unit(self):
         # Test Or.eval_unit().
@@ -3704,7 +3868,7 @@ class OrTest(unittest.TestCase):
         y = c.add_variable('y')
         y.set_rhs('1')
         z = c.add_variable('z')
-        z.set_rhs('x or y')
+        z.set_rhs('x == y or 2 == 3')
 
         # Test in tolerant mode
         self.assertEqual(z.rhs().eval_unit(), None)
@@ -3745,10 +3909,16 @@ class OrTest(unittest.TestCase):
 
     def test_tree_str(self):
         # Test Or.tree_str().
-        x = myokit.Or(myokit.Number(1), myokit.Number(2))
-        self.assertEqual(x.tree_str(), 'or\n  1\n  2\n')
-        x = myokit.Plus(myokit.Number(3), x)
-        self.assertEqual(x.tree_str(), '+\n  3\n  or\n    1\n    2\n')
+        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        b = myokit.NotEqual(myokit.Number(3), myokit.Number(4))
+        x = myokit.Or(a, b)
+        self.assertEqual(
+            x.tree_str(),
+            'or\n  ==\n    1\n    2\n  !=\n    3\n    4\n')
+        x = myokit.Not(x)
+        self.assertEqual(
+            x.tree_str(),
+            'not\n  or\n    ==\n      1\n      2\n    !=\n      3\n      4\n')
 
 
 class NotTest(unittest.TestCase):
@@ -3758,6 +3928,9 @@ class NotTest(unittest.TestCase):
         # Operand must be an expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Not, 1)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'expected a condition',
+            myokit.Not, myokit.Number(1))
 
     def test_code(self):
         # Test Not.code().
@@ -3790,7 +3963,7 @@ class NotTest(unittest.TestCase):
         x = c.add_variable('x')
         x.set_rhs('1')
         z = c.add_variable('z')
-        z.set_rhs('not x')
+        z.set_rhs('not x != x')
 
         # Test in tolerant mode
         self.assertEqual(z.rhs().eval_unit(), None)
@@ -3815,8 +3988,6 @@ class NotTest(unittest.TestCase):
 
     def test_polish(self):
         # Test Not._polish().
-        x = myokit.Not(myokit.Number(1))
-        self.assertEqual(x._polish(), 'not 1')
         x = myokit.Not(myokit.Equal(myokit.Number(1), myokit.Number(1)))
         self.assertEqual(x._polish(), 'not == 1 1')
 
@@ -3838,9 +4009,18 @@ class IfTest(unittest.TestCase):
         # Test is_conditional()
         self.assertTrue(if_.is_conditional())
 
-        # Operands must be expressions
+        # Operands must be expressions and have right types
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.If, 1, 1, 1)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'first operand must be condition',
+            myokit.If, then, then, then)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'second operand must be numerical',
+            myokit.If, cond, cond, then)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'third operand must be numerical',
+            myokit.If, cond, then, cond)
 
     def test_diff(self):
         # Tests If.diff()
@@ -4010,6 +4190,26 @@ class PiecewiseTest(unittest.TestCase):
         # Operands must be expressions
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Piecewise, 1, 1, 1)
+
+        # Operands must have right types
+        self.assertRaisesRegex(
+            myokit.TypeError, 'operand at index 0 must be a condition',
+            myokit.Piecewise, then1, then2, then3)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'operand at index 1 must be numerical',
+            myokit.Piecewise, cond1, cond1, then1)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'final operand must be numerical',
+            myokit.Piecewise, cond1, then1, cond2)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'operand at index 2 must be a condition',
+            myokit.Piecewise, cond1, then1, then2, then3, then1)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'operand at index 3 must be numerical',
+            myokit.Piecewise, cond1, then1, cond2, cond3, then2)
+        self.assertRaisesRegex(
+            myokit.TypeError, 'final operand must be numerical',
+            myokit.Piecewise, cond1, then1, cond2, then2, cond3)
 
     def test_diff(self):
         # Tests Piecewise.diff()

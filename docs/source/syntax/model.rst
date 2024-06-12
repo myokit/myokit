@@ -238,6 +238,14 @@ Some examples of valid unit declarations are::
     v_cyt = volume * 0.678
         in [uL]
 
+Types
+=====
+All expressions in Myokit evaluate to either a (floating point) number or a
+condition. Conditions can only appear inside ``if`` or ``piecewise`` statements
+(see below), or as operands to the ``and``, ``or``, or ``not`` operators.
+The value, initial value, and derivative of a variable can never be a
+condition.
+
 Foreign variables
 =================
 Variables from other components can be addressed using the syntax
@@ -365,6 +373,8 @@ In addition, + and - can be used to indicate signs: ``+5+-2=3``
 
 Parts of expressions can be grouped using parentheses ``5 * (4 - 2) = 10``
 
+These expressions all require numbers as input, and return a number.
+
 The following conditional operators are defined:
 
 +--------+-----------------------+
@@ -381,8 +391,12 @@ The following conditional operators are defined:
 | ``<=`` | Less than or equal    |
 +--------+-----------------------+
 
+These conditions all require numbers as input, but return a condition.
+
 Conditions can be strung together using ``and`` and ``or``, or negated with
 ``not``.
+These three operators require a condition as input and return another
+condition.
 
 Pre-defined Functions
 =====================
@@ -421,6 +435,8 @@ The following functions are defined:
 In addition, the expression ``dot(x)`` can be used to reference the time
 derivative of state variable ``x``.
 
+These functions all require a number as input.
+
 Conditional statements (if)
 ===========================
 Simple conditional statements can be made using the ``if`` function::
@@ -436,6 +452,8 @@ Which should be read as::
     else
         x = 0.5 * exp((V + 19) / 1.2)
 
+The ``if`` function expects a condition as first argument, and numbers as the
+second and third argument.
 
 Piecewise conditional statements
 ================================
@@ -458,6 +476,10 @@ Which should be read as::
 
 The final "else" part is not optional. If conditions overlap, only the first
 condition that evaluates to true will be used.
+
+The arguments to a ``piecewise`` condition should be a condition followed by a
+number, followed by any number of condition-number pairs, finishing with a
+number.
 
 .. _syntax/template_functions:
 

@@ -4799,6 +4799,12 @@ class Variable(VarOwner):
             else:
                 value = myokit.Number(value)
 
+        # Check that the (possibly just parsed) initial value is numerical
+        if isinstance(value, myokit.Condition):
+            raise myokit.TypeError(
+                'Initial value cannot be a Condition. Unable to set initial'
+                f' value for <{self.qname()}> to {value}.')
+
         # Allow internal calls to parse `value` without making a change
         if not make_the_change:
             return value
@@ -4857,6 +4863,9 @@ class Variable(VarOwner):
             x.set_rhs(myokit.Plus(myokit.Number(1), myokit.Name(y)))
             x.set_rhs('1 + y')
 
+        Expressions used as a variable's right-hand side must be numerical:
+        :class:`myokit.Condition` operators can not be passed in as RHS.
+
         Calling `set_rhs` will reset the validation status of the model this
         variable belongs to.
         """
@@ -4866,6 +4875,12 @@ class Variable(VarOwner):
                 rhs = myokit.parse_expression(rhs, context=self)
             elif rhs is not None:
                 rhs = myokit.Number(rhs)
+
+        # Check that the (possibly just parsed) rhs is numerical
+        if isinstance(rhs, myokit.Condition):
+            raise myokit.TypeError(
+                'Right-hand side value cannot be a Condition. Unable to set'
+                f' RHS for <{self.qname()}> to {rhs}.')
 
         # Update the refs-by stored in the old dependencies
         for ref in self._refs_to:

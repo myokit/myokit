@@ -402,6 +402,20 @@ class SimultaneousProtocolEventError(MyokitError):
     """
 
 
+class TypeError(IntegrityError):
+    """
+    Raised by the expression system if expressions of one type are required but
+    others are found.
+
+    For example, when a Derivative is created with an argument that is not a
+    Name, when a condition is given as input to a numerical operator (e.g.
+    ``log(1 == 2)``), or when a conditional operator is applied to a number
+    (e.g. ``and(1, 2)``).
+
+    *Extends:* :class:`myokit.IntegrityError`
+    """
+
+
 class UnresolvedReferenceError(IntegrityError):
     """
     Raised when a reference to a variable cannot be resolved.

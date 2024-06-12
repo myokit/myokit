@@ -96,6 +96,8 @@ myokit
 - :class:`myokit.NotEqual`
 - :class:`myokit.Number`
 - :class:`myokit.NumericalError`
+- :class:`myokit.NumericalInfixExpression`
+- :class:`myokit.NumericalPrefixExpression`
 - :meth:`myokit.numpy_writer`
 - :class:`myokit.ObjectWithMetaData`
 - :class:`myokit.OpenCL`
@@ -116,7 +118,6 @@ myokit
 - :class:`myokit.Piecewise`
 - :class:`myokit.Plus`
 - :class:`myokit.Power`
-- :class:`myokit.PrefixCondition`
 - :class:`myokit.PrefixExpression`
 - :class:`myokit.PrefixMinus`
 - :class:`myokit.PrefixPlus`
@@ -159,7 +160,10 @@ myokit
 - :meth:`myokit.time`
 - :class:`myokit.Timeout`
 - :class:`myokit.TimeSeriesProtocol`
+- :class:`myokit.TypeError`
 - :class:`myokit.Unit`
+- :class:`myokit.UnaryNumericalFunction`
+- :class:`myokit.UnaryNumericalDimensionlessFunction`
 - :class:`myokit.UnresolvedReferenceError`
 - :class:`myokit.UnusedVariableError`
 - :class:`myokit.UserFunction`

@@ -51,20 +51,30 @@ Operators
 .. _api/myokit.InfixExpression:
 .. autoclass:: InfixExpression
 
+
+.. _api/myokit.NumericalPrefixExpression:
+.. autoclass:: NumericalPrefixExpression
+
+.. _api/myokit.NumericalInfixExpression:
+.. autoclass:: NumericalInfixExpression
+
 Functions
 ---------
 
 .. _api/myokit.Function:
 .. autoclass:: Function
 
+.. _api/myokit.UnaryNumericalFunction:
+.. autoclass:: UnaryNumericalFunction
+
+.. _api/myokit.UnaryNumericalDimensionlessFunction:
+.. autoclass:: UnaryNumericalDimensionlessFunction
+
 Conditions
 ----------
 
 .. _api/myokit.Condition:
 .. autoclass:: Condition
-
-.. _api/myokit.PrefixCondition:
-.. autoclass:: PrefixCondition
 
 .. _api/myokit.InfixCondition:
 .. autoclass:: InfixCondition

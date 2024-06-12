@@ -336,6 +336,7 @@ from ._err import (  # noqa
     SimulationCancelledError,
     SimulationError,
     SimultaneousProtocolEventError,
+    TypeError,
     UnresolvedReferenceError,
     UnusedVariableError,
     VariableMappingError,
@@ -393,6 +394,8 @@ from ._expressions import (  # noqa
     Multiply,
     Name,
     Number,
+    NumericalInfixExpression,
+    NumericalPrefixExpression,
     Not,
     NotEqual,
     Or,
@@ -400,7 +403,6 @@ from ._expressions import (  # noqa
     Piecewise,
     Plus,
     Power,
-    PrefixCondition,
     PrefixExpression,
     PrefixMinus,
     PrefixPlus,
@@ -409,6 +411,8 @@ from ._expressions import (  # noqa
     Sin,
     Sqrt,
     Tan,
+    UnaryNumericalFunction,
+    UnaryNumericalDimensionlessFunction,
 )
 
 # Unit and quantity
