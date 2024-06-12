@@ -341,24 +341,6 @@ from ._err import (  # noqa
     VariableMappingError,
 )
 
-# Check if all errors imported
-# Dynamically importing them doesn't seem to be possible, and forgetting to
-#  import an error creates a hard to debug bug (something needs to go wrong
-#  before the interpreter reaches the code raising the error and notices it's
-#  not there).
-if not __release__:  # pragma: no cover
-    from . import _err  # noqa
-    import inspect  # noqa
-    _globals = globals()
-    ex, name, clas = None, None, None
-    for ex in inspect.getmembers(_err):
-        name, clas = ex
-        if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-            if name not in _globals:
-                raise Exception('Failed to import exception: ' + name)
-    del ex, name, clas, _globals, inspect  # Prevent public visibility
-    del _err
-
 # Tools
 from . import float  # noqa
 from . import tools  # noqa
