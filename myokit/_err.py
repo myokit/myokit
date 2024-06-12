@@ -27,10 +27,19 @@ class MyokitError(Exception):
 
 class IntegrityError(MyokitError):
     """
-    Raised if an integrity error is found in a model.
+    Raised if an "integrity" issue is found or created in a model or its
+    components and variables, for example missing parents or children, or
+    invalid references.
 
-    The error message is stored in the property ``message``. An optional parser
-    token may be obtained with :meth:`token()`.
+    Integrity errors are usually raised by the ``validate`` method, but can
+    also arise from certain manipulations, e.g. deleting or moving a variable
+    or component. Integrity errors can also be raised if they are detected
+    during some other operation.
+
+    The error message is stored in the property ``message``.
+
+    Integrity errors detected during parsing may set a token (pointing to the
+    position in the parsed text) retrievable with :meth:`token()`.
 
     *Extends:* :class:`myokit.MyokitError`
     """

@@ -508,12 +508,6 @@ class ExpressionTest(unittest.TestCase):
         p._operands = (myokit.Number(2), p)
         self.assertRaisesRegex(myokit.IntegrityError, 'yclical', p.validate)
 
-        # Wrong type operands
-        # Again, need to hack this in so creation doesn't fault!
-        p._operands = (myokit.Number(1), 2)
-        self.assertRaisesRegex(
-            myokit.IntegrityError, 'must be other Expression', p.validate)
-
     def test_walk(self):
         # Test :meth:`Expression.walk().
 
@@ -1545,6 +1539,16 @@ class InitialValueTest(unittest.TestCase):
 class PrefixPlusTest(unittest.TestCase):
     """Tests myokit.PrefixPlus."""
 
+    def test_bracket(self):
+        # Test PrefixPlus.bracket().
+        i = myokit.Number(1)
+        x = myokit.PrefixPlus(i)
+        self.assertFalse(x.bracket(i))
+        i = myokit.Plus(myokit.Number(1), myokit.Number(2))
+        x = myokit.PrefixPlus(i)
+        self.assertTrue(x.bracket(i))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
+
     def test_clone(self):
         # Test PrefixPlus.clone().
         x = myokit.PrefixPlus(myokit.Number(3))
@@ -1567,15 +1571,10 @@ class PrefixPlusTest(unittest.TestCase):
         self.assertNotEqual(x, y)
         self.assertEqual(y, myokit.PrefixPlus(j))
 
-    def test_bracket(self):
-        # Test PrefixPlus.bracket().
-        i = myokit.Number(1)
-        x = myokit.PrefixPlus(i)
-        self.assertFalse(x.bracket(i))
-        i = myokit.Plus(myokit.Number(1), myokit.Number(2))
-        x = myokit.PrefixPlus(i)
-        self.assertTrue(x.bracket(i))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
+    def test_creation(self):
+        # Operand must be expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.PrefixPlus, 3)
 
     def test_diff(self):
         # Tests PrefixPlus.diff()
@@ -1648,6 +1647,17 @@ class PrefixPlusTest(unittest.TestCase):
 class PrefixMinusTest(unittest.TestCase):
     """Tests myokit.PrefixMinus."""
 
+    def test_bracket(self):
+        # Test PrefixMinus.bracket().
+
+        i = myokit.Number(1)
+        x = myokit.PrefixMinus(i)
+        self.assertFalse(x.bracket(i))
+        i = myokit.Plus(myokit.Number(1), myokit.Number(2))
+        x = myokit.PrefixMinus(i)
+        self.assertTrue(x.bracket(i))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
+
     def test_clone(self):
         # Test PrefixMinus.clone().
         x = myokit.PrefixMinus(myokit.Number(3))
@@ -1670,16 +1680,10 @@ class PrefixMinusTest(unittest.TestCase):
         self.assertNotEqual(x, y)
         self.assertEqual(y, myokit.PrefixMinus(j))
 
-    def test_bracket(self):
-        # Test PrefixMinus.bracket().
-
-        i = myokit.Number(1)
-        x = myokit.PrefixMinus(i)
-        self.assertFalse(x.bracket(i))
-        i = myokit.Plus(myokit.Number(1), myokit.Number(2))
-        x = myokit.PrefixMinus(i)
-        self.assertTrue(x.bracket(i))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.PrefixMinus, 'test')
 
     def test_diff(self):
         # Tests PrefixMinus.diff()
@@ -1752,6 +1756,15 @@ class PrefixMinusTest(unittest.TestCase):
 class PlusTest(unittest.TestCase):
     """Tests myokit.Plus."""
 
+    def test_bracket(self):
+        # Test Plus.bracket().
+        i = myokit.Number(1)
+        j = myokit.parse_expression('1 + 2')
+        x = myokit.Plus(i, j)
+        self.assertFalse(x.bracket(i))
+        self.assertTrue(x.bracket(j))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+
     def test_clone(self):
         # Test Plus.clone().
         i = myokit.Number(3)
@@ -1777,14 +1790,10 @@ class PlusTest(unittest.TestCase):
         self.assertNotEqual(x, y)
         self.assertEqual(y, myokit.Plus(i, i))
 
-    def test_bracket(self):
-        # Test Plus.bracket().
-        i = myokit.Number(1)
-        j = myokit.parse_expression('1 + 2')
-        x = myokit.Plus(i, j)
-        self.assertFalse(x.bracket(i))
-        self.assertTrue(x.bracket(j))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Plus, 'toast', 4)
 
     def test_diff(self):
         # Tests Plus.diff()
@@ -1903,9 +1912,13 @@ class PlusTest(unittest.TestCase):
 class MinusTest(unittest.TestCase):
     """Tests myokit.Minus."""
 
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Minus, 7, None)
+
     def test_diff(self):
         # Tests Minus.diff()
-
         m = pd_model.clone()
         V = m.get('membrane.V')
         g = m.get('ina.g')
@@ -2002,9 +2015,13 @@ class MinusTest(unittest.TestCase):
 class MultiplyTest(unittest.TestCase):
     """Tests myokit.Multiply."""
 
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Multiply, 15, 3)
+
     def test_diff(self):
         # Tests Multiply.diff()
-
         m = pd_model.clone()
         V = m.get('membrane.V')
         g = m.get('ina.g')
@@ -2091,9 +2108,13 @@ class MultiplyTest(unittest.TestCase):
 class DivideTest(unittest.TestCase):
     """Tests myokit.Divide."""
 
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Divide, 15, 3)
+
     def test_diff(self):
         # Tests Divide.diff()
-
         m = pd_model.clone()
         V = m.get('membrane.V')
         g = m.get('ina.g')
@@ -2180,6 +2201,11 @@ class DivideTest(unittest.TestCase):
 class QuotientTest(unittest.TestCase):
     """Tests myokit.Quotient."""
 
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Quotient, 15, 3)
+
     def test_diff(self):
         # Tests Quotient.diff()
 
@@ -2255,6 +2281,11 @@ class QuotientTest(unittest.TestCase):
 
 class RemainderTest(unittest.TestCase):
     """Tests myokit.Remainder."""
+
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Remainder, myokit.Number(3), 3)
 
     def test_diff(self):
         # Tests Remainder.diff()
@@ -2379,6 +2410,11 @@ class PowerTest(unittest.TestCase):
         self.assertIsNot(x, y)
         self.assertNotEqual(x, y)
         self.assertEqual(y, myokit.Power(i, i))
+
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Power, myokit.Number(3), 3)
 
     def test_diff(self):
         # Tests Power.diff()
@@ -2506,13 +2542,6 @@ class SqrtTest(unittest.TestCase):
         self.assertFalse(x.bracket(j))
         self.assertRaises(ValueError, x.bracket, myokit.Number(3))
 
-    def test_creation(self):
-        # Test Sqrt creation.
-        myokit.Sqrt(myokit.Number(1))
-        self.assertRaisesRegex(
-            myokit.IntegrityError, 'wrong number', myokit.Sqrt,
-            myokit.Number(1), myokit.Number(2))
-
     def test_clone(self):
         # Test Sqrt.clone().
         i = myokit.Number(3)
@@ -2533,6 +2562,18 @@ class SqrtTest(unittest.TestCase):
         self.assertIsNot(x, y)
         self.assertNotEqual(x, y)
         self.assertEqual(y, z)
+
+    def test_creation(self):
+        myokit.Sqrt(myokit.Number(1))
+
+        # Wrong number of operands
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'wrong number', myokit.Sqrt,
+            myokit.Number(1), myokit.Number(2))
+
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Sqrt, False)
 
     def test_diff(self):
         # Tests Sqrt.diff()
@@ -2635,9 +2676,15 @@ class ExpTest(unittest.TestCase):
     def test_creation(self):
         # Test Exp creation.
         myokit.Exp(myokit.Number(1))
+
+        # Wrong number of operands
         self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Exp,
             myokit.Number(1), myokit.Number(2))
+
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Exp, 1.2)
 
     def test_diff(self):
         # Tests Exp.diff()
@@ -2785,9 +2832,17 @@ class LogTest(unittest.TestCase):
         # Test Log creation.
         myokit.Log(myokit.Number(1))
         myokit.Log(myokit.Number(1), myokit.Number(2))
+
+        # Wrong number of operatnds
         self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Log,
             myokit.Number(1), myokit.Number(2), myokit.Number(3))
+
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Log, 1.2)
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Log, myokit.Number(3), 1.2)
 
     def test_diff(self):
         # Tests Log.diff()
@@ -2918,6 +2973,11 @@ class LogTest(unittest.TestCase):
 class Log10Test(unittest.TestCase):
     """Tests myokit.Log10."""
 
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Log10, 1.2)
+
     def test_diff(self):
         # Tests Log10.diff()
 
@@ -2948,6 +3008,11 @@ class Log10Test(unittest.TestCase):
 class SinTest(unittest.TestCase):
     """Tests myokit.Sin."""
 
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Sin, 2.1)
+
     def test_diff(self):
         # Tests Sin.diff()
 
@@ -2977,6 +3042,11 @@ class SinTest(unittest.TestCase):
 class CosTest(unittest.TestCase):
     """Tests myokit.Cos."""
 
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Cos, myokit.Cos)
+
     def test_diff(self):
         # Tests Cos.diff()
 
@@ -3004,6 +3074,11 @@ class CosTest(unittest.TestCase):
 
 class TanTest(unittest.TestCase):
     """ Tests myokit.Tan. """
+
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Tan, myokit.Model())
 
     def test_diff(self):
         # Tests Tan.diff()
@@ -3033,6 +3108,11 @@ class TanTest(unittest.TestCase):
 class ASinTest(unittest.TestCase):
     """ Tests myokit.ASin. """
 
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.ASin, 4)
+
     def test_diff(self):
         # Tests ASin.diff()
 
@@ -3061,6 +3141,11 @@ class ASinTest(unittest.TestCase):
 
 class ACosTest(unittest.TestCase):
     """ Tests myokit.ACos. """
+
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.ACos, 4)
 
     def test_diff(self):
         # Tests ACos.diff()
@@ -3092,6 +3177,11 @@ class ACosTest(unittest.TestCase):
 class ATanTest(unittest.TestCase):
     """ Tests myokit.ATan. """
 
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.ATan, 4)
+
     def test_diff(self):
         # Tests ATan.diff()
 
@@ -3121,6 +3211,11 @@ class ATanTest(unittest.TestCase):
 
 class FloorTest(unittest.TestCase):
     """ Tests myokit.Floor. """
+
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Floor, 1.2)
 
     def test_diff(self):
         # Tests Floor.diff()
@@ -3173,6 +3268,11 @@ class FloorTest(unittest.TestCase):
 class CeilTest(unittest.TestCase):
     """ Tests myokit.Ceil. """
 
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Ceil, 3.4)
+
     def test_diff(self):
         # Tests Ceil.diff()
 
@@ -3223,6 +3323,11 @@ class CeilTest(unittest.TestCase):
 
 class AbsTest(unittest.TestCase):
     """ Tests myokit.Abs. """
+
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Abs, 3.4)
 
     def test_diff(self):
         # Tests Abs.diff()
@@ -3296,6 +3401,11 @@ class AbsTest(unittest.TestCase):
 class EqualTest(unittest.TestCase):
     """ Tests myokit.Equal. """
 
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Equal, 1, 1)
+
     def test_diff(self):
         # Tests Equal.diff()
         x = myokit.Equal(myokit.Number(1), myokit.Number(1))
@@ -3366,6 +3476,11 @@ class EqualTest(unittest.TestCase):
 class NotEqualTest(unittest.TestCase):
     """ Tests myokit.NotEqual. """
 
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.NotEqual, 1, 1)
+
     def test_eval(self):
         # Test NotEqual.eval().
         x = myokit.NotEqual(myokit.Number(1), myokit.Number(1))
@@ -3383,6 +3498,12 @@ class NotEqualTest(unittest.TestCase):
 
 class MoreTest(unittest.TestCase):
     """ Tests myokit.More. """
+
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.More, 1, 1)
+
     def test_eval(self):
         # Test More.eval().
         x = myokit.More(myokit.Number(1), myokit.Number(1))
@@ -3400,6 +3521,12 @@ class MoreTest(unittest.TestCase):
 
 class LessTest(unittest.TestCase):
     """ Tests myokit.Less. """
+
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Less, 1, 1)
+
     def test_eval(self):
         # Test Less.eval().
         x = myokit.Less(myokit.Number(1), myokit.Number(1))
@@ -3417,6 +3544,11 @@ class LessTest(unittest.TestCase):
 
 class MoreEqualTest(unittest.TestCase):
     """ Tests myokit.MoreEqual. """
+
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.MoreEqual, 1, 1)
 
     def test_eval(self):
         # Test MoreEqual.eval().
@@ -3438,6 +3570,11 @@ class MoreEqualTest(unittest.TestCase):
 class LessEqualTest(unittest.TestCase):
     """ Tests myokit.LessEqual. """
 
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.LessEqual, 1, 1)
+
     def test_eval(self):
         # Test LessEqual.eval().
         x = myokit.LessEqual(myokit.Number(1), myokit.Number(1))
@@ -3457,6 +3594,11 @@ class LessEqualTest(unittest.TestCase):
 
 class AndTest(unittest.TestCase):
     """ Tests myokit.And. """
+
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.And, 1, 1)
 
     def test_diff(self):
         # Tests And.diff()
@@ -3537,6 +3679,11 @@ class AndTest(unittest.TestCase):
 class OrTest(unittest.TestCase):
     """ Tests myokit.Or. """
 
+    def test_creation(self):
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Or, 1, 1)
+
     def test_eval(self):
         # Test Or.eval().
         x = myokit.Or(myokit.Number(1), myokit.Number(1))
@@ -3606,6 +3753,11 @@ class OrTest(unittest.TestCase):
 
 class NotTest(unittest.TestCase):
     """ Tests myokit.Not. """
+
+    def test_creation(self):
+        # Operand must be an expression
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Not, 1)
 
     def test_code(self):
         # Test Not.code().
@@ -3685,6 +3837,10 @@ class IfTest(unittest.TestCase):
 
         # Test is_conditional()
         self.assertTrue(if_.is_conditional())
+
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.If, 1, 1, 1)
 
     def test_diff(self):
         # Tests If.diff()
@@ -3851,6 +4007,10 @@ class PiecewiseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.IntegrityError, '3 or more', myokit.Piecewise, cond1)
 
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
+                               myokit.Piecewise, 1, 1, 1)
+
     def test_diff(self):
         # Tests Piecewise.diff()
 
@@ -4006,6 +4166,13 @@ class EquationTest(unittest.TestCase):
         lhs = myokit.Name('x')
         rhs = myokit.Number('3')
         myokit.Equation(lhs, rhs)
+
+        # Operands must be expressions
+        # Operands must be expressions
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be myokit.Expres',
+                               myokit.Equation, 1.2, 3.4)
+        self.assertRaisesRegex(myokit.IntegrityError, 'must be myokit.Express',
+                               myokit.Equation, myokit.Number(3), 1.2)
 
     def test_eq(self):
         # Test equality checking.
