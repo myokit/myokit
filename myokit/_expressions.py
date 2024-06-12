@@ -752,6 +752,11 @@ class Expression:
         if id(self) in trail:
             raise IntegrityError('Cyclical expression found', self._token)
         trail2 = trail + [id(self)]
+        # It's okay to do this check with id's. Even if there are multiple
+        # objects that are equal, if they're cyclical you'll get back round to
+        # the same ones eventually. Doing this with the value requires hash()
+        # which requires code() which may not be safe to use before the
+        # expressions have been validated.
 
         # Check kids
         for op in self:
