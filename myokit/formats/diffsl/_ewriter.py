@@ -142,9 +142,10 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         a = self.ex(e[0])
         b = self.ex(e[1])
 
+        # a or b = not(not(a) and not(b))
         if (isinstance(e[0], myokit.Condition)
                 and isinstance(e[1], myokit.Condition)):
-            return f'({a} + {b} - {a} * {b})'
+            return f'(1 - (1 - {a}) * (1 - {b}))'
 
         if isinstance(e[0], myokit.Condition):
             return f'(1 - (1 - {a}) * heaviside({b}) * heaviside(-{b}))'

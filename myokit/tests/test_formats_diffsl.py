@@ -164,7 +164,7 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             self.eq(Floor(a), 'floor(a)')
         self.assertIn('Unsupported', wc.text())
 
-    def test_boolean_operators(self):
+    def test_conditional_operators(self):
         a, b = self.ab
 
         self.eq(And(a, b),
@@ -204,10 +204,8 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                 ' * heaviside(b) * heaviside(-b))')
 
         self.eq(Or(Not(a), Not(b)),
-                '((heaviside(a) * heaviside(-a))'
-                ' + (heaviside(b) * heaviside(-b))'
-                ' - (heaviside(a) * heaviside(-a))'
-                ' * (heaviside(b) * heaviside(-b)))')
+                '(1 - (1 - (heaviside(a) * heaviside(-a)))'
+                ' * (1 - (heaviside(b) * heaviside(-b))))')
 
     def test_if_expressions(self):
         a, b, c, d = self.abcd
