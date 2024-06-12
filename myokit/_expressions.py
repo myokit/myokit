@@ -48,6 +48,11 @@ class Expression:
 
         # Store operands
         self._operands = () if operands is None else operands
+        for op in self._operands:
+            if not isinstance(op, Expression):
+                raise IntegrityError(
+                    'Expression operands must be other Expression objects.'
+                    f' Found: {type(op)}.', self._token)
 
         # Store references
         self._references = set()
@@ -748,16 +753,8 @@ class Expression:
             raise IntegrityError('Cyclical expression found', self._token)
         trail2 = trail + [id(self)]
 
-        # It's okay to do this check with id's. Even if there are multiple
-        # objects that are equal, if they're cyclical you'll get back round to
-        # the same ones eventually. Doing this with the value requires hash()
-        # which requires code() which may not be safe to use before the
-        # expressions have been validated.
+        # Check kids
         for op in self:
-            if not isinstance(op, Expression):
-                raise IntegrityError(
-                    'Expression operands must be other Expression objects.'
-                    ' Found: ' + str(type(op)) + '.', self._token)
             op._validate(trail2)
 
         # Cache validation status
@@ -2858,7 +2855,7 @@ class PrefixCondition(PrefixExpression, Condition):
 
 class Not(PrefixCondition):
     """
-    Negates a condition. Written as ``not x``.
+    Negates a condition: ``not x``.
 
     >>> from myokit import *
     >>> x = parse_expression('1 == 1')
@@ -3025,7 +3022,7 @@ class Less(BinaryComparison):
 
 class MoreEqual(BinaryComparison):
     """
-    Represents an is-more-than-or-equal check ``x > y``.
+    Represents an is-more-than-or-equal check ``x >= y``.
 
     >>> from myokit import *
     >>> print(parse_expression('2 >= 2').eval())
