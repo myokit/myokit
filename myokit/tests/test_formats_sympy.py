@@ -237,10 +237,10 @@ class SymPyReadWriteTest(unittest.TestCase):
         self.assertEqual(r.ex(cx), x)
 
         # Not
-        x = myokit.Not(a)
-        cx = sp.Not(ca)
+        x = myokit.Not(x)
+        cx = sp.Not(cx)
         self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r.ex(cx), x)
+        self.assertEqual(r.ex(cx), myokit.More(a, b))  # Can't test!
 
         # And
         cond1 = myokit.More(a, b)

@@ -177,10 +177,6 @@ class MatlabExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_conditions(self):
         a, b, c, d = self.abcd
 
-        self.eq(And(a, b), '(a && b)')
-        self.eq(Or(d, c), '(d || c)')
-        self.eq(Not(c), '(!c)')
-
         self.eq(Equal(a, b), '(a == b)')
         self.eq(NotEqual(a, b), '(a != b)')
         self.eq(More(b, a), '(b > a)')
@@ -191,10 +187,6 @@ class MatlabExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) && (c != d))')
         self.eq(Or(More(d, c), Less(b, a)), '((d > c) || (b < a))')
         self.eq(Not(Equal(d, d)), '(!(d == d))')
-        self.eq(Not(Or(Number(1), Number(2))), '(!(1.0 || 2.0))')
-
-        self.eq(Equal(Equal(Number(0), Number(0)), Number(0)),
-                '((0.0 == 0.0) == 0.0)')
 
     def test_conditionals(self):
         a, b, c, d = self.abcd

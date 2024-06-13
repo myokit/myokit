@@ -102,23 +102,14 @@ class CBasedExpressionWriter(PythonExpressionWriter):
 
     def _ex_not(self, e):
         # C conditions all have brackets, so don't add more
-        if isinstance(e[0], (myokit.Condition)):
-            return f'(!{self.ex(e[0])})'
-        # But do add more if the user's being silly
-        return f'(!({self.ex(e[0])}))'
+        return f'(!{self.ex(e[0])})'
 
     def _ex_if(self, e):
-        _if, _then, _else = self.ex(e._i), self.ex(e._t), self.ex(e._e)
-        # If i is not a condtion (which always gets brackets from this writer)
-        # then add brackets
-        if not isinstance(e._i, myokit.Condition):
-            _if = f'({_if})'
-        return f'({_if} ? {_then} : {_else})'
+        return f'({self.ex(e._i)} ? {self.ex(e._t)} : {self.ex(e._e)})'
 
     def _ex_piecewise(self, e):
         # Render ifs; add extra bracket if not a condition (see _ex_if)
-        _ifs = [self.ex(x) if isinstance(x, myokit.Condition)
-                else f'({self.ex(x)})' for x in e._i]
+        _ifs = [self.ex(x) for x in e._i]
         _thens = [self.ex(x) for x in e._e]
 
         s = []
@@ -200,13 +191,7 @@ class AnsiCExpressionWriter(CBasedExpressionWriter):
     #def _ex_not(self, e):
 
     def _ex_if(self, e):
-        # Allow _fcond
-
         _if, _then, _else = self.ex(e._i), self.ex(e._t), self.ex(e._e)
-        # If i is not a condtion (which always gets brackets from this writer)
-        # then add brackets
-        if not isinstance(e._i, myokit.Condition):
-            _if = f'({_if})'
 
         # Use if-then-else function?
         if self._fcond is not None:
@@ -219,8 +204,7 @@ class AnsiCExpressionWriter(CBasedExpressionWriter):
         # Allow _fcond
 
         # Render ifs; add extra bracket if not a condition (see _ex_if)
-        _ifs = [self.ex(x) if isinstance(x, myokit.Condition)
-                else f'({self.ex(x)})' for x in e._i]
+        _ifs = [self.ex(x) for x in e._i]
         _thens = [self.ex(x) for x in e._e]
 
         s = []

@@ -179,10 +179,6 @@ class LatexExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_conditions(self):
         a, b, c, d = self.abcd
 
-        self.eq(And(a, b), r'\left(\text{a}\and\text{b}\right)')
-        self.eq(Or(d, c), r'\left(\text{d}\or\text{c}\right)')
-        self.eq(Not(c), r'\left(\not\text{c}\right)')
-
         self.eq(Equal(a, b), r'\left(\text{a}=\text{b}\right)')
         self.eq(NotEqual(a, b), r'\left(\text{a}\neq\text{b}\right)')
         self.eq(More(b, a), r'\left(\text{b}>\text{a}\right)')
@@ -193,18 +189,21 @@ class LatexExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(And(Equal(a, b), NotEqual(c, d)),
                 r'\left(\left(\text{a}=\text{b}\right)\and'
                 r'\left(\text{c}\neq\text{d}\right)\right)')
+        self.eq(Or(Equal(a, b), NotEqual(c, d)),
+                r'\left(\left(\text{a}=\text{b}\right)\or'
+                r'\left(\text{c}\neq\text{d}\right)\right)')
         self.eq(Not(Equal(d, d)),
                 r'\left(\not\left(\text{d}=\text{d}\right)\right)')
-        self.eq(Equal(Equal(Number(0), Number(0)), Number(0)),
-                r'\left(\left(0.0=0.0\right)=0.0\right)')
 
     def test_conditionals(self):
-
         a, b, c, d = self.abcd
-        self.eq(myokit.If(a, b, c),
-                r'\text{if}\left(\text{a},\text{b},\text{c}\right)')
-        self.eq(myokit.Piecewise(a, b, c, d, Number(1)), r'\text{piecewise}'
-                r'\left(\text{a},\text{b},\text{c},\text{d},1.0\right)')
+        p = myokit.Equal(a, b)
+        q = myokit.NotEqual(c, d)
+        self.eq(myokit.If(p, c, d), r'\text{if}\left(\left(\text{a}=\text{b}'
+                r'\right),\text{c},\text{d}\right)')
+        self.eq(myokit.Piecewise(p, b, q, d, Number(1)), r'\text{piecewise}'
+                r'\left(\left(\text{a}=\text{b}\right),\text{b},\left(\text{c}'
+                r'\neq\text{d}\right),\text{d},1.0\right)')
 
 
 if __name__ == '__main__':

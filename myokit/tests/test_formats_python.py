@@ -232,10 +232,6 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_conditions(self):
         a, b, c, d = self.abcd
 
-        self.eq(And(a, b), '(a and b)')
-        self.eq(Or(d, c), '(d or c)')
-        self.eq(Not(c), '(not c)')
-
         self.eq(Equal(a, b), '(a == b)')
         self.eq(NotEqual(a, b), '(a != b)')
         self.eq(More(b, a), '(b > a)')
@@ -246,7 +242,6 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) and (c != d))')
         self.eq(Or(More(d, c), Less(b, a)), '((d > c) or (b < a))')
         self.eq(Not(Equal(d, d)), '(not (d == d))')
-        self.eq(Not(Or(Number(1), Number(2))), '(not (1.0 or 2.0))')
 
         true = Equal(Number(3), Number(3))
         self.py(true, True)
@@ -266,11 +261,6 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.py(Or(false, false), False)
         self.py(Not(true), False)
         self.py(Not(false), True)
-
-        self.eq(Equal(Equal(Number(0), Number(0)), Number(0)),
-                '((0.0 == 0.0) == 0.0)')
-        self.py(Equal(Equal(Number(0), Number(0)), Number(0)), False)
-        self.py(Equal(Equal(Number(0), Number(0)), Number(1)), True)
 
     def test_conditionals(self):
 
@@ -501,10 +491,6 @@ class NumPyExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_conditions(self):
         a, b, c, d = self.abcd
 
-        self.eq(And(a, b), 'numpy.logical_and(a, b)')
-        self.eq(Or(d, c), 'numpy.logical_or(d, c)')
-        self.eq(Not(c), 'numpy.logical_not(c)')
-
         self.eq(Equal(a, b), '(a == b)')
         self.eq(NotEqual(a, b), '(a != b)')
         self.eq(More(b, a), '(b > a)')
@@ -517,8 +503,6 @@ class NumPyExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Or(More(d, c), Less(b, a)),
                 'numpy.logical_or((d > c), (b < a))')
         self.eq(Not(Equal(d, d)), 'numpy.logical_not((d == d))')
-        self.eq(Not(Or(Number(1), Number(2))),
-                'numpy.logical_not(numpy.logical_or(1.0, 2.0))')
 
         true = Equal(Number(3), Number(3))
         self.py(true, True)
@@ -532,9 +516,8 @@ class NumPyExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.py(LessEqual(Number(3), Number(3)), True)
         self.py(And(true, false), False)
         self.py(And(true, true), True)
-        self.py(Or(a, b), [True, True, True, False],
-                [True, True, False, False], [True, False, True, False])
-        self.py(Not(a), [True, False], [False, True])
+        self.py(Or(true, false), True)
+        self.py(Not(true), False)
 
     def test_conditionals(self):
         a, b, c, d = self.abcd
