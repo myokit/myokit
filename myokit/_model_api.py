@@ -1098,9 +1098,7 @@ class Model(ObjectWithMetaData, VarProvider):
                 raise myokit.IncompatibleUnitError(msg, var._token)
 
     def clone(self):
-        """
-        Returns a (deep) clone of this model.
-        """
+        """ Returns a (deep) clone of this model. """
         clone = Model()
 
         # Copy meta data
@@ -4523,16 +4521,10 @@ class Variable(VarOwner):
             warnings.warn('The keyword argument `state_value` is deprecated.'
                           ' Please use `initial_value` instead.')
 
-        # Handle string and number rhs's
-        model = self.model()
-        if not isinstance(initial_value, myokit.Expression):
-            if isinstance(initial_value, str):
-                # Expressions are evaluated in model context
-                initial_value = myokit.parse_expression(
-                    initial_value, context=model)
-            elif initial_value is not None:
-                initial_value = myokit.Number(initial_value)
+        # Parse initial value
+        initial_value = self._set_initial_value(initial_value, False)
 
+        model = self.model()
         try:
             # Set lhs to derivative expression
             self._lhs = myokit.Derivative(myokit.Name(self))
@@ -4799,12 +4791,6 @@ class Variable(VarOwner):
             else:
                 value = myokit.Number(value)
 
-        # Check that the (possibly just parsed) initial value is numerical
-        if isinstance(value, myokit.Condition):
-            raise myokit.TypeError(
-                'Initial value cannot be a Condition. Unable to set initial'
-                f' value for <{self.qname()}> to {value}.')
-
         # Allow internal calls to parse `value` without making a change
         if not make_the_change:
             return value
@@ -4864,7 +4850,7 @@ class Variable(VarOwner):
             x.set_rhs('1 + y')
 
         Expressions used as a variable's right-hand side must be numerical:
-        :class:`myokit.Condition` operators can not be passed in as RHS.
+        :class:`myokit.Condition` operators can not be used as RHS.
 
         Calling `set_rhs` will reset the validation status of the model this
         variable belongs to.
@@ -4875,12 +4861,6 @@ class Variable(VarOwner):
                 rhs = myokit.parse_expression(rhs, context=self)
             elif rhs is not None:
                 rhs = myokit.Number(rhs)
-
-        # Check that the (possibly just parsed) rhs is numerical
-        if isinstance(rhs, myokit.Condition):
-            raise myokit.TypeError(
-                'Right-hand side value cannot be a Condition. Unable to set'
-                f' RHS for <{self.qname()}> to {rhs}.')
 
         # Update the refs-by stored in the old dependencies
         for ref in self._refs_to:

@@ -369,6 +369,7 @@ from ._expressions import (  # noqa
     And,
     ASin,
     ATan,
+    BinaryComparison,
     Ceil,
     Condition,
     Cos,

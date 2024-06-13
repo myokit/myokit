@@ -1515,7 +1515,7 @@ class NumericalPrefixExpression(PrefixExpression):
         if isinstance(op, myokit.Condition):
             raise myokit.TypeError(
                 'Invalid operand type: expected a numerical operand but'
-                f' found a conditional operand({type(op)}).', self._token)
+                f' found a condition ({type(op)}).', self._token)
 
 
 class PrefixPlus(NumericalPrefixExpression):
@@ -1648,12 +1648,12 @@ class NumericalInfixExpression(InfixExpression):
         if isinstance(left, myokit.Condition):
             raise myokit.TypeError(
                 'Invalid type for first operand: expected a numerical operand'
-                f' but found a conditional operator ({type(left)}).',
+                f' but found a condition ({type(left)}).',
                 self._token)
         if isinstance(right, myokit.Condition):
             raise myokit.TypeError(
                 'Invalid type for second operand: expected a numerical operand'
-                f' but found a conditional operator ({type(left)}).',
+                f' but found a condition ({type(left)}).',
                 self._token)
 
 
@@ -2714,6 +2714,19 @@ class If(Function):
         self._t = t     # then
         self._e = e     # else
 
+        if not isinstance(i, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for first operand: expected a condition but'
+                f' found {type(i)}.', self._token)
+        if isinstance(t, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for second operand: expected a numerical operand'
+                f' but found a condition ({type(t)}).', self._token)
+        if isinstance(e, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for third operand: expected a numerical operand'
+                f' but found a condition ({type(e)}).', self._token)
+
     def condition(self):
         """
         Returns this if-function's condition.
@@ -2761,16 +2774,14 @@ class If(Function):
 
         # Mismatching units
         raise EvalUnitError(
-            self, 'Units of `then` and `else` part of an `if`'
-            ' must match. Got ' + str(unit2) + ' and ' + str(unit3) + '.')
+            self, 'Units of `then` and `else` part of an `if` must match.'
+            f' Got {unit2} and {unit3}.')
 
     def is_conditional(self):
         return True
 
     def piecewise(self):
-        """
-        Returns an equivalent ``Piecewise`` object.
-        """
+        """ Returns an equivalent ``Piecewise`` object. """
         return Piecewise(self._i, self._t, self._e)
 
     def value(self, which):
@@ -2837,6 +2848,19 @@ class Piecewise(Function):
             self._i[i] = next(oper)
             self._e[i] = next(oper)
         self._e[m] = next(oper)
+
+        # Check argument types
+        for i, e in enumerate(self._i):
+            if not isinstance(e, myokit.Condition):
+                raise myokit.TypeError(
+                    f'operand at index {2 * i} must be a condition, but found'
+                    f' {type(e)}.', self._token)
+        for i, e in enumerate(self._e):
+            if isinstance(e, myokit.Condition):
+                j = 2 * i if i == len(self._e) - 1 else 1 + 2 * i
+                raise myokit.TypeError(
+                    f'operand at index {j} must be numerical, but found'
+                    f' {type(e)}.', self._token)
 
     def conditions(self):
         """

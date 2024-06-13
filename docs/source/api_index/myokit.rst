@@ -9,6 +9,7 @@ myokit
 - :class:`myokit.ASin`
 - :class:`myokit.ATan`
 - :class:`myokit.Benchmarker`
+- :class:`myokit.BinaryComparison`
 - :class:`myokit.Ceil`
 - :meth:`myokit.check_name`
 - :class:`myokit.CModel`

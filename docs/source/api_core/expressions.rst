@@ -42,43 +42,6 @@ left-hand side equations must extend the class :class:`LhsExpression`.
 .. _api/myokit.Derivative:
 .. autoclass:: Derivative
 
-Operators
----------
-
-.. _api/myokit.PrefixExpression:
-.. autoclass:: PrefixExpression
-
-.. _api/myokit.InfixExpression:
-.. autoclass:: InfixExpression
-
-
-.. _api/myokit.NumericalPrefixExpression:
-.. autoclass:: NumericalPrefixExpression
-
-.. _api/myokit.NumericalInfixExpression:
-.. autoclass:: NumericalInfixExpression
-
-Functions
----------
-
-.. _api/myokit.Function:
-.. autoclass:: Function
-
-.. _api/myokit.UnaryNumericalFunction:
-.. autoclass:: UnaryNumericalFunction
-
-.. _api/myokit.UnaryNumericalDimensionlessFunction:
-.. autoclass:: UnaryNumericalDimensionlessFunction
-
-Conditions
-----------
-
-.. _api/myokit.Condition:
-.. autoclass:: Condition
-
-.. _api/myokit.InfixCondition:
-.. autoclass:: InfixCondition
-
 Unary plus and minus
 --------------------
 
@@ -102,6 +65,12 @@ Addition and multiplication
 
 .. _api/myokit.Divide:
 .. autoclass:: Divide
+
+Functions
+---------
+
+.. _api/myokit.Function:
+.. autoclass:: Function
 
 Powers and roots
 ----------------
@@ -153,6 +122,10 @@ All trigonometric functions use angles in radians.
 
 Conditional operators
 ---------------------
+
+.. _api/myokit.Condition:
+.. autoclass:: Condition
+
 .. _api/myokit.If:
 .. autoclass:: If
 
@@ -218,3 +191,28 @@ User-defined functions
 .. _api/myokit.UserFunction:
 .. autoclass:: UserFunction
 
+Subtypes
+--------
+.. _api/myokit.PrefixExpression:
+.. autoclass:: PrefixExpression
+
+.. _api/myokit.NumericalPrefixExpression:
+.. autoclass:: NumericalPrefixExpression
+
+.. _api/myokit.InfixExpression:
+.. autoclass:: InfixExpression
+
+.. _api/myokit.NumericalInfixExpression:
+.. autoclass:: NumericalInfixExpression
+
+.. _api/myokit.UnaryNumericalFunction:
+.. autoclass:: UnaryNumericalFunction
+
+.. _api/myokit.UnaryNumericalDimensionlessFunction:
+.. autoclass:: UnaryNumericalDimensionlessFunction
+
+.. _api/myokit.InfixCondition:
+.. autoclass:: InfixCondition
+
+.. _api/myokit.BinaryComparison:
+.. autoclass:: BinaryComparison

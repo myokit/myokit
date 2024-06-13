@@ -139,10 +139,6 @@ class StanExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_conditions(self):
         a, b, c, d = self.abcd
 
-        self.eq(And(a, b), '(a && b)')
-        self.eq(Or(d, c), '(d || c)')
-        self.eq(Not(c), '(!c)')
-
         self.eq(Equal(a, b), '(a == b)')
         self.eq(NotEqual(a, b), '(a != b)')
         self.eq(More(b, a), '(b > a)')
@@ -153,10 +149,6 @@ class StanExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) && (c != d))')
         self.eq(Or(More(d, c), Less(b, a)), '((d > c) || (b < a))')
         self.eq(Not(Equal(d, d)), '(!(d == d))')
-        self.eq(Not(Or(Number(1), Number(2))), '(!(1.0 || 2.0))')
-
-        self.eq(Equal(Equal(Number(0), Number(0)), Number(0)),
-                '((0.0 == 0.0) == 0.0)')
 
     def test_conditionals(self):
         a, b, c, d = self.abcd
@@ -164,11 +156,6 @@ class StanExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Piecewise(NotEqual(d, c), b, a), '((d != c) ? b : a)')
         self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
                 '((a == b) ? c : ((a == d) ? 3.0 : 4.0))')
-
-        # Extra parentheses if condition is not a condition
-        self.eq(If(a, d, c), '(a ? d : c)')
-        self.eq(Piecewise(a, b, c, d, Number(4)),
-                '(a ? b : (c ? d : 4.0))')
 
 
 if __name__ == '__main__':

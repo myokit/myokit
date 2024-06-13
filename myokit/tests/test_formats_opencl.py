@@ -175,11 +175,6 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         a, b, c, d = self.abcd
 
-        self.eq(And(a, b), '((a != 0.0f) && (b != 0.0f))')
-        self.eq(Or(d, c), '((d != 0.0f) || (c != 0.0f))')
-        self.eq(Not(And(a, b)), '(!((a != 0.0f) && (b != 0.0f)))')
-        self.eq(Not(c), '(!(c != 0.0f))')
-
         self.eq(Equal(a, b), '(a == b)')
         self.eq(NotEqual(a, b), '(a != b)')
         self.eq(More(b, a), '(b > a)')
@@ -189,23 +184,7 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) && (c != d))')
         self.eq(Or(More(d, c), Less(b, a)), '((d > c) || (b < a))')
-        self.eq(Not(Or(Number(1), Number(2))),
-                '(!((1.0f != 0.0f) || (2.0f != 0.0f)))')
         self.eq(Not(Less(Number(1), Number(2))), '(!(1.0f < 2.0f))')
-        self.eq(Not(Plus(Number(1), Number(2))), '(!(1.0f + 2.0f != 0.0f))')
-
-        self.eq(Equal(Equal(Number(0), Number(0)), Number(0)),
-                '((0.0f == 0.0f) == (0.0f != 0.0f))')
-
-    def test_boolean_comparisons(self):
-        # Can be removed after https://github.com/myokit/myokit/issues/1056
-
-        a, b = self.ab
-        c1, c2 = More(Number(5), Number(3)), Less(Number(2), Number(1))
-        self.eq(Equal(c1, c2), '((5.0f > 3.0f) == (2.0f < 1.0f))')
-        self.eq(NotEqual(c1, a), '((5.0f > 3.0f) != (a != 0.0f))')
-        self.eq(More(b, c2), '((b != 0.0f) > (2.0f < 1.0f))')
-        self.eq(LessEqual(a, b), '(a <= b)')
 
     def test_conditionals(self):
         # Inherited from c-based
@@ -215,11 +194,6 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Piecewise(NotEqual(d, c), b, a), '((d != c) ? b : a)')
         self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
                 '((a == b) ? c : ((a == d) ? 3.0f : 4.0f))')
-
-        # If condition is not a condition
-        self.eq(If(a, d, c), '((a != 0.0f) ? d : c)')
-        self.eq(Piecewise(a, b, c, d, Number(4)),
-                '((a != 0.0f) ? b : ((c != 0.0f) ? d : 4.0f))')
 
 
 if __name__ == '__main__':

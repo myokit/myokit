@@ -415,8 +415,8 @@ class ExpressionTest(unittest.TestCase):
 
         pe = myokit.parse_expression
         self.assertFalse(pe('1 + 2 + 3').is_conditional())
-        self.assertTrue(pe('if(1, 0, 2)').is_conditional())
-        self.assertTrue(pe('1 + if(1, 0, 2)').is_conditional())
+        self.assertTrue(pe('if(1 == 2, 0, 2)').is_conditional())
+        self.assertTrue(pe('1 + if(1 == 1, 0, 2)').is_conditional())
 
     def test_pickling_error(self):
         # Tests pickling of expressions raises an exception
@@ -3778,50 +3778,8 @@ class AndTest(unittest.TestCase):
         self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
         e = myokit.parse_expression('1 [1] == 1 [1] and 2 [1] == 2 [1]')
         self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
-
-        e = myokit.parse_expression('1 == 1 [1]')
-        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
-
-        '''
-        # Test in tolerant mode: will return dimensionless if OK because both
-        # operands are conditions and so will return dimensionless (no
-        # propagating None's).
-        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
-        x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
-        y.set_unit(myokit.units.ampere)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
-        x.set_unit(myokit.units.dimensionless)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
-        y.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
-        x.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
-        y.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(), None)
-
-        # Test in strict mode
-
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
-        x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
-        y.set_unit(myokit.units.ampere)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
-        x.set_unit(myokit.units.dimensionless)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
-        y.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
-        x.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
-        y.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
-        '''
+        e = myokit.parse_expression('1 == 1 [V] and 1 == 1 [1]')
+        self.assertRaises(myokit.IncompatibleUnitError, e.eval_unit, s)
 
     def test_tree_str(self):
         # Test And.tree_str().
@@ -3860,52 +3818,26 @@ class OrTest(unittest.TestCase):
     def test_eval_unit(self):
         # Test Or.eval_unit().
 
-        # Mini model
-        m = myokit.Model()
-        c = m.add_component('c')
-        x = c.add_variable('x')
-        x.set_rhs('1')
-        y = c.add_variable('y')
-        y.set_rhs('1')
-        z = c.add_variable('z')
-        z.set_rhs('x == y or 2 == 3')
+        # Test in tolerant mode: no own testing, but should test operands!
+        e = myokit.parse_expression('1 == 1 or 2 == 2')
+        self.assertEqual(e.eval_unit(), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 == 1 [1] or 2 [1] == 2')
+        self.assertEqual(e.eval_unit(), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 [1] == 1 [1] or 2 [1] == 2 [1]')
+        self.assertEqual(e.eval_unit(), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 [1] == 1 [1] or 2 [1] == 2 [mg]')
+        self.assertRaises(myokit.IncompatibleUnitError, e.eval_unit)
 
-        # Test in tolerant mode
-        self.assertEqual(z.rhs().eval_unit(), None)
-        x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
-        y.set_unit(myokit.units.ampere)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
-        x.set_unit(myokit.units.dimensionless)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
-        y.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
-        x.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
-        y.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(), None)
-
-        # Test in strict mode
+        # Test in strict mode: no own testing, but should test operands!
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
-        x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
-        y.set_unit(myokit.units.ampere)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
-        x.set_unit(myokit.units.dimensionless)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
-        y.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
-        x.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
-        y.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 == 1 or 2 == 2')
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 == 1 [1] or 2 [1] == 2')
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 [1] == 1 [1] or 2 [1] == 2 [1]')
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
+        e = myokit.parse_expression('1 == 1 [A] or 2 [1] == 2 [1]')
+        self.assertRaises(myokit.IncompatibleUnitError, e.eval_unit, s)
 
     def test_tree_str(self):
         # Test Or.tree_str().
@@ -3934,8 +3866,6 @@ class NotTest(unittest.TestCase):
 
     def test_code(self):
         # Test Not.code().
-        x = myokit.Not(myokit.Number(1))
-        self.assertEqual(x.code(), 'not 1')
         x = myokit.Not(myokit.Equal(myokit.Number(1), myokit.Number(1)))
         self.assertEqual(x.code(), 'not (1 == 1)')
 
@@ -3949,9 +3879,9 @@ class NotTest(unittest.TestCase):
 
     def test_eval(self):
         # Test Not.eval().
-        x = myokit.Not(myokit.Number(1))
+        x = myokit.Not(myokit.Equal(myokit.Number(1), myokit.Number(1)))
         self.assertFalse(x.eval())
-        x = myokit.Not(myokit.Number(0))
+        x = myokit.Not(myokit.Equal(myokit.Number(1), myokit.Number(0)))
         self.assertTrue(x.eval())
 
     def test_eval_unit(self):
@@ -3960,31 +3890,31 @@ class NotTest(unittest.TestCase):
         # Mini model
         m = myokit.Model()
         c = m.add_component('c')
-        x = c.add_variable('x')
-        x.set_rhs('1')
-        z = c.add_variable('z')
-        z.set_rhs('not x != x')
+        x = c.add_variable('x', rhs=1)
+        y = c.add_variable('y', rhs=2)
+        e = myokit.parse_expression('not (x != y)', context=c)
 
         # Test in tolerant mode
-        self.assertEqual(z.rhs().eval_unit(), None)
+        self.assertEqual(e.eval_unit(), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
+        y.set_unit(myokit.units.dimensionless)
         self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
+            myokit.IncompatibleUnitError, 'equal units on both', e.eval_unit)
         x.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(e.eval_unit(), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(), None)
+        self.assertEqual(e.eval_unit(), myokit.units.dimensionless)
 
         # Test in strict mode
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'equal units on bot', e.eval_unit, s)
         x.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(e.eval_unit(s), myokit.units.dimensionless)
 
     def test_polish(self):
         # Test Not._polish().
@@ -4013,14 +3943,11 @@ class IfTest(unittest.TestCase):
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.If, 1, 1, 1)
         self.assertRaisesRegex(
-            myokit.TypeError, 'first operand must be condition',
-            myokit.If, then, then, then)
+            myokit.TypeError, 'first operand', myokit.If, then, then, then)
         self.assertRaisesRegex(
-            myokit.TypeError, 'second operand must be numerical',
-            myokit.If, cond, cond, then)
+            myokit.TypeError, 'second operand', myokit.If, cond, cond, then)
         self.assertRaisesRegex(
-            myokit.TypeError, 'third operand must be numerical',
-            myokit.If, cond, then, cond)
+            myokit.TypeError, 'third operand', myokit.If, cond, then, cond)
 
     def test_diff(self):
         # Tests If.diff()
@@ -4067,14 +3994,12 @@ class IfTest(unittest.TestCase):
         # Mini model
         m = myokit.Model()
         c = m.add_component('c')
-        v1 = c.add_variable('v1')
         v2 = c.add_variable('v2')
         v3 = c.add_variable('v3')
         v4 = c.add_variable('v4')
-        v1.set_rhs('1 == 1')
         v2.set_rhs(2)
         v3.set_rhs(3)
-        v4.set_rhs('if(v1, v2, v3)')
+        v4.set_rhs('if(1 == 1, v2, v3)')
         z = v4.rhs()
 
         # Test in tolerant mode
@@ -4199,7 +4124,7 @@ class PiecewiseTest(unittest.TestCase):
             myokit.TypeError, 'operand at index 1 must be numerical',
             myokit.Piecewise, cond1, cond1, then1)
         self.assertRaisesRegex(
-            myokit.TypeError, 'final operand must be numerical',
+            myokit.TypeError, 'operand at index 2 must be numerical',
             myokit.Piecewise, cond1, then1, cond2)
         self.assertRaisesRegex(
             myokit.TypeError, 'operand at index 2 must be a condition',
@@ -4208,7 +4133,7 @@ class PiecewiseTest(unittest.TestCase):
             myokit.TypeError, 'operand at index 3 must be numerical',
             myokit.Piecewise, cond1, then1, cond2, cond3, then2)
         self.assertRaisesRegex(
-            myokit.TypeError, 'final operand must be numerical',
+            myokit.TypeError, 'operand at index 4 must be numerical',
             myokit.Piecewise, cond1, then1, cond2, then2, cond3)
 
     def test_diff(self):
@@ -4278,24 +4203,13 @@ class PiecewiseTest(unittest.TestCase):
         # Mini model
         m = myokit.Model()
         comp = m.add_component('comp')
-
-        # Create conditions
-        c1 = comp.add_variable('c1')
-        c2 = comp.add_variable('c2')
-        c1.set_rhs('1 == 2')
-        c2.set_rhs('1 == 2')
-
-        # Create values
-        t1 = comp.add_variable('t1')
-        t2 = comp.add_variable('t2')
-        t3 = comp.add_variable('t3')
-        t1.set_rhs(1)
-        t2.set_rhs(2)
-        t3.set_rhs(3)
+        t1 = comp.add_variable('t1', rhs=1)
+        t2 = comp.add_variable('t2', rhs=2)
+        t3 = comp.add_variable('t3', rhs=3)
 
         # Create piecewise
         pw = comp.add_variable('pw')
-        pw.set_rhs('piecewise(c1, t1, c2, t2, t3)')
+        pw.set_rhs('piecewise(1 == 2, t1, 1 == 2, t2, t3)')
         z = pw.rhs()
 
         # Test in tolerant mode
