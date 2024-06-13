@@ -170,9 +170,6 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.assertEqual(w.ex(Abs(self.a)), 'fabs(comp.a)')
 
     def test_conditions(self):
-        # Can be greatly simplified after
-        # https://github.com/myokit/myokit/issues/1056
-
         a, b, c, d = self.abcd
 
         self.eq(Equal(a, b), '(a == b)')
