@@ -716,7 +716,10 @@ class VarOwner(ModelPart, VarProvider):
         If ``recursive`` is ``True``, any child variables will be deleted as
         well.
 
-        A :class:`myokit.IntegrityError` will be raised if
+        A :class:`myokit.IntegrityError` will be raised if the variable cannot
+        be removed because other variables depend on it. (Although dependencies
+        from child variables will be ignored if ``recursive`` is set to
+        ``True``).
         """
         if variable.parent() != self:
             raise ValueError(
@@ -5107,6 +5110,14 @@ class Equation:
     def __init__(self, lhs, rhs):
         self._lhs = lhs
         self._rhs = rhs
+        if not isinstance(lhs, myokit.Expression):
+            raise myokit.IntegrityError(
+                'Both sides of an equation must be myokit.Expression objects.'
+                f' Found {type(lhs)} for LHS.')
+        if not isinstance(rhs, myokit.Expression):
+            raise myokit.IntegrityError(
+                'Both sides of an equation must be myokit.Expression objects.'
+                f' Found {type(lhs)} for RHS.')
 
     def __eq__(self, other):
         if not isinstance(other, Equation):
