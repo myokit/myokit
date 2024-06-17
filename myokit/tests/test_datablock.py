@@ -167,11 +167,11 @@ class DataBlock1dTest(unittest.TestCase):
         d = myokit.DataLog()
         d.set_time_key('time')
         d['time'] = time
-        d['x', 0] = np.array(down, copy=True)
-        d['x', 1] = np.array(down, copy=True)
-        d['x', 2] = np.array(down, copy=True)
-        d['x', 3] = np.array(down, copy=True)
-        d['x', 4] = np.array(down, copy=True)
+        d['x', 0] = np.copy(down)
+        d['x', 1] = np.copy(down)
+        d['x', 2] = np.copy(down)
+        d['x', 3] = np.copy(down)
+        d['x', 4] = np.copy(down)
         d['x', 1][10:] = 40
         b = myokit.DataBlock1d.from_log(d)
         self.assertEqual(b.cv('x'), 0)
@@ -180,11 +180,11 @@ class DataBlock1dTest(unittest.TestCase):
         d = myokit.DataLog()
         d.set_time_key('time')
         d['time'] = time
-        d['x', 0] = np.array(down, copy=True)
-        d['x', 1] = np.array(down, copy=True)
-        d['x', 2] = np.array(down, copy=True)
-        d['x', 3] = np.array(down, copy=True)
-        d['x', 4] = np.array(down, copy=True)
+        d['x', 0] = np.copy(down)
+        d['x', 1] = np.copy(down)
+        d['x', 2] = np.copy(down)
+        d['x', 3] = np.copy(down)
+        d['x', 4] = np.copy(down)
         d['x', 1][10:] = 40
         d['x', 2][10:] = 40
         d['x', 3][10:] = 40

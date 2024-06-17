@@ -177,7 +177,7 @@ class DataLog(OrderedDict):
         import numpy as np
         out = DataLog()
         for k, d in self.items():
-            out[k] = np.array(d, copy=False)
+            out[k] = np.asarray(d)
         return out
 
     def save_csv(self, filename, pad=None):
