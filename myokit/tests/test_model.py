@@ -636,18 +636,18 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(len(x), len(y))
 
         # Test with state argument
-        state1 = [1, 2, 3, 4, 5, 6, 7, 8]
+        state1 = [-40, 2, 3, 4, 5, 6, 7, 8]
         state1[2] = 536.46745856785678567845745637
         x = m.format_state_derivatives(state1).splitlines()
         y = [
-'membrane.V = 1                          dot =  1.90853168050245158e+07', # noqa
-'ina.m      = 2                          dot = -1.56738349674489310e+01', # noqa
-'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03', # noqa
-'ina.j      = 4                          dot = -1.15731427949362953e+00', # noqa
-'ica.d      = 5                          dot = -1.85001944916516836e-01', # noqa
-'ica.f      = 6                          dot = -2.15435819790876573e-02', # noqa
-'ik.x       = 7                          dot = -1.25154369264425316e-02', # noqa
-'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01', # noqa                                       ^ ^^    ^ ---------   ^
+'membrane.V = -40                        dot =  3.03469590344436094e+07', # noqa
+'ina.m      = 2                          dot = -1.05478017767301395e+01', # noqa
+'ina.h      =  5.36467458567856738e+02   dot = -2.46776607600654586e+02', # noqa
+'ina.j      = 4                          dot = -3.72528160028099076e-01', # noqa
+'ica.d      = 5                          dot = -1.69660729614147049e-01', # noqa
+'ica.f      = 6                          dot = -6.23551094458582103e-02', # noqa
+'ik.x       = 7                          dot = -1.18521143826784449e-02', # noqa
+'ica.Ca_i   = 8                          dot = -5.52361267451130011e-01', # noqa
         ]
         for a, b in zip(x, y):
             self.assertTrue(almost_equal(a, b))
@@ -664,7 +664,7 @@ class ModelTest(unittest.TestCase):
         out = m.format_state_derivatives(
             state1, precision=myokit.SINGLE_PRECISION).splitlines()
         self.assertEqual(len(out), 8)
-        self.assertEqual(out[0][:15], 'membrane.V = 1 ')
+        self.assertEqual(out[0][:16], 'membrane.V = -40')
         self.assertEqual(out[1][:15], 'ina.m      = 2 ')
         self.assertEqual(out[2][:29], 'ina.h      =  5.364674586e+02')
         self.assertEqual(out[3][:15], 'ina.j      = 4 ')
@@ -673,18 +673,18 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(out[6][:15], 'ik.x       = 7 ')
         self.assertEqual(out[7][:15], 'ica.Ca_i   = 8 ')
         out = [x[x.index('dot') + 6:] for x in out]
-        self.assertEqual(out[0][:8], ' 1.90853')
-        self.assertEqual(out[1][:8], '-1.56738')
-        self.assertEqual(out[2][:8], '-3.05729')
-        self.assertEqual(out[3][:8], '-1.15731')
-        self.assertEqual(out[4][:8], '-1.85001')
-        self.assertEqual(out[5][:8], '-2.15435')
-        self.assertEqual(out[6][:8], '-1.25154')
-        self.assertEqual(out[7][:8], '-5.63431')
+        self.assertEqual(out[0][:8], ' 3.03469')
+        self.assertEqual(out[1][:8], '-1.05478')
+        self.assertEqual(out[2][:8], '-2.46776')
+        self.assertEqual(out[3][:8], '-3.72528')
+        self.assertEqual(out[4][:8], '-1.69660')
+        self.assertEqual(out[5][:8], '-6.23551')
+        self.assertEqual(out[6][:8], '-1.18521')
+        self.assertEqual(out[7][:8], '-5.52361')
         self.assertEqual(out[0][12:], 'e+07')
         self.assertEqual(out[1][12:], 'e+01')
-        self.assertEqual(out[2][12:], 'e+03')
-        self.assertEqual(out[3][12:], 'e+00')
+        self.assertEqual(out[2][12:], 'e+02')
+        self.assertEqual(out[3][12:], 'e-01')
         self.assertEqual(out[4][12:], 'e-01')
         self.assertEqual(out[5][12:], 'e-02')
         self.assertEqual(out[6][12:], 'e-02')

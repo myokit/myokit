@@ -62,28 +62,28 @@ def simulation_times(
     def stair(ax, time, realtime, evaluations):
         if time is None:
             raise ValueError('This plotting mode requires "time" to be set.')
-        time = np.array(time, copy=False)
+        time = np.asarray(time)
         step = np.arange(0, len(time))
         ax.step(time, step, label=label)
 
     def stair_inverse(ax, time, realtime, evaluations):
         if time is None:
             raise ValueError('This plotting mode requires "time" to be set.')
-        time = np.array(time, copy=False)
+        time = np.asarray(time)
         step = np.arange(0, len(time))
         ax.step(step, time, label=label)
 
     def load(ax, time, realtime, evaluations):
         if time is None:
             raise ValueError('This plotting mode requires "time" to be set.')
-        time = np.array(time, copy=False)
+        time = np.asarray(time)
         size = np.log(1 / (time[1:] - time[:-1]))
         ax.step(time[1:], size, label=label)
 
     def histo(ax, time, realtime, evaluations):
         if time is None:
             raise ValueError('This plotting mode requires "time" to be set.')
-        time = np.array(time, copy=False)
+        time = np.asarray(time)
         zero = float(time[0])
         bucket_w = (time[-1] - zero) / nbuckets
         bucket_x = np.zeros(nbuckets)

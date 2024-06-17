@@ -121,16 +121,19 @@ class DataBlock1d:
         if w < 1:
             raise ValueError('Minimum w is 1.')
         self._nx = w
+
         # Time
-        time = np.array(time, copy=copy)
+        time = np.array(time, copy=True if copy else None)
         if len(time.shape) != 1:
             raise ValueError('Time must be a sequence.')
         if np.any(np.diff(time) < 0):
             raise ValueError('Time must be non-decreasing.')
         self._time = time
         self._nt = len(time)
+
         # 0d variables
         self._0d = {}
+
         # 1d variables
         self._1d = {}
 
@@ -235,7 +238,7 @@ class DataBlock1d:
             return 0
 
         # Get times in seconds, lengths in cm
-        t = np.array(t, copy=False) * time_multiplier
+        t = np.asarray(t) * time_multiplier
         x = np.arange(i1, 1 + i2, dtype=float) * length
 
         # Use linear least squares to find the conduction velocity
@@ -322,7 +325,7 @@ class DataBlock1d:
                 data = data.reshape((nt, nx), order='F')
                 # If this is a view of existing data, make a copy!
                 if data.base is not None:
-                    data = np.array(data)
+                    data = np.copy(data)
                 block.set1d(name, data, copy=False)
 
         return block
@@ -426,7 +429,7 @@ class DataBlock1d:
             z = np.reshape(z, (self._nt, self._nx), order='C')
         # If z is a view, create a copy
         if z.base is not None:
-            z = np.array(z, copy=True)
+            z = np.copy(z)
         return x, y, z
 
     def keys0d(self):
@@ -714,7 +717,7 @@ class DataBlock1d:
         name = str(name)
         if not name:
             raise ValueError('Name cannot be empty.')
-        data = np.array(data, copy=copy)
+        data = np.asarray(data, copy=True if copy else None)
         if data.shape != (self._nt,):
             raise ValueError(
                 'Data must be sequence of length ' + str(self._nt) + '.')
@@ -734,7 +737,7 @@ class DataBlock1d:
         name = str(name)
         if not name:
             raise ValueError('Name cannot be empty.')
-        data = np.array(data, copy=copy)
+        data = np.asarray(data, copy=True if copy else None)
         shape = (self._nt, self._nx)
         if data.shape != shape:
             raise ValueError('Data must have shape ' + str(shape) + '.')
@@ -761,6 +764,9 @@ class DataBlock1d:
 
         The data will be copied, unless ``copy`` is set to ``False``.
         """
+        # Allow copying without raising error if copying is necessary
+        copy = True if copy else None
+
         d = myokit.DataLog()
         d.set_time_key('time')
         d['time'] = np.array(self._time, copy=copy)
@@ -823,7 +829,7 @@ class DataBlock2d:
         self._ny = h
         self._nx = w
         # Time
-        time = np.array(time, copy=copy)
+        time = np.asarray(time, copy=True if copy else None)
         if len(time.shape) != 1:
             raise ValueError('Time must be a sequence.')
         if not np.all(np.diff(time) >= 0):
@@ -1122,7 +1128,7 @@ class DataBlock2d:
                 data = data.reshape((nt, ny, nx), order='F')
                 # If this is a view of existing data, make a copy!
                 if data.base is not None:
-                    data = np.array(data)
+                    data = np.copy(data)
                 block.set2d(name, data, copy=False)
         return block
 
@@ -1559,7 +1565,7 @@ class DataBlock2d:
         name = str(name)
         if not name:
             raise ValueError('Name cannot be empty.')
-        data = np.array(data, copy=copy)
+        data = np.asarray(data, copy=True if copy else None)
         if data.shape != (self._nt,):
             raise ValueError(
                 'Data must be sequence of length ' + str(self._nt) + '.')
@@ -1579,7 +1585,7 @@ class DataBlock2d:
         name = str(name)
         if not name:
             raise ValueError('Name cannot be empty.')
-        data = np.array(data, copy=copy)
+        data = np.asarray(data, copy=True if copy else None)
         shape = (self._nt, self._ny, self._nx)
         if data.shape != shape:
             raise ValueError('Data must have shape ' + str(shape) + '.')
@@ -1607,6 +1613,9 @@ class DataBlock2d:
         The data will be copied, unless ``copy`` is set to ``False``.
         """
         d = myokit.DataLog()
+
+        # Allow copying without raising error if copying is necessary
+        copy = True if copy else None
 
         # Add 0d vectors
         d.set_time_key('time')
@@ -1713,9 +1722,9 @@ class ColorMap:
         idx = (i == 5)
         r[idx], g[idx], b[idx] = v[idx], p[idx], q[idx]
         out = (
-            np.array(r * 255, dtype=np.uint8, copy=False),
-            np.array(g * 255, dtype=np.uint8, copy=False),
-            np.array(b * 255, dtype=np.uint8, copy=False),
+            np.asarray(r * 255, dtype=np.uint8),
+            np.asarray(g * 255, dtype=np.uint8),
+            np.asarray(b * 255, dtype=np.uint8),
         )
         return out
 
@@ -1746,7 +1755,7 @@ class ColorMap:
         Normalizes the given float data based on the specified lower and upper
         bounds.
         """
-        floats = np.array(floats, copy=True)
+        floats = np.copy(floats)
         # Enforce lower and upper bounds
         floats[floats < lower] = lower
         floats[floats > upper] = upper
