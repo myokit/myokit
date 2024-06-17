@@ -534,7 +534,7 @@ class SimulationOpenCL(myokit.CModule):
                 lower, upper = safe_range
                 for dims in myokit._dimco(*self._dims):
                     key = '.'.join([str(x) for x in dims]) + post
-                    ar = np.array(_log[key], copy=False)
+                    ar = np.asarray(_log[key])
                     i = np.where(
                         (ar < lower)
                         | (ar > upper)
@@ -1080,7 +1080,7 @@ class SimulationOpenCL(myokit.CModule):
         n = len(self._fields) * self._nx * self._ny
         if n:
             field_data = self._fields.values()
-            field_data = [np.array(x, copy=False) for x in field_data]
+            field_data = [np.asarray(x) for x in field_data]
             field_data = np.vstack(field_data)
             field_data = list(field_data.reshape(n, order='F'))
         else:
@@ -1342,7 +1342,7 @@ class SimulationOpenCL(myokit.CModule):
                 'This method is unavailable when diffusion is disabled.')
 
         # Check the field's size
-        gx = np.array(gx, copy=False, dtype=float)
+        gx = np.asarray(gx, dtype=float)
         if len(self._dims) == 1:
             s = self._nx - 1
             if gx.shape != (s, ):
@@ -1360,7 +1360,7 @@ class SimulationOpenCL(myokit.CModule):
             if gy is None:
                 raise ValueError(
                     'The argument `gy` must be set for 2-d simulations.')
-            gy = np.array(gy, copy=False, dtype=float)
+            gy = np.asarray(gy, dtype=float)
             s = (self._ny - 1, self._nx)
             if gy.shape != s:
                 raise ValueError(
@@ -1514,7 +1514,7 @@ class SimulationOpenCL(myokit.CModule):
         if not var.is_constant():
             raise ValueError('Only constants can be used for fields.')
         # Check values
-        values = np.array(values, copy=False, dtype=float)
+        values = np.asarray(values, dtype=float)
         if len(self._dims) == 1:
             if values.shape != (self._nx, ):
                 raise ValueError(

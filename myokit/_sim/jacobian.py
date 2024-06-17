@@ -166,7 +166,7 @@ class JacobianTracer(myokit.CppModule):
             self._ext.calculate(state, bound, deriv, partial)
             # Discard derivatives
             # Convert partial derivatives to numpy array and store
-            partial = np.array(partial, copy=False)
+            partial = np.asarray(partial)
             partial = partial.reshape((ns, ns))
             partials.append(partial)
         partials = np.array(partials)
@@ -282,8 +282,8 @@ class JacobianCalculator(myokit.CppModule):
         self._ext.calculate(state, inputs, deriv, partial)
 
         # Create numpy versions and return
-        deriv = np.array(deriv, copy=False)
-        partial = np.array(partial, copy=False).reshape((n, n))
+        deriv = np.asarray(deriv)
+        partial = np.asarray(partial).reshape((n, n))
         return deriv, partial
 
     def newton_root(self, x=None, accuracy=0, max_iter=50, damping=1):
