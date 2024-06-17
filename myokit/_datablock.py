@@ -290,8 +290,7 @@ class DataBlock1d:
             if d not in (0, 1):
                 raise ValueError(
                     'The given simulation log should only contain 0d or 1d'
-                    ' variables. Found <' + str(name) + '> with d = '
-                    + str(d) + '.')
+                    f' variables. Found <{name}> with d = {d}.')
             if d == 1:
                 if size is None:
                     size = info.size()
@@ -670,12 +669,12 @@ class DataBlock1d:
         head_str = []
         head_str.append(str(self._nt))
         head_str.append(str(self._nx))
-        head_str.append('"' + dtype + '"')
+        head_str.append(f'"{dtype}"')
         for name in self._0d:
-            head_str.append('"' + name + '"')
+            head_str.append(f'"{name}"')
         head_str.append(str(1))
         for name in self._1d:
-            head_str.append('"' + name + '"')
+            head_str.append(f'"{name}"')
         head_str = '\n'.join(head_str)
 
         # Create body
@@ -719,8 +718,7 @@ class DataBlock1d:
             raise ValueError('Name cannot be empty.')
         data = np.array(data) if copy else np.asarray(data)
         if data.shape != (self._nt,):
-            raise ValueError(
-                'Data must be sequence of length ' + str(self._nt) + '.')
+            raise ValueError(f'Data must be sequence of length {self._nt}.')
         self._0d[name] = data
 
     def set1d(self, name, data, copy=True):
@@ -740,7 +738,7 @@ class DataBlock1d:
         data = np.array(data) if copy else np.asarray(data)
         shape = (self._nt, self._nx)
         if data.shape != shape:
-            raise ValueError('Data must have shape ' + str(shape) + '.')
+            raise ValueError(f'Data must have shape {shape}.')
         self._1d[name] = data
 
     def shape(self):
@@ -773,7 +771,7 @@ class DataBlock1d:
             d[k] = array(v)
         for k, v in self._1d.items():
             for i in range(self._nx):
-                d[str(i) + '.' + k] = array(v[:, i])
+                d[f'{i}.{k}'] = array(v[:, i])
         return d
 
     def trace(self, variable, x):
@@ -956,8 +954,7 @@ class DataBlock2d:
             x1, y1 = [int(i) for i in pos1]
             if x1 < 0 or y1 < 0:
                 raise ValueError(
-                    'Negative indices not supported: pos1=('
-                    + str(x1) + ', ' + str(y1) + ').')
+                    f'Negative indices not supported: pos1=({x1}, {y1}).')
         else:
             x1, y1 = 0, 0
 
@@ -965,8 +962,7 @@ class DataBlock2d:
             x2, y2 = [int(i) for i in pos2]
             if x2 < 0 or y2 < 0:
                 raise ValueError(
-                    'Negative indices not supported: pos2=('
-                    + str(x2) + ', ' + str(y2) + ').')
+                    f'Negative indices not supported: pos2=({x2}, {y2}).')
         else:
             x2, y2 = x1 + w1, 0
 
@@ -1096,8 +1092,7 @@ class DataBlock2d:
             if d not in (0, 2):
                 raise ValueError(
                     'The given simulation log should only contain 0d or 2d'
-                    ' variables. Found <' + str(name) + '> with d = '
-                    + str(d) + '.')
+                    f' variables. Found <{name}> with d = {d}.')
             if d == 2:
                 if size is None:
                     size = info.size()
@@ -1470,12 +1465,12 @@ class DataBlock2d:
         head_str.append(str(self._nt))
         head_str.append(str(self._ny))
         head_str.append(str(self._nx))
-        head_str.append('"' + dtype + '"')
+        head_str.append(f'"{dtype}"')
         for name in self._0d:
-            head_str.append('"' + name + '"')
+            head_str.append(f'"{name}"')
         head_str.append(str(2))
         for name in self._2d:
-            head_str.append('"' + name + '"')
+            head_str.append(f'"{name}"')
         head_str = '\n'.join(head_str)
 
         # Create body
@@ -1517,7 +1512,7 @@ class DataBlock2d:
         delimy = '\n'
         data = self._2d[name]
         data = data[frame]
-        text = [delimx.join('"' + str(x) + '"' for x in [xname, yname, zname])]
+        text = [delimx.join(f'"{x}"' for x in [xname, yname, zname])]
         for y, row in enumerate(data):
             for x, z in enumerate(row):
                 text.append(delimx.join([str(x), str(y), myokit.float.str(z)]))
@@ -1564,8 +1559,7 @@ class DataBlock2d:
             raise ValueError('Name cannot be empty.')
         data = np.array(data) if copy else np.asarray(data)
         if data.shape != (self._nt,):
-            raise ValueError(
-                'Data must be sequence of length ' + str(self._nt) + '.')
+            raise ValueError(f'Data must be sequence of length {self._nt}.')
         self._0d[name] = data
 
     def set2d(self, name, data, copy=True):
@@ -1585,7 +1579,7 @@ class DataBlock2d:
         data = np.array(data) if copy else np.asarray(data)
         shape = (self._nt, self._ny, self._nx)
         if data.shape != shape:
-            raise ValueError('Data must have shape ' + str(shape) + '.')
+            raise ValueError(f'Data must have shape {shape}.')
         self._2d[name] = data
 
     def shape(self):
@@ -1685,7 +1679,7 @@ class ColorMap:
         try:
             return ColorMap._colormaps[name]()
         except KeyError:
-            raise KeyError('Non-existent ColorMap "' + str(name) + '".')
+            raise KeyError(f'Non-existent ColorMap "{name}".')
 
     @staticmethod
     def hsv_to_rgb(h, s, v):
