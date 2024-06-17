@@ -14,6 +14,7 @@ This page lists the main changes made to Myokit in each release.
 - Fixed
   - [#1071](https://github.com/myokit/myokit/pull/1071) When DataLog.split_periodic does not make a split, a length 1 list is returned instead of a `DataLog`.
   - [#1075](https://github.com/myokit/myokit/pull/1075) Added missing `Expression` base classes to public API.
+  - [#1077](https://github.com/myokit/myokit/pull/1077) Fixed bug where data log viewer crashed when reading an empty WCP file.
   - [#1078](https://github.com/myokit/myokit/pull/1078) Added support for Numpy 2.
 
 ## [1.36.1] - 2024-05-10

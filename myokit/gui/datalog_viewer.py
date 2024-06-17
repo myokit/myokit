@@ -641,13 +641,18 @@ class SweepSourceTab(GraphTabWidget):
     def __init__(self, parent, source):
         super().__init__(parent)
 
-        # Add A/D
-        for i in range(source.channel_count()):
-            self._add_graph_tab(source, i)
+        if source.sweep_count() > 0:
+            # Must have this condition to avoid getting exceptions with e.g.
+            # the empty WCP file in the test data set.
+            # myokit log myokit/tests/data/formats/wcp-file-empty.wcp
 
-        # Add D/A
-        for i in range(source.da_count()):
-            self._add_graph_tab(source, i, True)
+            # Add A/D
+            for i in range(source.channel_count()):
+                self._add_graph_tab(source, i)
+
+            # Add D/A
+            for i in range(source.da_count()):
+                self._add_graph_tab(source, i, True)
 
         # Add meta data
         self._add_meta_tab(source)

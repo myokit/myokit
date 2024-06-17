@@ -878,6 +878,9 @@ class SweepSource:
 
         Note that a source with zero recorded channels may still report a
         non-zero number of sweeps if it can provide D/A outputs.
+
+        Similarly, formats like WCP can report zero sweeps but have a non-zero
+        channel count (if no data was recorded).
         """
         raise NotImplementedError
 
