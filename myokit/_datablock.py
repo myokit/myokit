@@ -123,7 +123,7 @@ class DataBlock1d:
         self._nx = w
 
         # Time
-        time = np.array(time, copy=True if copy else None)
+        time = np.array(time) if copy else np.asarray(time)
         if len(time.shape) != 1:
             raise ValueError('Time must be a sequence.')
         if np.any(np.diff(time) < 0):
@@ -717,7 +717,7 @@ class DataBlock1d:
         name = str(name)
         if not name:
             raise ValueError('Name cannot be empty.')
-        data = np.asarray(data, copy=True if copy else None)
+        data = np.array(data) if copy else np.asarray(data)
         if data.shape != (self._nt,):
             raise ValueError(
                 'Data must be sequence of length ' + str(self._nt) + '.')
@@ -737,7 +737,7 @@ class DataBlock1d:
         name = str(name)
         if not name:
             raise ValueError('Name cannot be empty.')
-        data = np.asarray(data, copy=True if copy else None)
+        data = np.array(data) if copy else np.asarray(data)
         shape = (self._nt, self._nx)
         if data.shape != shape:
             raise ValueError('Data must have shape ' + str(shape) + '.')
@@ -764,17 +764,16 @@ class DataBlock1d:
 
         The data will be copied, unless ``copy`` is set to ``False``.
         """
-        # Allow copying without raising error if copying is necessary
-        copy = True if copy else None
+        array = np.array if copy else np.asarray
 
         d = myokit.DataLog()
         d.set_time_key('time')
-        d['time'] = np.array(self._time, copy=copy)
+        d['time'] = array(self._time)
         for k, v in self._0d.items():
-            d[k] = np.array(v, copy=copy)
+            d[k] = array(v)
         for k, v in self._1d.items():
             for i in range(self._nx):
-                d[str(i) + '.' + k] = np.array(v[:, i], copy=copy)
+                d[str(i) + '.' + k] = array(v[:, i])
         return d
 
     def trace(self, variable, x):
@@ -829,7 +828,7 @@ class DataBlock2d:
         self._ny = h
         self._nx = w
         # Time
-        time = np.asarray(time, copy=True if copy else None)
+        time = np.array(time) if copy else np.asarray(time)
         if len(time.shape) != 1:
             raise ValueError('Time must be a sequence.')
         if not np.all(np.diff(time) >= 0):
@@ -1170,9 +1169,7 @@ class DataBlock2d:
         return frames
 
     def is_square(self):
-        """
-        Returns True if this data block's grid is square.
-        """
+        """ Returns True if this data block's grid is square. """
         return self._nx == self._ny
 
     def items0d(self):
@@ -1565,7 +1562,7 @@ class DataBlock2d:
         name = str(name)
         if not name:
             raise ValueError('Name cannot be empty.')
-        data = np.asarray(data, copy=True if copy else None)
+        data = np.array(data) if copy else np.asarray(data)
         if data.shape != (self._nt,):
             raise ValueError(
                 'Data must be sequence of length ' + str(self._nt) + '.')
@@ -1585,7 +1582,7 @@ class DataBlock2d:
         name = str(name)
         if not name:
             raise ValueError('Name cannot be empty.')
-        data = np.asarray(data, copy=True if copy else None)
+        data = np.array(data) if copy else np.asarray(data)
         shape = (self._nt, self._ny, self._nx)
         if data.shape != shape:
             raise ValueError('Data must have shape ' + str(shape) + '.')
@@ -1612,23 +1609,20 @@ class DataBlock2d:
 
         The data will be copied, unless ``copy`` is set to ``False``.
         """
+        array = np.array if copy else np.asarray
         d = myokit.DataLog()
-
-        # Allow copying without raising error if copying is necessary
-        copy = True if copy else None
 
         # Add 0d vectors
         d.set_time_key('time')
-        d['time'] = np.array(self._time, copy=copy)
+        d['time'] = array(self._time)
         for k, v in self._0d.items():
-            d[k] = np.array(v, copy=copy)
+            d[k] = array(v)
 
         # Add 2d fields
         for k, v in self._2d.items():
             for x in range(self._nx):
-                s = str(x) + '.'
                 for y in range(self._ny):
-                    d[s + str(y) + '.' + k] = np.array(v[:, y, x], copy=copy)
+                    d[f'{x}.{y}.{k}'] = array(v[:, y, x])
         return d
 
     def trace(self, variable, x, y):
@@ -1682,16 +1676,12 @@ class ColorMap:
 
     @staticmethod
     def exists(name):
-        """
-        Returns True if the given name corresponds to a colormap.
-        """
+        """ Returns True if the given name corresponds to a colormap. """
         return name in ColorMap._colormaps
 
     @staticmethod
     def get(name):
-        """
-        Returns the colormap method indicated by the given name.
-        """
+        """ Returns the colormap method indicated by the given name. """
         try:
             return ColorMap._colormaps[name]()
         except KeyError:
@@ -1721,12 +1711,9 @@ class ColorMap:
         r[idx], g[idx], b[idx] = t[idx], p[idx], v[idx]
         idx = (i == 5)
         r[idx], g[idx], b[idx] = v[idx], p[idx], q[idx]
-        out = (
-            np.asarray(r * 255, dtype=np.uint8),
-            np.asarray(g * 255, dtype=np.uint8),
-            np.asarray(b * 255, dtype=np.uint8),
-        )
-        return out
+        return (np.array(r * 255, dtype=np.uint8),
+                np.array(g * 255, dtype=np.uint8),
+                np.array(b * 255, dtype=np.uint8))
 
     @staticmethod
     def image(name, x, y):
