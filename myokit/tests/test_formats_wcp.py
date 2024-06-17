@@ -210,6 +210,21 @@ class WcpTest(unittest.TestCase):
         self.assertRaises(NotImplementedError, w.da_units)
         self.assertRaises(NotImplementedError, w.da_protocol)
 
+    def test_empty_file(self):
+        # Tests reading a file with no data
+
+        path = os.path.join(DIR_FORMATS, 'wcp-file-empty.wcp')
+        w = wcp.WcpFile(path)
+        self.assertEqual(w.version(), '9')
+
+        # No records, but it still has a channel
+        self.assertEqual(w.record_count(), 0)
+        self.assertEqual(w.channel_count(), 1)
+        self.assertRaisesRegex(KeyError, 'empty file', w.channel, 0)
+
+        d = w.log()
+        self.assertEqual(len(d), 0)
+
     def test_figure_method(self):
         # Tests matplotlib_figure
         # Select matplotlib backend that doesn't require a screen
