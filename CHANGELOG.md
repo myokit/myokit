@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.37.0] - 2024-06-17
 - Added
   - [#1075](https://github.com/myokit/myokit/pull/1075) Add a `myokit.TypeError` exception, which inherits from `myokit.IntegrityError` but is used specifically if one type of expression was expected but another was found.
