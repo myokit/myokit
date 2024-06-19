@@ -44,6 +44,7 @@ keywords = [
     'cos',
     'exp',
     'heaviside',
+    'in',
     'log',
     'pow',
     'sigmoid',
