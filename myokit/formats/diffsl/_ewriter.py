@@ -13,6 +13,17 @@ import myokit
 
 from myokit.formats.ansic import CBasedExpressionWriter
 
+# TODO: Simplify generated heaviside expressions
+# For example,
+# piecewise(a < b, 0, c < d, 0, e) generates:
+#   0 * (1 - heaviside(a - b))
+#   + (0 * (1 - heaviside(c - d))
+#   + e * (1 - (1 - heaviside(c - d)))) * (1 - (1 - heaviside(a - b)))
+# which simplifies to:
+#   e * heaviside(c - d) * heaviside(a - b)
+
+# TODO: Remove redundant parentheses from e.g. c * (heaviside(b - a))
+
 
 class DiffSLExpressionWriter(CBasedExpressionWriter):
     """
@@ -87,26 +98,16 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
     def _ex_and(self, e):
         # bool(a) and bool(b), where bool(a) = (a == 0) ? 0 : 1
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-
-        if not isinstance(e[0], myokit.Condition):
-            a = f'(1 - heaviside({a}) * heaviside(-{a}))'
-
-        if not isinstance(e[1], myokit.Condition):
-            b = f'(1 - heaviside({b}) * heaviside(-{b}))'
-
-        return f'({a} * {b})'
+        return self.ex(myokit.Multiply(myokit.Not(myokit.Not(e[0])),
+                                       myokit.Not(myokit.Not(e[1]))))
 
     def _ex_equal(self, e):
         a = self.ex(e[0])
         b = self.ex(e[1])
-        return f'(heaviside({a} - {b}) * heaviside({b} - {a}))'
+        return f'heaviside({a} - {b}) * heaviside({b} - {a})'
 
     def _ex_less(self, e):
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-        return f'(1 - heaviside({a} - {b}))'
+        return self.ex(myokit.Not(myokit.MoreEqual(e[0], e[1])))
 
     def _ex_less_equal(self, e):
         a = self.ex(e[0])
@@ -114,9 +115,7 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return f'heaviside({b} - {a})'
 
     def _ex_more(self, e):
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-        return f'(1 - heaviside({b} - {a}))'
+        return self.ex(myokit.Not(myokit.LessEqual(e[0], e[1])))
 
     def _ex_more_equal(self, e):
         a = self.ex(e[0])
@@ -125,49 +124,51 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
     def _ex_not(self, e):
         # not(a) = (a == 0) ? 1 : 0
-        a = self.ex(e[0])
 
+        if isinstance(e[0], myokit.Not):
+            if isinstance(e[0][0], myokit.Condition):
+                return self.ex(e[0][0])
+
+            a = self.ex(e[0][0])
+            return f'(1 - heaviside({a}) * heaviside(-{a}))'
+
+        a = self.ex(e[0])
         if isinstance(e[0], myokit.Condition):
             return f'(1 - {a})'
 
-        return f'(heaviside({a}) * heaviside(-{a}))'
+        return f'heaviside({a}) * heaviside(-{a})'
 
     def _ex_not_equal(self, e):
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-        return f'(1 - heaviside({a} - {b}) * heaviside({b} - {a}))'
+        return self.ex(myokit.Not(myokit.Equal(e[0], e[1])))
 
     def _ex_or(self, e):
-        # bool(a) or bool(b), where bool(a) = (a == 0) ? 0 : 1
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-
         # a or b = not(not(a) and not(b))
-        if isinstance(e[0], myokit.Condition):
-            not_a = f'(1 - {a})'
-        else:
-            not_a = f'heaviside({a}) * heaviside(-{a})'
-
-        if isinstance(e[1], myokit.Condition):
-            not_b = f'(1 - {b})'
-        else:
-            not_b = f'heaviside({b}) * heaviside(-{b})'
-
-        return f'(1 - {not_a} * {not_b})'
+        return self.ex(myokit.Not(myokit.And(myokit.Not(e[0]),
+                                             myokit.Not(e[1]))))
 
     # -- Conditional expressions
 
     def _ex_if(self, e):
+        # _if * _then + not(_if) * _else
+
         if isinstance(e._i, myokit.Condition):
-            _if = self.ex(e._i)
+            _if = e._i
         else:
-            # `if (a)` is the same as `if (1 - not(a))`
-            _if = f'(1 - {self.ex(myokit.Not(e._i))})'
+            _if = myokit.Not(myokit.Not(e._i))
 
-        _then = self.ex(e._t)
-        _else = self.ex(e._e)
+        _then = e._t
+        _else = e._e
 
-        return f'({_then} * {_if} + {_else} * (1 - {_if}))'
+        if _then == myokit.Number(0):
+            return self.ex(myokit.Multiply(_else, myokit.Not(_if)))
+
+        if _else == myokit.Number(0):
+            return self.ex(myokit.Multiply(_then, _if))
+
+        return "(" + self.ex(myokit.Plus(
+            myokit.Multiply(_then, _if),
+            myokit.Multiply(_else, myokit.Not(_if)))
+        ) + ")"
 
     def _ex_piecewise(self, e):
         # Convert piecewise to nested ifs
