@@ -5,11 +5,24 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
-  - [#1067](https://github.com/myokit/myokit/pull/1067) Improved the meta data loaded from HEKA files when creating a `myokit.DataLog`.
 - Deprecated
 - Removed
 - Fixed
+
+## [1.37.0] - 2024-06-17
+- Added
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Add a `myokit.TypeError` exception, which inherits from `myokit.IntegrityError` but is used specifically if one type of expression was expected but another was found.
+- Changed
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Expressions will now raise a `myokit.TypeError` in the constructor if their operands are unexpected expression types, e.g. if numbers and booleans are mixed.
+  - [#1074](https://github.com/myokit/myokit/pull/1074) Expressions will now raise a `myokit.IntegrityError` in the constructor if their operands are not expression objects: previously, this check was only performed by `Expression.validate()`.
+  - [#1067](https://github.com/myokit/myokit/pull/1067) Improved the meta data loaded from HEKA files when creating a `myokit.DataLog`.
+- Removed
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Removed the `PrefixCondition` base class previously used in the expression system, as only `Not` inherited from it.
+- Fixed
   - [#1071](https://github.com/myokit/myokit/pull/1071) When DataLog.split_periodic does not make a split, a length 1 list is returned instead of a `DataLog`.
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Added missing `Expression` base classes to public API.
+  - [#1077](https://github.com/myokit/myokit/pull/1077) Fixed bug where data log viewer crashed when reading an empty WCP file.
+  - [#1078](https://github.com/myokit/myokit/pull/1078) Added support for Numpy 2.
 
 ## [1.36.1] - 2024-05-10
 - Added

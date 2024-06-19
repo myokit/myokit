@@ -1098,9 +1098,7 @@ class Model(ObjectWithMetaData, VarProvider):
                 raise myokit.IncompatibleUnitError(msg, var._token)
 
     def clone(self):
-        """
-        Returns a (deep) clone of this model.
-        """
+        """ Returns a (deep) clone of this model. """
         clone = Model()
 
         # Copy meta data
@@ -4523,16 +4521,10 @@ class Variable(VarOwner):
             warnings.warn('The keyword argument `state_value` is deprecated.'
                           ' Please use `initial_value` instead.')
 
-        # Handle string and number rhs's
-        model = self.model()
-        if not isinstance(initial_value, myokit.Expression):
-            if isinstance(initial_value, str):
-                # Expressions are evaluated in model context
-                initial_value = myokit.parse_expression(
-                    initial_value, context=model)
-            elif initial_value is not None:
-                initial_value = myokit.Number(initial_value)
+        # Parse initial value
+        initial_value = self._set_initial_value(initial_value, False)
 
+        model = self.model()
         try:
             # Set lhs to derivative expression
             self._lhs = myokit.Derivative(myokit.Name(self))
@@ -4856,6 +4848,9 @@ class Variable(VarOwner):
             # Ways of setting x = 1 + y
             x.set_rhs(myokit.Plus(myokit.Number(1), myokit.Name(y)))
             x.set_rhs('1 + y')
+
+        Expressions used as a variable's right-hand side must be numerical:
+        :class:`myokit.Condition` operators can not be used as RHS.
 
         Calling `set_rhs` will reset the validation status of the model this
         variable belongs to.

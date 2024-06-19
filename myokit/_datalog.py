@@ -829,7 +829,7 @@ class DataLog(OrderedDict):
 
             # Guess time variable
             for key in keys:
-                x = np.array(log[key], copy=False)
+                x = np.asarray(log[key])
                 y = x[1:] - x[:-1]
                 if np.all(y > 0):
                     log.set_time_key(key)

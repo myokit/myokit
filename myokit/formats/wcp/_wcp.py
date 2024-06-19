@@ -241,7 +241,7 @@ class WcpFile(myokit.formats.SweepSource):
 
     def _channel_id(self, channel_id):
         """ Checks an int or str channel id and returns a valid int. """
-        if self._nr == 0:  # pragma: no cover
+        if self._nr == 0:
             raise KeyError(f'Channel {channel_id} not found (empty file).')
 
         # Handle string
@@ -314,7 +314,7 @@ class WcpFile(myokit.formats.SweepSource):
 
         # Create log
         log = myokit.DataLog()
-        if self._nr == 0:  # pragma: no cover
+        if self._nr == 0:
             return log
 
         # Get channel names
@@ -433,7 +433,7 @@ class WcpFile(myokit.formats.SweepSource):
         return self._nr
 
     def records(self):
-        """ Deprecated alias of :meth:`sweep_count`. """
+        """ Deprecated alias of :meth:`record_count`. """
         # Deprecated since 2023-06-22
         import warnings
         warnings.warn(

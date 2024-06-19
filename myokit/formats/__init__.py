@@ -128,15 +128,7 @@ class ExpressionWriter:
        ``a**b**c`` is interpreted as ``a**(b**c)``, necessitating a different
        bracket-adding logic than used in Myokit.
 
-    3. Binary operators are sometimes implemented as n-ary operators. In
-       Myokit, ``0 == 0 == 0`` is a sequence of two binary operators,
-       interpreted as ``(0 == 0) == 0``. Because ``(0 == 0)`` evaluates to
-       ``1``, this expression returns ``0`` (1 does not equal 0). In Python,
-       the expression ``0 == 0 == 0`` is a ternary (n-ary) operator,
-       interpreted as ``all_equal(0, 0, 0)``, which evaluates to ``1``. For
-       languages that use this convention, extra brackets must be added.
-
-    4. Myokit does not have increment or decrement operators ``--`` and ``++``,
+    3. Myokit does not have increment or decrement operators ``--`` and ``++``,
        so the expression ``--x`` is interpreted as ``-(-x)``. This is the same
        in Python. But in C-based languages, this is interpreted as a decrement
        operator so care must be taken to add extra brackets.
@@ -886,6 +878,9 @@ class SweepSource:
 
         Note that a source with zero recorded channels may still report a
         non-zero number of sweeps if it can provide D/A outputs.
+
+        Similarly, formats like WCP can report zero sweeps but have a non-zero
+        channel count (if no data was recorded).
         """
         raise NotImplementedError
 

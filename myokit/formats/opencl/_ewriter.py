@@ -31,27 +31,6 @@ class OpenCLExpressionWriter(CBasedExpressionWriter):
         self._sp = (precision == myokit.SINGLE_PRECISION)
         self._nm = bool(native_math)
 
-    def _exc(self, e):
-        """Returns ``ex(e)`` if ``e`` is a Condition, else ``ex(e != 0)``."""
-        # Can be removed after https://github.com/myokit/myokit/issues/1056
-        if isinstance(e, myokit.Condition):
-            return self.ex(e)
-        return self.ex(myokit.NotEqual(e, myokit.Number(0)))
-
-    def _ex_infix_comparison(self, e, op):
-        """Handles ex() for infix condition operators (==, !=, > etc.)."""
-        # Can be removed after https://github.com/myokit/myokit/issues/1056
-        c1 = isinstance(e[0], myokit.Condition)
-        c2 = isinstance(e[1], myokit.Condition)
-        if (c1 and c2) or not (c1 or c2):
-            return f'({self.ex(e[0])} {op} {self.ex(e[1])})'
-        else:
-            return f'({self._exc(e[0])} {op} {self._exc(e[1])})'
-
-    def _ex_infix_logical(self, e, op):
-        # Can be removed after https://github.com/myokit/myokit/issues/1056
-        return f'({self._exc(e[0])} {op} {self._exc(e[1])})'
-
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
     #def _ex_initial_value(self, e):
@@ -126,25 +105,7 @@ class OpenCLExpressionWriter(CBasedExpressionWriter):
 
     #def _ex_and(self, e):
     #def _ex_or(self, e):
-
-    def _ex_not(self, e):
-        # Can be removed after https://github.com/myokit/myokit/issues/1056
-        return f'(!{self._exc(e[0])})'
-
-    def _ex_if(self, e):
-        # Can be removed after https://github.com/myokit/myokit/issues/1056
-        _if, _then, _else = self._exc(e._i), self.ex(e._t), self.ex(e._e)
-        return f'({_if} ? {_then} : {_else})'
-
-    def _ex_piecewise(self, e):
-        # Can be removed after https://github.com/myokit/myokit/issues/1056
-        _ifs = [self._exc(x) for x in e._i]
-        _thens = [self.ex(x) for x in e._e]
-        s = []
-        n = len(_ifs)
-        for _if, _then in zip(_ifs, _thens):
-            s.append(f'({_if} ? {_then} : ')
-        s.append(_thens[-1])
-        s.append(')' * len(_ifs))
-        return ''.join(s)
+    #def _ex_not(self, e):
+    #def _ex_if(self, e):
+    #def _ex_piecewise(self, e):
 

@@ -176,11 +176,13 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_conditions(self):
         a, b, c, d = self.abcd
+        p = myokit.Equal(a, b)
+        q = myokit.NotEqual(c, d)
 
-        self.eq(And(a, b), '(a && b)')
-        self.eq(Or(d, c), '(d || c)')
-        self.eq(Not(And(a, b)), '(!(a && b))')
-        self.eq(Not(c), '(!(c))')
+        self.eq(And(p, q), '((a == b) && (c != d))')
+        self.eq(Or(q, p), '((c != d) || (a == b))')
+        self.eq(Not(And(p, q)), '(!((a == b) && (c != d)))')
+        self.eq(Not(p), '(!(a == b))')
 
         self.eq(Equal(a, b), '(a == b)')
         self.eq(NotEqual(a, b), '(a != b)')
@@ -191,12 +193,6 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) && (c != d))')
         self.eq(Or(More(d, c), Less(b, a)), '((d > c) || (b < a))')
-        self.eq(Not(Or(Number(1), Number(2))), '(!(1.0 || 2.0))')
-        self.eq(Not(Less(Number(1), Number(2))), '(!(1.0 < 2.0))')
-        self.eq(Not(Plus(Number(1), Number(2))), '(!(1.0 + 2.0))')
-
-        self.eq(Equal(Equal(Number(0), Number(0)), Number(0)),
-                '((0.0 == 0.0) == 0.0)')
 
     def test_conditionals(self):
 
@@ -205,11 +201,6 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Piecewise(NotEqual(d, c), b, a), '((d != c) ? b : a)')
         self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
                 '((a == b) ? c : ((a == d) ? 3.0 : 4.0))')
-
-        # Extra parentheses if condition is not a condition
-        self.eq(If(a, d, c), '((a) ? d : c)')
-        self.eq(Piecewise(a, b, c, d, Number(4)),
-                '((a) ? b : ((c) ? d : 4.0))')
 
         # Using if-then-else function
         w = self._target()
@@ -328,9 +319,6 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         c.add(If(Or(true, true), a, b), 10)
         c.add(If(Not(true), a, b), 20)
         c.add(If(Not(false), a, b), 10)
-
-        c.add(If(Equal(Equal(Number(0), Number(0)), Number(0)), a, b), 20)
-        c.add(If(Equal(Equal(Number(0), Number(0)), Number(1)), a, b), 10)
 
         c.add(Piecewise(true, Number(10), false, Number(20), Number(30)), 10)
         c.add(Piecewise(true, Number(10), true, Number(20), Number(30)), 10)

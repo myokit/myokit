@@ -72,11 +72,6 @@ class CppExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
                                  myokit.Number(4)),
                 '((a == b) ? c : ((a == d) ? 3.0 : 4.0))')
 
-        # Extra parentheses if condition is not a condition
-        self.eq(myokit.If(a, d, c), '((a) ? d : c)')
-        self.eq(myokit.Piecewise(a, b, c, d, myokit.Number(4)),
-                '((a) ? b : ((c) ? d : 4.0))')
-
         # Using if-then-else function
         w = self._target()
         w.set_lhs_function(lambda v: v.var().name())

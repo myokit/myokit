@@ -83,6 +83,8 @@ Inheriting classes
 
 .. autoclass:: SimultaneousProtocolEventError
 
+.. autoclass:: TypeError
+
 .. autoclass:: UnresolvedReferenceError
 
 .. autoclass:: UnusedVariableError

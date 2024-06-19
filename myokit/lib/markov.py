@@ -1077,7 +1077,7 @@ class AnalyticalSimulation:
         y0 = PI.dot(self._state.reshape((n, 1)))
 
         # Reshape times array
-        times = np.array(times, copy=False).reshape((len(times),))
+        times = np.asarray(times).reshape((len(times),))
 
         # Calculate state
         x = P.dot(y0 * np.exp(times * E))
@@ -1223,7 +1223,7 @@ class DiscreteSimulation:
 
         Returns a discretized state ``y`` where ``sum(y) = nchannels``.
         """
-        x = np.array(x, copy=False, dtype=float)
+        x = np.asarray(x, dtype=float)
         if (np.abs(1 - np.sum(x))) > 1e-6:
             raise ValueError(
                 'The sum of fractions in the state to be discretized must'
