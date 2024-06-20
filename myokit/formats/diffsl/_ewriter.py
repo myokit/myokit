@@ -86,34 +86,33 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
     # -- Conditional operators
 
     def _ex_and(self, e):
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-        return f'{a} * {b}'
+        # (a and b) == a * b, where a, b are in {0, 1}
+        return f'{self.ex(e[0])} * {self.ex(e[1])}'
 
     def _ex_equal(self, e):
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-        return f'heaviside({a} - {b}) * heaviside({b} - {a})'
+        # (a == b) == heaviside(a - b) * heaviside(b - a)
+        return self.ex(myokit.And(myokit.MoreEqual(e[0], e[1]),
+                                  myokit.LessEqual(e[0], e[1])))
 
     def _ex_less(self, e):
+        # (a < b) == 1 - heaviside(a - b)
         return self.ex(myokit.Not(myokit.MoreEqual(e[0], e[1])))
 
     def _ex_less_equal(self, e):
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-        return f'heaviside({b} - {a})'
+        # (a <= b) == heaviside(b - a)
+        return f'heaviside({self.ex(e[1])} - {self.ex(e[0])})'
 
     def _ex_more(self, e):
+        # (a > b) == 1 - heaviside(b - a)
         return self.ex(myokit.Not(myokit.LessEqual(e[0], e[1])))
 
     def _ex_more_equal(self, e):
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-        return f'heaviside({a} - {b})'
+        # (a >= b) == heaviside(a - b)
+        return f'heaviside({self.ex(e[0])} - {self.ex(e[1])})'
 
     def _ex_not(self, e):
         if isinstance(e[0], myokit.Not):
-            # not(not(a)) = a
+            # not(not(a)) == a
             return self.ex(e[0][0])
 
         if isinstance(e[0], myokit.NotEqual):
@@ -135,10 +134,11 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return f'(1 - {self.ex(e[0])})'
 
     def _ex_not_equal(self, e):
+        # (a != b) == 1 - heaviside(a - b) * heaviside(b - a)
         return self.ex(myokit.Not(myokit.Equal(e[0], e[1])))
 
     def _ex_or(self, e):
-        # a or b = not(not(a) and not(b))
+        # a or b == not(not(a) and not(b))
         return self.ex(myokit.Not(myokit.And(myokit.Not(e[0]),
                                              myokit.Not(e[1]))))
 
