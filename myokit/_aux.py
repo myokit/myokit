@@ -591,6 +591,10 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     # Get initial state
     if initial is None:
         initial = model.initial_values(as_floats=True)
+    else:
+        # Convert initial values etc to floats. Will also be performed by
+        # evaluate_derivatives, but done here for the printing code below.
+        initial = model.map_to_state(initial)
 
     # Get evaluation at initial state
     values = model.evaluate_derivatives(

@@ -526,6 +526,10 @@ class AuxTest(unittest.TestCase):
             self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
+        # No issues when passing initial state from a model
+        # See https://github.com/myokit/myokit/pull/1083
+        myokit.step(m1, reference=m2, initial=m1.initial_values())
+
     def test_strfloat(self):
         # Deprecated alias of myokit.float.str
         args = ['-1.234', True, myokit.SINGLE_PRECISION]
