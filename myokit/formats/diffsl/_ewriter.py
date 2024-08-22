@@ -20,7 +20,7 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
     equations for variables in DiffSL syntax.
 
     For details of the language, see
-    https://martinjrobins.github.io/diffsl/introduction.html
+    https://martinjrobins.github.io/diffsl/
     """
 
     def __init__(self):
@@ -111,6 +111,10 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return f'heaviside({self.ex(e[0])} - {self.ex(e[1])})'
 
     def _ex_not(self, e):
+        # Simplify expressions with double not's.
+        # Examples:
+        # not(not(a)) -> (1 - (1 - a)) == a
+        # not(a or b) -> (1 - (1 - (1 - a) * (1 - b))) == (1 - a) * (1 - b)
         if isinstance(e[0], myokit.Not):
             # not(not(a)) == a
             return self.ex(e[0][0])
@@ -131,6 +135,7 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
             # not(a or b) == not(a) and not(b)
             return self.ex(myokit.And(myokit.Not(e[0][0]), myokit.Not(e[0][1])))
 
+        # not(a) == (1 - a), where a is in {0, 1}
         return f'(1 - {self.ex(e[0])})'
 
     def _ex_not_equal(self, e):
@@ -138,7 +143,7 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return self.ex(myokit.Not(myokit.Equal(e[0], e[1])))
 
     def _ex_or(self, e):
-        # a or b == not(not(a) and not(b))
+        # a or b == not(not(a) and not(b)), where a, b are in {0, 1}
         return self.ex(myokit.Not(myokit.And(myokit.Not(e[0]),
                                              myokit.Not(e[1]))))
 
