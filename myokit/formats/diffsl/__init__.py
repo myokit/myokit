@@ -42,16 +42,19 @@ def ewriters():
 keywords = [
     'abs',
     'cos',
+    'dudt',
     'exp',
+    'F',
+    'G',
     'heaviside',
     'in',
     'log',
+    'out',
     'pow',
     'sigmoid',
     'sin',
     'sqrt',
+    't',
     'tan',
-    'F',
-    'G',
     'u'
 ]
