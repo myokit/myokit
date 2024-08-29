@@ -10,7 +10,6 @@
 import warnings
 
 import myokit
-
 from myokit.formats.ansic import CBasedExpressionWriter
 
 
