@@ -62,7 +62,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Generate DiffSL model
         diffsl_model = self._generate_diffsl(
             model,
-            exclude_vars=var_dict['time'],
+            exclude_vars=[var_dict['time']],
             extra_out_vars=var_dict['currents'],
         )
 
