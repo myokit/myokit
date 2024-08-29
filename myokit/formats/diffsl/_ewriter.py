@@ -52,11 +52,7 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return super()._ex_ceil(e)
 
     # def _ex_cos(self, e):
-
-    # TODO: Implement
-    def _ex_derivative(self, e):
-        return super()._ex_derivative(e)
-
+    # def _ex_derivative(self, e):
     # def _ex_divide(self, e):
     # def _ex_exp(self, e):
 

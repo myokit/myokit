@@ -475,16 +475,18 @@ class DiffSLExporter(myokit.formats.Exporter):
         """
         Remove all unused variables from the model except those in vars_to_keep.
         """
+        tmp_sum_var = None
         if vars_to_keep:
-            # Sum vars to keep in a temporary variable so they're all "used"
+            # Sum vars_to_keep in a temporary state var so they count as "used"
             component = vars_to_keep[0].parent()
-            tmp_var = component.add_variable_allow_renaming(
-                'tmp_DiffSL_SUM_VARS_TO_KEEP_Myokit'
+            tmp_sum_var = component.add_variable_allow_renaming(
+                'tmp_DiffSL_STATE_SUM_VARS_TO_KEEP_Myokit'
             )
+            tmp_sum_var.promote(0)
             rhs = myokit.Number(0)
             for v in set(vars_to_keep):
                 rhs = myokit.Plus(rhs, v.lhs())
-            tmp_var.set_rhs(rhs)  # tmp_var itself will be removed
+            tmp_sum_var.set_rhs(rhs)
 
         # Remove all labels so that they register as unused
         for _, var in model.labels():
@@ -492,6 +494,10 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Remove all unused variables
         model.validate(remove_unused_variables=True)
+
+        # Remove tmp_var
+        if vars_to_keep:
+            self._remove_variable(tmp_sum_var)
 
     def _remove_variable(self, var):
         """

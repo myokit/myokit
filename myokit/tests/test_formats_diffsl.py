@@ -269,17 +269,18 @@ out_i {
 
 
 class DiffSLExporterTest(unittest.TestCase):
-    """ Tests DiffSL export. """
+    """Tests DiffSL export."""
 
     def test_diffsl_exporter(self):
         # Tests exporting a model
 
         model = myokit.load_model('example')
         with TemporaryDirectory() as d:
-            path = d.path('easy.model')
+            path = d.path('diffsl.model')
+
+            e = myokit.formats.diffsl.DiffSLExporter()
 
             # Test with simple model
-            e = myokit.formats.diffsl.DiffSLExporter()
             e.model(path, model)
 
             # Test with extra bound variables
@@ -295,114 +296,8 @@ class DiffSLExporterTest(unittest.TestCase):
             # Test with invalid model
             v.set_rhs('2 * V')
             self.assertRaisesRegex(
-                myokit.ExportError, 'valid model', e.model, path, model)
-
-    # def test_diffsl_exporter_static(self):
-    #     # Tests exporting a model (with HH and markov states) and compares
-    #     # against reference output.
-
-    #     # Export model
-    #     m = myokit.load_model(os.path.join(DIR_DATA, 'decker-2009.mmt'))
-    #     e = myokit.formats.diffsl.DiffSLExporter()
-    #     with TemporaryDirectory() as d:
-    #         path = d.path('decker.model')
-    #         e.model(path, m)
-    #         with open(path, 'r') as f:
-    #             observed = f.readlines()
-
-    #     # Load expected output
-    #     with open(os.path.join(DIR_DATA, 'decker.model'), 'r') as f:
-    #         expected = f.readlines()
-
-    #     # Compare (line by line, for readable output)
-    #     for ob, ex in zip(observed, expected):
-    #         self.assertEqual(ob, ex)
-    #     self.assertEqual(len(observed), len(expected))
-
-    # def test_unit_conversion(self):
-    #     # Tests exporting a model that requires unit conversion
-
-    #     # Export model
-    #     m = myokit.parse_model(input_model)
-    #     e = myokit.formats.diffsl.DiffSLExporter()
-    #     with TemporaryDirectory() as d:
-    #         path = d.path('easy.model')
-    #         e.model(path, m)
-    #         with open(path, 'r') as f:
-    #             observed = f.read().strip().splitlines()
-
-    #     # Get expected output
-    #     expected = output_model.strip().splitlines()
-
-    #     # Compare (line by line, for readable output)
-    #     for ob, ex in zip(observed, expected):
-    #         self.assertEqual(ob, ex)
-    #     self.assertEqual(len(observed), len(expected))
-
-    #     # Test warnings are raised if conversion fails
-    #     m.get('membrane.V').set_rhs('hh.I1 + mm.I2')
-    #     m.get('membrane').remove_variable(m.get('membrane.C'))
-    #     with TemporaryDirectory() as d:
-    #         path = d.path('easy.model')
-    #         with WarningCollector() as c:
-    #             e.model(path, m)
-    #         self.assertIn('Unable to convert hh.I1', c.text())
-    #         self.assertIn('Unable to convert mm.I2', c.text())
-
-    #     m.get('engine.time').set_unit(myokit.units.cm)
-    #     with TemporaryDirectory() as d:
-    #         path = d.path('easy.model')
-    #         with WarningCollector() as c:
-    #             e.model(path, m)
-    #         self.assertIn('Unable to convert time units [cm]', c.text())
-
-    # def test_export_reused_variable(self):
-    #     # Tests exporting when an `inf` or other special variable is used twice
-
-    #     # Create model re-using tau and inf
-    #     m = myokit.parse_model(
-    #         """
-    #         [[model]]
-    #         m.V = -80
-    #         c.x = 0.1
-    #         c.y = 0.1
-
-    #         [m]
-    #         time = 0 bind time
-    #         i_ion = c.I
-    #         dot(V) = -i_ion
-
-    #         [c]
-    #         inf = 0.5
-    #         tau = 3
-    #         dot(x) = (inf - x) / tau
-    #         dot(y) = (inf - y) / tau
-    #         I = x * y * (m.V - 50)
-    #         """)
-
-    #     # Export, and read back in
-    #     e = myokit.formats.diffsl.DiffSLExporter()
-    #     with TemporaryDirectory() as d:
-    #         path = d.path('easy.model')
-    #         e.model(path, m)
-    #         with open(path, 'r') as f:
-    #             x = f.read()
-
-    #     self.assertIn('x_inf {', x)
-    #     self.assertIn('y_inf {', x)
-    #     self.assertIn('tau_x {', x)
-    #     self.assertIn('tau_y {', x)
-
-    # def test_diffsl_exporter_fetching(self):
-    #     # Tests getting an DiffSL exporter via the 'exporter' interface
-
-    #     e = myokit.formats.exporter('diffsl')
-    #     self.assertIsInstance(e, myokit.formats.diffsl.DiffSLExporter)
-
-    # def test_capability_reporting(self):
-    #     # Tests if the correct capabilities are reported
-    #     e = myokit.formats.diffsl.DiffSLExporter()
-    #     self.assertTrue(e.supports_model())
+                myokit.ExportError, 'valid model', e.model, path, model
+            )
 
 
 class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
@@ -425,7 +320,7 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_derivative(self):
         # Inherited from CBasedExpressionWriter
-        self.eq(myokit.Derivative(self.a), 'dadt')
+        self.eq(myokit.Derivative(self.a), 'dot(a)')
 
     def test_partial_derivative(self):
         e = myokit.PartialDerivative(self.a, self.b)
@@ -495,8 +390,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         a, b, c = self.abc
         with WarningCollector():
             self.eq(Remainder(a, b), '(a - b * floor(a / b))')
-            self.eq(Remainder(Plus(a, c), b),
-                    '(a + c - b * floor((a + c) / b))')
+            self.eq(
+                Remainder(Plus(a, c), b), '(a + c - b * floor((a + c) / b))'
+            )
             self.eq(Multiply(Remainder(a, b), c), '(a - b * floor(a / b)) * c')
             self.eq(Divide(c, Remainder(b, a)), 'c / ((b - a * floor(b / a)))')
 
@@ -567,90 +463,129 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         self.eq(Not(Not(Equal(a, b))), 'heaviside(a - b) * heaviside(b - a)')
 
-        self.eq(And(Equal(a, b), NotEqual(c, d)),
-                'heaviside(a - b) * heaviside(b - a)'
-                ' * (1 - heaviside(c - d) * heaviside(d - c))')
+        self.eq(
+            And(Equal(a, b), NotEqual(c, d)),
+            'heaviside(a - b) * heaviside(b - a)'
+            ' * (1 - heaviside(c - d) * heaviside(d - c))',
+        )
 
-        self.eq(Or(More(d, c), MoreEqual(b, a)),
-                '(1 - heaviside(c - d) * (1 - heaviside(b - a)))')
+        self.eq(
+            Or(More(d, c), MoreEqual(b, a)),
+            '(1 - heaviside(c - d) * (1 - heaviside(b - a)))',
+        )
 
-        self.eq(Or(Less(d, c), LessEqual(b, a)),
-                '(1 - heaviside(d - c) * (1 - heaviside(a - b)))')
+        self.eq(
+            Or(Less(d, c), LessEqual(b, a)),
+            '(1 - heaviside(d - c) * (1 - heaviside(a - b)))',
+        )
 
-        self.eq(Not(Or(Equal(Number(1), Number(2)),
-                       Equal(Number(3), Number(4)))),
-                '(1 - heaviside(1.0 - 2.0) * heaviside(2.0 - 1.0))'
-                ' * (1 - heaviside(3.0 - 4.0) * heaviside(4.0 - 3.0))')
+        self.eq(
+            Not(Or(Equal(Number(1), Number(2)), Equal(Number(3), Number(4)))),
+            '(1 - heaviside(1.0 - 2.0) * heaviside(2.0 - 1.0))'
+            ' * (1 - heaviside(3.0 - 4.0) * heaviside(4.0 - 3.0))',
+        )
 
         self.eq(Not(Less(Number(1), Number(2))), 'heaviside(1.0 - 2.0)')
 
     def test_if_expressions(self):
         a, b, c, d = self.abcd
 
-        self.eq(If(Equal(a, b), c, d),
-                '(c * heaviside(a - b) * heaviside(b - a)'
-                ' + d * (1 - heaviside(a - b) * heaviside(b - a)))')
+        self.eq(
+            If(Equal(a, b), c, d),
+            '(c * heaviside(a - b) * heaviside(b - a)'
+            ' + d * (1 - heaviside(a - b) * heaviside(b - a)))',
+        )
 
-        self.eq(If(Equal(a, b), c, Number(0)),
-                'c * heaviside(a - b) * heaviside(b - a)')
+        self.eq(
+            If(Equal(a, b), c, Number(0)),
+            'c * heaviside(a - b) * heaviside(b - a)',
+        )
 
-        self.eq(If(Equal(a, b), Number(0), d),
-                'd * (1 - heaviside(a - b) * heaviside(b - a))')
+        self.eq(
+            If(Equal(a, b), Number(0), d),
+            'd * (1 - heaviside(a - b) * heaviside(b - a))',
+        )
 
-        self.eq(If(NotEqual(a, b), c, d),
-                '(c * (1 - heaviside(a - b) * heaviside(b - a))'
-                ' + d * heaviside(a - b) * heaviside(b - a))')
+        self.eq(
+            If(NotEqual(a, b), c, d),
+            '(c * (1 - heaviside(a - b) * heaviside(b - a))'
+            ' + d * heaviside(a - b) * heaviside(b - a))',
+        )
 
-        self.eq(If(More(a, b), c, d),
-                '(c * (1 - heaviside(b - a)) + d * heaviside(b - a))')
+        self.eq(
+            If(More(a, b), c, d),
+            '(c * (1 - heaviside(b - a)) + d * heaviside(b - a))',
+        )
 
-        self.eq(If(MoreEqual(a, b), c, d),
-                '(c * heaviside(a - b) + d * (1 - heaviside(a - b)))')
+        self.eq(
+            If(MoreEqual(a, b), c, d),
+            '(c * heaviside(a - b) + d * (1 - heaviside(a - b)))',
+        )
 
-        self.eq(If(Less(a, b), c, d),
-                '(c * (1 - heaviside(a - b)) + d * heaviside(a - b))')
+        self.eq(
+            If(Less(a, b), c, d),
+            '(c * (1 - heaviside(a - b)) + d * heaviside(a - b))',
+        )
 
-        self.eq(If(LessEqual(a, b), c, d),
-                '(c * heaviside(b - a) + d * (1 - heaviside(b - a)))')
+        self.eq(
+            If(LessEqual(a, b), c, d),
+            '(c * heaviside(b - a) + d * (1 - heaviside(b - a)))',
+        )
 
     def test_piecewise_expressions(self):
         a, b, c, d = self.abcd
 
         self.eq(Piecewise(Equal(a, b), c, d), self.w.ex(If(Equal(a, b), c, d)))
 
-        self.eq(Piecewise(NotEqual(a, b), c, d),
-                self.w.ex(If(NotEqual(a, b), c, d),))
+        self.eq(
+            Piecewise(NotEqual(a, b), c, d),
+            self.w.ex(
+                If(NotEqual(a, b), c, d),
+            ),
+        )
 
-        self.eq(Piecewise(More(a, b), c, d), self.w.ex(If(More(a, b), c, d),))
+        self.eq(
+            Piecewise(More(a, b), c, d),
+            self.w.ex(
+                If(More(a, b), c, d),
+            ),
+        )
 
-        self.eq(Piecewise(MoreEqual(a, b), c, d),
-                self.w.ex(If(MoreEqual(a, b), c, d)))
+        self.eq(
+            Piecewise(MoreEqual(a, b), c, d),
+            self.w.ex(If(MoreEqual(a, b), c, d)),
+        )
 
         self.eq(Piecewise(Less(a, b), c, d), self.w.ex(If(Less(a, b), c, d)))
 
-        self.eq(Piecewise(LessEqual(a, b), c, d),
-                self.w.ex(If(LessEqual(a, b), c, d),))
+        self.eq(
+            Piecewise(LessEqual(a, b), c, d),
+            self.w.ex(
+                If(LessEqual(a, b), c, d),
+            ),
+        )
 
-        self.eq(Piecewise(Equal(a, b), c,
-                          Equal(a, d), Number(3),
-                          Number(4)),
-                self.w.ex(If(Equal(a, b), c,
-                             If(Equal(a, d), Number(3),
-                                Number(4)))))
+        self.eq(
+            Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
+            self.w.ex(
+                If(Equal(a, b), c, If(Equal(a, d), Number(3), Number(4)))
+            ),
+        )
 
-        self.eq(Piecewise(Less(a, b), Number(0),
-                          Less(c, d), Number(0),
-                          Number(5)),
-                '5.0 * heaviside(c - d) * heaviside(a - b)')
+        self.eq(
+            Piecewise(Less(a, b), Number(0), Less(c, d), Number(0), Number(5)),
+            '5.0 * heaviside(c - d) * heaviside(a - b)',
+        )
 
     def test_heaviside_numerical(self):
-        """ Test generated heaviside expressions with numerical values """
+        """Test generated heaviside expressions with numerical values"""
 
         def heaviside(x):
             return 1 if x >= 0 else 0
 
-        values = itertools.product([-10e9, -1, -1e-9, 0, 1e-9, 1, 10e9],
-                                   repeat=4)
+        values = itertools.product(
+            [-10e9, -1, -1e-9, 0, 1e-9, 1, 10e9], repeat=4
+        )
 
         for a, b, c, d in values:
             # a == b
@@ -695,26 +630,30 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
             # (a == b) and (c != d)
             result = int((a == b) and (c != d))
-            expr = self.w.ex(And(Equal(Number(a), Number(b)),
-                                 NotEqual(Number(c), Number(d))))
+            expr = self.w.ex(
+                And(Equal(Number(a), Number(b)), NotEqual(Number(c), Number(d)))
+            )
             self.assertEqual(eval(expr), result)
 
             # (d > c) or (b >= a)
             result = int((d > c) or (b >= a))
-            expr = self.w.ex(Or(More(Number(d), Number(c)),
-                                MoreEqual(Number(b), Number(a))))
+            expr = self.w.ex(
+                Or(More(Number(d), Number(c)), MoreEqual(Number(b), Number(a)))
+            )
             self.assertEqual(eval(expr), result)
 
             # (d < c) or (b <= a)
             result = int((d < c) or (b <= a))
-            expr = self.w.ex(Or(Less(Number(d), Number(c)),
-                                LessEqual(Number(b), Number(a))))
+            expr = self.w.ex(
+                Or(Less(Number(d), Number(c)), LessEqual(Number(b), Number(a)))
+            )
             self.assertEqual(eval(expr), result)
 
             # (a == b) or (c == d)
             result = int((a == b) or (c == d))
-            expr = self.w.ex(Or(Equal(Number(a), Number(b)),
-                                Equal(Number(c), Number(d))))
+            expr = self.w.ex(
+                Or(Equal(Number(a), Number(b)), Equal(Number(c), Number(d)))
+            )
             self.assertEqual(eval(expr), result)
 
             # not(a < b)
@@ -724,74 +663,84 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
             # if(a > b, c, d)
             result = c if (a > b) else d
-            expr = self.w.ex(If(More(Number(a), Number(b)),
-                                Number(c),
-                                Number(d)))
+            expr = self.w.ex(
+                If(More(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # if(a >= b, c, d)
             result = c if (a >= b) else d
-            expr = self.w.ex(If(MoreEqual(Number(a), Number(b)),
-                                Number(c),
-                                Number(d)))
+            expr = self.w.ex(
+                If(MoreEqual(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # if(a < b, c, d)
             result = c if (a < b) else d
-            expr = self.w.ex(If(Less(Number(a), Number(b)),
-                                Number(c),
-                                Number(d)))
+            expr = self.w.ex(
+                If(Less(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # if(a <= b, c, d)
             result = c if (a <= b) else d
-            expr = self.w.ex(If(LessEqual(Number(a), Number(b)),
-                                Number(c),
-                                Number(d)))
+            expr = self.w.ex(
+                If(LessEqual(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # piecewise(a > b, c, d)
             result = c if (a > b) else d
-            expr = self.w.ex(Piecewise(More(Number(a), Number(b)),
-                                       Number(c),
-                                       Number(d)))
+            expr = self.w.ex(
+                Piecewise(More(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # piecewise(a >= b, c, d)
             result = c if (a >= b) else d
-            expr = self.w.ex(Piecewise(MoreEqual(Number(a),
-                                                 Number(b)),
-                                       Number(c),
-                                       Number(d)))
+            expr = self.w.ex(
+                Piecewise(MoreEqual(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # piecewise(a < b, c, d)
             result = c if (a < b) else d
-            expr = self.w.ex(Piecewise(Less(Number(a), Number(b)),
-                                       Number(c),
-                                       Number(d)))
+            expr = self.w.ex(
+                Piecewise(Less(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # piecewise(a <= b, c, d)
             result = c if (a <= b) else d
-            expr = self.w.ex(Piecewise(LessEqual(Number(a),
-                                                 Number(b)),
-                                       Number(c),
-                                       Number(d)))
+            expr = self.w.ex(
+                Piecewise(LessEqual(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # piecewise(a == b, c, a == d, 3, 4)
             result = c if (a == b) else (3 if (a == d) else 4)
-            expr = self.w.ex(Piecewise(Equal(Number(a), Number(b)), Number(c),
-                                       Equal(Number(a), Number(d)), Number(3),
-                                       Number(4)))
+            expr = self.w.ex(
+                Piecewise(
+                    Equal(Number(a), Number(b)),
+                    Number(c),
+                    Equal(Number(a), Number(d)),
+                    Number(3),
+                    Number(4),
+                )
+            )
             self.assertEqual(eval(expr), result)
 
             # piecewise(a < b, 0, c < d, 0, 5)
             result = 0 if (a < b) else (0 if (c < d) else 5)
-            expr = self.w.ex(Piecewise(Less(Number(a), Number(b)), Number(0),
-                                       Less(Number(c), Number(d)), Number(0),
-                                       Number(5)),)
+            expr = self.w.ex(
+                Piecewise(
+                    Less(Number(a), Number(b)),
+                    Number(0),
+                    Less(Number(c), Number(d)),
+                    Number(0),
+                    Number(5),
+                ),
+            )
             self.assertEqual(eval(expr), result)
 
 
