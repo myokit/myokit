@@ -107,7 +107,6 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Remove variables we don't want to export
         self._remove_variable(pace)
-        self._remove_unused_variables(model, vars_to_keep=currents)
 
         # Add intermediary variables on rhs of state derivatives
         self._prep_derivatives(model)
@@ -473,34 +472,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Remove temporary variables
         for var in tmp_vars:
             self._remove_variable(var)
-
-    def _remove_unused_variables(self, model, vars_to_keep=None):
-        """
-        Remove all unused variables from the model except those in vars_to_keep.
-        """
-        tmp_sum_var = None
-        if vars_to_keep:
-            # Sum vars_to_keep in a temporary state var so they count as "used"
-            component = vars_to_keep[0].parent()
-            tmp_sum_var = component.add_variable_allow_renaming(
-                'tmp_DiffSL_STATE_SUM_VARS_TO_KEEP_Myokit'
-            )
-            tmp_sum_var.promote(0)
-            rhs = myokit.Number(0)
-            for v in set(vars_to_keep):
-                rhs = myokit.Plus(rhs, v.lhs())
-            tmp_sum_var.set_rhs(rhs)
-
-        # Remove all labels so that they register as unused
-        for _, var in model.labels():
-            var.set_label(None)
-
-        # Remove all unused variables
-        model.validate(remove_unused_variables=True)
-
-        # Remove temporary state var
-        if vars_to_keep:
-            self._remove_variable(tmp_sum_var)
 
     def _remove_variable(self, var):
         """

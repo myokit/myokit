@@ -20,10 +20,6 @@ from myokit import (Abs, ACos, And, ASin, ATan, Ceil, Cos, Divide, Equal, Exp,
                     Sin, Sqrt, Tan)
 from myokit.tests import DIR_DATA, TemporaryDirectory, WarningCollector
 
-
-# Model from https://github.com/CardiacModelling/VoltageClampModel/
-# mmt-model-files/full2-voltage-clamp-ikr-linleak.mmt
-
 units_model = """
 [[model]]
 membrane.V = -0.08
