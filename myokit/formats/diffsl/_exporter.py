@@ -93,8 +93,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         cm = guess.membrane_capacitance(model)  # Cm
         currents = self._guess_currents(model)
 
-        self._prep_derivatives(model)
-
+        time_factor = time_factor_inv = None
         if convert_units:
             # Convert currents to A/F
             helpers = [] if cm is None else [cm.rhs()]
@@ -104,9 +103,14 @@ class DiffSLExporter(myokit.formats.Exporter):
             # Convert potentials to mV
             self._convert_potential_unit(vm)
 
+            time_factor, time_factor_inv = self._get_time_factor(time)
+
         # Remove variables we don't want to export
         self._remove_variable(pace)
         self._remove_unused_variables(model, vars_to_keep=currents)
+
+        # Add intermediary variables on rhs of state derivatives
+        self._prep_derivatives(model)
 
         return {'time': time, 'currents': currents}
 
@@ -194,7 +198,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('u_i {')
         for v in model.states():
             lhs = var_name(v)
-            rhs = myokit.float.str(v.initial_value(True))
+            rhs = myokit.float.str(v.initial_value(as_float=True))
             qname = v.qname()
             unit = '' if v.unit() is None else f' {v.unit()}'
             export_lines.append(f'{tab}{lhs} = {rhs}, /* {qname}{unit} */')
@@ -205,7 +209,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('dudt_i {')
         for v in model.states():
             lhs = var_name(v.rhs())  # Use intermediary dot_x instead of dot(x)
-            rhs = myokit.float.str(v.initial_value(True))
+            rhs = myokit.float.str(v.initial_value(as_float=True))
             export_lines.append(f'{tab}{lhs} = {rhs},')
         export_lines.append('}')
         export_lines.append('')
@@ -244,7 +248,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Add `G_i`
         export_lines.append('G_i {')
         for v in model.states():
-            rhs = e.ex(v.eq().rhs.rhs())  # Use rhs of intermediary dot_x
+            rhs = e.ex(v.rhs().rhs())  # Use rhs of intermediary dot_x
             export_lines.append(f'{tab}{rhs},')
         export_lines.append('}')
         export_lines.append('')
@@ -262,86 +266,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('')
 
         return '\n'.join(export_lines)
-
-    def _create_diffsl_variable_names(self, model):
-        """
-        Create diffsl-compatible names for all variables in the model.
-
-        The following strategy is followed:
-         - Fully qualified names are used for all variables.
-         - Variables are checked for special names, and changed if necessary.
-         - Unsupported characters like '.' and '_' are replaced.
-         - Any conflicts are resolved in a final step.
-        """
-
-        # Detect names with special meanings
-        def special_start(name):
-            prefixes = ['dudt', 'F', 'G', 'in', 'out', 'u']
-            for prefix in prefixes:
-                if name.startswith(prefix + '_'):
-                    return True
-                if name.startswith(prefix + '.'):
-                    return True
-            return False
-
-        # Separator character
-        sep = 'Z'
-
-        # Create initial variable names
-        var_to_name = collections.OrderedDict()
-        for var in model.variables(deep=True, sort=True):
-            # Start from fully qualified name
-            name = var.qname()
-
-            # Avoid names with special meaning
-            if special_start(name):
-                name = 'var' + sep + name
-
-            # Replace unsupported characters
-            name = name.replace('.', sep).replace('_', sep)
-
-            # Store (initial) name for var
-            var_to_name[var] = name
-
-        # Check for conflicts with known keywords
-        from . import keywords
-
-        needs_renaming = collections.OrderedDict()
-        for keyword in keywords:
-            needs_renaming[keyword] = []
-
-        # Find naming conflicts, create inverse mapping
-        name_to_var = collections.OrderedDict()
-        for var, name in var_to_name.items():
-
-            # Known conflict?
-            if name in needs_renaming.keys():
-                needs_renaming[name].append(var)
-                continue
-
-            # Test for new conflicts
-            var2 = name_to_var.get(name, None)
-            if var2 is not None:
-                needs_renaming[name] = [var2, var]
-                continue
-
-            name_to_var[name] = var
-
-        # Resolve naming conflicts
-        for name, variables in needs_renaming.items():
-            # Add a number to the end of the name, increasing it until it's
-            # unique
-            i = 1
-            root = name + sep
-            for var in variables:
-                name = f'{root}{sep}{i}'
-                while name in name_to_var:
-                    i += 1
-                    name = f'{root}{sep}{i}'
-                var_to_name[var] = name
-                name_to_var[name] = var
-
-        return var_to_name
 
     def _convert_current_unit(self, var, helpers=None):
         """
@@ -379,6 +303,85 @@ class DiffSLExporter(myokit.formats.Exporter):
                 'Unable to convert ' + var.qname() + ' to recommended'
                 ' units of ' + str(unit) + '.'
             )
+
+    def _create_diffsl_variable_names(self, model):
+        """
+        Create diffsl-compatible names for all variables in the model.
+
+        The following strategy is followed:
+         - Fully qualified names are used for all variables.
+         - Variables are checked for special names, and changed if necessary.
+         - Unsupported characters like '.' and '_' are replaced.
+         - Any conflicts are resolved in a final step by appending a number.
+        """
+
+        # Detect names with special meanings
+        def special_start(name):
+            prefixes = ['dudt', 'F', 'G', 'in', 'out', 'u']
+            for prefix in prefixes:
+                if name.startswith(prefix + '_'):
+                    return True
+            return False
+
+        # Replacement characters for underscores and periods
+        uscore = 'Z'
+        period = 'Z'
+
+        # Create initial variable names
+        var_to_name = collections.OrderedDict()
+        for var in model.variables(deep=True, sort=True):
+            # Start from fully qualified name
+            name = var.qname()
+
+            # Avoid names with special meaning
+            if special_start(name):
+                name = 'var' + uscore + name
+
+            # Replace unsupported characters
+            name = name.replace('.', period).replace('_', uscore)
+
+            # Store (initial) name for var
+            var_to_name[var] = name
+
+        # Check for conflicts with known keywords
+        from . import keywords
+
+        needs_renaming = collections.OrderedDict()
+        for keyword in keywords:
+            needs_renaming[keyword] = []
+
+        # Find naming conflicts, create inverse mapping
+        name_to_var = collections.OrderedDict()
+        for var, name in var_to_name.items():
+
+            # Known conflict?
+            if name in needs_renaming.keys():
+                needs_renaming[name].append(var)
+                continue
+
+            # Test for new conflicts
+            var2 = name_to_var.get(name, None)
+            if var2 is not None:
+                needs_renaming[name] = [var2, var]
+                continue
+
+            name_to_var[name] = var
+
+        # Resolve naming conflicts
+        for name, variables in needs_renaming.items():
+            # Add a number to the end of the name, increasing it until it's
+            # unique
+            i = 1
+            root = name + uscore
+            for var in variables:
+                name = f'{root}{uscore}{i}'
+                while name in name_to_var:
+                    i += 1
+                    name = f'{root}{uscore}{i}'
+                var_to_name[var] = name
+                name_to_var[name] = var
+
+        return var_to_name
 
     def _get_time_factor(self, time_var):
         """
@@ -495,7 +498,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Remove all unused variables
         model.validate(remove_unused_variables=True)
 
-        # Remove tmp_var
+        # Remove temporary state var
         if vars_to_keep:
             self._remove_variable(tmp_sum_var)
 
