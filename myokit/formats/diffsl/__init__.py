@@ -57,5 +57,4 @@ keywords = [
     't',
     'tan',
     'u',
-    'Vc',
 ]

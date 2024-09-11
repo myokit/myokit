@@ -20,6 +20,7 @@ from myokit import (Abs, ACos, And, ASin, ATan, Ceil, Cos, Divide, Equal, Exp,
                     Sin, Sqrt, Tan)
 from myokit.tests import DIR_DATA, TemporaryDirectory, WarningCollector
 
+# Model that requires unit conversion
 units_model = """
 [[model]]
 membrane.V = -0.08
@@ -72,9 +73,9 @@ in = [ ]
 
 /* Constants: hh */
 hhZdotZxZinf { 0.8 } /* hh.dot_x.inf */
-hhZdotZxZtau { 3.0 } /* hh.dot_x.tau [s] */
-hhZdotZyZalpha { 0.1 } /* hh.dot_y.alpha [S/F] */
-hhZdotZyZbeta { 0.2 } /* hh.dot_y.beta [S/F] */
+hhZdotZxZtau { 3.0 * 1000.0 } /* hh.dot_x.tau [s] */
+hhZdotZyZalpha { 0.1 * 0.001 } /* hh.dot_y.alpha [S/F] */
+hhZdotZyZbeta { 0.2 * 0.001 } /* hh.dot_y.beta [S/F] */
 
 /* Constants: mm */
 mmZalpha { 0.3 } /* mm.alpha [S/F] */
@@ -114,10 +115,10 @@ F_i {
 }
 
 G_i {
-  (hhZI1 / 0.05 + mmZI2 / 0.05) / membraneZC * 1000.0,
-  (hhZdotZxZinf - hhZx) / hhZdotZxZtau,
-  hhZdotZyZalpha * (1.0 - hhZy) - hhZdotZyZbeta * hhZy,
-  mmZbeta * mmZO - mmZalpha * mmZC,
+  (hhZI1 / 0.05 + mmZI2 / 0.05) / membraneZC * 1000.0 * 0.001,
+  (hhZdotZxZinf - hhZx) / hhZdotZxZtau * 0.001,
+  (hhZdotZyZalpha * (1.0 - hhZy) - hhZdotZyZbeta * hhZy) * 0.001,
+  (mmZbeta * mmZO - mmZalpha * mmZC) * 0.001,
 }
 
 /* Output */
@@ -177,7 +178,7 @@ class DiffSLExporterTest(unittest.TestCase):
                 observed = f.readlines()
 
         # Load expected output
-        with open(os.path.join(DIR_DATA, 'decker.model'), 'r') as f:
+        with open(os.path.join(DIR_DATA, 'decker-2009.diffsl'), 'r') as f:
             expected = f.readlines()
 
         # Compare (line by line, for readable output)

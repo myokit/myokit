@@ -12,6 +12,8 @@ import myokit
 import myokit.formats
 import myokit.formats.diffsl as diffsl
 import myokit.lib.guess as guess
+import myokit.lib.hh as hh
+import myokit.lib.markov as markov
 
 
 class DiffSLExporter(myokit.formats.Exporter):
@@ -56,13 +58,12 @@ class DiffSLExporter(myokit.formats.Exporter):
             ) from e
 
         # Prepare model for export
-        model = model.clone()
-        var_dict = self._prep_model(model, convert_units)
+        model, currents = self._prep_model(model, convert_units)
 
         # Generate DiffSL model
         diffsl_model = self._generate_diffsl(
             model,
-            extra_out_vars=var_dict['currents'],
+            extra_out_vars=currents,
         )
 
         # Write DiffSL model to file
@@ -73,6 +74,10 @@ class DiffSLExporter(myokit.formats.Exporter):
         """
         Prepare the model for export to DiffSL.
         """
+        # Rewrite model so that any Markov models have a 1-sum(...) state
+        # This also clones the model, so that changes can be made
+        model = markov.convert_markov_models_to_compact_form(model)
+
         # Remove all model bindings apart from time and pace
         _ = myokit._prepare_bindings(
             model,
@@ -103,10 +108,38 @@ class DiffSLExporter(myokit.formats.Exporter):
 
             time_factor, time_factor_inv = self._get_time_factor(time)
 
+        # Find HH state variables and their alphas, betas, and taus
+        alphas = set()
+        betas = set()
+        taus = set()
+
+        for var in model.states():
+            inf_tau = hh.get_inf_and_tau(var, vm)
+            if inf_tau:
+                taus.add(inf_tau[1])
+                continue
+
+            alpha_beta = hh.get_alpha_and_beta(var, vm)
+            if alpha_beta:
+                alphas.add(alpha_beta[0])
+                betas.add(alpha_beta[1])
+                continue
+
+        # Add time conversion factor for states and HH variables
+        if time_factor is not None:
+            for var in model.states():
+                var.set_rhs(myokit.Multiply(var.rhs(), time_factor_inv))
+            for var in alphas:
+                var.set_rhs(myokit.Multiply(var.rhs(), time_factor_inv))
+            for var in betas:
+                var.set_rhs(myokit.Multiply(var.rhs(), time_factor_inv))
+            for var in taus:
+                var.set_rhs(myokit.Multiply(var.rhs(), time_factor))
+
         # Add intermediary variables on rhs of state derivatives
         self._prep_derivatives(model)
 
-        return {'currents': currents}
+        return model, currents
 
     def _generate_diffsl(self, model, extra_out_vars=None):
         """
@@ -116,11 +149,6 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Create DiffSL-compatible variable names
         var_to_name = self._create_diffsl_variable_names(model)
-
-        # Set pace variable name to Vc
-        pace = model.binding('pace')
-        if pace:
-            var_to_name[pace] = 'Vc'
 
         # Create a naming function
         def var_name(e):
@@ -146,8 +174,10 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Variables to be excluded from output or handled separately.
         # Derivatives and their intermediary variables (i.e. dot(x) and dot_x)
-        # are handled in dudt_i, F_i and G_i
+        # are handled in dudt_i, F_i and G_i; time is excluded from the output;
+        # pace is made Vc.
         time = model.time()
+        pace = model.binding('pace')
         special_vars = set(
             [time]
             + [v.rhs().var() for v in model.states()]
@@ -356,6 +386,11 @@ class DiffSLExporter(myokit.formats.Exporter):
         from . import keywords
 
         needs_renaming = collections.OrderedDict()
+
+        pace = model.binding('pace')  # Reserve 'Vc' for pace variable
+        if pace:
+            needs_renaming['Vc'] = []
+
         for keyword in keywords:
             needs_renaming[keyword] = []
 
@@ -390,6 +425,9 @@ class DiffSLExporter(myokit.formats.Exporter):
                 var_to_name[var] = name
                 name_to_var[name] = var
 
+        if pace:
+            var_to_name[pace] = 'Vc'
+
         return var_to_name
 
     def _get_time_factor(self, time_var):
@@ -403,7 +441,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             return None, None
 
         if time_unit == myokit.units.ms:
-            return myokit.Number(1), myokit.Number(1)
+            return None, None
 
         time_factor = time_factor_inv = None
 
