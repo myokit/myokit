@@ -48,6 +48,7 @@ keywords = [
     'heaviside',
     'in',
     'log',
+    'M',
     'out',
     'pow',
     'sigmoid',
@@ -55,5 +56,6 @@ keywords = [
     'sqrt',
     't',
     'tan',
-    'u'
+    'u',
+    'Vc',
 ]

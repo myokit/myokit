@@ -62,7 +62,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Generate DiffSL model
         diffsl_model = self._generate_diffsl(
             model,
-            exclude_vars=[var_dict['time']],
             extra_out_vars=var_dict['currents'],
         )
 
@@ -88,7 +87,6 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Get / try to guess some model variables
         time = model.time()  # engine.time
-        pace = model.binding('pace')  # engine.pace
         vm = self._guess_membrane_potential(model)  # Vm
         cm = guess.membrane_capacitance(model)  # Cm
         currents = self._guess_currents(model)
@@ -105,15 +103,12 @@ class DiffSLExporter(myokit.formats.Exporter):
 
             time_factor, time_factor_inv = self._get_time_factor(time)
 
-        # Remove variables we don't want to export
-        self._remove_variable(pace)
-
         # Add intermediary variables on rhs of state derivatives
         self._prep_derivatives(model)
 
-        return {'time': time, 'currents': currents}
+        return {'currents': currents}
 
-    def _generate_diffsl(self, model, exclude_vars=None, extra_out_vars=None):
+    def _generate_diffsl(self, model, extra_out_vars=None):
         """
         Generate a DiffSL model from a prepped Myokit model.
         DiffSL outputs will be set to state variables and extra_out_vars
@@ -121,6 +116,10 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Create DiffSL-compatible variable names
         var_to_name = self._create_diffsl_variable_names(model)
+
+        # Set pace variable name to Vc
+        pace = model.binding('pace')
+        var_to_name[pace] = 'Vc'
 
         # Create a naming function
         def var_name(e):
@@ -147,12 +146,12 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Variables to be excluded from output or handled separately.
         # Derivatives and their intermediary variables (i.e. dot(x) and dot_x)
         # are handled in dudt_i, F_i and G_i
+        time = model.time()
         special_vars = set(
-            [v.rhs().var() for v in model.states()]
+            [time, pace]
+            + [v.rhs().var() for v in model.states()]
             + [v.lhs().var() for v in model.states()]
         )
-        if exclude_vars:
-            special_vars = special_vars.union(exclude_vars)
 
         # Add metadata
         export_lines.append('/*')
@@ -168,6 +167,13 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Add empty input parameter list
         export_lines.append('/* Input parameters */')
         export_lines.append('in = [ ]')
+        export_lines.append('')
+
+        # Add placeholder protocol
+        export_lines.append('/* Voltage protocol [mV] */')
+        export_lines.append(
+            'Vc { -80 + 120 * heaviside(t - 500) - 80 * heaviside(t - 1000) }'
+        )
         export_lines.append('')
 
         # Add constants
@@ -316,7 +322,7 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Detect names with special meanings
         def special_start(name):
-            prefixes = ['dudt', 'F', 'G', 'in', 'out', 'u']
+            prefixes = ['dudt', 'F', 'G', 'in', 'M', 'out', 'u']
             for prefix in prefixes:
                 if name.startswith(prefix + '_'):
                     return True
