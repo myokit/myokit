@@ -475,8 +475,8 @@ class DiffSLExporter(myokit.formats.Exporter):
 
     def _guess_membrane_potential(self, model):
         """
-        Tries to find the membrane potential. If it is not a state, converts
-        it to one so that expressions depending on it are not seen as constants.
+        Tries to find the membrane potential. If it's not a state, converts it
+        to one so that expressions depending on it are not seen as constants.
         """
         vm = guess.membrane_potential(model)
         if not vm.is_state():

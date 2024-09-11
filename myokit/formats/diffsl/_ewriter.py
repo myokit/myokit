@@ -86,8 +86,11 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
     def _ex_equal(self, e):
         # (a == b) == heaviside(a - b) * heaviside(b - a)
-        return self.ex(myokit.And(myokit.MoreEqual(e[0], e[1]),
-                                  myokit.LessEqual(e[0], e[1])))
+        return self.ex(
+            myokit.And(
+                myokit.MoreEqual(e[0], e[1]), myokit.LessEqual(e[0], e[1])
+            )
+        )
 
     def _ex_less(self, e):
         # (a < b) == 1 - heaviside(a - b)
@@ -128,7 +131,9 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
         if isinstance(e[0], myokit.Or):
             # not(a or b) == not(a) and not(b)
-            return self.ex(myokit.And(myokit.Not(e[0][0]), myokit.Not(e[0][1])))
+            return self.ex(
+                myokit.And(myokit.Not(e[0][0]), myokit.Not(e[0][1]))
+            )
 
         # not(a) == (1 - a), where a is in {0, 1}
         return f'(1 - {self.ex(e[0])})'
@@ -139,8 +144,9 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
     def _ex_or(self, e):
         # a or b == not(not(a) and not(b)), where a, b are in {0, 1}
-        return self.ex(myokit.Not(myokit.And(myokit.Not(e[0]),
-                                             myokit.Not(e[1]))))
+        return self.ex(
+            myokit.Not(myokit.And(myokit.Not(e[0]), myokit.Not(e[1])))
+        )
 
     # -- Conditional expressions
 

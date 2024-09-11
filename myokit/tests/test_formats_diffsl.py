@@ -23,7 +23,7 @@ from myokit.tests import DIR_DATA, TemporaryDirectory, WarningCollector
 # Model that requires unit conversion
 units_model = """
 [[model]]
-membrane.V = -0.08
+mbrn.V = -0.08
 hh.x = 0.1
 hh.y = 0.9
 mm.C = 0.9
@@ -33,7 +33,7 @@ time = 0 [s]
     in [s]
     bind time
 
-[membrane]
+[mbrn]
 dot(V) = (hh.I1 + mm.I2) / C
     in [V]
 C = 20 [pF]
@@ -49,7 +49,7 @@ dot(y) = alpha * (1 - y) - beta * y
         in [1/s]
     beta = 0.2 [1/s]
         in [1/s]
-I1 = 3 [pS] * x * y * (membrane.V - 0.05 [V])
+I1 = 3 [pS] * x * y * (mbrn.V - 0.05 [V])
     in [pA]
 
 [mm]
@@ -59,7 +59,7 @@ alpha = 0.3 [1/s]
 beta = 0.4 [1/s]
     in [1/s]
 O = 1 - C
-I2 = 2 [pS] * O * (membrane.V + 0.02 [V])
+I2 = 2 [pS] * O * (mbrn.V + 0.02 [V])
     in [pA]
 """
 
@@ -81,41 +81,41 @@ hhZdotZyZbeta { 0.2 * 0.001 } /* hh.dot_y.beta [S/F] */
 mmZalpha { 0.3 } /* mm.alpha [S/F] */
 mmZbeta { 0.4 } /* mm.beta [S/F] */
 
-/* Constants: membrane */
-membraneZC { 20.0 } /* membrane.C [pF] */
+/* Constants: mbrn */
+mbrnZC { 20.0 } /* mbrn.C [pF] */
 
 /* Initial conditions */
 u_i {
-  membraneZV = -80.0, /* membrane.V [mV] */
+  mbrnZV = -80.0, /* mbrn.V [mV] */
   hhZx = 0.1, /* hh.x */
   hhZy = 0.9, /* hh.y */
   mmZC = 0.9, /* mm.C */
 }
 
 dudt_i {
-  membraneZdotZV = -80.0,
+  mbrnZdotZV = -80.0,
   hhZdotZx = 0.1,
   hhZdotZy = 0.9,
   mmZdotZC = 0.9,
 }
 
 /* Variables: hh */
-hhZI1 { 3.0 * hhZx * hhZy * (membraneZV / 1000.0 - 0.05) * 0.05 } /* hh.I1 [A/F] */
+hhZI1 { 3.0 * hhZx * hhZy * (mbrnZV / 1000.0 - 0.05) * 0.05 } /* hh.I1 [A/F] */
 
 /* Variables: mm */
 mmZO { 1.0 - mmZC } /* mm.O */
-mmZI2 { 2.0 * mmZO * (membraneZV / 1000.0 + 0.02) * 0.05 } /* mm.I2 [A/F] */
+mmZI2 { 2.0 * mmZO * (mbrnZV / 1000.0 + 0.02) * 0.05 } /* mm.I2 [A/F] */
 
 /* Solve */
 F_i {
-  membraneZdotZV,
+  mbrnZdotZV,
   hhZdotZx,
   hhZdotZy,
   mmZdotZC,
 }
 
 G_i {
-  (hhZI1 / 0.05 + mmZI2 / 0.05) / membraneZC * 1000.0 * 0.001,
+  (hhZI1 / 0.05 + mmZI2 / 0.05) / mbrnZC * 1000.0 * 0.001,
   (hhZdotZxZinf - hhZx) / hhZdotZxZtau * 0.001,
   (hhZdotZyZalpha * (1.0 - hhZy) - hhZdotZyZbeta * hhZy) * 0.001,
   (mmZbeta * mmZO - mmZalpha * mmZC) * 0.001,
@@ -126,7 +126,7 @@ out_i {
   hhZI1,
   hhZx,
   hhZy,
-  membraneZV,
+  mbrnZV,
   mmZC,
   mmZI2,
 }
@@ -207,8 +207,8 @@ class DiffSLExporterTest(unittest.TestCase):
         self.assertEqual(len(observed), len(expected))
 
         # Test warnings are raised if conversion fails
-        m.get('membrane.V').set_rhs('hh.I1 + mm.I2')
-        m.get('membrane').remove_variable(m.get('membrane.C'))
+        m.get('mbrn.V').set_rhs('hh.I1 + mm.I2')
+        m.get('mbrn').remove_variable(m.get('mbrn.C'))
         with TemporaryDirectory() as d:
             path = d.path('diffsl.model')
             with WarningCollector() as c:
@@ -566,7 +566,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             # (a == b) and (c != d)
             result = int((a == b) and (c != d))
             expr = self.w.ex(
-                And(Equal(Number(a), Number(b)), NotEqual(Number(c), Number(d)))
+                And(
+                    Equal(Number(a), Number(b)), NotEqual(Number(c), Number(d))
+                )
             )
             self.assertEqual(eval(expr), result)
 
@@ -634,7 +636,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             # piecewise(a >= b, c, d)
             result = c if (a >= b) else d
             expr = self.w.ex(
-                Piecewise(MoreEqual(Number(a), Number(b)), Number(c), Number(d))
+                Piecewise(
+                    MoreEqual(Number(a), Number(b)), Number(c), Number(d)
+                )
             )
             self.assertEqual(eval(expr), result)
 
@@ -648,7 +652,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             # piecewise(a <= b, c, d)
             result = c if (a <= b) else d
             expr = self.w.ex(
-                Piecewise(LessEqual(Number(a), Number(b)), Number(c), Number(d))
+                Piecewise(
+                    LessEqual(Number(a), Number(b)), Number(c), Number(d)
+                )
             )
             self.assertEqual(eval(expr), result)
 
