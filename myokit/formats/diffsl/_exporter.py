@@ -119,7 +119,8 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Set pace variable name to Vc
         pace = model.binding('pace')
-        var_to_name[pace] = 'Vc'
+        if pace:
+            var_to_name[pace] = 'Vc'
 
         # Create a naming function
         def var_name(e):
@@ -148,10 +149,12 @@ class DiffSLExporter(myokit.formats.Exporter):
         # are handled in dudt_i, F_i and G_i
         time = model.time()
         special_vars = set(
-            [time, pace]
+            [time]
             + [v.rhs().var() for v in model.states()]
             + [v.lhs().var() for v in model.states()]
         )
+        if pace:
+            special_vars.add(pace)
 
         # Add metadata
         export_lines.append('/*')
@@ -170,11 +173,12 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('')
 
         # Add placeholder protocol
-        export_lines.append('/* Voltage protocol [mV] */')
-        export_lines.append(
-            'Vc { -80 + 120 * heaviside(t - 500) - 80 * heaviside(t - 1000) }'
-        )
-        export_lines.append('')
+        if pace:
+            export_lines.append('/* Voltage protocol [mV] */')
+            export_lines.append(
+                'Vc { -80 + 120 * heaviside(t-500) - 80 * heaviside(t-1000) }'
+            )
+            export_lines.append('')
 
         # Add constants
         const_vars = (
