@@ -40,6 +40,9 @@ name: Decker2009
 /* Input parameters */
 in = [ ]
 
+/* Voltage protocol [mV] */
+Vc { -80 + 120 * heaviside(t-500) - 80 * heaviside(t-1000) }
+
 /* Constants: calciumb */
 calciumbZBSLBar { 1.124 } /* calciumb.BSLBar */
 calciumbZBSRBar { 0.047 } /* calciumb.BSRBar */
@@ -337,9 +340,6 @@ calciumbZCaZsrZb { calciumbZsum2 - calciumZuCaZsr } /* calciumb.Ca_sr.b */
 calciumbZCaZsrZc { calciumbZproZsum2 - calciumbZKmZsum2 * calciumZuCaZsr } /* calciumb.Ca_sr.c */
 calciumbZCaZsr { -calciumbZCaZsrZb / 3.0 + 2.0 / 3.0 * sqrt(calciumbZCaZsrZb * calciumbZCaZsrZb - 3.0 * calciumbZCaZsrZc) * cos(acos((9.0 * calciumbZCaZsrZb * calciumbZCaZsrZc - 2.0 * pow(calciumbZCaZsrZb, 3.0) - 27.0 * calciumbZCaZsrZd) / (2.0 * pow(calciumbZCaZsrZb * calciumbZCaZsrZb - 3.0 * calciumbZCaZsrZc, 1.5))) / 3.0) } /* calciumb.Ca_sr [mM] */
 
-/* Variables: engine */
-engineZpace { 0.0 } /* engine.pace */
-
 /* Variables: common */
 commonZvf { membraneZV * physZFRT } /* common.vf */
 commonZevf { exp(commonZvf) } /* common.evf */
@@ -533,7 +533,7 @@ irelZinf { icalZICaL * irelZalpha / (1.0 + pow(1.0 / calciumZCaZjsr, 8.0)) } /* 
 
 /* Variables: membrane */
 membraneZiZion { sodiumZINaZtot + potassiumZIKZtot + calciumZICaZtot + chlorideZIClZtot } /* membrane.i_ion [A/F] */
-membraneZiZstim { engineZpace * membraneZstimZamplitude } /* membrane.i_stim [A/F] */
+membraneZiZstim { Vc * membraneZstimZamplitude } /* membrane.i_stim [A/F] */
 
 /* Solve */
 F_i {

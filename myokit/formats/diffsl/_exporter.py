@@ -115,12 +115,12 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         for var in model.states():
             inf_tau = hh.get_inf_and_tau(var, vm)
-            if inf_tau:
+            if inf_tau is not None:
                 taus.add(inf_tau[1])
                 continue
 
             alpha_beta = hh.get_alpha_and_beta(var, vm)
-            if alpha_beta:
+            if alpha_beta is not None:
                 alphas.add(alpha_beta[0])
                 betas.add(alpha_beta[1])
                 continue
@@ -152,9 +152,7 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Create a naming function
         def var_name(e):
-            if isinstance(e, myokit.Derivative):
-                return 'd' + var_to_name[e.var()] + 'dt'
-            elif isinstance(e, myokit.LhsExpression):
+            if isinstance(e, myokit.LhsExpression):
                 return var_to_name[e.var()]
             elif isinstance(e, myokit.Variable):
                 return var_to_name[e]
@@ -183,7 +181,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             + [v.rhs().var() for v in model.states()]
             + [v.lhs().var() for v in model.states()]
         )
-        if pace:
+        if pace is not None:
             special_vars.add(pace)
 
         # Add metadata
@@ -203,7 +201,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('')
 
         # Add placeholder protocol
-        if pace:
+        if pace is not None:
             export_lines.append('/* Voltage protocol [mV] */')
             export_lines.append(
                 'Vc { -80 + 120 * heaviside(t-500) - 80 * heaviside(t-1000) }'
@@ -388,7 +386,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         needs_renaming = collections.OrderedDict()
 
         pace = model.binding('pace')  # Reserve 'Vc' for pace variable
-        if pace:
+        if pace is not None:
             needs_renaming['Vc'] = []
 
         for keyword in keywords:
@@ -416,7 +414,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             # Add a number to the end of the name, increasing it until it's
             # unique
             i = 1
-            root = name + uscore
+            root = name
             for var in variables:
                 name = f'{root}{uscore}{i}'
                 while name in name_to_var:
@@ -425,7 +423,7 @@ class DiffSLExporter(myokit.formats.Exporter):
                 var_to_name[var] = name
                 name_to_var[name] = var
 
-        if pace:
+        if pace is not None:
             var_to_name[pace] = 'Vc'
 
         return var_to_name
