@@ -35,7 +35,7 @@ time = 0 [s]
     bind time
 
 [ideal]
-Vc = engine.pace * 1 [mV]
+Vc = engine.pace * 1
 
 [mbrn]
 dot(V) = (hh.I1 + mm.I2 + F_i.I3) / C
@@ -59,7 +59,8 @@ I1 = 3 [pS] * x * y * (mbrn.V - 0.05 [V])
     in [pA]
 
 [mm]
-dot(C) = beta * O - alpha * C
+dot_C = beta * O - alpha * C
+dot(C) = dot_C
 alpha = 0.3 [1/s]
     in [1/s]
 beta = 0.4 [1/s]
@@ -70,8 +71,9 @@ I2 = 2 [pS] * O * (mbrn.V + 0.02 [V])
 
 [F_i]
 I3 = 2 [pS] * mm.O * (mbrn.V + 0.02 [V])
-I_i = 1 [pA]
-IZi = 1 [pA]
+I_0_1 = 1 [pA]
+IZ0_1 = 1 [pA]
+IZ0Z1 = 1 [pA]
 """
 
 units_output = """
@@ -96,8 +98,9 @@ mmZalpha { 0.3 } /* mm.alpha [S/F] */
 mmZbeta { 0.4 } /* mm.beta [S/F] */
 
 /* Constants: F_i */
-varZFZiZIZiZ1 { 1.0 } /* F_i.IZi */
-varZFZiZIZiZ2 { 1.0 } /* F_i.I_i */
+varZFZiZIZ0Z1Z1 { 1.0 } /* F_i.IZ0Z1 */
+varZFZiZIZ0Z1Z2 { 1.0 } /* F_i.IZ0_1 */
+varZFZiZIZ0Z1Z3 { 1.0 } /* F_i.I_0_1 */
 
 /* Constants: mbrn */
 mbrnZC { 20.0 } /* mbrn.C [pF] */
@@ -114,7 +117,7 @@ dudt_i {
   mbrnZdotZV = -80.0,
   hhZdotZx = 0.1,
   hhZdotZy = 0.9,
-  mmZdotZC = 0.9,
+  mmZdotZCZ1 = 0.9,
 }
 
 /* Variables: hh */
@@ -123,6 +126,7 @@ hhZI1 { 3.0 * hhZx * hhZy * (mbrnZV / 1000.0 - 0.05) * 0.05 } /* hh.I1 [A/F] */
 /* Variables: mm */
 mmZO { 1.0 - mmZC } /* mm.O */
 mmZI2 { 2.0 * mmZO * (mbrnZV / 1000.0 + 0.02) * 0.05 } /* mm.I2 [A/F] */
+mmZdotZC { mmZbeta * mmZO - mmZalpha * mmZC } /* mm.dot_C */
 
 /* Variables: F_i */
 varZFZiZI3 { 2.0 * mmZO * (mbrnZV / 1000.0 + 0.02) } /* F_i.I3 */
@@ -138,14 +142,14 @@ F_i {
   mbrnZdotZV,
   hhZdotZx,
   hhZdotZy,
-  mmZdotZC,
+  mmZdotZCZ1,
 }
 
 G_i {
   (hhZI1 / 0.05 + mmZI2 / 0.05 + varZFZiZI3) / mbrnZC * 1000.0 * 0.001,
   (hhZdotZxZinf - hhZx) / hhZdotZxZtau * 0.001,
   (hhZdotZyZalpha * (1.0 - hhZy) - hhZdotZyZbeta * hhZy) * 0.001,
-  (mmZbeta * mmZO - mmZalpha * mmZC) * 0.001,
+  mmZdotZC * 0.001,
 }
 
 /* Output */
@@ -233,6 +237,17 @@ class DiffSLExporterTest(unittest.TestCase):
         for ob, ex in zip(observed, expected):
             self.assertEqual(ob, ex)
         self.assertEqual(len(observed), len(expected))
+
+        # Check time and V conversion is not done if in ms and mV
+        m.get('engine.time').set_unit(myokit.units.ms)
+        m.get('mbrn.V').set_unit(myokit.units.mV)
+        with TemporaryDirectory() as d:
+            path = d.path('diffsl.model')
+            e.model(path, m)
+            with open(path, 'r') as f:
+                observed = f.read().strip()
+        self.assertNotIn('* 1000.0', observed)
+        self.assertNotIn('* 0.001', observed)
 
         # Test warnings are raised if conversion fails
         m.get('mbrn.V').set_rhs('hh.I1 + mm.I2')

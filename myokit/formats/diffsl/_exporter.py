@@ -384,13 +384,12 @@ class DiffSLExporter(myokit.formats.Exporter):
         from . import keywords
 
         needs_renaming = collections.OrderedDict()
+        for keyword in keywords:
+            needs_renaming[keyword] = []
 
         pace = model.binding('pace')  # Reserve 'Vc' for pace variable
         if pace is not None:
             needs_renaming['Vc'] = []
-
-        for keyword in keywords:
-            needs_renaming[keyword] = []
 
         # Find naming conflicts, create inverse mapping
         name_to_var = collections.OrderedDict()
@@ -517,23 +516,7 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Remove temporary variables
         for var in tmp_vars:
-            self._remove_variable(var)
-
-    def _remove_variable(self, var):
-        """
-        Remove variable from its model.
-        """
-        if var is None:
-            return
-
-        # Replace references to this variable with 0
-        refs = list(var.refs_by())
-        subst = {var.lhs(): myokit.Number(0)}
-        for ref in refs:
-            ref.set_rhs(ref.rhs().clone(subst=subst))
-
-        # Remove variable
-        var.parent().remove_variable(var)
+            var.parent().remove_variable(var)
 
     def supports_model(self):
         """See :meth:`myokit.formats.Exporter.supports_model()`."""
