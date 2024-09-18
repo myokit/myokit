@@ -160,6 +160,11 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         # General expression:
         # if(_i, _t, _e) -> _t * _i + _e * not(_i), where _i is in {0,1}
 
+        # Shorten expression if _t == _e
+        # if(_i, _t, _t) -> _t
+        if e._t == e._e:
+            return self.ex(e._t)
+
         _if = self.ex(e._i)
 
         if e._t == myokit.Number(0):
