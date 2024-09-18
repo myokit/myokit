@@ -485,6 +485,18 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         )
 
         self.eq(
+            If(Equal(a, b), c, Number(1)),
+            '(c * heaviside(a - b) * heaviside(b - a)'
+            ' + (1 - heaviside(a - b) * heaviside(b - a)))',
+        )
+
+        self.eq(
+            If(Equal(a, b), Number(1), d),
+            '(heaviside(a - b) * heaviside(b - a)'
+            ' + d * (1 - heaviside(a - b) * heaviside(b - a)))'
+        )
+
+        self.eq(
             If(NotEqual(a, b), c, d),
             '(c * (1 - heaviside(a - b) * heaviside(b - a))'
             ' + d * heaviside(a - b) * heaviside(b - a))',

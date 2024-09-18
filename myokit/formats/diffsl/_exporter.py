@@ -34,7 +34,7 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         A :class:`myokit.ExportError` will be raised if any errors occur.
         Warnings will be generated if unsupported functions (e.g. atan) are
-        used in the model. For a full list, see 
+        used in the model. For a full list, see
         :class:`myokit.formats.diffsl.DiffSLExpressionWriter
         <DiffSLExpressionWriter>`.
 
@@ -50,6 +50,12 @@ class DiffSLExporter(myokit.formats.Exporter):
             If set to ``True`` (default), the method will attempt to convert to
             preferred units for voltage (mV), current (A/F), and time (ms).
         """
+        # Raise exception if protocol is set
+        if protocol is not None:
+            raise ValueError(
+                'DiffSL export does not support an input protocol.'
+            )
+
         # Raise exception if path is unwritable
         self._test_writable_dir(os.path.dirname(path))
 
@@ -60,7 +66,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             raise myokit.ExportError(
                 'DiffSL export requires a valid model.'
             ) from e
-Raise  ValueError if protocol is set
+
         # Prepare model for export
         model, currents = self._prep_model(model, convert_units)
 

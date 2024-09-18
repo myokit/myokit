@@ -18,8 +18,14 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
     This :class:`ExpressionWriter <myokit.formats.ExpressionWriter>` writes
     equations for variables in DiffSL syntax.
 
-    For details of the language, see
-    https://martinjrobins.github.io/diffsl/
+    For details of the language, see https://martinjrobins.github.io/diffsl/.
+
+    Warnings will be generated if unsupported functions are used in the model.
+    Unsupported functions: `acos`, `asin`, `atan`, `ceil`, `floor`.
+
+    Support for logic expressions is implemented with heaviside functions.
+    For example, `(a >= b)` is converted to `heaviside(a - b)`.
+
     """
 
     def __init__(self):
@@ -151,30 +157,51 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
     # -- Conditional expressions
 
     def _ex_if(self, e):
+        # General expression:
+        # if(_i, _t, _e) -> _t * _i + _e * not(_i), where _i is in {0,1}
+
         _if = self.ex(e._i)
-        _then = self.ex(e._t)
-        _else = self.ex(e._e)
+
+        if e._t == myokit.Number(0):
+            # Shorten expression if 'then' is 0
+            # if(_i, 0, _e) -> _e * not(_i)
+            _then_x_if = ''
+        elif e._t == myokit.Number(1):
+            # Shorten expression if 'then' is 1
+            # if(_i, 1, _e) -> _i + _e * not(_i)
+            _then_x_if = _if
+        else:
+            _then_x_if = self.ex(e._t) + ' * ' + _if
 
         _not_if = self.ex(myokit.Not(e._i))
 
         if e._e == myokit.Number(0):
-            return f'{_then} * {_if}'
+            # Shorten expression if 'else' is 0
+            # if(_i, _t, 0) -> _t * _i
+            _else_x_not_if = ''
+        elif e._e == myokit.Number(1):
+            # Shorten expression if 'else' is 1
+            # if(_i, _t, 1) -> _t * _i + not(_i)
+            _else_x_not_if = _not_if
+        else:
+            _else_x_not_if = self.ex(e._e) + ' * ' + _not_if
 
-        if e._t == myokit.Number(0):
-            return f'{_else} * {_not_if}'
+        if _then_x_if == '':
+            return f'{_else_x_not_if}'
 
-        return f'({_then} * {_if} + {_else} * {_not_if})'
+        if _else_x_not_if == '':
+            return f'{_then_x_if}'
+
+        return f'({_then_x_if} + {_else_x_not_if})'
 
     def _ex_piecewise(self, e):
         # Convert piecewise to nested ifs
         # e.g. piecewise(a, b, c, d, e) -> if(a, b, if(c, d, e))
         n = len(e._i)
 
-        _nested_ifs = None
-        _else = e._e[n]
+        _nested_ifs = e._e[n]
 
         for i in range(n - 1, -1, -1):
-            _nested_ifs = myokit.If(e._i[i], e._e[i], _else)
-            _else = _nested_ifs
+            _nested_ifs = myokit.If(e._i[i], e._e[i], _nested_ifs)
 
         return self._ex_if(_nested_ifs)
