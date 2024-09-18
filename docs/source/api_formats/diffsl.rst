@@ -1,13 +1,13 @@
 .. _formats/diffsl:
 
-***********************
+******
 DiffSL
-***********************
+******
 
-Experimental export is provided for ``DiffSL``.
+Myokit provides partial export of models to the `DiffSL language <https://martinjrobins.github.io/diffsl/>`_.
 
-Imports, exporters, and expression writers
-==========================================
+Exporters and expression writers
+================================
 
 .. module:: myokit.formats.diffsl
 
