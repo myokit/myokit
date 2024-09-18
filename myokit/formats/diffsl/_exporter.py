@@ -33,6 +33,10 @@ class DiffSLExporter(myokit.formats.Exporter):
         the file indicated by ``path``.
 
         A :class:`myokit.ExportError` will be raised if any errors occur.
+        Warnings will be generated if unsupported functions (e.g. atan) are
+        used in the model. For a full list, see 
+        :class:`myokit.formats.diffsl.DiffSLExpressionWriter
+        <DiffSLExpressionWriter>`.
 
         Arguments:
 
@@ -43,7 +47,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         ``protocol``
             Not implemented!
         ``convert_units``
-            If set to ``True``, the method will attempt to convert to
+            If set to ``True`` (default), the method will attempt to convert to
             preferred units for voltage (mV), current (A/F), and time (ms).
         """
         # Raise exception if path is unwritable
@@ -56,7 +60,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             raise myokit.ExportError(
                 'DiffSL export requires a valid model.'
             ) from e
-
+Raise  ValueError if protocol is set
         # Prepare model for export
         model, currents = self._prep_model(model, convert_units)
 
@@ -242,7 +246,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('}')
         export_lines.append('')
 
-        # Add initial conditions `dudt_i`
+        # Add state derivatives `dudt_i`
         export_lines.append('dudt_i {')
         for v in model.states():
             lhs = var_name(v.rhs())  # Use intermediary dot_x instead of dot(x)
@@ -396,7 +400,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         for var, name in var_to_name.items():
 
             # Known conflict?
-            if name in needs_renaming.keys():
+            if name in needs_renaming:
                 needs_renaming[name].append(var)
                 continue
 
