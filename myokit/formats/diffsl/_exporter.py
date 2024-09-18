@@ -5,14 +5,12 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
-import os
 import warnings
 
 import myokit
 import myokit.formats
 import myokit.formats.diffsl as diffsl
 import myokit.lib.guess as guess
-import myokit.lib.hh as hh
 import myokit.lib.markov as markov
 
 
@@ -56,9 +54,6 @@ class DiffSLExporter(myokit.formats.Exporter):
                 'DiffSL export does not support an input protocol.'
             )
 
-        # Raise exception if path is unwritable
-        self._test_writable_dir(os.path.dirname(path))
-
         # Check model validity
         try:
             model.validate()
@@ -71,10 +66,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         model, currents = self._prep_model(model, convert_units)
 
         # Generate DiffSL model
-        diffsl_model = self._generate_diffsl(
-            model,
-            extra_out_vars=currents,
-        )
+        diffsl_model = self._generate_diffsl(model, currents)
 
         # Write DiffSL model to file
         with open(path, 'w') as f:
@@ -102,11 +94,18 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Get / try to guess some model variables
         time = model.time()  # engine.time
-        vm = self._guess_membrane_potential(model)  # Vm
+        vm = guess.membrane_potential(model)  # Vm
         cm = guess.membrane_capacitance(model)  # Cm
         currents = self._guess_currents(model)
 
-        time_factor = time_factor_inv = None
+        # Check for explicit time dependence
+        time_refs = list(time.refs_by())
+        if time_refs:
+            raise myokit.ExportError(
+                'DiffSL export does not support explicit time dependence:\n'
+                + '\n'.join([f'{v} = {v.rhs()}' for v in time_refs])
+            )
+
         if convert_units:
             # Convert currents to A/F
             helpers = [] if cm is None else [cm.rhs()]
@@ -116,45 +115,27 @@ class DiffSLExporter(myokit.formats.Exporter):
             # Convert potentials to mV
             self._convert_potential_unit(vm)
 
-            time_factor, time_factor_inv = self._get_time_factor(time)
+            # Convert time to ms
+            if time.unit() != myokit.units.ms:
+                self._convert_unit(time, 'ms')
 
-        # Find HH state variables and their alphas, betas, and taus
-        alphas = set()
-        betas = set()
-        taus = set()
-
-        for var in model.states():
-            inf_tau = hh.get_inf_and_tau(var, vm)
-            if inf_tau is not None:
-                taus.add(inf_tau[1])
-                continue
-
-            alpha_beta = hh.get_alpha_and_beta(var, vm)
-            if alpha_beta is not None:
-                alphas.add(alpha_beta[0])
-                betas.add(alpha_beta[1])
-                continue
-
-        # Add time conversion factor for states and HH variables
-        if time_factor is not None:
-            for var in model.states():
-                var.set_rhs(myokit.Multiply(var.rhs(), time_factor_inv))
-            for var in alphas:
-                var.set_rhs(myokit.Multiply(var.rhs(), time_factor_inv))
-            for var in betas:
-                var.set_rhs(myokit.Multiply(var.rhs(), time_factor_inv))
-            for var in taus:
-                var.set_rhs(myokit.Multiply(var.rhs(), time_factor))
-
-        # Add intermediary variables on rhs of state derivatives
-        self._prep_derivatives(model)
+        # Add intermediary variables for state derivatives with rhs references
+        # Before:
+        #   dot(x) = x / 5
+        #   y = 1 + dot(x)
+        # After:
+        #   dot_x =  x / 5
+        #   dot(x) = dot_x
+        #   y = 1 + dot_x
+        model.remove_derivative_references()
 
         return model, currents
 
-    def _generate_diffsl(self, model, extra_out_vars=None):
+    def _generate_diffsl(self, model, currents=None):
         """
         Generate a DiffSL model from a prepped Myokit model.
-        DiffSL outputs will be set to state variables and extra_out_vars
+        DiffSL outputs will be set to state variables and currents
+        in alphabetical order.
         """
 
         # Create DiffSL-compatible variable names
@@ -162,7 +143,9 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Create a naming function
         def var_name(e):
-            if isinstance(e, myokit.LhsExpression):
+            if isinstance(e, myokit.Derivative):
+                return var_to_name[e]
+            elif isinstance(e, myokit.LhsExpression):
                 return var_to_name[e.var()]
             elif isinstance(e, myokit.Variable):
                 return var_to_name[e]
@@ -181,16 +164,15 @@ class DiffSLExporter(myokit.formats.Exporter):
         sorted_eqs = model.solvable_order()
 
         # Variables to be excluded from output or handled separately.
+        # All derivatives are assigned intermediary variables during model
+        # prep i.e. dot(x) = x/5 becomes dot(x) = dot_x; dot_x = x/5.
         # Derivatives and their intermediary variables (i.e. dot(x) and dot_x)
         # are handled in dudt_i, F_i and G_i; time is excluded from the output;
-        # pace is made Vc.
+        # pace is handled separately.
         time = model.time()
         pace = model.binding('pace')
-        special_vars = set(
-            [time]
-            + [v.rhs().var() for v in model.states()]
-            + [v.lhs().var() for v in model.states()]
-        )
+        special_vars = set(v for v in model.states())
+        special_vars.add(time)
         if pace is not None:
             special_vars.add(pace)
 
@@ -210,12 +192,17 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('in = [ ]')
         export_lines.append('')
 
-        # Add placeholder protocol
+        # Add pace
         if pace is not None:
-            export_lines.append('/* Voltage protocol [mV] */')
+            export_lines.append('/* Engine: pace */')
             export_lines.append(
-                'Vc { -80 + 120 * heaviside(t-500) - 80 * heaviside(t-1000) }'
+                '/* E.g. { -80 + 120*heaviside(t-10) - 80*heaviside(t-20) } */'
             )
+            lhs = var_name(pace)
+            rhs = e.ex(pace.rhs())
+            qname = pace.qname()
+            unit = '' if pace.unit() is None else f' {pace.unit()}'
+            export_lines.append(f'{lhs} {{ {rhs} }} /* {qname}{unit} */')
             export_lines.append('')
 
         # Add constants
@@ -245,7 +232,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('u_i {')
         for v in model.states():
             lhs = var_name(v)
-            rhs = myokit.float.str(v.initial_value(as_float=True))
+            rhs = v.initial_value()
             qname = v.qname()
             unit = '' if v.unit() is None else f' {v.unit()}'
             export_lines.append(f'{tab}{lhs} = {rhs}, /* {qname}{unit} */')
@@ -255,9 +242,8 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Add state derivatives `dudt_i`
         export_lines.append('dudt_i {')
         for v in model.states():
-            lhs = var_name(v.rhs())  # Use intermediary dot_x instead of dot(x)
-            rhs = myokit.float.str(v.initial_value(as_float=True))
-            export_lines.append(f'{tab}{lhs} = {rhs},')
+            lhs = var_name(v.lhs())
+            export_lines.append(f'{tab}{lhs} = 0,')
         export_lines.append('}')
         export_lines.append('')
 
@@ -287,7 +273,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('/* Solve */')
         export_lines.append('F_i {')
         for v in model.states():
-            lhs = var_name(v.rhs())  # Use intermediary dot_x instead of dot(x)
+            lhs = var_name(v.lhs())
             export_lines.append(f'{tab}{lhs},')
         export_lines.append('}')
         export_lines.append('')
@@ -295,18 +281,18 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Add `G_i`
         export_lines.append('G_i {')
         for v in model.states():
-            rhs = e.ex(v.rhs().rhs())  # Use rhs of intermediary dot_x
+            rhs = e.ex(v.rhs())
             export_lines.append(f'{tab}{rhs},')
         export_lines.append('}')
         export_lines.append('')
 
-        # Output state variables + extra output variables
+        # Output state variables + currents in alphabetical order
         export_lines.append('/* Output */')
         export_lines.append('out_i {')
         vars = set(model.states())
-        if extra_out_vars:
-            vars = vars.union(extra_out_vars)
-        for v in sorted(vars, key=lambda x: x.qname()):
+        if currents:
+            vars = vars.union(currents)
+        for v in sorted(vars, key=lambda x: var_name(x).lower()):
             lhs = var_name(v)
             export_lines.append(f'{tab}{lhs},')
         export_lines.append('}')
@@ -353,7 +339,7 @@ class DiffSLExporter(myokit.formats.Exporter):
 
     def _create_diffsl_variable_names(self, model):
         """
-        Create diffsl-compatible names for all variables in the model.
+        Create DiffSL-compatible names for all variables in the model.
 
         The following strategy is followed:
          - Fully qualified names are used for all variables.
@@ -362,33 +348,40 @@ class DiffSLExporter(myokit.formats.Exporter):
          - Any conflicts are resolved in a final step by appending a number.
         """
 
-        # Detect names with special meanings
-        def special_start(name):
-            prefixes = ['dudt', 'F', 'G', 'in', 'M', 'out', 'u']
-            for prefix in prefixes:
-                if name.startswith(prefix + '_'):
-                    return True
-            return False
+        # Convert name to a DiffSL-compatible variable name
+        def convert_name(name):
+            # Prepare names like `_1st.Rs` for removal of unsupported chars
+            if not name[0].isalpha():
+                name = 'var' + name
 
-        # Replacement characters for underscores and periods
-        uscore = 'Z'
-        period = 'Z'
+            # Remove unsupported chars like '_' and '.', and stagger case.
+            # Preserves existing staggered case in names e.g.
+            # voltage_clamp.R_seal_MOhm -> voltageClampRSealMOhm
+            # voltageClamp.RSealMOhm -> voltageClampRSealMOhm
+            name_chars = []
+            caps_flag = False
+            for ch in name:
+                if ch.isalpha():
+                    if caps_flag:
+                        name_chars.append(ch.upper())
+                        caps_flag = False
+                    else:
+                        name_chars.append(ch)
+                elif ch.isdigit():
+                    name_chars.append(ch)
+                    caps_flag = True
+                else:
+                    caps_flag = True
 
-        # Create initial variable names
+            return ''.join(name_chars)
+
         var_to_name = collections.OrderedDict()
+
+        # Store initial names for variables
         for var in model.variables(deep=True, sort=True):
-            # Start from fully qualified name
-            name = var.qname()
-
-            # Avoid names with special meaning
-            if special_start(name):
-                name = 'var' + uscore + name
-
-            # Replace unsupported characters
-            name = name.replace('.', period).replace('_', uscore)
-
-            # Store (initial) name for var
-            var_to_name[var] = name
+            var_to_name[var] = convert_name(var.qname())
+            if var.is_state():
+                var_to_name[var.lhs()] = convert_name('diff_' + var.qname())
 
         # Check for conflicts with known keywords
         from . import keywords
@@ -396,10 +389,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         needs_renaming = collections.OrderedDict()
         for keyword in keywords:
             needs_renaming[keyword] = []
-
-        pace = model.binding('pace')  # Reserve 'Vc' for pace variable
-        if pace is not None:
-            needs_renaming['Vc'] = []
 
         # Find naming conflicts, create inverse mapping
         name_to_var = collections.OrderedDict()
@@ -420,53 +409,18 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Resolve naming conflicts
         for name, variables in needs_renaming.items():
-            # Add a number to the end of the name, increasing it until it's
-            # unique
+            # Add a number to the end of the name, increasing until unique
             i = 1
             root = name
             for var in variables:
-                name = f'{root}{uscore}{i}'
+                name = f'{root}{i}'
                 while name in name_to_var:
                     i += 1
-                    name = f'{root}{uscore}{i}'
+                    name = f'{root}{i}'
                 var_to_name[var] = name
                 name_to_var[name] = var
 
-        if pace is not None:
-            var_to_name[pace] = 'Vc'
-
         return var_to_name
-
-    def _get_time_factor(self, time_var):
-        """
-        Get factor to convert time to ms.
-        time_units * time_factor means going from time_units to ms.
-        """
-        time_unit = time_var.unit()
-
-        if time_unit is None:
-            return None, None
-
-        if time_unit == myokit.units.ms:
-            return None, None
-
-        time_factor = time_factor_inv = None
-
-        try:
-            time_factor = myokit.Number(
-                myokit.Unit.conversion_factor(time_unit, myokit.units.ms)
-            )
-            time_factor_inv = myokit.Number(
-                1 / time_factor.eval(), 1 / time_factor.unit()
-            )
-        except myokit.IncompatibleUnitError:
-            warnings.warn(
-                'Unable to convert time units '
-                + str(time_unit)
-                + ' to recommended units of ms.'
-            )
-
-        return time_factor, time_factor_inv
 
     def _guess_currents(self, model):
         """
@@ -479,54 +433,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         ]
         guessed_currents = guess.membrane_currents(model)
         return [x for x in guessed_currents if x.unit() not in unmatch_units]
-
-    def _guess_membrane_potential(self, model):
-        """
-        Tries to find the membrane potential. If it's not a state, converts it
-        to one so that expressions depending on it are not seen as constants.
-        """
-        vm = guess.membrane_potential(model)
-        if not vm.is_state():
-            vm.promote(-80)
-        return vm
-
-    def _prep_derivatives(self, model):
-        """
-        Prepares the model for export by adding intermediary variables for
-        all state derivatives.
-
-        Before:
-            dot(x) = (12 - x) / 5
-            y = 1 + dot(x)
-
-        After:
-            dxdt =  (12 - x) / 5  # dxdt is the intermediary variable
-            dot(x) = dxdt
-            y = 1 + dxdt
-        """
-        # If a derivative doesn't have any rhs references, add a temporary
-        # one. Skip derivatives that already have an intermediary variable.
-        tmp_vars = []
-        for state in model.states():
-            if isinstance(state.rhs(), myokit.Name):
-                continue  # Derivative already has an intermediary variable
-
-            if list(state.refs_by()):
-                continue  # Derivative already has at least one rhs reference
-
-            # Add a temporary rhs reference
-            var = state.parent().add_variable_allow_renaming(
-                'tmp_DiffSL_' + state.name() + '_Myokit'
-            )
-            var.set_rhs(state.lhs())
-            tmp_vars.append(var)
-
-        # Add intermediary variables for state derivatives with rhs refs
-        model.remove_derivative_references()
-
-        # Remove temporary variables
-        for var in tmp_vars:
-            var.parent().remove_variable(var)
 
     def supports_model(self):
         """See :meth:`myokit.formats.Exporter.supports_model()`."""
