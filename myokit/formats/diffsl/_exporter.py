@@ -166,9 +166,8 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Variables to be excluded from output or handled separately.
         # All derivatives are assigned intermediary variables during model
         # prep i.e. dot(x) = x/5 becomes dot(x) = dot_x; dot_x = x/5.
-        # Derivatives and their intermediary variables (i.e. dot(x) and dot_x)
-        # are handled in dudt_i, F_i and G_i; time is excluded from the output;
-        # pace is handled separately.
+        # Derivatives are handled in dudt_i, F_i and G_i; time is excluded
+        # from the output; pace is handled separately.
         time = model.time()
         pace = model.binding('pace')
         special_vars = set(v for v in model.states())
@@ -350,10 +349,6 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Convert name to a DiffSL-compatible variable name
         def convert_name(name):
-            # Prepare names like `_1st.Rs` for removal of unsupported chars
-            if not name[0].isalpha():
-                name = 'var' + name
-
             # Remove unsupported chars like '_' and '.', and stagger case.
             # Preserves existing staggered case in names e.g.
             # voltage_clamp.R_seal_MOhm -> voltageClampRSealMOhm
