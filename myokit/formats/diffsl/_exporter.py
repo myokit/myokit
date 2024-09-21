@@ -291,7 +291,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         vars = set(model.states())
         if currents:
             vars = vars.union(currents)
-        for v in sorted(vars, key=lambda x: var_name(x).lower()):
+        for v in sorted(vars, key=lambda x: var_name(x).swapcase()):
             lhs = var_name(v)
             export_lines.append(f'{tab}{lhs},')
         export_lines.append('}')
