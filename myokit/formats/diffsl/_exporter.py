@@ -364,8 +364,8 @@ class DiffSLExporter(myokit.formats.Exporter):
         for var in model.variables(deep=True, sort=True):
             var_to_name[var] = convert_name(var.qname())
             if var.is_state():
-                qname = var.parent().qname() + '.dot_' + var.name()
-                var_to_name[var.lhs()] = convert_name(qname)
+                dot_qname = var.parent().qname() + '.dot_' + var.name()
+                var_to_name[var.lhs()] = convert_name(dot_qname)
 
         # Check for conflicts with known keywords
         from . import keywords
