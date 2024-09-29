@@ -119,16 +119,6 @@ class DiffSLExporter(myokit.formats.Exporter):
             if time.unit() != myokit.units.ms:
                 self._convert_unit(time, 'ms')
 
-        # Add intermediary variables for state derivatives with rhs references
-        # Before:
-        #   dot(x) = x / 5
-        #   y = 1 + dot(x)
-        # After:
-        #   dot_x =  x / 5
-        #   dot(x) = dot_x
-        #   y = 1 + dot_x
-        model.remove_derivative_references()
-
         return model, currents
 
     def _generate_diffsl(self, model, currents=None):
@@ -164,10 +154,8 @@ class DiffSLExporter(myokit.formats.Exporter):
         sorted_eqs = model.solvable_order()
 
         # Variables to be excluded from output or handled separately.
-        # All derivatives are assigned intermediary variables during model
-        # prep i.e. dot(x) = x/5 becomes dot(x) = dot_x; dot_x = x/5.
-        # Derivatives are handled in dudt_i, F_i and G_i; time is excluded
-        # from the output; pace is handled separately.
+        # State derivatives are handled in dudt_i, F_i and G_i; time is
+        # excluded from the output; pace is handled separately.
         time = model.time()
         pace = model.binding('pace')
         special_vars = set(v for v in model.states())
@@ -376,7 +364,8 @@ class DiffSLExporter(myokit.formats.Exporter):
         for var in model.variables(deep=True, sort=True):
             var_to_name[var] = convert_name(var.qname())
             if var.is_state():
-                var_to_name[var.lhs()] = convert_name('diff_' + var.qname())
+                qname = var.parent().qname() + '.dot_' + var.name()
+                var_to_name[var.lhs()] = convert_name(qname)
 
         # Check for conflicts with known keywords
         from . import keywords
