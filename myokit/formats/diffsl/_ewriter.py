@@ -161,11 +161,11 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         _if = self.ex(e._i)
 
         if isinstance(e._t, Number) and e._t.value() == 0:
-            # Shorten expression if 'then' is 0
+            # Shorten expression if 'then' is 0; unit doesn't matter
             # if(_i, 0, _e) -> _e * not(_i)
             _then_x_if = ''
-        elif isinstance(e._t, Number) and e._t.value() == 1:
-            # Shorten expression if 'then' is 1
+        elif e._t == Number(1):
+            # Shorten expression if 'then' is 1; won't do if there's a unit
             # if(_i, 1, _e) -> _i + _e * not(_i)
             _then_x_if = _if
         else:
@@ -174,11 +174,11 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         _not_if = self.ex(Not(e._i))
 
         if isinstance(e._e, Number) and e._e.value() == 0:
-            # Shorten expression if 'else' is 0
+            # Shorten expression if 'else' is 0; unit doesn't matter
             # if(_i, _t, 0) -> _t * _i
             _else_x_not_if = ''
-        elif isinstance(e._e, Number) and e._e.value() == 1:
-            # Shorten expression if 'else' is 1
+        elif e._e == Number(1):
+            # Shorten expression if 'else' is 1; won't do if there's a unit
             # if(_i, _t, 1) -> _t * _i + not(_i)
             _else_x_not_if = _not_if
         else:
