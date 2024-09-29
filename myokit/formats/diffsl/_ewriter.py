@@ -9,7 +9,8 @@
 #
 import warnings
 
-import myokit
+from myokit import (And, Equal, If, Less, LessEqual, Log, More, MoreEqual, Not,
+                    NotEqual, Number, Or)
 from myokit.formats.ansic import CBasedExpressionWriter
 
 
@@ -70,7 +71,7 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
     def _ex_log10(self, e):
         # Log10(a) = Log(a, 10.0) -> '(log(a) / log(10.0))'
-        return super()._ex_log(myokit.Log(e[0], myokit.Number(10)))
+        return super()._ex_log(Log(e[0], Number(10)))
 
     # def _ex_minus(self, e):
     # def _ex_multiply(self, e):
@@ -92,15 +93,11 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
     def _ex_equal(self, e):
         # (a == b) == heaviside(a - b) * heaviside(b - a)
-        return self.ex(
-            myokit.And(
-                myokit.MoreEqual(e[0], e[1]), myokit.LessEqual(e[0], e[1])
-            )
-        )
+        return self.ex(And(MoreEqual(e[0], e[1]), LessEqual(e[0], e[1])))
 
     def _ex_less(self, e):
         # (a < b) == 1 - heaviside(a - b)
-        return self.ex(myokit.Not(myokit.MoreEqual(e[0], e[1])))
+        return self.ex(Not(MoreEqual(e[0], e[1])))
 
     def _ex_less_equal(self, e):
         # (a <= b) == heaviside(b - a)
@@ -108,7 +105,7 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
     def _ex_more(self, e):
         # (a > b) == 1 - heaviside(b - a)
-        return self.ex(myokit.Not(myokit.LessEqual(e[0], e[1])))
+        return self.ex(Not(LessEqual(e[0], e[1])))
 
     def _ex_more_equal(self, e):
         # (a >= b) == heaviside(a - b)
@@ -119,40 +116,36 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         # Examples:
         # not(not(a)) -> (1 - (1 - a)) == a
         # not(a or b) -> (1 - (1 - (1 - a) * (1 - b))) == (1 - a) * (1 - b)
-        if isinstance(e[0], myokit.Not):
+        if isinstance(e[0], Not):
             # not(not(a)) == a
             return self.ex(e[0][0])
 
-        if isinstance(e[0], myokit.NotEqual):
+        if isinstance(e[0], NotEqual):
             # not(not(a == b)) == (a == b)
-            return self.ex(myokit.Equal(e[0][0], e[0][1]))
+            return self.ex(Equal(e[0][0], e[0][1]))
 
-        if isinstance(e[0], myokit.Less):
+        if isinstance(e[0], Less):
             # not(a < b) == (a >= b)
-            return self.ex(myokit.MoreEqual(e[0][0], e[0][1]))
+            return self.ex(MoreEqual(e[0][0], e[0][1]))
 
-        if isinstance(e[0], myokit.More):
+        if isinstance(e[0], More):
             # not(a > b) == (a <= b)
-            return self.ex(myokit.LessEqual(e[0][0], e[0][1]))
+            return self.ex(LessEqual(e[0][0], e[0][1]))
 
-        if isinstance(e[0], myokit.Or):
+        if isinstance(e[0], Or):
             # not(a or b) == not(a) and not(b)
-            return self.ex(
-                myokit.And(myokit.Not(e[0][0]), myokit.Not(e[0][1]))
-            )
+            return self.ex(And(Not(e[0][0]), Not(e[0][1])))
 
         # not(a) == (1 - a), where a is in {0, 1}
         return f'(1 - {self.ex(e[0])})'
 
     def _ex_not_equal(self, e):
         # (a != b) == 1 - heaviside(a - b) * heaviside(b - a)
-        return self.ex(myokit.Not(myokit.Equal(e[0], e[1])))
+        return self.ex(Not(Equal(e[0], e[1])))
 
     def _ex_or(self, e):
         # a or b == not(not(a) and not(b)), where a, b are in {0, 1}
-        return self.ex(
-            myokit.Not(myokit.And(myokit.Not(e[0]), myokit.Not(e[1])))
-        )
+        return self.ex(Not(And(Not(e[0]), Not(e[1]))))
 
     # -- Conditional expressions
 
@@ -167,24 +160,24 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
 
         _if = self.ex(e._i)
 
-        if e._t == myokit.Number(0):
+        if isinstance(e._t, Number) and e._t.value() == 0:
             # Shorten expression if 'then' is 0
             # if(_i, 0, _e) -> _e * not(_i)
             _then_x_if = ''
-        elif e._t == myokit.Number(1):
+        elif isinstance(e._t, Number) and e._t.value() == 1:
             # Shorten expression if 'then' is 1
             # if(_i, 1, _e) -> _i + _e * not(_i)
             _then_x_if = _if
         else:
             _then_x_if = self.ex(e._t) + ' * ' + _if
 
-        _not_if = self.ex(myokit.Not(e._i))
+        _not_if = self.ex(Not(e._i))
 
-        if e._e == myokit.Number(0):
+        if isinstance(e._e, Number) and e._e.value() == 0:
             # Shorten expression if 'else' is 0
             # if(_i, _t, 0) -> _t * _i
             _else_x_not_if = ''
-        elif e._e == myokit.Number(1):
+        elif isinstance(e._e, Number) and e._e.value() == 1:
             # Shorten expression if 'else' is 1
             # if(_i, _t, 1) -> _t * _i + not(_i)
             _else_x_not_if = _not_if
@@ -207,6 +200,6 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         _nested_ifs = e._e[n]
 
         for i in range(n - 1, -1, -1):
-            _nested_ifs = myokit.If(e._i[i], e._e[i], _nested_ifs)
+            _nested_ifs = If(e._i[i], e._e[i], _nested_ifs)
 
         return self._ex_if(_nested_ifs)
