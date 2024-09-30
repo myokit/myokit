@@ -71,6 +71,8 @@ I3 = 4 [pS] * mm.O * (mb.V + 0.02 [V])
 tTest = 0
 t_Test = 1
 t_test = 2
+I4 = if(hh.I1 < 0.1 [pA], 0 [pA], 1 [pA])
+I5 = if(mm.I2 < 0.1 [pA], 1 [pA], 0 [pA])
 """
 
 units_output = """
@@ -131,6 +133,8 @@ idealVc { enginePace * 1.0 } /* ideal.Vc */
 
 /* Variables: tt */
 ttI3 { 4.0 * mmO * (mbV / 1000.0 + 0.02) } /* tt.I3 */
+ttI4 { 1.0 * heaviside(hhI1 / 0.05 - 0.1) } /* tt.I4 */
+ttI5 { 1.0 * (1 - heaviside(mmI2 / 0.05 - 0.1)) } /* tt.I5 */
 
 /* Solve */
 F_i {
