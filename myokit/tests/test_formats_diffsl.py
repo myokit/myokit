@@ -114,10 +114,10 @@ u_i {
 }
 
 dudt_i {
-  mbDotV = 0,
-  hhDotX = 0,
-  hhDotY = 0,
-  mmDotC1 = 0,
+  diffMbV = 0,
+  diffHhX = 0,
+  diffHhY = 0,
+  diffMmC = 0,
 }
 
 /* Variables: hh */
@@ -126,7 +126,7 @@ hhI1 { 3.0 * hhX * hhY * (mbV / 1000.0 - 0.05) * 0.05 } /* hh.I1 [A/F] */
 /* Variables: mm */
 mmO { 1.0 - mmC } /* mm.O */
 mmI2 { 2.0 * mmO * (mbV / 1000.0 + 0.02) * 0.05 } /* mm.I2 [A/F] */
-mmDotC2 { mmBeta * mmO - mmAlpha * mmC } /* mm.dot_C */
+mmDotC { mmBeta * mmO - mmAlpha * mmC } /* mm.dot_C */
 
 /* Variables: ideal */
 idealVc { enginePace * 1.0 } /* ideal.Vc */
@@ -138,17 +138,17 @@ ttI5 { 1.0 * (1 - heaviside(mmI2 / 0.05 - 0.1)) } /* tt.I5 */
 
 /* Solve */
 F_i {
-  mbDotV,
-  hhDotX,
-  hhDotY,
-  mmDotC1,
+  diffMbV,
+  diffHhX,
+  diffHhY,
+  diffMmC,
 }
 
 G_i {
   (hhI1 / 0.05 + mmI2 / 0.05 + ttI3) / mbC * 1000.0 / 1000.0,
   (hhXInf - hhX) / hhXTau / 1000.0,
   (hhYAlpha * (1.0 - hhY) - hhYBeta * hhY) / 1000.0,
-  mmDotC2 / 1000.0,
+  mmDotC / 1000.0,
 }
 
 /* Output */

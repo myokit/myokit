@@ -119,6 +119,16 @@ class DiffSLExporter(myokit.formats.Exporter):
             if time.unit() != myokit.units.ms:
                 self._convert_unit(time, 'ms')
 
+        # Add intermediary variables for state derivatives with rhs references
+        # Before:
+        #   dot(x) = x / 5
+        #   y = 1 + dot(x)
+        # After:
+        #   dot_x =  x / 5
+        #   dot(x) = dot_x
+        #   y = 1 + dot_x
+        model.remove_derivative_references()
+
         return model, currents
 
     def _generate_diffsl(self, model, currents=None):
@@ -364,8 +374,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         for var in model.variables(deep=True, sort=True):
             var_to_name[var] = convert_name(var.qname())
             if var.is_state():
-                dot_qname = var.parent().qname() + '.dot_' + var.name()
-                var_to_name[var.lhs()] = convert_name(dot_qname)
+                var_to_name[var.lhs()] = convert_name('diff_' + var.qname())
 
         # Check for conflicts with known keywords
         from . import keywords
