@@ -851,6 +851,10 @@ class CsvTab(GraphTabWidget):
         for k in keys:
             self.addTab(self.create_graph_tab(k, groups.get(k)), k)
 
+        # Add meta data tab
+        if log.meta:
+            self.addTab(self.create_meta_tab(log.meta), 'info')
+
     def create_graph_tab(self, key, indices=None):
         """ Creates a widget displaying the data stored under ``key``. """
         widget = QtWidgets.QWidget(self)
@@ -880,6 +884,17 @@ class CsvTab(GraphTabWidget):
         self._axes.append(axes)
         return widget
 
+    def create_meta_tab(self, meta):
+        """
+        Returns a tab showing information from a DataLog meta data object.
+        """
+        widget = QtWidgets.QTextEdit(self)
+        lines = []
+        for k, v in meta.items():
+            lines.append(f'{k}: {v}')
+        widget.setText('\n'.join(lines))
+        widget.setReadOnly(True)
+        return widget
 
 class MatTab(GraphTabWidget):
     """ A widget displaying a .mat file. """
@@ -997,9 +1012,7 @@ class TxtTab(GraphTabWidget):
             return
 
     def create_graph_tab(self, time, data):
-        """
-        Creates a widget displaying a time series.
-        """
+        """ Creates a widget displaying a time series. """
         widget = QtWidgets.QWidget(self)
         # Create figure
         figure = matplotlib.figure.Figure()
