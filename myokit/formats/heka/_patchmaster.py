@@ -679,6 +679,13 @@ class Series(TreeNode, myokit.formats.SweepSource):
                 'Unexpected amplifier state offset: expecting 472 (information'
                 ' stored with Series) or 0 (information stored in .amp file).')
 
+        # Read user parameters
+        # handle.seek(i + 344)    # SeSeUserParams1 = 344; (* 4 x LONGREAL *)
+        # p = reader.read('dddd')
+        # handle.seek(i + 1120)    # SeSeUserParams2 = 1120; (* 4x LONGREAL *)
+        # p += reader.read('dddd')
+        # All zero!
+
     def _read_finalize(self):
         # See TreeNode._read_finalize
 
@@ -970,18 +977,29 @@ class Series(TreeNode, myokit.formats.SweepSource):
         t = self[0][0] if len(self) and len(self[0]) else None
         log.meta['current_gain_mV_per_pA'] = a.current_gain()
         log.meta['filter1'] = a.filter1()
+        log.meta['filter2'] = a.filter2()
+        log.meta['ljp_correction_mV'] = a.ljp()
+        log.meta['voltage_offset_mV'] = a.v_off()
+        log.meta['holding_potential_mV'] = a.v_hold()
         if t is not None:
             log.meta['r_pipette_MOhm'] = t.r_pipette()
             log.meta['r_seal_MOhm'] = t.r_seal()
-        log.meta['ljp_correction_mV'] = a.ljp()
-        log.meta['voltage_offset_mV'] = a.v_off()
         if a.c_fast_enabled():
             log.meta['c_fast_compensation_enabled'] = 'true'
             log.meta['c_fast_pF'] = a.c_fast()
             log.meta['c_fast_tau_us'] = a.c_fast_tau()
         else:
             log.meta['c_fast_compensation_enabled'] = 'false'
-        log.meta['c_slow_pF'] = a.c_slow()
+        if a.c_slow_enabled():
+            log.meta['c_slow_compensation_enabled'] = 'true'
+            log.meta['c_slow_pF'] = a.c_slow()
+            log.meta['c_slow_range'] = a.c_slow_range()
+            css = a.c_slow_auto_settings()
+            log.meta['c_slow_auto_amplitude_mV'] = css[0]
+            log.meta['c_slow_auto_cycles'] = css[1]
+            log.meta['c_slow_auto_timeout'] = css[2]
+        else:
+            log.meta['c_slow_compensation_enabled'] = 'false'
         log.meta['r_series_MOhm'] = a.r_series()
         if a.r_series_enabled():
             log.meta['r_series_compensation_enabled'] = 'true'
@@ -993,6 +1011,24 @@ class Series(TreeNode, myokit.formats.SweepSource):
                     t.r_series_remaining()
         else:
             log.meta['r_series_compensation_enabled'] = 'false'
+
+        # Add protocol to meta data
+        stimulus = self.stimulus()
+        stimulus_channel = stimulus.supported_channel()
+        if stimulus_channel is not None:
+            log.meta['amplifier_mode'] = str(stimulus_channel.amplifier_mode())
+            log.meta['protocol'] = stimulus.protocol().code()
+
+        # Add completion status
+        if stimulus_channel is None:
+            c = 'Unknown'
+        elif self.is_complete():
+            c = 'All sweeps ran and completed'
+        elif self._intended_sweep_count == len(self):
+            c = 'Final sweep incomplete'
+        else:
+            c = f'Ran {len(self)} out of {self._intended_sweep_count} sweeps'
+        log.meta['completed'] = c
 
         return log
 
@@ -1007,7 +1043,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         out.append(f'     version {self._file.version()}')
         out.append(f'Recorded on {self._time}')
         out.append(f'{len(self)} sweeps,'
-                   f' {len(self._channel_names)} channels.')
+                   f' {len(self._channel_names)} channels')
 
         # Completion status
         c = self._stimulus.supported_channel()
@@ -1022,64 +1058,80 @@ class Series(TreeNode, myokit.formats.SweepSource):
                 out.append(f'Incomplete recording: {len(self)} out of'
                            f' {self._intended_sweep_count} ran.')
 
-        # Resistance, capacitance, etc.
+        # Info from amplifier state
         a = self.amplifier_state()
         out.append('Information from amplifier state:')
         out.append(f'  Current gain: {a.current_gain()} mV/pA')
+        out.append(f'  Filter 1: {a.filter1()}')
+        out.append(f'  Filter 2: {a.filter2()}')
+        # Voltage info
+        out.append(f'  Holding potential: {a.v_hold()} mV')
         if a.ljp():
-            out.append('  LJP correction applied using'
-                       f' LJP={round(a.ljp(), 4)} mV.')
+            out.append(f'  LJP correction: {round(a.ljp(), 4)} mV')
+        else:
+            out.append('  LJP correction: no correction')
+        out.append(f'  Voltage offset: {a.v_off()} mV')
+        # C fast
         if a.c_fast_enabled():
             out.append(f'  C fast compensation: {a.c_fast()} pF,'
-                       f' {round(a.c_fast_tau(), 4)} us.')
+                       f' {round(a.c_fast_tau(), 4)} us')
         else:
-            out.append('  C fast compensation: not enabled.')
-        out.append(f'  C slow compensation: {a.c_slow()} pF.')
-        out.append(f'  R series: {a.r_series()} MOhm.')
+            out.append('  C fast compensation: not enabled')
+        # C slow
+        if a.c_slow_enabled():
+            out.append(f'  C slow compensation: {a.c_slow()} pF')
+            amp, cyc, tim = a.c_slow_auto_settings()
+            out.append(f'  C slow auto settings: amplitude {amp} mV,'
+                       f' cycles {cyc}, timeout {tim} s')
+        else:
+            out.append('  C slow compensation: not enabled')
+        # Rs comp
+        out.append(f'  R series: {a.r_series()} MOhm')
         if a.r_series_enabled():
             p = round(a.r_series_fraction() * 100, 1)
-            out.append(f'  R series compensation: {p} %.')
-            p = round(a.r_series_tau(), 1)
-            out.append(f'  R series compensation tau: {p} us')
+            q = round(a.r_series_tau(), 1)
+            out.append(f'  R series compensation: {p} %, {q} us')
         else:
             out.append('  R series compensation: not enabled')
+
+        # Info from first trace
         if len(self) and len(self[0]):
             t = self[0][0]
             out.append('Information from first trace:')
 
-            out.append(f'  Pipette resistance: {t.r_pipette()} MOhm.')
-            out.append(f'  Seal resistance: {t.r_seal()} MOhm.')
-            out.append(f'  Series resistance: {t.r_series()} MOhm.')
+            out.append(f'  Pipette resistance: {t.r_pipette()} MOhm')
+            out.append(f'  Seal resistance: {t.r_seal()} MOhm')
+            out.append(f'  Series resistance: {t.r_series()} MOhm')
             out.append(f'    after compensation: {t.r_series_remaining()}'
-                       f' MOhm.')
-            out.append(f'  C slow: {t.c_slow()} pF.')
+                       f' MOhm')
+            out.append(f'  C slow: {t.c_slow()} pF')
 
         # Sweeps and channels
         if verbose:
             out.append('-' * 60)
             for i, sweep in enumerate(self):
                 out.append(f'Sweep {i}, label: "{sweep.label()}", recorded on'
-                           f' {sweep.time()}.')
+                           f' {sweep.time()}')
                 if i == 0:
                     for j, trace in enumerate(self[0]):
                         out.append(f'  Trace {j}, label: "{trace.label()}",'
                                    f' in {trace.time_unit()} and'
-                                   f' {trace.value_unit()}.')
+                                   f' {trace.value_unit()}')
 
         # Stimulus
         if verbose:
             stim = self._stimulus
             out.append('-' * 60)
-            out.append(f'Stimulus "{stim.label()}".')
-            out.append(f'  {stim.sweep_count()} sweeps.')
-            out.append(f'  Delay between sweeps: {stim.sweep_interval()} s.')
-            out.append(f'  Sampling interval: {stim.sampling_interval()} s.')
+            out.append(f'Stimulus "{stim.label()}"')
+            out.append(f'  {stim.sweep_count()} sweeps')
+            out.append(f'  Delay between sweeps: {stim.sweep_interval()} s')
+            out.append(f'  Sampling interval: {stim.sampling_interval()} s')
             for i, ch in enumerate(stim):
                 out.append(f'  Channel {i}, in {ch.unit()}, amplifier in'
-                           f' {ch.amplifier_mode()} mode.')
-                out.append(f'  Stimulus reconstruction: {ch.support_str()}.')
+                           f' {ch.amplifier_mode()} mode')
+                out.append(f'  Stimulus reconstruction: {ch.support_str()}')
                 z = ch.zero_segment() or '0 (disabled)'
-                out.append(f'  Zero segment: {z}.')
+                out.append(f'  Zero segment: {z}')
                 for j, seg in enumerate(ch):
                     out.append(f'   Segment {j}, {seg.storage()}')
                     out.append(f'    {seg.segment_class()}, {seg}')
@@ -1578,13 +1630,6 @@ class AmplifierState:
     """
     Describes the state of an amplifier used by PatchMaster.
     """
-    _filter1_options = [
-        'Bessel 100 kHz',
-        'Bessel 30 kHz',
-        'Bessel 10 kHz',
-        'HQ 30 kHz',
-    ]
-
     def __init__(self, handle, reader):
 
         # Read properties
@@ -1593,6 +1638,14 @@ class AmplifierState:
         # Current gain (V/A)
         handle.seek(i + 8)      # sCurrentGain = 8;  (* LONGREAL *)
         self._current_gain = reader.read1('d')
+
+        # Holding potential and offsets
+        handle.seek(i + 112)  # sVHold = 112; (* LONGREAL *)
+        self._holding = reader.read1('d')
+        handle.seek(i + 128)  # sVpOffset = 128; (* LONGREAL *)
+        self._voff = reader.read1('d')
+        handle.seek(i + 136)  # sVLiquidJunction = 136; (* LONGREAL *)
+        self._ljp = reader.read1('d')
 
         # Series resistance and compensation
         handle.seek(i + 40)     # sRsFraction = 40; (* LONGREAL *)
@@ -1617,6 +1670,9 @@ class AmplifierState:
         # Slow capacitance correction
         handle.seek(i + 80)    # sCSlow = 80; (* LONGREAL *)
         self._cs = reader.read1('d')
+        handle.seek(i + 241)   # sCSlowRange = 241; (* BYTE *)
+        self._cs_range = CSlowRange(reader.read1('b'))
+
         # Auto CSlow settings. See 4.9 "EPC 10 USB Menu" in the manual.
         handle.seek(i + 152)    # sCSlowStimVolts = 152; (* LONGREAL *)
         self._cs_auto_stim = reader.read1('d')
@@ -1625,61 +1681,53 @@ class AmplifierState:
         handle.seek(i + 210)    # sCSlowCycles = 210; (* INT16 *)
         self._cs_auto_cycles = reader.read1('h')
 
-        # Voltage offsets
-        handle.seek(i + 128)  # sVpOffset = 128; (* LONGREAL *)
-        self._voff = reader.read1('d')
-        handle.seek(i + 136)  # sVLiquidJunction = 136; (* LONGREAL *)
-        self._ljp = reader.read1('d')
-
         # Filter 1
+        # Set with a byte that controls type and frequency
         handle.seek(i + 281)  # sFilter1 = 281; (* BYTE *)
-        self._filter1 = reader.read1('b')
+        self._filter1 = Filter1(reader.read1('b'))
+
+        # Filter 2
+        # Set with a type and a separate frequency. The user setting for Filter
+        # 2 is the combined bandwidth of Filter 1 and Filter 2.
+        handle.seek(i + 239)  # sF2Response = 239; (* BYTE *)
+        self._filter2_type = Filter2Type(reader.read1('b'))
+        handle.seek(i + 24)  # sF2Frequency = 24; (* LONGREAL *)
+        self._filter2_freq_solo = reader.read1('d')
+        handle.seek(i + 16)  # sF2Bandwidth = 16; (* LONGREAL *)
+        self._filter2_freq_both = reader.read1('d')
+
+        # Suspect this indicates external filter 2
+        #handle.seek(i + 287)  # sF2Source = 287; (* BYTE *)
+        #self._temp['sF2Source'] = reader.read1('b')
+        # Don't know what Mode does.
+        #handle.seek(i + 231)  # sF2Mode = 231; (* BYTE *)
+        #self._temp['sF2Mode'] = reader.read1('b')
 
         #TODO: Add these are proper properties with a docstring'd method that
         # returns them and says what the units are etc. or stop reading them.
         # self._temp = {}
-        # handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
-        # self._temp['sImon1Bandwidth'] = reader.read1('d')
-
-        # handle.seek(i + 16)  # sF2Bandwidth = 16; (* LONGREAL *)
-        # self._temp['sF2Bandwidth'] = reader.read1('d')
-        # handle.seek(i + 24)  # sF2Frequency = 24; (* LONGREAL *)
-        # self._temp['sF2Frequency'] = reader.read1('d')
-        # handle.seek(i + 230)  # sHasF2Bypass = 230; (* BYTE *)
-        # self._temp['sHasF2Bypass'] = reader.read1('b')
-        # handle.seek(i + 231)  # sF2Mode = 231; (* BYTE *)
-        # self._temp['sF2Mode'] = reader.read1('b')
-        # handle.seek(i + 239)  # sF2Response = 239; (* BYTE *)
-        # self._temp['sF2Response'] = reader.read1('b')
-        # handle.seek(i + 287)  # sF2Source = 287; (* BYTE *)
-        # self._temp['sF2Source'] = reader.read1('b')
-
         # handle.seek(i + 296)  # sStimFilterHz = 296; (* LONGREAL *)
         # self._temp['sStimFilterHz'] = reader.read1('d')
         # handle.seek(i + 320)  # sInputFilterTau = 320; (* LONGREAL *)
         # self._temp['sInputFilterTau'] = reader.read1('d')
         # handle.seek(i + 328)  # sOutputFilterTau = 328; (* LONGREAL *)
         # self._temp['sOutputFilterTau'] = reader.read1('d')
-
         # handle.seek(i + 384)  # sVmonFiltBandwidth = 384; (* LONGREAL *)
         # self._temp['sVmonFiltBandwidth'] = reader.read1('d')
         # handle.seek(i + 392)  # sVmonFiltFrequency = 392; (* LONGREAL *)
         # self._temp['sVmonFiltFrequency'] = reader.read1('d')
-
-        # handle.seek(i + 112)  # sVHold = 112; (* LONGREAL *)
-        # self._temp['sVHold'] = reader.read1('d')
-        # handle.seek(i + 120)  # sLastVHold = 120; (* LONGREAL *)
-        # self._temp['sLastVHold'] = reader.read1('d')
+        # handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
+        # self._temp['sImon1Bandwidth'] = reader.read1('d')
+        # handle.seek(i + 286)    # sCCFastSpeed = 286; (* BYTE *)
+        # self.CFASTSPEED = reader.read1('b')
 
     def c_fast(self):
         """
-        Return the capacitance (pF) used in fast capacitance correction
-        (CFast2).
+        Return the capacitance (pF) used in fast capacitance correction.
         """
-        # Not sure why there are two. They are almost identical. Older EPC9
-        # manual has a Fast1 and Fast2 as well, but only for GET, for SET there
-        # is only 2. So... going with that for now
-        return self._cf_amp2 * 1e12
+        # The total fast capacitance correction is a sum of two capacitances.
+        # See the EPC-10 manual for details.
+        return (self._cf_amp1 + self._cf_amp2) * 1e12
 
     def c_fast_tau(self):
         """
@@ -1707,6 +1755,18 @@ class AmplifierState:
         return (self._cs_auto_stim * 1e3, self._cs_auto_cycles,
                 self._cs_auto_timeout)
 
+    def c_slow_enabled(self):
+        """
+        Returns ``True`` if the C-slow range is not set to 'Off'.
+        """
+        return self._cs_range is not CSlowRange.OFF
+
+    def c_slow_range(self):
+        """
+        Returns the :class:`CSlowRange` used for slow capacitance correction.
+        """
+        return self._cs_range
+
     def current_gain(self):
         """
         The gain setting for current measurements, in mV/pA.
@@ -1715,9 +1775,33 @@ class AmplifierState:
 
     def filter1(self):
         """
-        Returns a string describing the used (always-on) analog Filter 1.
+        Returns a string describing Filter 1.
+
+        Both filter 1 and filter 2 are hardware filters, implemented on the EPC
+        9 and 10. Filter 1 is used in voltage control, while filter 2 is used
+        to perform filtering before digitisation. Filter 1 is always on, but
+        some amplifiers allow filter 2 to be bypassed. The setting for filter 1
+        determines both the type of filter (Bessel etc.) and the bandwidth.
+        The user setting for filter 2 sets the combined bandwidth of both
+        filters.
+
+        Measurements that passed only through filter 1 can be obtained from
+        Imon1, while Imon2 provides output passed through both filters.
         """
-        return self._filter1_options[self._filter1]
+        return str(self._filter1)
+
+    def filter2(self):
+        """
+        Returns a string describing Filter 2, in series with Filter 1.
+
+        For more information, see :meth:`filter1`.
+        """
+        if self._filter2_type is Filter2Type.BYPASS:
+            return str(self._filter2_type)
+        fb = round(self._filter2_freq_both * 1e-3, 2)
+        fs = round(self._filter2_freq_solo * 1e-3, 2)
+        fb = int(fb) if fb == int(fb) else fb
+        return f'{self._filter2_type} {fb} kHz combined, {fs} kHz f2-only'
 
     def ljp(self):
         """
@@ -1764,10 +1848,69 @@ class AmplifierState:
         return self._rs_tau * 1e6 if self._rs_enabled else 0
 
     def v_off(self):
-        """
-        Returns the used voltage offset (in mV), also called V0.
-        """
+        """ Returns the used voltage offset (in mV), also called V0. """
         return self._voff * 1e3
+
+    def v_hold(self):
+        """ Returns the holding potential (in mV). """
+        return self._holding * 1e3
+
+
+class Filter1(enum.Enum):
+    """ Settings for filter 1, which is applied before filter 2. """
+    BESSEL_100K = 0
+    BESSEL_30K = 1
+    BESSEL_10K = 2
+    HQ_30K = 3
+
+    def __str__(self):
+        if self is Filter1.BESSEL_100K:
+            return 'Bessel 100 kHz'
+        elif self is Filter1.BESSEL_30K:
+            return 'Bessel 30 kHz'
+        elif self is Filter1.BESSEL_10K:
+            return 'Bessel 10 kHz'
+        else:
+            return 'HQ 30 kHz'
+
+
+class Filter2Type(enum.Enum):
+    """
+    Setting for filter 2, which is applied after filter 1.
+    Unlike Filter 1, this filter can be disabled, and the frequency is set
+    separately.
+    """
+    BESSEL = 0
+    BUTTERWORTH = 1
+    BYPASS = 2
+    #V_BESSEL = 3   Maybe!
+    #V_Butterworth = 4  Maybe!
+
+    def __str__(self):
+        if self is Filter2Type.BESSEL:
+            return 'Bessel'
+        elif self is Filter2Type.BUTTERWORTH:
+            return 'Butterworth'
+        else:
+            return 'Bypass'
+
+
+class CSlowRange(enum.Enum):
+    """ Available options for slow capacitance cancelling range. """
+    OFF = 0
+    pF30 = 1
+    pF100 = 2
+    pF1000 = 3
+
+    def __str__(self):
+        if self is CSlowRange.OFF:
+            return 'Off'
+        elif self is CSlowRange.pF30:
+            return '30 pF'
+        elif self is CSlowRange.pF100:
+            return '100 pF'
+        else:
+            return '1000 pF'
 
 
 #
@@ -1885,6 +2028,8 @@ class Stimulus(TreeNode):
         handle.seek(start + 144)  # stNumberSweeps = 144; (* INT32 *)
         self._sweep_count = reader.read1('i')
 
+        # Filterfactor: Determines desired filtering frequency as a function of
+        # sampling rate. Is overruled by autofilter when enabled.
         # handle.seek(start + 136)  # stFilterFactor = 136; (* LONGREAL *)
         # self._filter_factor = reader.read1('d')
 

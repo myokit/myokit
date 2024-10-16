@@ -896,6 +896,7 @@ class CsvTab(GraphTabWidget):
         widget.setReadOnly(True)
         return widget
 
+
 class MatTab(GraphTabWidget):
     """ A widget displaying a .mat file. """
     def __init__(self, parent, mat, filename):
