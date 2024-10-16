@@ -990,9 +990,9 @@ class Series(TreeNode, myokit.formats.SweepSource):
             log.meta['c_fast_tau_us'] = a.c_fast_tau()
         else:
             log.meta['c_fast_compensation_enabled'] = 'false'
+        log.meta['c_slow_pF'] = a.c_slow()
         if a.c_slow_enabled():
             log.meta['c_slow_compensation_enabled'] = 'true'
-            log.meta['c_slow_pF'] = a.c_slow()
             log.meta['c_slow_range'] = a.c_slow_range()
             css = a.c_slow_auto_settings()
             log.meta['c_slow_auto_amplitude_mV'] = css[0]
