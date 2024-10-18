@@ -683,6 +683,13 @@ class DataLogTest(unittest.TestCase):
         d = myokit.DataLog.load(path, progress=p)
         self.assertIsNone(d)
 
+    def test_load_csv_duplicate_keys(self):
+        # Test loading a CSV with duplicate key names
+
+        path = os.path.join(DIR_IO, 'datalog-18-duplicate-keys.csv')
+        d = myokit.DataLog.load_csv(path)
+        self.assertEqual(len(d), 6)
+
     def test_load_csv_errors(self):
         # Test for errors during csv loading.
 
