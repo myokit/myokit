@@ -12,6 +12,7 @@ This page lists the main changes made to Myokit in each release.
 - Fixed
   - [#1083](https://github.com/myokit/myokit/pull/1083) Fixed bug when passing initial state `Expression` objects to `myokit.step`.
   - [#1088](https://github.com/myokit/myokit/pull/1088) The HEKA file format meta data now shows the correct value for fast capacitance correction.
+  - [#1088](https://github.com/myokit/myokit/pull/1088) The ABF reader no longer crashes if degrees Celsius are encountered.
 
 ## [1.37.0] - 2024-06-17
 - Added
