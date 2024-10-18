@@ -1707,10 +1707,12 @@ class AmplifierState:
         # returns them and says what the units are etc. or stop reading them.
         # self._temp = {}
         # handle.seek(i + 296)  # sStimFilterHz = 296; (* LONGREAL *)
-        # self._temp['sStimFilterHz'] = reader.read1('d')
+        # print('STIM', reader.read1('d'))
         # handle.seek(i + 320)  # sInputFilterTau = 320; (* LONGREAL *)
+        # print('InputFilterTau', reader.read1('d'))
         # self._temp['sInputFilterTau'] = reader.read1('d')
         # handle.seek(i + 328)  # sOutputFilterTau = 328; (* LONGREAL *)
+        # print('OutputFilterTau', reader.read1('d'))
         # self._temp['sOutputFilterTau'] = reader.read1('d')
         # handle.seek(i + 384)  # sVmonFiltBandwidth = 384; (* LONGREAL *)
         # self._temp['sVmonFiltBandwidth'] = reader.read1('d')
@@ -1719,7 +1721,10 @@ class AmplifierState:
         # handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
         # self._temp['sImon1Bandwidth'] = reader.read1('d')
         # handle.seek(i + 286)    # sCCFastSpeed = 286; (* BYTE *)
+        # print('CFASTSPEED', reader.read1('b'))
         # self.CFASTSPEED = reader.read1('b')
+        handle.seek(i + 282)  # sStimFilterOn = 282; (* BYTE *)
+        print('sStimFilterOn', reader.read1('b'))
 
     def c_fast(self):
         """
