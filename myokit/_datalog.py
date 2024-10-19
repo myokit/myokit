@@ -702,6 +702,10 @@ class DataLog(OrderedDict):
             # Read first line
             line = f.readline()
 
+            # Ignore byte order marker (BOM)
+            if line[:1] == '\ufeff':
+                line = line[1:]
+
             # Ignore comments
             while line.lstrip()[:1] == '#':
                 line = f.readline()
