@@ -694,19 +694,23 @@ class DataLog(OrderedDict):
                 + str(1 + char) + ': ' + msg)
 
         # Detect Microsoft's annyoing utf-8-sig encoding
-        encoding = None
-        with open(filename, 'r', newline=None) as f:
-            if f.read(1) == '\ufeff':
-                encoding = 'utf-8-sig'
+        #encoding = None
+        #with open(filename, 'r', newline=None) as f:
+        #    if f.read(1) == '\ufeff':
+        #        encoding = 'utf-8-sig'
 
         quote = '"'
         delim = ','
-        with open(filename, 'r', newline=None, encoding=encoding) as f:
+        with open(filename, 'r', newline=None, encoding) as f:
             # Read header
             keys = []   # The log keys, in order of appearance
 
             # Read first line
             line = f.readline()
+
+            # Ignore windows' annoying byte order marker
+            if line[:1] = '\ufeff':
+                line = line[1:]
 
             # Ignore comments
             while line.lstrip()[:1] == '#':
