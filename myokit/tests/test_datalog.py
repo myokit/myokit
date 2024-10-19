@@ -703,7 +703,7 @@ class DataLogTest(unittest.TestCase):
                 f.write('0,2\n1,3\n')
             d = myokit.DataLog.load_csv(path)
             self.assertEqual(len(d), 2)
-            self.assertEqual(list(d.keys()), 'time')
+            self.assertEqual(list(d.keys()), ['time', 'x'])
 
     def test_load_csv_errors(self):
         # Test for errors during csv loading.
