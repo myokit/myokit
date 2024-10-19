@@ -698,9 +698,8 @@ class DataLogTest(unittest.TestCase):
 
         with TemporaryDirectory() as td:
             path = td.path('test.csv')
-            with open(path, 'w') as f:
-                f.write('\ufefftime,x\n')
-                f.write('0,2\n1,3\n')
+            with open(path, 'wb') as f:
+                f.write('time,x\n0,2\n1,3\n'.encode('utf-8-sig'))
             d = myokit.DataLog.load_csv(path)
             self.assertEqual(len(d), 2)
             self.assertEqual(list(d.keys()), ['time', 'x'])
