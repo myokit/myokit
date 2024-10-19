@@ -693,6 +693,18 @@ class DataLogTest(unittest.TestCase):
             list(d.keys()),
             ['time', 'x-1', 'x-3', 'ys-2-1', 'x-4', 'ys-2-2', 'x-2'])
 
+    def test_load_csv_ufeff(self):
+        # Test ignoring byte order marker (BOM) at start of file
+
+        with TemporaryDirectory() as td:
+            path = td.path('test.csv')
+            with open(path, 'w') as f:
+                f.write('\ufefftime,x\n')
+                f.write('0,2\n1,3\n')
+            d = myokit.DataLog.load_csv(path)
+            self.assertEqual(len(d), 2)
+            self.assertEqual(list(d.keys()), 'time')
+
     def test_load_csv_errors(self):
         # Test for errors during csv loading.
 
