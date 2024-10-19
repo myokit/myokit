@@ -701,7 +701,7 @@ class DataLog(OrderedDict):
 
         quote = '"'
         delim = ','
-        with open(filename, 'r', newline=None, encoding) as f:
+        with open(filename, 'r', newline=None) as f:
             # Read header
             keys = []   # The log keys, in order of appearance
 
