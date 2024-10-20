@@ -114,6 +114,13 @@ myokit.formats.cuda
 - :meth:`myokit.formats.cuda.exporters`
 - :meth:`myokit.formats.cuda.ewriters`
 
+myokit.formats.diffsl
+---------------------
+- :class:`myokit.formats.diffsl.DiffSLExporter`
+- :class:`myokit.formats.diffsl.DiffSLExpressionWriter`
+- :meth:`myokit.formats.diffsl.exporters`
+- :meth:`myokit.formats.diffsl.ewriters`
+
 myokit.formats.easyml
 ---------------------
 - :class:`myokit.formats.easyml.EasyMLExporter`
