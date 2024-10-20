@@ -14,14 +14,15 @@ This page lists the main changes made to Myokit in each release.
   - [#1083](https://github.com/myokit/myokit/pull/1083) Fixed bug when passing initial state `Expression` objects to `myokit.step`.
   - [#1088](https://github.com/myokit/myokit/pull/1088) The HEKA file format meta data now shows the correct value for fast capacitance correction.
   - [#1088](https://github.com/myokit/myokit/pull/1088) The ABF reader no longer crashes if degrees Celsius are encountered.
+  - [#1093](https://github.com/myokit/myokit/pull/1093) `DataLog.load_csv` will now ignore an initial byte order marker.
 
 ## [1.37.0] - 2024-06-17
 - Added
   - [#1075](https://github.com/myokit/myokit/pull/1075) Add a `myokit.TypeError` exception, which inherits from `myokit.IntegrityError` but is used specifically if one type of expression was expected but another was found.
 - Changed
-  - [#1075](https://github.com/myokit/myokit/pull/1075) Expressions will now raise a `myokit.TypeError` in the constructor if their operands are unexpected expression types, e.g. if numbers and booleans are mixed.
-  - [#1074](https://github.com/myokit/myokit/pull/1074) Expressions will now raise a `myokit.IntegrityError` in the constructor if their operands are not expression objects: previously, this check was only performed by `Expression.validate()`.
   - [#1067](https://github.com/myokit/myokit/pull/1067) Improved the meta data loaded from HEKA files when creating a `myokit.DataLog`.
+  - [#1074](https://github.com/myokit/myokit/pull/1074) Expressions will now raise a `myokit.IntegrityError` in the constructor if their operands are not expression objects: previously, this check was only performed by `Expression.validate()`.
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Expressions will now raise a `myokit.TypeError` in the constructor if their operands are unexpected expression types, e.g. if numbers and booleans are mixed.
 - Removed
   - [#1075](https://github.com/myokit/myokit/pull/1075) Removed the `PrefixCondition` base class previously used in the expression system, as only `Not` inherited from it.
 - Fixed
