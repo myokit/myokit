@@ -693,9 +693,18 @@ class DataLog(OrderedDict):
                 'Syntax error on line ' + str(line) + ', character '
                 + str(1 + char) + ': ' + msg)
 
+        # Detect Microsoft's annyoing utf-8-sig encoding
+        # Note: We have to perform the first read in utf-8 mode, because the
+        # default encoding on windows will turn the BOM into a different set of
+        # characters, so that f.read(1) won't actually equal \ufeff
+        encoding = None
+        with open(filename, 'r', encoding='utf-8') as f:
+            if f.read(1) == '\ufeff':
+                encoding = 'utf-8-sig'
+
         quote = '"'
         delim = ','
-        with open(filename, 'r', newline=None) as f:
+        with open(filename, 'r', newline=None, encoding=encoding) as f:
             # Read header
             keys = []   # The log keys, in order of appearance
 

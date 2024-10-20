@@ -11,6 +11,7 @@ This page lists the main changes made to Myokit in each release.
 - Removed
 - Fixed
   - [#1083](https://github.com/myokit/myokit/pull/1083) Fixed bug when passing initial state `Expression` objects to `myokit.step`.
+  - [#1093](https://github.com/myokit/myokit/pull/1093) `DataLog.load_csv` will now ignore an initial byte order marker.
 
 ## [1.37.0] - 2024-06-17
 - Added
