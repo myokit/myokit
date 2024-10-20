@@ -4,9 +4,10 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
-  - [#1092](https://github.com/myokit/myokit/pull/1092) The method `DataLog.load_csv` can now read CSV files with duplicate column names.
   - [#1088](https://github.com/myokit/myokit/pull/1088) The DataLogViewer now displays meta data for myokit DataLogs.
   - [#1088](https://github.com/myokit/myokit/pull/1088) The HEKA file format now supports more meta data, including filters.
+  - [#1092](https://github.com/myokit/myokit/pull/1092) The method `DataLog.load_csv` can now read CSV files with duplicate column names.
+  - [#1095](https://github.com/myokit/myokit/pull/1095) Myokit is now tested on Python 3.12 and 3.13.
 - Changed
 - Deprecated
 - Removed
