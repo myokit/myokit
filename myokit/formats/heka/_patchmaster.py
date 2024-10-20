@@ -976,8 +976,9 @@ class Series(TreeNode, myokit.formats.SweepSource):
         a = self.amplifier_state()
         t = self[0][0] if len(self) and len(self[0]) else None
         log.meta['current_gain_mV_per_pA'] = a.current_gain()
-        log.meta['filter1'] = a.filter1()
-        log.meta['filter2'] = a.filter2()
+        log.meta['filter1'] = a.filter1_str()
+        log.meta['filter2'] = a.filter2_str()
+        log.meta['stimulus_filter'] = a.stimulus_filter_str()
         log.meta['ljp_correction_mV'] = a.ljp()
         log.meta['voltage_offset_mV'] = a.v_off()
         log.meta['holding_potential_mV'] = a.v_hold()
@@ -1062,8 +1063,9 @@ class Series(TreeNode, myokit.formats.SweepSource):
         a = self.amplifier_state()
         out.append('Information from amplifier state:')
         out.append(f'  Current gain: {a.current_gain()} mV/pA')
-        out.append(f'  Filter 1: {a.filter1()}')
-        out.append(f'  Filter 2: {a.filter2()}')
+        out.append(f'  Filter 1: {a.filter1_str()}')
+        out.append(f'  Filter 2: {a.filter2_str()}')
+        out.append(f'  Stimulus filter: {a.stimulus_filter_str()}')
         # Voltage info
         out.append(f'  Holding potential: {a.v_hold()} mV')
         if a.ljp():
@@ -1684,7 +1686,7 @@ class AmplifierState:
         # Filter 1
         # Set with a byte that controls type and frequency
         handle.seek(i + 281)  # sFilter1 = 281; (* BYTE *)
-        self._filter1 = Filter1(reader.read1('b'))
+        self._filter1 = Filter1Setting(reader.read1('b'))
 
         # Filter 2
         # Set with a type and a separate frequency. The user setting for Filter
@@ -1723,8 +1725,10 @@ class AmplifierState:
         # handle.seek(i + 286)    # sCCFastSpeed = 286; (* BYTE *)
         # print('CFASTSPEED', reader.read1('b'))
         # self.CFASTSPEED = reader.read1('b')
+
+        # Stimulus filter
         handle.seek(i + 282)  # sStimFilterOn = 282; (* BYTE *)
-        print('sStimFilterOn', reader.read1('b'))
+        self._stimulus_filter = StimulusFilterSetting(reader.read1('b'))
 
     def c_fast(self):
         """
@@ -1780,26 +1784,43 @@ class AmplifierState:
 
     def filter1(self):
         """
-        Returns a string describing Filter 1.
+        Returns a :class:`Filter1Setting` describing filter 1.
 
-        Both filter 1 and filter 2 are hardware filters, implemented on the EPC
-        9 and 10. Filter 1 is used in voltage control, while filter 2 is used
-        to perform filtering before digitisation. Filter 1 is always on, but
-        some amplifiers allow filter 2 to be bypassed. The setting for filter 1
-        determines both the type of filter (Bessel etc.) and the bandwidth.
-        The user setting for filter 2 sets the combined bandwidth of both
-        filters.
+        For more information on Filter 1 and 2, see :class:`Filter1Setting`.
+        """
+        return self._filter1
 
-        Measurements that passed only through filter 1 can be obtained from
-        Imon1, while Imon2 provides output passed through both filters.
+    def filter1_str(self):
+        """
+        Returns a string representing the Filter 1 settings.
+
+        For more information on Filter 1 and 2, see :class:`Filter1Setting`.
         """
         return str(self._filter1)
 
     def filter2(self):
         """
-        Returns a string describing Filter 2, in series with Filter 1.
+        Returns a tuple ``(type, f_both, f_solo)`` describing the Filter 2
+        settings, where ``type`` is a :class:`Filter2Type`, where ``f_both`` is
+        the frequency in Hz of both filters combined, and when ``f_solo`` is
+        the frequency of Filter 2 alone.
 
-        For more information, see :meth:`filter1`.
+        The frequency shown in PatchMaster is that of both filters combined.
+        If the "bypass" filter is selected, the frequency settings are unused.
+
+        For more information on Filter 1 and 2, see :class:`Filter1Setting`.
+        """
+        return (
+            self._filter2_type,
+            self._filter2_freq_both,
+            self._filter2_freq_solo,
+        )
+
+    def filter2_str(self):
+        """
+        Returns a string describing Filter 2.
+
+        For more information on Filter 1 and 2, see :class:`Filter1Setting`.
         """
         if self._filter2_type is Filter2Type.BYPASS:
             return str(self._filter2_type)
@@ -1852,6 +1873,23 @@ class AmplifierState:
         """
         return self._rs_tau * 1e6 if self._rs_enabled else 0
 
+    def stimulus_filter(self):
+        """
+        Returns a :class:`StimulusFilterSetting` descibing the stimulus filter
+        settings.
+
+        For more information, see :class:`StimulusFilterSetting`.
+        """
+        return self._stimulus_filter
+
+    def stimulus_filter_str(self):
+        """
+        Returns a string descibing the stimulus filter settings.
+
+        For more information, see :class:`StimulusFilterSetting`.
+        """
+        return self._stimulus_filter
+
     def v_off(self):
         """ Returns the used voltage offset (in mV), also called V0. """
         return self._voff * 1e3
@@ -1861,19 +1899,31 @@ class AmplifierState:
         return self._holding * 1e3
 
 
-class Filter1(enum.Enum):
-    """ Settings for filter 1, which is applied before filter 2. """
+class Filter1Setting(enum.Enum):
+    """
+    Settings for filter 1, which is applied before filter 2.
+
+    Both filter 1 and filter 2 are hardware filters, implemented on the EPC 9
+    and 10. Filter 1 is used in voltage control, while filter 2 is used to
+    perform filtering before digitisation. Filter 1 is always on, but some
+    amplifiers allow filter 2 to be bypassed. The setting for filter 1
+    determines both the type of filter (Bessel etc.) and the bandwidth. The
+    user setting for filter 2 sets the combined bandwidth of both filters.
+
+    Measurements that passed only through filter 1 can be obtained from
+    Imon1, while Imon2 provides output passed through both filters.
+    """
     BESSEL_100K = 0
     BESSEL_30K = 1
     BESSEL_10K = 2
     HQ_30K = 3
 
     def __str__(self):
-        if self is Filter1.BESSEL_100K:
+        if self is Filter1Setting.BESSEL_100K:
             return 'Bessel 100 kHz'
-        elif self is Filter1.BESSEL_30K:
+        elif self is Filter1Setting.BESSEL_30K:
             return 'Bessel 30 kHz'
-        elif self is Filter1.BESSEL_10K:
+        elif self is Filter1Setting.BESSEL_10K:
             return 'Bessel 10 kHz'
         else:
             return 'HQ 30 kHz'
@@ -1882,8 +1932,11 @@ class Filter1(enum.Enum):
 class Filter2Type(enum.Enum):
     """
     Setting for filter 2, which is applied after filter 1.
+
     Unlike Filter 1, this filter can be disabled, and the frequency is set
     separately.
+
+    For more information on the filters, see :class:`Filter1Setting`.
     """
     BESSEL = 0
     BUTTERWORTH = 1
@@ -1916,6 +1969,25 @@ class CSlowRange(enum.Enum):
             return '100 pF'
         else:
             return '1000 pF'
+
+
+class StimulusFilterSetting(enum.Enum):
+    """
+    Setting for the stimulus filter.
+
+
+    The stimulus filter is a 2-pole Bessel filter applied over the stimulus
+    signal to reduce fast capacitative currents. It is applied to voltages, the
+    manual is less clear whether it is applied to currents too.
+    """
+    BW2 = 0
+    BW20 = 1
+
+    def __str__(self):
+        if self is StimulusFilterSetting.BW2:
+            return 'Bessel 2 us (off)'
+        else:
+            return 'Bessel 20 us (on)'
 
 
 #
