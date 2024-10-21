@@ -1660,8 +1660,8 @@ class AmplifierState:
         self._cf_amp2 = reader.read1('d')
         handle.seek(i + 72)    # sCFastTau = 72; (* LONGREAL *)
         self._cf_tau = reader.read1('d')
-        handle.seek(i + 285)   # sCCCFastOn = 285; (* BYTE *)
-        self._cf_enabled = bool(reader.read1('b'))
+        #handle.seek(i + 285)   # sCCCFastOn = 285; (* BYTE *)
+        #self._cf_enabled = bool(reader.read1('b'))
 
         # Slow capacitance correction
         handle.seek(i + 80)    # sCSlow = 80; (* LONGREAL *)
@@ -1739,8 +1739,11 @@ class AmplifierState:
         return self._cf_tau * 1e6
 
     def c_fast_enabled(self):
-        """ Returns ``True`` if fast capacitance compensation was enabled. """
-        return self._cf_enabled
+        """
+        Returns ``True``, because fast capacitance compensation is always
+        enabled.
+        """
+        return True
 
     def c_slow(self):
         """
