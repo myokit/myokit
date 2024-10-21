@@ -1007,9 +1007,6 @@ class Series(TreeNode, myokit.formats.SweepSource):
             log.meta['r_series_compensation_percent'] = round(
                 a.r_series_fraction() * 100, 1)
             log.meta['r_series_compensation_tau_us'] = a.r_series_tau()
-            if t is not None:
-                log.meta['r_series_post_compensation_MOhm'] = \
-                    t.r_series_remaining()
         else:
             log.meta['r_series_compensation_enabled'] = 'false'
 
@@ -1104,8 +1101,6 @@ class Series(TreeNode, myokit.formats.SweepSource):
             out.append(f'  Pipette resistance: {t.r_pipette()} MOhm')
             out.append(f'  Seal resistance: {t.r_seal()} MOhm')
             out.append(f'  Series resistance: {t.r_series()} MOhm')
-            out.append(f'    after compensation: {t.r_series_remaining()}'
-                       f' MOhm')
             out.append(f'  C slow: {t.c_slow()} pF')
 
         # Sweeps and channels
@@ -1334,7 +1329,6 @@ class Trace(TreeNode):
         # Meta data
         self._r_pipette = None
         self._r_seal = None
-        self._r_series_comp = None
         self._g_series = None
         self._c_slow = None
 
@@ -1389,8 +1383,8 @@ class Trace(TreeNode):
         self._c_slow = reader.read1('d')
         handle.seek(i + 184)  # TrGSeries            = 184; (* LONGREAL *)
         self._g_series = reader.read1('d')
-        handle.seek(i + 192)  # TrRsValue            = 192; (* LONGREAL *)
-        self._r_series_comp = reader.read1('d')
+        #handle.seek(i + 192)  # TrRsValue            = 192; (* LONGREAL *)
+        #self._r_series_comp = reader.read1('d')
 
         # Convert unit
         self._data_unit = myokit.parse_unit(self._data_unit)
@@ -1439,14 +1433,6 @@ class Trace(TreeNode):
         acquiring the trace.
         """
         return 1e-6 / self._g_series
-
-    def r_series_remaining(self):
-        """
-        Returns the series resistance (MOhm) remaining after compensation.
-        """
-        # "Absolute fraction of the compensated R-series value. The value
-        # depends on the % of R-series compensation."
-        return (1 / self._g_series - self._r_series_comp) * 1e-6
 
     def r_pipette(self):
         """
