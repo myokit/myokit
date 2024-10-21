@@ -625,7 +625,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
 
         1. In the individual :class:`Trace` objects. This is somewhat
            counter-intuitive as some of these properties (e.g.
-           :meth:Trace.pipette_resistance()`) were set before a series was
+           :meth:Trace.r_pipette()`) were set before a series was
            acquired and do no change between channels or sweeps.
         2. In the series' :class:`AmplifierState`, which can be accessed via
            the :meth:`amplifier_state()` method.
@@ -1413,17 +1413,27 @@ class Trace(TreeNode):
 
     def r_seal(self):
         """
-        Returns the "seal resistance" (MOhm) determined in the waiting time
-        before the trace was acquired.
+        Returns the "seal resistance" (MOhm) that was determined the last time
+        that the "amplifier window" was active (so at some indeterminate time
+        before the Trace was aquired).
 
-        This is equal to the value "R-memb" on the display. If a test pulse is
-        being used, it is calculated as dV/dI where dV and dI are the
-        differences in (command) voltage and current before and during the
-        pulse. If no test pulse is used it is simply the ratio between the V
-        and I measurements.
+        The values returned by :meth:`r_seal` and :meth:`r_pipette` are the
+        same measurement ("R-memb") performed at a different time. The value
+        ``r_seal`` is updated whenever the "amplifier window" is active. Using
+        a button or a programmed command, the same value can be stored as
+        ``r_pipette``, which should be done before breaking the seal.
 
-        This is the same measurement as :meth:`r_pipette`, but logged
-        automatically before each trace.
+        "R-memb" is determined either using a test pulse or from the current
+        V and I values. If a test pulse is used (the default), this is
+        specified as a ``dV`` from the holding potential, and
+        ``R-memb = dV / dI`` where ``dV`` is the difference in command
+        potential and ``dI`` is the measured difference in current (I during
+        the step minus I at holding potential).
+
+        Users should be careful when interpreting this value, as it depends on
+        (1) the last time that the amplifier window was active, (2) the test
+        pulse settings, (3) the holding potential, (4) any currents active at
+        the holding potential or during the step.
         """
         return self._r_seal * 1e-6
 
@@ -1436,14 +1446,12 @@ class Trace(TreeNode):
 
     def r_pipette(self):
         """
-        Returns the pipette resistance (MOhm) determined from the test pulse
-        before breaking the seal.
+        Returns the pipette resistance (MOhm) stored with this Trace, but
+        calculated at an earlier point.
 
-        This is equal to the value "R-memb" on the display, but logged when a
-        "R-memb to R-pip" button was pressed (or called programmatically). It
-        uses the same measurement as  :meth:`r_seal`, but logged at a different
-        time. The intended use is to store the resistance of the pipette tip
-        before touching a cell.
+        Like the "seal resistance", the "pipette resistance" is a stored
+        measurement of what patchmaster calls "R-memb". For details, see
+        :meth:`r_seal`.
         """
         return self._r_pipette * 1e-6
 
