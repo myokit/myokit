@@ -192,9 +192,13 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Add pace
         if pace is not None:
             export_lines.append('/* Engine: pace */')
+            export_lines.append('/* E.g.')
+            export_lines.append('  -80 * (1 - sigmoid((t-100)*5000))')
             export_lines.append(
-                '/* E.g. { -80 + 120*heaviside(t-10) - 80*heaviside(t-20) } */'
+                '  -120 * (sigmoid((t-100)*5000) - sigmoid((t-200)*5000))'
             )
+            export_lines.append('*/')
+
             lhs = var_name(pace)
             rhs = e.ex(pace.rhs())
             qname = pace.qname()
