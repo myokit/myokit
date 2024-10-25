@@ -4,19 +4,22 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1092](https://github.com/myokit/myokit/pull/1092) The method `DataLog.load_csv` can now read CSV files with duplicate column names.
+  - [#1095](https://github.com/myokit/myokit/pull/1095) Myokit is now tested on Python 3.12 and 3.13.
 - Changed
 - Deprecated
 - Removed
 - Fixed
   - [#1083](https://github.com/myokit/myokit/pull/1083) Fixed bug when passing initial state `Expression` objects to `myokit.step`.
+  - [#1093](https://github.com/myokit/myokit/pull/1093) `DataLog.load_csv` will now ignore an initial byte order marker.
 
 ## [1.37.0] - 2024-06-17
 - Added
   - [#1075](https://github.com/myokit/myokit/pull/1075) Add a `myokit.TypeError` exception, which inherits from `myokit.IntegrityError` but is used specifically if one type of expression was expected but another was found.
 - Changed
-  - [#1075](https://github.com/myokit/myokit/pull/1075) Expressions will now raise a `myokit.TypeError` in the constructor if their operands are unexpected expression types, e.g. if numbers and booleans are mixed.
-  - [#1074](https://github.com/myokit/myokit/pull/1074) Expressions will now raise a `myokit.IntegrityError` in the constructor if their operands are not expression objects: previously, this check was only performed by `Expression.validate()`.
   - [#1067](https://github.com/myokit/myokit/pull/1067) Improved the meta data loaded from HEKA files when creating a `myokit.DataLog`.
+  - [#1074](https://github.com/myokit/myokit/pull/1074) Expressions will now raise a `myokit.IntegrityError` in the constructor if their operands are not expression objects: previously, this check was only performed by `Expression.validate()`.
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Expressions will now raise a `myokit.TypeError` in the constructor if their operands are unexpected expression types, e.g. if numbers and booleans are mixed.
 - Removed
   - [#1075](https://github.com/myokit/myokit/pull/1075) Removed the `PrefixCondition` base class previously used in the expression system, as only `Not` inherited from it.
 - Fixed

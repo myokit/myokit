@@ -666,9 +666,11 @@ class DataLog(OrderedDict):
         """
         Loads a CSV file from disk and returns it as a :class:`DataLog`.
 
-        The CSV file must start with a header line indicating the variable
-        names, separated by commas. Each subsequent row should contain the
-        values at a single point in time for all logged variables.
+        The CSV file must start with a header line indicating the column names,
+        separated by commas. Each subsequent row should contain the values at a
+        single point in time for all logged variables. Duplicate column names
+        will be given a suffix "-i", where "i" is an integer chosen to create
+        a unique name.
 
         The ``DataLog`` is created using the data type specified by the
         argument ``precision``, regardless of the data type of the stored data.
@@ -691,9 +693,18 @@ class DataLog(OrderedDict):
                 'Syntax error on line ' + str(line) + ', character '
                 + str(1 + char) + ': ' + msg)
 
+        # Detect Microsoft's annyoing utf-8-sig encoding
+        # Note: We have to perform the first read in utf-8 mode, because the
+        # default encoding on windows will turn the BOM into a different set of
+        # characters, so that f.read(1) won't actually equal \ufeff
+        encoding = None
+        with open(filename, 'r', encoding='utf-8') as f:
+            if f.read(1) == '\ufeff':
+                encoding = 'utf-8-sig'
+
         quote = '"'
         delim = ','
-        with open(filename, 'r', newline=None) as f:
+        with open(filename, 'r', newline=None, encoding=encoding) as f:
             # Read header
             keys = []   # The log keys, in order of appearance
 
@@ -784,8 +795,32 @@ class DataLog(OrderedDict):
             if c == delim:
                 e(1, i, 'Empty field in header.')
 
-            # Create data structure
+            # Handle duplicate keys by adding "-i" to all keys that appear
+            # more than once. If an entry key-i already exists, i is
+            # incremented.
             m = len(keys)
+            if len(set(keys)) != m:
+                first_seen = {}  # key: index first seen at
+                duplicates = {}  # key: list of indices of duplicates
+                for i, key in enumerate(keys):
+                    if key in first_seen:
+                        try:
+                            duplicates[key].append(i)
+                        except KeyError:
+                            duplicates[key] = [first_seen[key], i]
+                    else:
+                        first_seen[key] = i
+                for key, indices in duplicates.items():
+                    j = 1
+                    for i in indices:
+                        k = key
+                        while k in first_seen:
+                            k = f'{key}-{j}'
+                            j += 1
+                        keys[i] = k
+                        first_seen[k] = i
+
+            # Create data structure
             lists = []
             for key in keys:
                 x = array.array(typecode)

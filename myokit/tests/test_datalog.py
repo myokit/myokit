@@ -683,6 +683,26 @@ class DataLogTest(unittest.TestCase):
         d = myokit.DataLog.load(path, progress=p)
         self.assertIsNone(d)
 
+    def test_load_csv_duplicate_keys(self):
+        # Test loading a CSV with duplicate key names
+
+        path = os.path.join(DIR_IO, 'datalog-18-duplicate-keys.csv')
+        d = myokit.DataLog.load_csv(path)
+        self.assertEqual(len(d), 7)
+        self.assertEqual(
+            list(d.keys()),
+            ['time', 'x-1', 'x-3', 'ys-2-1', 'x-4', 'ys-2-2', 'x-2'])
+
+    def test_load_csv_ufeff(self):
+        # Test ignoring byte order marker (BOM) at start of file
+
+        with TemporaryDirectory() as td:
+            path = td.path('test.csv')
+            with open(path, 'w', encoding='utf-8-sig') as f:
+                f.write('time,x\n0,2\n1,3\n')
+            d = myokit.DataLog.load_csv(path)
+            self.assertEqual(list(d.keys()), ['time', 'x'])
+
     def test_load_csv_errors(self):
         # Test for errors during csv loading.
 
