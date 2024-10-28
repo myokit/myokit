@@ -1699,8 +1699,6 @@ class AmplifierState:
         #handle.seek(i + 231)  # sF2Mode = 231; (* BYTE *)
         #self._temp['sF2Mode'] = reader.read1('b')
 
-        #TODO: Add these are proper properties with a docstring'd method that
-        # returns them and says what the units are etc. or stop reading them.
         # self._temp = {}
         # handle.seek(i + 296)  # sStimFilterHz = 296; (* LONGREAL *)
         # print('STIM', reader.read1('d'))
@@ -1716,9 +1714,6 @@ class AmplifierState:
         # self._temp['sVmonFiltFrequency'] = reader.read1('d')
         # handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
         # self._temp['sImon1Bandwidth'] = reader.read1('d')
-        # handle.seek(i + 286)    # sCCFastSpeed = 286; (* BYTE *)
-        # print('CFASTSPEED', reader.read1('b'))
-        # self.CFASTSPEED = reader.read1('b')
 
         # Stimulus filter
         handle.seek(i + 282)  # sStimFilterOn = 282; (* BYTE *)
@@ -1727,6 +1722,12 @@ class AmplifierState:
     def c_fast(self):
         """
         Return the capacitance (pF) used in fast capacitance correction.
+
+        HEKA amplifiers use a two-component fast capacitance cancellation, with
+        an instantaneous part (component 1) and a delayed part (component 2).
+
+        The "total" capacitance, e.g. the sum of components 1 and 2 is
+        returned.
         """
         # The total fast capacitance correction is a sum of two capacitances.
         # See the EPC-10 manual for details.
@@ -1734,16 +1735,20 @@ class AmplifierState:
 
     def c_fast_tau(self):
         """
-        Returns the time constant (us) used in fast capacitance correction.
+        Returns the time constant (in microseconds) used in fast capacitance
+        correction.
+
+        This is the time constant for the non-instantaneous component of the
+        cancellation, see :meth:`c_fast`.
         """
         return self._cf_tau * 1e6
 
     def c_fast_enabled(self):
         """
-        Returns ``True``, because fast capacitance compensation is always
-        enabled.
+        Returns ``True`` if the fast capacitance compensation is set to a
+        non-zero capacitance.
         """
-        return True
+        return (self._cf_amp1 + self._cf_amp2) > 0
 
     def c_slow(self):
         """
