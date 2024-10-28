@@ -1377,7 +1377,7 @@ class AbfFile(myokit.formats.SweepSource):
         except KeyError:
             try:
                 unit = myokit.parse_unit(unit_string.replace(MU, 'u'))
-            except myokit.ParseError:
+            except myokit.ParseError:  # pragma: no cover
                 if unit_string == 'oC':
                     warnings.warn('Unsupported units degrees C.')
                 else:
