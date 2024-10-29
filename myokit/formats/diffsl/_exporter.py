@@ -19,8 +19,8 @@ class DiffSLExporter(myokit.formats.Exporter):
     This :class:`Exporter <myokit.formats.Exporter>` generates a DiffSL
     implementation of a Myokit model.
 
-    Only the model definition is exported. All state variables and currents
-    are output, but no inputs are provided.
+    Only the model definition is exported. No inputs are provided, there is
+    no protocol defined, and only state variables are output.
 
     For details of the language, see https://martinjrobins.github.io/diffsl/
     """
