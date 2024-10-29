@@ -10,6 +10,7 @@ import re
 
 import myokit
 import myokit.units
+from myokit.formats.cellml.v2._api import create_unit_name
 
 
 # Regex for id checking
@@ -246,6 +247,106 @@ class Model:
 
         # CSymbolVariable for time
         self._time = CSymbolVariable(_SBML_TIME)
+        
+    def from_myokit_model(model: myokit.Model) -> 'Model':
+        """
+        Creates an SBML model from a :class:`myokit.Model`.
+        """
+        # Model must be valid
+        # Otherwise could have cycles, invalid references, etc.
+        model.validate()
+
+        # Get name for model
+        name = model.name()
+        if name is None:
+            name = 'unnamed_myokit_model'
+
+        # Create model
+        m = Model(name)
+
+        # Valid model always has a time variable
+        time = model.time()
+
+        # Method to obtain or infer variable unit
+        def variable_unit(variable, time_unit):
+            """Returns variable.unit(), or attempts to infer it if not set."""
+            unit = variable.unit()
+            if unit is not None:
+                return unit
+
+            rhs = variable.rhs()
+            if rhs is not None:
+                try:
+                    # Tolerant evaluation, see above. Result may be None.
+                    unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
+                except myokit.IncompatibleUnitError:
+                    return None
+                if variable.is_state():
+                    if unit is not None and time_unit is not None:
+                        # RHS is divided by time unit, so multiply
+                        unit *= time_unit
+            return unit
+
+        # Time unit, used to infer units of state variables
+        # (May itself be inferred)
+        time_unit = variable_unit(time, None)
+        if time_unit is not None:
+            m.set_time_units(time_unit)
+
+        # Gather unit objects used in Myokit model that are not
+        # built-in SBML units
+        used = set()
+        for variable in model.variables(deep=True):
+            # Add variable unit, or unit evaluated from variable's RHS
+            unit = variable_unit(variable, time_unit)
+            if unit is not None and unit not in Model._base_units.values():
+                used.add(unit)
+
+        # Add non-base units to model
+        for unit in used:
+            name = create_unit_name(unit)
+            m.add_unit(name, unit)
+
+        # Create unames in model for nested variables
+        model.create_unique_names()
+        
+        def add_variable(c: Compartment, variable: myokit.Variable):
+            if variable is time:
+                return
+            v = m.add_species(
+                c,
+                variable.uname(),
+                True,
+                variable.is_constant(),
+                False
+            )
+            v.set_value(variable.rhs(), variable.is_state())
+
+            if variable.is_state():
+                v.set_initial_value(variable.initial_value())
+
+            unit = variable_unit(variable, time_unit)
+            if unit is not None:
+                v.set_substance_units(unit)
+
+        # Add components
+        for component in model:
+            c = m.add_compartment(component.name())
+
+            # Add variables
+            for variable in component:
+                # Get variable unit, or infer from RHS if None
+                unit = variable_unit(variable, time_unit)
+
+                # Add variable
+                add_variable(c, variable)
+
+                # Add nested variables
+                for nested in variable.variables(deep=True):
+                    add_variable(c, nested)
+
+        # Return model
+        return m
 
     def add_compartment(self, sid):
         """Adds a :class:`myokit.formats.sbml.Compartment` to this model."""
@@ -268,6 +369,10 @@ class Model:
         self._parameters[sid] = p
         self._assignables[sid] = p
         return p
+    
+    def parameters(self):
+        """Returns a list of all parameters in this model."""
+        return list(self._parameters.values())
 
     def add_reaction(self, sid):
         """Adds a :class:`myokit.formats.sbml.Reaction` to this model."""
@@ -358,7 +463,11 @@ class Model:
     def compartment(self, sid):
         """Returns the compartment with the given sid."""
         return self._compartments[sid]
-
+    
+    def compartments(self):
+        """Returns a list of all compartments in this model."""
+        return list(self._compartments.values())
+    
     def conversion_factor(self):
         """
         Returns the :class:`Parameter` acting as global species conversion
@@ -477,6 +586,10 @@ class Model:
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._time_units = units
+        
+    def time_units(self):
+        """Returns the default units for time."""
+        return self._time_units
 
     def set_volume_units(self, units):
         """
@@ -496,6 +609,10 @@ class Model:
     def species(self, sid):
         """Returns the species with the given id."""
         return self._species[sid]
+    
+    def species_list(self):
+        """ returns a list of all species in this model."""
+        return list(self._species.values())
 
     def substance_units(self):
         """
@@ -513,6 +630,10 @@ class Model:
     def time_units(self):
         """Returns the default units for time, or dimensionless if not set."""
         return self._time_units
+    
+    def units(self):
+        """Returns a list of all units in this model."""
+        return list(self._units.values())
 
     def unit(self, unitsid):
         """Returns a user-defined or predefined unit."""

@@ -2181,6 +2181,76 @@ class SBMLTestMyokitModel(unittest.TestCase):
             myokit.Plus(myokit.Number(1), myokit.Name(m.time())))
 
 
+class SBMLTestModelFromMyokit(unittest.TestCase):
+    def test_basic(self):
+        m = myokit.Model()
+        c = m.add_component('comp')
+        v = c.add_variable('var')
+        v.set_rhs(myokit.Number(3))
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(myokit.Number(0))
+                
+        s = sbml.Model.from_myokit_model(m)
+        compartment_names = [c.sid() for c in s.compartments()]
+        self.assertCountEqual(compartment_names, ['comp'])
+        parameter_names = [v.sid() for v in s.species_list()]
+        self.assertCountEqual(parameter_names, ['var'])
+        
+    def test_vars_with_same_name(self):
+        m = myokit.Model()
+        c = m.add_component('comp')
+        v = c.add_variable('var')
+        v.set_rhs(myokit.Number(3))
+        c = m.add_component('comp2')
+        v = c.add_variable('var')
+        v.set_rhs(myokit.Number(3))
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(myokit.Number(0))
+
+        s = sbml.Model.from_myokit_model(m)
+        compartment_names = [c.sid() for c in s.compartments()]
+        self.assertCountEqual(compartment_names, ['comp', 'comp2'])
+        parameter_names = [v.sid() for v in s.species_list()]
+        self.assertCountEqual(parameter_names, ['comp2_var', 'comp_var'])
+
+    def test_rate_eqn_with_unit(self):
+        m = myokit.Model()
+        c = m.add_component('comp')
+
+        t = c.add_variable('time', rhs=myokit.Number(0))
+        t.set_unit(myokit.units.second)
+        t.set_binding('time')
+
+        p = c.add_variable('param')
+        p.set_rhs(myokit.Number(2))
+
+        v = c.add_variable('var', initial_value=myokit.Number(1))
+        v_unit = 1e3 * myokit.units.meter
+        v.set_unit(v_unit)
+        v.set_rhs(myokit.Multiply(myokit.Number(4), myokit.Name(p)))
+
+        v = c.add_variable('var2', initial_value=myokit.Number(1))
+        v.set_unit(myokit.units.meter)
+        v.set_rhs(myokit.Number(4))
+
+        s = sbml.Model.from_myokit_model(m)
+        parameter_names = [v.sid() for v in s.species_list()]
+        self.assertCountEqual(parameter_names, ['var', 'var2', 'param'])
+        # only non-base unit is kilometer
+        self.assertCountEqual(s.units(), [v_unit])
+        self.assertEqual(s.time_units(), myokit.units.second)
+        v = s.species('var')
+        self.assertEqual(v.initial_value()[0], myokit.Number(1))
+        self.assertEqual(v.initial_value()[1], None)
+        self.assertEqual(
+            v.value(), 
+            myokit.Multiply(myokit.Number(4), myokit.Name(p))
+        )
+
+
+
 if __name__ == '__main__':
     import warnings
     warnings.simplefilter('always')
