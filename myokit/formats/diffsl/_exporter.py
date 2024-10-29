@@ -63,10 +63,10 @@ class DiffSLExporter(myokit.formats.Exporter):
             ) from e
 
         # Prepare model for export
-        model, currents = self._prep_model(model, convert_units)
+        model = self._prep_model(model, convert_units)
 
         # Generate DiffSL model
-        diffsl_model = self._generate_diffsl(model, currents)
+        diffsl_model = self._generate_diffsl(model)
 
         # Write DiffSL model to file
         with open(path, 'w') as f:
@@ -129,13 +129,13 @@ class DiffSLExporter(myokit.formats.Exporter):
         #   y = 1 + dot_x
         model.remove_derivative_references()
 
-        return model, currents
+        return model
 
-    def _generate_diffsl(self, model, currents=None):
+    def _generate_diffsl(self, model):
         """
         Generate a DiffSL model from a prepped Myokit model.
-        DiffSL outputs will be set to state variables and currents
-        in alphabetical order.
+        DiffSL inputs will be left empty, and outputs will be set to
+        state variables in alphabetical order.
         """
 
         # Create DiffSL-compatible variable names
@@ -186,6 +186,7 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Add empty input parameter list
         export_lines.append('/* Input parameters */')
+        export_lines.append('/* E.g. in = [ varZero, varOne, varTwo ] */')
         export_lines.append('in = [ ]')
         export_lines.append('')
 
@@ -287,12 +288,10 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('}')
         export_lines.append('')
 
-        # Output state variables + currents in alphabetical order
+        # Output state variables in alphabetical order
         export_lines.append('/* Output */')
         export_lines.append('out_i {')
-        vars = set(model.states())
-        if currents:
-            vars = vars.union(currents)
+        vars = list(model.states())
         for v in sorted(vars, key=lambda x: var_name(x).swapcase()):
             lhs = var_name(v)
             export_lines.append(f'{tab}{lhs},')
