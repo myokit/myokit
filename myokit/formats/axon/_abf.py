@@ -574,8 +574,8 @@ class AbfFile(myokit.formats.SweepSource):
         # Only episodic stimulation is supported.
         if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
             warnings.warn(
-                'Unsupported acquisition method '
-                + acquisition_modes[self._mode] + '; unable to read D/A'
+                'Unsupported acquisition method'
+                f' {acquisition_modes[self._mode]}; unable to read D/A'
                 ' channels.')
 
             # Remaining code is all about reading D/A info for episodic
@@ -713,7 +713,7 @@ class AbfFile(myokit.formats.SweepSource):
                         elif t != EPOCH_DISABLED:  # pragma: no cover
                             use = False
                             warnings.warn(
-                                f'Unsupported epoch type: {epoch_types(t)}')
+                                f'Unsupported epoch type: {epoch_types[t]}')
                             break
                 elif source == DAC_DACFILEWAVEFORM:  # pragma: no cover
                     # Stimulus file? Then don't use
@@ -1375,7 +1375,14 @@ class AbfFile(myokit.formats.SweepSource):
         try:
             return self._unit_cache[unit_string]
         except KeyError:
-            unit = myokit.parse_unit(unit_string.replace(MU, 'u'))
+            try:
+                unit = myokit.parse_unit(unit_string.replace(MU, 'u'))
+            except myokit.ParseError:  # pragma: no cover
+                if unit_string == 'oC':
+                    warnings.warn('Unsupported units degrees C.')
+                else:
+                    warnings.warn(f'Unsupported units {unit_string}.')
+                unit = myokit.units.dimensionless
             self._unit_cache[unit_string] = unit
             return unit
 
