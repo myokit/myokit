@@ -9,8 +9,7 @@
 #
 import warnings
 
-from myokit import (And, Equal, If, Less, LessEqual, Log, More, MoreEqual, Not,
-                    NotEqual, Number, Or)
+from myokit import And, Equal, If, LessEqual, Log, MoreEqual, Not, Number
 from myokit.formats.ansic import CBasedExpressionWriter
 
 
@@ -112,30 +111,6 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
         return f'heaviside({self.ex(e[0])} - {self.ex(e[1])})'
 
     def _ex_not(self, e):
-        # Simplify expressions with double not's.
-        # Examples:
-        # not(not(a)) -> (1 - (1 - a)) == a
-        # not(a or b) -> (1 - (1 - (1 - a) * (1 - b))) == (1 - a) * (1 - b)
-        if isinstance(e[0], Not):
-            # not(not(a)) == a
-            return self.ex(e[0][0])
-
-        if isinstance(e[0], NotEqual):
-            # not(not(a == b)) == (a == b)
-            return self.ex(Equal(e[0][0], e[0][1]))
-
-        if isinstance(e[0], Less):
-            # not(a < b) == (a >= b)
-            return self.ex(MoreEqual(e[0][0], e[0][1]))
-
-        if isinstance(e[0], More):
-            # not(a > b) == (a <= b)
-            return self.ex(LessEqual(e[0][0], e[0][1]))
-
-        if isinstance(e[0], Or):
-            # not(a or b) == not(a) and not(b)
-            return self.ex(And(Not(e[0][0]), Not(e[0][1])))
-
         # not(a) == (1 - a), where a is in {0, 1}
         return f'(1 - {self.ex(e[0])})'
 
@@ -150,47 +125,12 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
     # -- Conditional expressions
 
     def _ex_if(self, e):
-        # General expression:
-        # if(_i, _t, _e) -> _t * _i + _e * not(_i), where _i is in {0,1}
-
-        # Shorten expression if _t == _e
-        # if(_i, _t, _t) -> _t
-        if e._t == e._e:
-            return self.ex(e._t)
-
         _if = self.ex(e._i)
-
-        if isinstance(e._t, Number) and e._t.value() == 0:
-            # Shorten expression if 'then' is 0; unit doesn't matter
-            # if(_i, 0, _e) -> _e * not(_i)
-            _then_x_if = ''
-        elif e._t == Number(1):
-            # Shorten expression if 'then' is 1; won't do if there's a unit
-            # if(_i, 1, _e) -> _i + _e * not(_i)
-            _then_x_if = _if
-        else:
-            _then_x_if = self.ex(e._t) + ' * ' + _if
-
+        _then = self.ex(e._t)
         _not_if = self.ex(Not(e._i))
+        _else = self.ex(e._e)
 
-        if isinstance(e._e, Number) and e._e.value() == 0:
-            # Shorten expression if 'else' is 0; unit doesn't matter
-            # if(_i, _t, 0) -> _t * _i
-            _else_x_not_if = ''
-        elif e._e == Number(1):
-            # Shorten expression if 'else' is 1; won't do if there's a unit
-            # if(_i, _t, 1) -> _t * _i + not(_i)
-            _else_x_not_if = _not_if
-        else:
-            _else_x_not_if = self.ex(e._e) + ' * ' + _not_if
-
-        if _then_x_if == '':
-            return f'{_else_x_not_if}'
-
-        if _else_x_not_if == '':
-            return f'{_then_x_if}'
-
-        return f'({_then_x_if} + {_else_x_not_if})'
+        return f'({_if} * {_then} + {_not_if} * {_else})'
 
     def _ex_piecewise(self, e):
         # Convert piecewise to nested ifs
