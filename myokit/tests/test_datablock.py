@@ -397,19 +397,19 @@ class DataBlock1dTest(unittest.TestCase):
         # Not enough data: detected at time level
         path = os.path.join(DIR_IO, 'bad1d-6-time-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more time data',
             myokit.DataBlock1d.load, path)
 
         # Not enoug data: detected at 0d level
         path = os.path.join(DIR_IO, 'bad1d-7-0d-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more 0d data',
             myokit.DataBlock1d.load, path)
 
         # Not enough data: detected at 1d level
         path = os.path.join(DIR_IO, 'bad1d-8-1d-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more 1d data',
             myokit.DataBlock1d.load, path)
 
         # Test progress reporter
@@ -1324,19 +1324,19 @@ class DataBlock2dTest(unittest.TestCase):
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-6-time-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more time data',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-7-0d-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more 0d data',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-8-2d-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more 2d data',
             myokit.DataBlock2d.load, path)
 
         # Test progress reporter
