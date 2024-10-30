@@ -562,8 +562,8 @@ class DataBlock1d:
             end += n0
             if end > nb:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock1d: Header indicates larger data'
-                    ' than found in the body.')
+                    'Unable to read DataBlock1d: Header indicates more time'
+                    ' data than found in the body.')
             data = array.array(dtype)
             data.frombytes(body[start:end])
             if sys.byteorder == 'big':  # pragma: no cover
@@ -583,7 +583,7 @@ class DataBlock1d:
                 end += n0
                 if end > nb:
                     raise myokit.DataBlockReadError(
-                        'Unable to read DataBlock1d: Header indicates larger'
+                        'Unable to read DataBlock1d: Header indicates more 0d'
                         ' data than found in the body.')
                 data = array.array(dtype)
                 data.frombytes(body[start:end])
@@ -602,7 +602,7 @@ class DataBlock1d:
                 end += n1
                 if end > nb:
                     raise myokit.DataBlockReadError(
-                        'Unable to read DataBlock1d: Header indicates larger'
+                        'Unable to read DataBlock1d: Header indicates more 1d'
                         ' data than found in the body.')
                 data = array.array(dtype)
                 data.frombytes(body[start:end])
@@ -1351,8 +1351,8 @@ class DataBlock2d:
             end += n0
             if end > nb:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock2d: Header indicates larger data'
-                    ' than found in the body.')
+                    'Unable to read DataBlock2d: Header indicates more time'
+                    ' data than found in the body.')
 
             data = array.array(dtype)
             data.frombytes(body[start:end])
@@ -1373,8 +1373,8 @@ class DataBlock2d:
                 end += n0
                 if end > nb:
                     raise myokit.DataBlockReadError(
-                        'Unable to read DataBlock2d: Header indicates larger'
-                        ' data than found in the body.')
+                        'Unable to read DataBlock2d: Header indicates more'
+                        ' 0d data than found in the body.')
                 data = array.array(dtype)
                 data.frombytes(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
@@ -1392,8 +1392,8 @@ class DataBlock2d:
                 end += n2
                 if end > nb:
                     raise myokit.DataBlockReadError(
-                        'Unable to read DataBlock2d: Header indicates larger'
-                        ' data than found in the body.')
+                        'Unable to read DataBlock2d: Header indicates more'
+                        ' 2d data than found in the body.')
                 data = array.array(dtype)
                 data.frombytes(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
