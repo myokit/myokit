@@ -104,6 +104,9 @@ class ExportTest(unittest.TestCase):
             name = 'test_' + name + '_exporter'
             self.assertIn(name, methods)
 
+    def test_sbml_exporter(self):
+        self._test(myokit.formats.exporter('sbml'))
+
     def test_ansic_exporter(self):
         self._test(myokit.formats.exporter('ansic'))
 

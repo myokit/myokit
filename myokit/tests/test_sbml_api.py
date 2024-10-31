@@ -2190,13 +2190,13 @@ class SBMLTestModelFromMyokit(unittest.TestCase):
         t = c.add_variable('time')
         t.set_binding('time')
         t.set_rhs(myokit.Number(0))
-                
+
         s = sbml.Model.from_myokit_model(m)
         compartment_names = [c.sid() for c in s.compartments()]
         self.assertCountEqual(compartment_names, ['comp'])
         parameter_names = [v.sid() for v in s.species_list()]
         self.assertCountEqual(parameter_names, ['var'])
-        
+
     def test_vars_with_same_name(self):
         m = myokit.Model()
         c = m.add_component('comp')
@@ -2245,10 +2245,9 @@ class SBMLTestModelFromMyokit(unittest.TestCase):
         self.assertEqual(v.initial_value()[0], myokit.Number(1))
         self.assertEqual(v.initial_value()[1], None)
         self.assertEqual(
-            v.value(), 
+            v.value(),
             myokit.Multiply(myokit.Number(4), myokit.Name(p))
         )
-
 
 
 if __name__ == '__main__':

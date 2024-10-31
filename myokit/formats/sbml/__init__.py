@@ -16,6 +16,7 @@ from ._api import (  # noqa
     Species,
     SpeciesReference)
 from ._importer import SBMLImporter
+from ._exporter import SBMLExporter
 from ._parser import (  # noqa
     SBMLParsingError,
     SBMLParser)
@@ -33,5 +34,18 @@ def importers():
     """
     return dict(_importers)
 
+
 # Exporters
+_exporters = {
+    'sbml': SBMLExporter,
+}
+
+
+def exporters():
+    """
+    Returns a dict of all exporters available in this module.
+    """
+    return dict(_exporters)
+
+
 # Expression writers
