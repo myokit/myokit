@@ -1086,12 +1086,10 @@ class Species(Quantity):
         # Flag whether initial value is provided in amount or concentration
         self._initial_value_in_amount = None
 
-    def to_xml(self, unit_to_str_map: dict) -> tuple[
-        etree.Element, etree.Element
-    ]:
+    def to_xml(self, unit_to_str_map: dict) -> tuple:
         """
         Returns the XML representation of this species as a tuple of
-        (species, rule).
+        (species, rule), both as :class:`etree.Element` objects.
         """
         species = etree.Element('species', id=self._sid)
         species.attrib['compartment'] = self._compartment.sid()
