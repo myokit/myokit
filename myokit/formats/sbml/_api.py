@@ -5,6 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
+from typing import Tuple
 import warnings
 import re
 from lxml import etree
@@ -1086,10 +1087,12 @@ class Species(Quantity):
         # Flag whether initial value is provided in amount or concentration
         self._initial_value_in_amount = None
 
-    def to_xml(self, unit_to_str_map: dict) -> tuple:
+    def to_xml(self, unit_to_str_map: dict) -> Tuple[
+        etree.Element, etree.Element
+    ]:
         """
         Returns the XML representation of this species as a tuple of
-        (species, rule), both as :class:`etree.Element` objects.
+        (species, rule).
         """
         species = etree.Element('species', id=self._sid)
         species.attrib['compartment'] = self._compartment.sid()
