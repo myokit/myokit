@@ -5,13 +5,11 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
-from typing import Tuple
+from typing import Dict
 import warnings
 import re
-from lxml import etree
 
 import myokit
-from myokit.formats.mathml._ewriter import MathMLExpressionWriter
 import myokit.units
 from myokit.formats.cellml.v2._api import create_unit_name
 
@@ -194,14 +192,6 @@ class Compartment(Quantity):
     def __str__(self):
         return '<Compartment ' + self._sid + '>'
 
-    def to_xml(self, unit_to_str: dict) -> etree.Element:
-        node = etree.Element('compartment', id=self._sid)
-        if self._size_units is not None:
-            node.attrib['units'] = unit_to_str[self._size_units]
-        if self._spatial_dimensions is not None:
-            node.attrib['spatialDimensions'] = str(self._spatial_dimensions)
-        return node
-
 
 class Model:
     """
@@ -359,118 +349,6 @@ class Model:
 
         # Return model
         return m
-
-    def write_xml(self, path: str):
-        tree = self.to_xml()
-        # Write to disk
-        tree.write(
-            path,
-            encoding='utf-8',
-            method='xml',
-            xml_declaration=True,
-            pretty_print=True,
-        )
-
-    def to_xml_str(self) -> str:
-        tree = self.to_xml()
-        return etree.tostring(
-            tree,
-            encoding='utf-8',
-            method='xml',
-            pretty_print=True,
-        )
-
-    def to_xml(self) -> etree.ElementTree:
-        root = etree.Element(
-            'sbml',
-            xmlns='http://www.sbml.org/sbml/level3/version2/core',
-            level='3',
-            version='2'
-        )
-
-        # setup a map from unit to string
-        unit_map_to_str = {
-            unit: string for string, unit in Model._base_units.items()
-        }
-        for unit in self._units.values():
-            unit_map_to_str[unit] = create_unit_name(unit)
-
-        name = self._name if self._name else 'unnamed_model'
-        model = etree.Element('model', id=name)
-        if self._time_units != myokit.units.dimensionless:
-            model.attrib['timeUnits'] = unit_map_to_str[self._time_units]
-        if self._area_units != myokit.units.dimensionless:
-            model.attrib['areaUnits'] = unit_map_to_str[self._area_units]
-        if self._length_units != myokit.units.dimensionless:
-            model.attrib['lengthUnits'] = unit_map_to_str[self._length_units]
-        if self._substance_units != myokit.units.dimensionless:
-            model.attrib['substanceUnits'] = unit_map_to_str[
-                self._substance_units
-            ]
-        if self._extent_units != myokit.units.dimensionless:
-            model.attrib['extentUnits'] = unit_map_to_str[self._extent_units]
-        if self._volume_units != myokit.units.dimensionless:
-            model.attrib['volumeUnits'] = unit_map_to_str[self._volume_units]
-
-        if self._units:
-            list_of_units = etree.Element('listOfUnitDefinitions')
-            for sid, unit in self._units.items():
-                node = self.unit_to_xml(sid, unit)
-                list_of_units.append(node)
-            model.append(list_of_units)
-        if self._compartments:
-            list_of_compartments = etree.Element('listOfCompartments')
-            for sid, compartment in self._compartments.items():
-                node = compartment.to_xml(unit_map_to_str)
-                list_of_compartments.append(node)
-            model.append(list_of_compartments)
-        if self._parameters:
-            list_of_parameters = etree.Element('listOfParameters')
-            for sid, parameter in self._parameters.items():
-                node = parameter.to_xml(unit_map_to_str)
-                list_of_parameters.append(node)
-            model.append(list_of_parameters)
-        if self._species:
-            list_of_species = etree.Element('listOfSpecies')
-            list_of_rules = etree.Element('listOfRules')
-            for sid, species in self._species.items():
-                species_node, rule_node = species.to_xml(unit_map_to_str)
-                if rule_node is not None:
-                    list_of_rules.append(rule_node)
-                list_of_species.append(species_node)
-            model.append(list_of_species)
-            model.append(list_of_rules)
-        if self._reactions:
-            list_of_reactions = etree.Element('listOfReactions')
-            for sid, reaction in self._reactions.items():
-                node = reaction.to_xml()
-                list_of_reactions.append(node)
-            model.append(list_of_reactions)
-        root.append(model)
-        return etree.ElementTree(root)
-
-    def unit_to_xml(self, sid: str, unit: myokit.Unit) -> etree.Element:
-        node = etree.Element('unitDefinition', id=sid)
-        kinds = [
-            'gram', 'metre', 'second',
-            'ampere', 'kelvin', 'candela', 'mole'
-        ]
-        multiplier = unit.multiplier()
-        for exponent, kind in zip(unit.exponents(), kinds):
-            if exponent != 0:
-                child = etree.Element('unit')
-                child.attrib['kind'] = kind
-                child.attrib['exponent'] = str(exponent)
-                if multiplier is not None:
-                    child.attrib['multiplier'] = str(multiplier)
-                    multiplier = None
-                node.append(child)
-        if multiplier is not None:
-            child = etree.Element('unit')
-            child.attrib['kind'] = 'dimensionless'
-            child.attrib['multiplier'] = str(multiplier)
-            node.append(child)
-        return node
 
     def add_compartment(self, sid):
         """Adds a :class:`myokit.formats.sbml.Compartment` to this model."""
@@ -734,6 +612,10 @@ class Model:
         """ returns a list of all species in this model."""
         return list(self._species.values())
 
+    def reactions(self):
+        """Returns a list of all reactions in this model."""
+        return list(self._reactions.values())
+
     def substance_units(self):
         """
         Returns the default units for reaction amounts (not concentrations), or
@@ -751,9 +633,9 @@ class Model:
         """Returns the default units for time, or dimensionless if not set."""
         return self._time_units
 
-    def units(self):
-        """Returns a list of all units in this model."""
-        return list(self._units.values())
+    def units(self) -> Dict[str, myokit.Unit]:
+        """Returns a dict mapping sid to unit for all units in this model."""
+        return self._units
 
     def unit(self, unitsid):
         """Returns a user-defined or predefined unit."""
@@ -858,12 +740,6 @@ class Parameter(Quantity):
         """Returns the units this parameter is in, or ``None`` if not set."""
         return self._units
 
-    def to_xml(self, unit_to_str_map: dict) -> etree.Element:
-        parameter = etree.Element('parameter', id=self._sid)
-        if self._units is not None:
-            parameter.attrib['units'] = unit_to_str_map[self._units]
-        return parameter
-
 
 class Reaction:
     """
@@ -898,35 +774,6 @@ class Reaction:
 
         # The kinetic law specifying this reaction's rate (if set)
         self._kinetic_law = None
-
-    def to_xml(self) -> etree.Element:
-        reaction = etree.Element('reaction', id=self._sid)
-        list_of_reactants = etree.Element('listOfReactants')
-        for reactant in self._reactants:
-            node = reactant.to_xml()
-            list_of_reactants.append(node)
-        reaction.append(list_of_reactants)
-        list_of_products = etree.Element('listOfProducts')
-        for product in self._products:
-            node = product.to_xml()
-            list_of_products.append(node)
-        reaction.append(list_of_products)
-        list_of_modifiers = etree.Element('listOfModifiers')
-        for modifier in self._modifiers:
-            node = modifier.to_xml()
-            list_of_modifiers.append(node)
-        reaction.append(list_of_modifiers)
-        if self._kinetic_law is not None:
-            kinetic_law = etree.Element('kineticLaw')
-            math = etree.Element(
-                'math',
-                xmlns='http://www.w3.org/1998/Math/MathML'
-            )
-            mathml_writer = MathMLExpressionWriter()
-            mathml_writer.ex(self._kinetic_law, math)
-            kinetic_law.append(math)
-            reaction.append(kinetic_law)
-        return reaction
 
     def add_modifier(self, species, sid=None):
         """Adds a modifier to this reaction and returns the created object."""
@@ -1087,50 +934,6 @@ class Species(Quantity):
         # Flag whether initial value is provided in amount or concentration
         self._initial_value_in_amount = None
 
-    def to_xml(self, unit_to_str_map: dict) -> Tuple[
-        etree.Element, etree.Element
-    ]:
-        """
-        Returns the XML representation of this species as a tuple of
-        (species, rule).
-        """
-        species = etree.Element('species', id=self._sid)
-        species.attrib['compartment'] = self._compartment.sid()
-        if self._initial_value_in_amount is None:
-            if self._is_amount:
-                attrib_name = 'initialAmount'
-            else:
-                attrib_name = 'initialConcentration'
-        else:
-            if self._initial_value_in_amount:
-                attrib_name = 'initialAmount'
-            else:
-                attrib_name = 'initialConcentration'
-        if self._initial_value is not None:
-            initial_value_eval = self._initial_value.eval()
-            species.attrib[attrib_name] = str(initial_value_eval)
-        species.attrib['constant'] = str(self._is_constant)
-        if self._units is not None:
-            species.attrib['units'] = unit_to_str_map[self._units]
-        species.attrib['boundaryCondition'] = str(self._is_boundary)
-
-        if self.value() is None:
-            return species, None
-
-        if self.is_rate():
-            rule_type = 'rateRule'
-        else:
-            rule_type = 'assignmentRule'
-        rule = etree.Element(rule_type, variable=self._sid)
-        math = etree.Element(
-            'math',
-            xmlns='http://www.w3.org/1998/Math/MathML'
-        )
-        mathml_writer = MathMLExpressionWriter()
-        mathml_writer.ex(self.value(), math)
-        rule.append(math)
-        return species, rule
-
     def is_amount(self):
         """
         Returns ``True`` only if this species is defined as an amount (not a
@@ -1261,19 +1064,6 @@ class SpeciesReference(Quantity):
     def __str__(self):
         return '<SpeciesReference ' + self._sid + '>'
 
-    def to_xml(self) -> etree.Element:
-        species_reference = etree.Element(
-            'speciesReference',
-            species=self._species.sid()
-        )
-        if self._sid is not None:
-            species_reference.attrib['id'] = self._sid
-        value = self.value()
-        if value is not None:
-            value_eval = value.eval()
-            species_reference.attrib['stoichiometry'] = str(value_eval)
-        return species_reference
-
 
 class ModifierSpeciesReference:
     """Represents a reference to a modifier species in an SBML reaction."""
@@ -1296,15 +1086,6 @@ class ModifierSpeciesReference:
     def sid(self):
         """Returns this species reference's SId, or ``None`` if not set."""
         return self._sid
-
-    def to_xml(self) -> etree.Element:
-        species_reference = etree.Element(
-            'modifierSpeciesReference',
-            species=self._species.sid()
-        )
-        if self._sid is not None:
-            species_reference.attrib['id'] = self._sid
-        return species_reference
 
 
 def convert_name(name):

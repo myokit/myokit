@@ -2239,7 +2239,7 @@ class SBMLTestModelFromMyokit(unittest.TestCase):
         parameter_names = [v.sid() for v in s.species_list()]
         self.assertCountEqual(parameter_names, ['var', 'var2', 'param'])
         # only non-base unit is kilometer
-        self.assertCountEqual(s.units(), [v_unit])
+        self.assertCountEqual(s.units().values(), [v_unit])
         self.assertEqual(s.time_units(), myokit.units.second)
         v = s.species('var')
         self.assertEqual(v.initial_value()[0], myokit.Number(1))

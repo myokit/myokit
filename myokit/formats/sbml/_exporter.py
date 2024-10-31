@@ -5,6 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import myokit
+from myokit.formats.sbml._writer import write_file
 import myokit.lib.guess
 import myokit.formats.sbml as sbml
 
@@ -44,7 +45,7 @@ class SBMLExporter(myokit.formats.Exporter):
 
         # Export
         sbml_model = sbml.Model.from_myokit_model(model)
-        sbml_model.write_xml(path)
+        write_file(path, sbml_model)
 
     def supports_model(self):
         """
