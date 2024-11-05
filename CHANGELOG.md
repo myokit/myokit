@@ -2,7 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.37.1] - 2024-11-05
 - Added
   - [#1073](https://github.com/myokit/myokit/pull/1073) Added export to [DiffSL](https://github.com/martinjrobins/diffeq-js/).
   - [#1088](https://github.com/myokit/myokit/pull/1088) The DataLogViewer now displays meta data for myokit DataLogs.
