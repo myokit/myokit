@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.37.1] - 2024-11-05
 - Added
   - [#1073](https://github.com/myokit/myokit/pull/1073) Added export to [DiffSL](https://github.com/martinjrobins/diffeq-js/).
