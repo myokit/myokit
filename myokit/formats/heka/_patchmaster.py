@@ -1597,6 +1597,9 @@ class Trace(TreeNode):
 #    sOld3             = 295;               (* BYTE *)
 #
 # sStimFilterHz        = 296;               (* LONGREAL *)
+# 2024-11-07 HEKA support says that sStimFilterHz is "antiquated", and this
+# value (10kHz=off or 100kHz=on) should be ignored.
+#
 # sRsTau               = 304;               (* LONGREAL *)
 # sDacToAdcDelay       = 312;               (* LONGREAL *)
 # sInputFilterTau      = 320;               (* LONGREAL *)
@@ -1700,8 +1703,6 @@ class AmplifierState:
         #self._temp['sF2Mode'] = reader.read1('b')
 
         # self._temp = {}
-        # handle.seek(i + 296)  # sStimFilterHz = 296; (* LONGREAL *)
-        # print('STIM', reader.read1('d'))
         # handle.seek(i + 320)  # sInputFilterTau = 320; (* LONGREAL *)
         # print('InputFilterTau', reader.read1('d'))
         # self._temp['sInputFilterTau'] = reader.read1('d')
@@ -1897,7 +1898,12 @@ class AmplifierState:
         return self._voff * 1e3
 
     def v_hold(self):
-        """ Returns the holding potential (in mV). """
+        """
+        Returns the holding potential (in mV).
+
+        This is the potential last set in the amplifier window, before any
+        experiments were run.
+        """
         return self._holding * 1e3
 
 
@@ -1956,7 +1962,11 @@ class Filter2Type(enum.Enum):
 
 
 class CSlowRange(enum.Enum):
-    """ Available options for slow capacitance cancelling range. """
+    """
+    Available options for slow capacitance cancelling range.
+
+    This doubles up as the on/off setting for slow capacitance cancellation.
+    """
     OFF = 0
     pF30 = 1
     pF100 = 2
@@ -1975,12 +1985,25 @@ class CSlowRange(enum.Enum):
 
 class StimulusFilterSetting(enum.Enum):
     """
-    Setting for the stimulus filter.
-
+    Setting for the stimulus filter: 20 us (on, default), or 2 us (off).
 
     The stimulus filter is a 2-pole Bessel filter applied over the stimulus
     signal to reduce fast capacitative currents. It is applied to voltages, the
     manual is less clear whether it is applied to currents too.
+
+    The quoted values of 2 and 20 microseconds are the filter's "rise time",
+    which is the time needed for the signal to go from 10% to 90% of its step
+    response. This is related to the filter's time constant ``tau`` through:
+
+        t_rise = t90 - t10 = ln(0.9 / 0.1) * tau
+
+    where ``tau`` is related to the filter's 3dB bandwidth ``f`` as
+
+        tau = 1 / (2 * pi * f)
+
+    so that ``t_rise`` is approximately equal to 0.35 / f. This gives filter
+    bandwidths of 17.5kHz (on) and 175kHz (off), which matches the frequency
+    shown in the Patchmaster manual.
     """
     BW2 = 0
     BW20 = 1
