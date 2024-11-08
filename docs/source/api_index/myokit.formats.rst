@@ -135,7 +135,10 @@ myokit.formats.heka
 - :class:`myokit.formats.heka.AmplifierSeries`
 - :class:`myokit.formats.heka.AmplifierState`
 - :class:`myokit.formats.heka.AmplifierStateRecord`
+- :class:`myokit.formats.heka.CSlowRange`
 - :class:`myokit.formats.heka.EndianAwareReader`
+- :class:`myokit.formats.heka.Filter1Setting`
+- :class:`myokit.formats.heka.Filter2Type`
 - :class:`myokit.formats.heka.Group`
 - :meth:`myokit.formats.heka.importers`
 - :class:`myokit.formats.heka.NoSupportedDAChannelError`
@@ -150,6 +153,7 @@ myokit.formats.heka
 - :class:`myokit.formats.heka.Stimulus`
 - :class:`myokit.formats.heka.StimulusChannel`
 - :class:`myokit.formats.heka.StimulusFile`
+- :class:`myokit.formats.heka.StimulusFilterSetting`
 - :class:`myokit.formats.heka.Sweep`
 - :class:`myokit.formats.heka.Trace`
 - :class:`myokit.formats.heka.TreeNode`

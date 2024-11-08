@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1100](https://github.com/myokit/myokit/pull/1100) Added missing PatchMaster classes to the API and docs.
 
 ## [1.37.1] - 2024-11-05
 - Added

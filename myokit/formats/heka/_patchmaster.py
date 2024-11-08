@@ -1939,7 +1939,7 @@ class Filter1Setting(enum.Enum):
 
 class Filter2Type(enum.Enum):
     """
-    Setting for filter 2, which is applied after filter 1.
+    Filter type for filter 2, which is applied after filter 1.
 
     Unlike Filter 1, this filter can be disabled, and the frequency is set
     separately.
