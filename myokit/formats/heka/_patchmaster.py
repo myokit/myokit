@@ -988,7 +988,6 @@ class Series(TreeNode, myokit.formats.SweepSource):
         if a.c_fast_enabled():
             log.meta['c_fast_compensation_enabled'] = 'true'
             log.meta['c_fast_pF'] = a.c_fast()
-            log.meta['c_fast_tau_us'] = a.c_fast_tau()
         else:
             log.meta['c_fast_compensation_enabled'] = 'false'
         log.meta['c_slow_pF'] = a.c_slow()
@@ -1072,8 +1071,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         out.append(f'  Voltage offset: {a.v_off()} mV')
         # C fast
         if a.c_fast_enabled():
-            out.append(f'  C fast compensation: {a.c_fast()} pF,'
-                       f' {round(a.c_fast_tau(), 4)} us')
+            out.append(f'  C fast compensation: {a.c_fast()} pF,')
         else:
             out.append('  C fast compensation: not enabled')
         # C slow
@@ -1662,7 +1660,7 @@ class AmplifierState:
         handle.seek(i + 64)    # sCFastAmp2 = 64; (* LONGREAL *)
         self._cf_amp2 = reader.read1('d')
         handle.seek(i + 72)    # sCFastTau = 72; (* LONGREAL *)
-        self._cf_tau = reader.read1('d')
+        self._cf_tau2 = reader.read1('d')
         #handle.seek(i + 285)   # sCCCFastOn = 285; (* BYTE *)
         #self._cf_enabled = bool(reader.read1('b'))
 
@@ -1726,23 +1724,28 @@ class AmplifierState:
 
         HEKA amplifiers use a two-component fast capacitance cancellation, with
         an instantaneous part (component 1) and a delayed part (component 2).
-
-        The "total" capacitance, e.g. the sum of components 1 and 2 is
-        returned.
+        This method returns the sum of both values. Individual values can be
+        obtained from :meth:`c_fast_detailed`.
         """
         # The total fast capacitance correction is a sum of two capacitances.
         # See the EPC-10 manual for details.
         return (self._cf_amp1 + self._cf_amp2) * 1e12
 
-    def c_fast_tau(self):
+    def c_fast_detailed(self):
         """
-        Returns the time constant (in microseconds) used in fast capacitance
-        correction.
+        Returns the detailed fast capacitance correction values:
+        ``(c_fast1, c_fast2, tau_fast2)`` in (pF, pF, us).
 
-        This is the time constant for the non-instantaneous component of the
-        cancellation, see :meth:`c_fast`.
+        Here ``c_fast1`` is the capacitance (pF) of the instantaneous component
+        of cancellation, ``c_fast2`` is the capacitance (pF) of the delayed
+        cancellation, and ``tau_fast2`` is a "tau value" (in microseconds)
+        pertaining to the delayed component (the equivalent value for the
+        instantaneous component is 0).
         """
-        return self._cf_tau * 1e6
+        # The total fast capacitance correction is a sum of two capacitances.
+        # See the EPC-10 manual for details.
+        return (
+            self._cf_amp1 * 1e12, self._cf_amp2 * 1e12, self._cf_tau2 * 1e6)
 
     def c_fast_enabled(self):
         """
