@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#](https://github.com/myokit/myokit/pull/) Replaced the HEKA method `c_fast_tau` with a method `c_fast_detailed`.
 - Deprecated
 - Removed
 - Fixed
