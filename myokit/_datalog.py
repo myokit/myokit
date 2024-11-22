@@ -329,15 +329,15 @@ class DataLog(OrderedDict):
         """
         Creates a copy of the log, split with the given ``period``.
 
-        Split signals are given indexes so that "current" becomes "0.current",
-        "1.current", "2.current", etc.
+        Split signals are given indexes so that ``current`` becomes
+        ``0.current``, ``1.current``, ``2.current``, etc.
 
         If the logs entries do not divide well by ``period``, the remainder
         will be ignored. This happens commonly due to rounding point errors (in
         which case the remainder is a single entry). To disable this behavior,
         set ``discard_remainder=False``.
 
-        To split a log into a list of logs, use :meth:`myokit.split_periodic`.
+        To split a log into a list of logs, use :meth:`DataLog.split_periodic`.
         """
         # Note: Using closed intervals can lead to logs of unequal length, so
         # it should be disabled here to ensure a valid log
@@ -1309,8 +1309,8 @@ class DataLog(OrderedDict):
 
     def split_periodic(self, period, adjust=False, closed_intervals=True):
         """
-        Splits this log into multiple logs, returning a list of `DataLog`
-        objects.
+        Splits this log into multiple logs, returning a list of
+        :class:`DataLog` objects.
 
         Each returned log covers an equal ``period`` of time. For example a log
         covering the time span ``[0, 10000]`` split with period ``1000`` will
