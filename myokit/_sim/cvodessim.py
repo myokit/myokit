@@ -695,9 +695,9 @@ class Simulation(myokit.CModule):
             An optional fixed size log interval. Must be ``None`` if
             ``log_times`` is used. If both are ``None`` every step is logged.
         ``log_times``
-            An optional set of pre-determined logging times. Must be ``None``
-            if ``log_interval`` is used. If both are ``None`` every step is
-            logged.
+            An optional sequence (e.g. a list or a numpy array) of
+            pre-determined logging times. Must be ``None`` if ``log_interval``
+            is used. If both are ``None`` every step is logged.
         ``sensitivities``
             An optional list-of-lists to append the calculated sensitivities
             to.
