@@ -10,6 +10,7 @@ This page lists the main changes made to Myokit in each release.
 - Removed
 - Fixed
   - [#1100](https://github.com/myokit/myokit/pull/1100) Added missing PatchMaster classes to the API and docs.
+  - [#1109](https://github.com/myokit/myokit/pull/1109) Fixed issue with meta data in Patchmaster class for files with alternative amplifier state storage.
 
 ## [1.37.1] - 2024-11-05
 - Added
