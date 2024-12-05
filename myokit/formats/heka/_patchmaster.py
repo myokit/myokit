@@ -1015,7 +1015,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
 
         # Add protocol to meta data
         stimulus = self.stimulus()
-        log.meta['sampling_rate_ms'] = stimulus.sampling_interval() * 1000
+        log.meta['sampling_interval_ms'] = stimulus.sampling_interval() * 1000
         log.meta['sweep_count'] = stimulus.sweep_count()
         stimulus_channel = stimulus.supported_channel()
         if stimulus_channel is not None:
