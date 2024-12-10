@@ -2002,9 +2002,11 @@ class StimulusFilterSetting(enum.Enum):
     signal to reduce fast capacitative currents. It is applied to voltages, the
     manual is less clear whether it is applied to currents too.
 
-    The quoted values of 2 and 20 microseconds are stated to be the filter's
-    "rise time", which is the time needed for the signal to go from 10% to 90%
-    of its step response.
+    The quoted values are stated to be the filter's "rise time", which is the 
+    time needed for the signal to go from 10% to 90% of its step response.
+    However, measurements indicate real rise times are longer (approximately
+    40us in the 20us setting), so these values should be treated as nominal
+    rather than actual results.
     """
     BW2 = 0
     BW20 = 1
