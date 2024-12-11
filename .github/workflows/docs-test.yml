@@ -28,6 +28,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo .github/workflows/install-ubuntu-dependencies.sh
+          sudo apt update && sudo apt install -y libegl1-mesa-dev
 
       - name: Install Myokit
         run: |
