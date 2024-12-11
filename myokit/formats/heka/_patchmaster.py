@@ -1126,8 +1126,10 @@ class Series(TreeNode, myokit.formats.SweepSource):
             out.append('-' * 60)
             out.append(f'Stimulus "{stim.label()}"')
             out.append(f'  {stim.sweep_count()} sweeps')
-            out.append(f'  Delay between sweeps: {stim.sweep_interval()} s')
-            out.append(f'  Sampling interval: {stim.sampling_interval()} s')
+            out.append('  Delay between sweeps: '
+                       f'{stim.sweep_interval() * 1000} ms')
+            out.append('  Sampling interval: '
+                       f'{stim.sampling_interval() * 1000} ms')
             for i, ch in enumerate(stim):
                 out.append(f'  Channel {i}, in {ch.unit()}, amplifier in'
                            f' {ch.amplifier_mode()} mode')
@@ -2002,7 +2004,7 @@ class StimulusFilterSetting(enum.Enum):
     signal to reduce fast capacitative currents. It is applied to voltages, the
     manual is less clear whether it is applied to currents too.
 
-    The quoted values are stated to be the filter's "rise time", which is the 
+    The quoted values are stated to be the filter's "rise time", which is the
     time needed for the signal to go from 10% to 90% of its step response.
     However, measurements indicate real rise times are longer (approximately
     40us in the 20us setting), so these values should be treated as nominal
