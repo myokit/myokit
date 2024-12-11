@@ -973,44 +973,50 @@ class Series(TreeNode, myokit.formats.SweepSource):
 
         # Add meta data
         log.meta['time'] = self._time.strftime(myokit.DATE_FORMAT)
-        a = self.amplifier_state()
         t = self[0][0] if len(self) and len(self[0]) else None
-        log.meta['current_gain_mV_per_pA'] = a.current_gain()
-        log.meta['filter1'] = a.filter1_str()
-        log.meta['filter2'] = a.filter2_str()
-        log.meta['stimulus_filter'] = a.stimulus_filter_str()
-        log.meta['ljp_correction_mV'] = a.ljp()
-        log.meta['voltage_offset_mV'] = a.v_off()
-        log.meta['holding_potential_mV'] = a.v_hold()
         if t is not None:
             log.meta['r_pipette_MOhm'] = t.r_pipette()
             log.meta['r_seal_MOhm'] = t.r_seal()
-        if a.c_fast_enabled():
-            log.meta['c_fast_compensation_enabled'] = 'true'
-            log.meta['c_fast_pF'] = a.c_fast()
-        else:
-            log.meta['c_fast_compensation_enabled'] = 'false'
-        log.meta['c_slow_pF'] = a.c_slow()
-        if a.c_slow_enabled():
-            log.meta['c_slow_compensation_enabled'] = 'true'
-            log.meta['c_slow_range'] = a.c_slow_range()
-            css = a.c_slow_auto_settings()
-            log.meta['c_slow_auto_amplitude_mV'] = css[0]
-            log.meta['c_slow_auto_cycles'] = css[1]
-            log.meta['c_slow_auto_timeout'] = css[2]
-        else:
-            log.meta['c_slow_compensation_enabled'] = 'false'
-        log.meta['r_series_MOhm'] = a.r_series()
-        if a.r_series_enabled():
-            log.meta['r_series_compensation_enabled'] = 'true'
-            log.meta['r_series_compensation_percent'] = round(
-                a.r_series_fraction() * 100, 1)
-            log.meta['r_series_compensation_tau_us'] = a.r_series_tau()
-        else:
-            log.meta['r_series_compensation_enabled'] = 'false'
+        a = self.amplifier_state()
+        amps = [a] if a is not None else self.amplifier_states()
+        for k, a in enumerate(amps):
+            pre = '' if len(amps) == 1 else f'amp{1 + k}_'
+            log.meta[f'{pre}current_gain_mV_per_pA'] = a.current_gain()
+            log.meta[f'{pre}filter1'] = a.filter1_str()
+            log.meta[f'{pre}filter2'] = a.filter2_str()
+            log.meta[f'{pre}stimulus_filter'] = a.stimulus_filter_str()
+            log.meta[f'{pre}ljp_correction_mV'] = a.ljp()
+            log.meta[f'{pre}voltage_offset_mV'] = a.v_off()
+            log.meta[f'{pre}holding_potential_mV'] = a.v_hold()
+            if a.c_fast_enabled():
+                log.meta[f'{pre}c_fast_compensation_enabled'] = 'true'
+                log.meta[f'{pre}c_fast_pF'] = a.c_fast()
+            else:
+                log.meta[f'{pre}c_fast_compensation_enabled'] = 'false'
+            log.meta[f'{pre}c_slow_pF'] = a.c_slow()
+            if a.c_slow_enabled():
+                log.meta[f'{pre}c_slow_compensation_enabled'] = 'true'
+                log.meta[f'{pre}c_slow_range'] = a.c_slow_range()
+                css = a.c_slow_auto_settings()
+                log.meta[f'{pre}c_slow_auto_amplitude_mV'] = css[0]
+                log.meta[f'{pre}c_slow_auto_cycles'] = css[1]
+                log.meta[f'{pre}c_slow_auto_timeout'] = css[2]
+            else:
+                log.meta[f'{pre}c_slow_compensation_enabled'] = 'false'
+            log.meta[f'{pre}r_series_MOhm'] = a.r_series()
+            if a.r_series_enabled():
+                log.meta[f'{pre}r_series_compensation_enabled'] = 'true'
+                log.meta[f'{pre}r_series_compensation_percent'] = round(
+                    a.r_series_fraction() * 100, 1)
+                log.meta[f'{pre}r_series_compensation_tau_us'] = \
+                    a.r_series_tau()
+            else:
+                log.meta[f'{pre}r_series_compensation_enabled'] = 'false'
 
         # Add protocol to meta data
         stimulus = self.stimulus()
+        log.meta['sampling_interval_ms'] = stimulus.sampling_interval() * 1000
+        log.meta['sweep_count'] = stimulus.sweep_count()
         stimulus_channel = stimulus.supported_channel()
         if stimulus_channel is not None:
             log.meta['amplifier_mode'] = str(stimulus_channel.amplifier_mode())
@@ -1057,45 +1063,46 @@ class Series(TreeNode, myokit.formats.SweepSource):
 
         # Info from amplifier state
         a = self.amplifier_state()
-        out.append('Information from amplifier state:')
-        out.append(f'  Current gain: {a.current_gain()} mV/pA')
-        out.append(f'  Filter 1: {a.filter1_str()}')
-        out.append(f'  Filter 2: {a.filter2_str()}')
-        out.append(f'  Stimulus filter: {a.stimulus_filter_str()}')
-        # Voltage info
-        out.append(f'  Holding potential: {a.v_hold()} mV')
-        if a.ljp():
-            out.append(f'  LJP correction: {round(a.ljp(), 4)} mV')
-        else:
-            out.append('  LJP correction: no correction')
-        out.append(f'  Voltage offset: {a.v_off()} mV')
-        # C fast
-        if a.c_fast_enabled():
-            out.append(f'  C fast compensation: {a.c_fast()} pF,')
-        else:
-            out.append('  C fast compensation: not enabled')
-        # C slow
-        if a.c_slow_enabled():
-            out.append(f'  C slow compensation: {a.c_slow()} pF')
-            amp, cyc, tim = a.c_slow_auto_settings()
-            out.append(f'  C slow auto settings: amplitude {amp} mV,'
-                       f' cycles {cyc}, timeout {tim} s')
-        else:
-            out.append('  C slow compensation: not enabled')
-        # Rs comp
-        out.append(f'  R series: {a.r_series()} MOhm')
-        if a.r_series_enabled():
-            p = round(a.r_series_fraction() * 100, 1)
-            q = round(a.r_series_tau(), 1)
-            out.append(f'  R series compensation: {p} %, {q} us')
-        else:
-            out.append('  R series compensation: not enabled')
+        amps = [a] if a is not None else self.amplifier_states()
+        for k, a in enumerate(amps):
+            out.append(f'Information from amplifier state {1 + k}:')
+            out.append(f'  Current gain: {a.current_gain()} mV/pA')
+            out.append(f'  Filter 1: {a.filter1_str()}')
+            out.append(f'  Filter 2: {a.filter2_str()}')
+            out.append(f'  Stimulus filter: {a.stimulus_filter_str()}')
+            # Voltage info
+            out.append(f'  Holding potential: {a.v_hold()} mV')
+            if a.ljp():
+                out.append(f'  LJP correction: {round(a.ljp(), 4)} mV')
+            else:
+                out.append('  LJP correction: no correction')
+            out.append(f'  Voltage offset: {a.v_off()} mV')
+            # C fast
+            if a.c_fast_enabled():
+                out.append(f'  C fast compensation: {a.c_fast()} pF,')
+            else:
+                out.append('  C fast compensation: not enabled')
+            # C slow
+            if a.c_slow_enabled():
+                out.append(f'  C slow compensation: {a.c_slow()} pF')
+                amp, cyc, tim = a.c_slow_auto_settings()
+                out.append(f'  C slow auto settings: amplitude {amp} mV,'
+                           f' cycles {cyc}, timeout {tim} s')
+            else:
+                out.append('  C slow compensation: not enabled')
+            # Rs comp
+            out.append(f'  R series: {a.r_series()} MOhm')
+            if a.r_series_enabled():
+                p = round(a.r_series_fraction() * 100, 1)
+                q = round(a.r_series_tau(), 1)
+                out.append(f'  R series compensation: {p} %, {q} us')
+            else:
+                out.append('  R series compensation: not enabled')
 
         # Info from first trace
         if len(self) and len(self[0]):
             t = self[0][0]
             out.append('Information from first trace:')
-
             out.append(f'  Pipette resistance: {t.r_pipette()} MOhm')
             out.append(f'  Seal resistance: {t.r_seal()} MOhm')
             out.append(f'  Series resistance: {t.r_series()} MOhm')
@@ -1119,8 +1126,10 @@ class Series(TreeNode, myokit.formats.SweepSource):
             out.append('-' * 60)
             out.append(f'Stimulus "{stim.label()}"')
             out.append(f'  {stim.sweep_count()} sweeps')
-            out.append(f'  Delay between sweeps: {stim.sweep_interval()} s')
-            out.append(f'  Sampling interval: {stim.sampling_interval()} s')
+            out.append('  Delay between sweeps: '
+                       f'{stim.sweep_interval() * 1000} ms')
+            out.append('  Sampling interval: '
+                       f'{stim.sampling_interval() * 1000} ms')
             for i, ch in enumerate(stim):
                 out.append(f'  Channel {i}, in {ch.unit()}, amplifier in'
                            f' {ch.amplifier_mode()} mode')
@@ -1440,7 +1449,7 @@ class Trace(TreeNode):
         Returns the last (uncompensated) series resistance (MOhm) before
         acquiring the trace.
         """
-        return 1e-6 / self._g_series
+        return 0 if self._g_series == 0 else 1e-6 / self._g_series
 
     def r_pipette(self):
         """
@@ -1700,19 +1709,20 @@ class AmplifierState:
         #handle.seek(i + 231)  # sF2Mode = 231; (* BYTE *)
         #self._temp['sF2Mode'] = reader.read1('b')
 
-        # self._temp = {}
-        # handle.seek(i + 320)  # sInputFilterTau = 320; (* LONGREAL *)
-        # print('InputFilterTau', reader.read1('d'))
-        # self._temp['sInputFilterTau'] = reader.read1('d')
-        # handle.seek(i + 328)  # sOutputFilterTau = 328; (* LONGREAL *)
-        # print('OutputFilterTau', reader.read1('d'))
-        # self._temp['sOutputFilterTau'] = reader.read1('d')
-        # handle.seek(i + 384)  # sVmonFiltBandwidth = 384; (* LONGREAL *)
-        # self._temp['sVmonFiltBandwidth'] = reader.read1('d')
-        # handle.seek(i + 392)  # sVmonFiltFrequency = 392; (* LONGREAL *)
-        # self._temp['sVmonFiltFrequency'] = reader.read1('d')
-        # handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
-        # self._temp['sImon1Bandwidth'] = reader.read1('d')
+        #self._temp = {}
+        #handle.seek(i + 320)  # sInputFilterTau = 320; (* LONGREAL *)
+        #print('InputFilterTau', reader.read1('d'))
+        #self._temp['sInputFilterTau'] = reader.read1('d')
+        #handle.seek(i + 328)  # sOutputFilterTau = 328; (* LONGREAL *)
+        #print('OutputFilterTau', reader.read1('d'))
+        #self._temp['sOutputFilterTau'] = reader.read1('d')
+        #handle.seek(i + 384)  # sVmonFiltBandwidth = 384; (* LONGREAL *)
+        #self._temp['sVmonFiltBandwidth'] = reader.read1('d')
+        #handle.seek(i + 392)  # sVmonFiltFrequency = 392; (* LONGREAL *)
+        #self._temp['sVmonFiltFrequency'] = reader.read1('d')
+        #print(self._temp)
+        #handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
+        #self._temp['sImon1Bandwidth'] = reader.read1('d')
 
         # Stimulus filter
         handle.seek(i + 282)  # sStimFilterOn = 282; (* BYTE *)
@@ -1994,19 +2004,11 @@ class StimulusFilterSetting(enum.Enum):
     signal to reduce fast capacitative currents. It is applied to voltages, the
     manual is less clear whether it is applied to currents too.
 
-    The quoted values of 2 and 20 microseconds are the filter's "rise time",
-    which is the time needed for the signal to go from 10% to 90% of its step
-    response. This is related to the filter's time constant ``tau`` through:
-
-        t_rise = t90 - t10 = ln(0.9 / 0.1) * tau
-
-    where ``tau`` is related to the filter's 3dB bandwidth ``f`` as
-
-        tau = 1 / (2 * pi * f)
-
-    so that ``t_rise`` is approximately equal to 0.35 / f. This gives filter
-    bandwidths of 17.5kHz (on) and 175kHz (off), which matches the frequency
-    shown in the Patchmaster manual.
+    The quoted values are stated to be the filter's "rise time", which is the
+    time needed for the signal to go from 10% to 90% of its step response.
+    However, measurements indicate real rise times are longer (approximately
+    40us in the 20us setting), so these values should be treated as nominal
+    rather than actual results.
     """
     BW2 = 0
     BW20 = 1

@@ -8,8 +8,10 @@ This page lists the main changes made to Myokit in each release.
   - [#1102](https://github.com/myokit/myokit/pull/1102) Replaced the HEKA method `c_fast_tau` with a method `c_fast_detailed`.
 - Deprecated
 - Removed
+  - [#1111](https://github.com/myokit/myokit/pull/1111) No longer testing on Python 3.7.
 - Fixed
   - [#1100](https://github.com/myokit/myokit/pull/1100) Added missing PatchMaster classes to the API and docs.
+  - [#1109](https://github.com/myokit/myokit/pull/1109) Fixed issue with meta data in Patchmaster class for files with alternative amplifier state storage.
 
 ## [1.37.1] - 2024-11-05
 - Added
