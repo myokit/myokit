@@ -114,6 +114,13 @@ myokit.formats.cuda
 - :meth:`myokit.formats.cuda.exporters`
 - :meth:`myokit.formats.cuda.ewriters`
 
+myokit.formats.diffsl
+---------------------
+- :class:`myokit.formats.diffsl.DiffSLExporter`
+- :class:`myokit.formats.diffsl.DiffSLExpressionWriter`
+- :meth:`myokit.formats.diffsl.exporters`
+- :meth:`myokit.formats.diffsl.ewriters`
+
 myokit.formats.easyml
 ---------------------
 - :class:`myokit.formats.easyml.EasyMLExporter`
@@ -128,7 +135,10 @@ myokit.formats.heka
 - :class:`myokit.formats.heka.AmplifierSeries`
 - :class:`myokit.formats.heka.AmplifierState`
 - :class:`myokit.formats.heka.AmplifierStateRecord`
+- :class:`myokit.formats.heka.CSlowRange`
 - :class:`myokit.formats.heka.EndianAwareReader`
+- :class:`myokit.formats.heka.Filter1Setting`
+- :class:`myokit.formats.heka.Filter2Type`
 - :class:`myokit.formats.heka.Group`
 - :meth:`myokit.formats.heka.importers`
 - :class:`myokit.formats.heka.NoSupportedDAChannelError`
@@ -143,6 +153,7 @@ myokit.formats.heka
 - :class:`myokit.formats.heka.Stimulus`
 - :class:`myokit.formats.heka.StimulusChannel`
 - :class:`myokit.formats.heka.StimulusFile`
+- :class:`myokit.formats.heka.StimulusFilterSetting`
 - :class:`myokit.formats.heka.Sweep`
 - :class:`myokit.formats.heka.Trace`
 - :class:`myokit.formats.heka.TreeNode`

@@ -329,23 +329,27 @@ class DataLog(OrderedDict):
         """
         Creates a copy of the log, split with the given ``period``.
 
-        Split signals are given indexes so that "current" becomes "0.current",
-        "1.current", "2.current", etc.
+        Split signals are given indexes so that ``current`` becomes
+        ``0.current``, ``1.current``, ``2.current``, etc.
 
         If the logs entries do not divide well by ``period``, the remainder
         will be ignored. This happens commonly due to rounding point errors (in
         which case the remainder is a single entry). To disable this behavior,
         set ``discard_remainder=False``.
+
+        To split a log into a list of logs, use :meth:`DataLog.split_periodic`.
         """
         # Note: Using closed intervals can lead to logs of unequal length, so
         # it should be disabled here to ensure a valid log
         logs = self.split_periodic(period, adjust=True, closed_intervals=False)
+
         # Discard remainder if present
         if discard_remainder:
             if len(logs) > 1:
                 n = logs[0].length()
                 if logs[-1].length() < n:
                     logs = logs[:-1]
+
         # Create new log with folded data
         out = myokit.DataLog()
         out._time = self._time
@@ -1305,10 +1309,12 @@ class DataLog(OrderedDict):
 
     def split_periodic(self, period, adjust=False, closed_intervals=True):
         """
-        Splits this log into multiple logs, each covering an equal period of
-        time. For example a log covering the time span ``[0, 10000]`` can be
-        split with period ``1000`` to obtain ten logs covering ``[0, 1000]``,
-        ``[1000, 2000]`` etc.
+        Splits this log into multiple logs, returning a list of
+        :class:`DataLog` objects.
+
+        Each returned log covers an equal ``period`` of time. For example a log
+        covering the time span ``[0, 10000]`` split with period ``1000`` will
+        result in a list of ten logs ``[0, 1000]``, ``[1000, 2000]`` etc.
 
         The split log files can be returned as-is, or with the time variable's
         value adjusted so that all logs appear to cover the same span. To
@@ -1319,6 +1325,9 @@ class DataLog(OrderedDict):
         the duplication of some data points. To disable this behavior and
         return half-closed endpoints (containing only the left point), set
         ``closed_intervals`` to ``False``.
+
+        To return a single log with entries ``x`` split as ``x.0``, ``x.1``,
+        etc., use :meth:`DataLog.fold`.
         """
         # Validate log before starting
         self.validate()

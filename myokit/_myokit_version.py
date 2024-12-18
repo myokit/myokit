@@ -14,7 +14,7 @@ __release__ = False
 #    incompatibility
 #  - Changes to revision indicate bugfixes, tiny new features
 #  - There is no significance to odd/even numbers
-__version_tuple__ = 1, 37, 1
+__version_tuple__ = 1, 37, 2
 
 # String version of the version number
 __version__ = '.'.join([str(x) for x in __version_tuple__])
