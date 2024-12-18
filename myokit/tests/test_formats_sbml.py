@@ -32,8 +32,8 @@ class SBMLExporterTest(unittest.TestCase):
     def test_stimulus_generation(self):
         # Tests if protocols allow a stimulus current to be added
 
-        e = myokit.formats.exporter('cellml')
-        i = myokit.formats.importer('cellml')
+        e = myokit.formats.exporter('sbml')
+        i = myokit.formats.importer('sbml')
 
         # Load input model
         m1, p1, _ = myokit.load('example')
@@ -41,22 +41,22 @@ class SBMLExporterTest(unittest.TestCase):
 
         # 1. Export without a protocol
         with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
+            path = d.path('model.sbml')
             with WarningCollector() as w:
                 e.model(path, m1)
             m2 = i.model(path)
         self.assertFalse(w.has_warnings())
-        self.assertTrue(isinstance(m2.get('engine.pace').rhs(), myokit.Number))
+        self.assertTrue(isinstance(m2.get('global.pace').rhs(), myokit.Number))
 
         # 2. Export with protocol, but without variable bound to pacing
         m1.get('engine.pace').set_binding(None)
         with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
+            path = d.path('model.sbml')
             with WarningCollector() as w:
                 e.model(path, m1, p1)
             m2 = i.model(path)
         self.assertTrue(w.has_warnings())
-        self.assertTrue(isinstance(m2.get('engine.pace').rhs(), myokit.Number))
+        self.assertTrue(isinstance(m2.get('global.pace').rhs(), myokit.Number))
 
         # 3. Export with protocol and variable bound to pacing
         m1.get('engine.pace').set_binding('pace')
@@ -66,7 +66,7 @@ class SBMLExporterTest(unittest.TestCase):
                 e.model(path, m1, p1)
             m2 = i.model(path)
         self.assertFalse(w.has_warnings())
-        rhs = m2.get('membrane.i_stim').rhs()
+        rhs = m2.get('global.i_stim').rhs()
         self.assertTrue(rhs, myokit.Multiply)
         self.assertTrue(isinstance(rhs[0], myokit.Piecewise))
 

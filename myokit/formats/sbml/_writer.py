@@ -8,6 +8,7 @@ from typing import Tuple
 from lxml import etree
 
 import myokit
+from myokit._unit import Quantity
 from myokit.formats.mathml._ewriter import MathMLExpressionWriter
 from myokit.formats.sbml._api import (
     Model, Compartment,
@@ -95,11 +96,67 @@ class SBMLWriter:
     def _parameter(
             parameter: Parameter,
             unit_to_str_map: dict
-    ) -> etree.Element:
+    ) -> Tuple[etree.Element, etree.Element, etree.Element]:
+        """
+        returns the XML representation of this parameter as a tuple of
+        (parameter, initial_assignment, rule).
+        """
         parameter_xml = etree.Element('parameter', id=parameter.sid())
-        if parameter.units() is not None:
+        if (
+            parameter.units() is not None and
+            parameter.units() != myokit.units.dimensionless
+        ):
             parameter_xml.attrib['units'] = unit_to_str_map[parameter.units()]
-        return parameter_xml
+
+        if parameter.is_constant():
+            parameter_xml.attrib['constant'] = 'true'
+            value = parameter.value().eval()
+            parameter_xml.attrib['value'] = str(value)
+            return parameter_xml, None, None
+        else:
+            initial_assignment, rule = SBMLWriter._quantity(parameter)
+            return parameter_xml, initial_assignment, rule
+
+    def _math(expression: myokit.Expression) -> etree.Element:
+        math = etree.Element(
+            'math',
+            xmlns='http://www.w3.org/1998/Math/MathML'
+        )
+
+        def flhs(lhs):
+            var = lhs.var()
+            if isinstance(var, str):
+                return var
+            if var.binding() == 'time':
+                return "http://www.sbml.org/sbml/symbols/time"
+            return var.uname()
+
+        mathml_writer = MathMLExpressionWriter()
+        mathml_writer.set_lhs_function(flhs)
+        mathml_writer.ex(expression, math)
+        return math
+
+    def _quantity(quantity: Quantity) -> etree.Element:
+        initial_value = quantity.initial_value()
+        initial_assignment = None
+        if initial_value is not None:
+            initial_assignment = etree.Element(
+                'initialAssignment', symbol=quantity.sid()
+            )
+            math = SBMLWriter._math(initial_value)
+            initial_assignment.append(math)
+
+        value = quantity.value()
+        rule = None
+        if value is not None:
+            if quantity.is_rate():
+                rule_type = 'rateRule'
+            else:
+                rule_type = 'assignmentRule'
+            rule = etree.Element(rule_type, variable=quantity.sid())
+            math = SBMLWriter._math(quantity.value())
+            rule.append(math)
+        return initial_assignment, rule
 
     def _reaction(reaction: Reaction) -> etree.Element:
         reaction_xml = etree.Element('reaction', id=reaction.sid())
@@ -120,12 +177,7 @@ class SBMLWriter:
         reaction_xml.append(list_of_modifiers)
         if reaction.kinetic_law() is not None:
             kinetic_law = etree.Element('kineticLaw')
-            math = etree.Element(
-                'math',
-                xmlns='http://www.w3.org/1998/Math/MathML'
-            )
-            mathml_writer = MathMLExpressionWriter()
-            mathml_writer.ex(reaction.kinetic_law(), math)
+            math = SBMLWriter._math(reaction.kinetic_law())
             kinetic_law.append(math)
             reaction_xml.append(kinetic_law)
         return reaction_xml
@@ -168,12 +220,7 @@ class SBMLWriter:
         else:
             rule_type = 'assignmentRule'
         rule = etree.Element(rule_type, variable=species.sid())
-        math = etree.Element(
-            'math',
-            xmlns='http://www.w3.org/1998/Math/MathML'
-        )
-        mathml_writer = MathMLExpressionWriter()
-        mathml_writer.ex(species.value(), math)
+        math = SBMLWriter._math(species.value())
         rule.append(math)
         return species_xml, rule
 
@@ -253,15 +300,21 @@ class SBMLWriter:
                 node = SBMLWriter._compartment(compartment, unit_map_to_str)
                 list_of_compartments.append(node)
             model_root.append(list_of_compartments)
+        list_of_rules = etree.Element('listOfRules')
+        list_of_initial_assignments = etree.Element('listOfInitialAssignments')
         if model.parameters():
             list_of_parameters = etree.Element('listOfParameters')
             for parameter in model.parameters():
-                node = SBMLWriter._parameter(parameter, unit_map_to_str)
-                list_of_parameters.append(node)
+                param_node, initial_value_node, rule_node = \
+                    SBMLWriter._parameter(parameter, unit_map_to_str)
+                list_of_parameters.append(param_node)
+                if initial_value_node is not None:
+                    list_of_initial_assignments.append(initial_value_node)
+                if rule_node is not None:
+                    list_of_rules.append(rule_node)
             model_root.append(list_of_parameters)
         if model.species_list():
             list_of_species = etree.Element('listOfSpecies')
-            list_of_rules = etree.Element('listOfRules')
             for species in model.species_list():
                 species_node, rule_node = SBMLWriter._species(
                     species,
@@ -271,12 +324,18 @@ class SBMLWriter:
                     list_of_rules.append(rule_node)
                 list_of_species.append(species_node)
             model_root.append(list_of_species)
-            model_root.append(list_of_rules)
         if model.reactions():
             list_of_reactions = etree.Element('listOfReactions')
             for reaction in model.reactions():
                 node = SBMLWriter._reaction(reaction)
                 list_of_reactions.append(node)
             model_root.append(list_of_reactions)
+
+        if len(list_of_initial_assignments) > 0:
+            model_root.append(list_of_initial_assignments)
+
+        if len(list_of_rules) > 0:
+            model_root.append(list_of_rules)
+
         root.append(model_root)
         return etree.ElementTree(root)

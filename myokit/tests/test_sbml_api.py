@@ -2193,8 +2193,8 @@ class SBMLTestModelFromMyokit(unittest.TestCase):
 
         s = sbml.Model.from_myokit_model(m)
         compartment_names = [c.sid() for c in s.compartments()]
-        self.assertCountEqual(compartment_names, ['comp'])
-        parameter_names = [v.sid() for v in s.species_list()]
+        self.assertCountEqual(compartment_names, [])
+        parameter_names = [v.sid() for v in s.parameters()]
         self.assertCountEqual(parameter_names, ['var'])
 
     def test_vars_with_same_name(self):
@@ -2211,8 +2211,8 @@ class SBMLTestModelFromMyokit(unittest.TestCase):
 
         s = sbml.Model.from_myokit_model(m)
         compartment_names = [c.sid() for c in s.compartments()]
-        self.assertCountEqual(compartment_names, ['comp', 'comp2'])
-        parameter_names = [v.sid() for v in s.species_list()]
+        self.assertCountEqual(compartment_names, [])
+        parameter_names = [v.sid() for v in s.parameters()]
         self.assertCountEqual(parameter_names, ['comp2_var', 'comp_var'])
 
     def test_rate_eqn_with_unit(self):
@@ -2236,14 +2236,13 @@ class SBMLTestModelFromMyokit(unittest.TestCase):
         v.set_rhs(myokit.Number(4))
 
         s = sbml.Model.from_myokit_model(m)
-        parameter_names = [v.sid() for v in s.species_list()]
+        parameter_names = [v.sid() for v in s.parameters()]
         self.assertCountEqual(parameter_names, ['var', 'var2', 'param'])
         # only non-base unit is kilometer
         self.assertCountEqual(s.units().values(), [v_unit])
         self.assertEqual(s.time_units(), myokit.units.second)
-        v = s.species('var')
-        self.assertEqual(v.initial_value()[0], myokit.Number(1))
-        self.assertEqual(v.initial_value()[1], None)
+        v = s.parameter('var')
+        self.assertEqual(v.initial_value(), myokit.Number(1))
         self.assertEqual(
             v.value(),
             myokit.Multiply(myokit.Number(4), myokit.Name(p))

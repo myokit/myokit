@@ -312,15 +312,12 @@ class Model:
         # Create unames in model for nested variables
         model.create_unique_names()
 
-        def add_variable(c: Compartment, variable: myokit.Variable):
+        def add_variable(variable: myokit.Variable):
             if variable is time:
                 return
-            v = m.add_species(
-                c,
+            v = m.add_parameter(
                 variable.uname(),
-                True,
                 variable.is_constant(),
-                False
             )
             v.set_value(variable.rhs(), variable.is_state())
 
@@ -329,23 +326,20 @@ class Model:
 
             unit = variable_unit(variable, time_unit)
             if unit is not None:
-                v.set_substance_units(unit)
+                v.set_units(unit)
 
-        # Add components
+        # Add variables
         for component in model:
-            c = m.add_compartment(component.name())
-
-            # Add variables
             for variable in component:
                 # Get variable unit, or infer from RHS if None
                 unit = variable_unit(variable, time_unit)
 
                 # Add variable
-                add_variable(c, variable)
+                add_variable(variable)
 
                 # Add nested variables
                 for nested in variable.variables(deep=True):
-                    add_variable(c, nested)
+                    add_variable(nested)
 
         # Return model
         return m
@@ -361,13 +355,13 @@ class Model:
         self._assignables[sid] = c
         return c
 
-    def add_parameter(self, sid):
+    def add_parameter(self, sid, is_constant=True):
         """Adds a :class:`myokit.formats.sbml.Parameter` to this model."""
 
         sid = str(sid)
 
         self._register_sid(sid)
-        p = Parameter(self, sid)
+        p = Parameter(self, sid, is_constant)
         self._parameters[sid] = p
         self._assignables[sid] = p
         return p
@@ -709,7 +703,7 @@ class Parameter(Quantity):
         This parameter's SId.
 
     """
-    def __init__(self, model, sid):
+    def __init__(self, model, sid, is_constant=True):
         super().__init__()
 
         if not isinstance(model, Model):
@@ -718,6 +712,7 @@ class Parameter(Quantity):
                 ' myokit.formats.sbml.Model.')
 
         self._model = model
+        self._is_constant = is_constant
         self._sid = str(sid)
         self._units = None
 
@@ -728,6 +723,10 @@ class Parameter(Quantity):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._units = units
+
+    def is_constant(self):
+        """Returns ``True`` if this parameter is constant, else ``False``."""
+        return self._is_constant
 
     def sid(self):
         """Returns this parameter's sid."""

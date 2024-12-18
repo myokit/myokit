@@ -9,10 +9,11 @@ import unittest
 
 import myokit
 import myokit.formats
-import myokit.formats.sbml
 
+import myokit.formats.sbml
 from myokit.formats.sbml._api import Model
 from myokit.formats.sbml._writer import write_string
+import myokit.formats.sbml as sbml
 
 
 class TestSBMLExport(unittest.TestCase):
@@ -80,17 +81,34 @@ class TestSBMLExport(unittest.TestCase):
         model = Model()
         model.add_compartment("my_compartment")
         sbml_str = write_string(model).decode("utf8")
-        print(sbml_str)
         self.assertIn("<listOfCompartments>", sbml_str)
         self.assertIn('<compartment id="my_compartment"/>', sbml_str)
 
     def test_list_of_parameters(self):
         # Test setting a list of parameters
         model = Model()
-        model.add_parameter("my_parameter")
+        p = model.add_parameter("my_parameter")
+        p.set_value(myokit.Number(1))
         sbml_str = write_string(model).decode("utf8")
         self.assertIn("<listOfParameters>", sbml_str)
-        self.assertIn('<parameter id="my_parameter"/>', sbml_str)
+        self.assertIn(
+            '<parameter id="my_parameter" constant="true" value="1.0"/>',
+            sbml_str
+        )
+        self.assertNotIn("<listOfRules>", sbml_str)
+        self.assertNotIn("<listOfInitialAssignments>", sbml_str)
+
+        model = Model()
+        p = model.add_parameter("my_parameter", is_constant=False)
+        p.set_initial_value(myokit.Number(1))
+        p.set_value(myokit.Number(2))
+        sbml_str = write_string(model).decode("utf8")
+        self.assertIn("<listOfRules>", sbml_str)
+        self.assertIn('<assignmentRule variable="my_parameter">', sbml_str)
+        self.assertIn("<cn>2.0</cn>", sbml_str)
+        self.assertIn("<listOfInitialAssignments>", sbml_str)
+        self.assertIn('<initialAssignment symbol="my_parameter">', sbml_str)
+        self.assertIn("<cn>1.0</cn>", sbml_str)
 
     def test_list_of_species(self):
         # Test setting a list of species
@@ -120,7 +138,6 @@ class TestSBMLExport(unittest.TestCase):
         r.add_modifier(s)
         r.set_kinetic_law(myokit.Number(1))
         sbml_str = write_string(model).decode("utf8")
-        print(sbml_str)
         self.assertIn("<listOfReactions>", sbml_str)
         self.assertIn('<reaction id="my_reaction">', sbml_str)
         self.assertIn("<listOfReactants>", sbml_str)
@@ -143,8 +160,40 @@ class TestSBMLExport(unittest.TestCase):
         react.set_value(myokit.Number(1))
         r.add_product(s)
         sbml_str = write_string(model).decode("utf8")
-        print(sbml_str)
         self.assertIn(
             '<speciesReference species="my_species" stoichiometry="1.0"/>',
             sbml_str
         )
+
+    def test_expressions_multiple_compartments(self):
+        m = myokit.Model()
+        c = m.add_component('comp')
+        t = c.add_variable('time', rhs=myokit.Number(0))
+        t.set_unit(myokit.units.second)
+        t.set_binding('time')
+        c2 = m.add_component('comp2')
+        v = c.add_variable('var', initial_value=3)
+        v.set_rhs(myokit.Name(t))
+        v2 = c2.add_variable('var', initial_value=3)
+        v2.set_rhs(myokit.Name(v))
+
+        # check that the equation is exported correctly to sbml.Model
+        s = sbml.Model.from_myokit_model(m)
+        parameter_names = [v.sid() for v in s.parameters()]
+        self.assertCountEqual(parameter_names, ['comp_var', 'comp2_var'])
+        v2_sbml = s.parameter('comp2_var')
+        self.assertEqual(
+            v2_sbml.value(),
+            myokit.Name(v)
+        )
+
+        # check that the equation is exported correctly to sbml string
+        sbml_str = write_string(s).decode("utf8")
+        self.assertIn('<rateRule variable="comp2_var">', sbml_str)
+        self.assertIn('<ci>comp_var</ci>', sbml_str)
+        self.assertIn('<rateRule variable="comp_var">', sbml_str)
+        self.assertIn(
+            '<ci>http://www.sbml.org/sbml/symbols/time</ci>',
+            sbml_str
+        )
+
