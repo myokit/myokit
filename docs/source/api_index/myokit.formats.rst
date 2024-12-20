@@ -220,8 +220,11 @@ myokit.formats.sbml
 - :class:`myokit.formats.sbml.SBMLImporter`
 - :class:`myokit.formats.sbml.SBMLParser`
 - :class:`myokit.formats.sbml.SBMLParsingError`
+- :class:`myokit.formats.sbml.SBMLWriter`
 - :class:`myokit.formats.sbml.Species`
 - :class:`myokit.formats.sbml.SpeciesReference`
+- :meth:`myokit.formats.sbml.write_file`
+- :meth:`myokit.formats.sbml.write_string`
 
 myokit.formats.stan
 -------------------
