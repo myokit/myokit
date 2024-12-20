@@ -216,8 +216,8 @@ myokit.formats.sbml
 - :class:`myokit.formats.sbml.Quantity`
 - :class:`myokit.formats.sbml.Reaction`
 - :class:`myokit.formats.sbml.SBMLError`
-- :class:`myokit.formats.sbml.SBMLImporter`
 - :class:`myokit.formats.sbml.SBMLExporter`
+- :class:`myokit.formats.sbml.SBMLImporter`
 - :class:`myokit.formats.sbml.SBMLParser`
 - :class:`myokit.formats.sbml.SBMLParsingError`
 - :class:`myokit.formats.sbml.Species`
