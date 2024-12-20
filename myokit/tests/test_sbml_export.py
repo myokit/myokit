@@ -70,6 +70,13 @@ class TestSBMLExport(unittest.TestCase):
         sbml_str = write_string(model).decode("utf8")
         self.assertIn('extentUnits="mole"', sbml_str)
 
+    def test_length_unit(self):
+        # Test setting the length unit
+        model = Model()
+        model.set_length_units(myokit.units.metre)
+        sbml_str = write_string(model).decode("utf8")
+        self.assertIn('lengthUnits="metre"', sbml_str)
+
     def test_list_of_unit_definitions(self):
         # Test setting a list of unit definitions
         model = Model()
