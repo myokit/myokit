@@ -24,8 +24,18 @@ The standard API for importing is provided:
 Exporting
 =========
 
+The standard API for exporting is provided:
+
 .. autofunction:: exporters
 
 .. autoclass:: SBMLExporter
 
+SBML Writing
+==============
+
+.. autofunction:: write_file
+
+.. autofunction:: write_string
+
+.. autoclass:: SBMLWriter
 
