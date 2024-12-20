@@ -2248,6 +2248,28 @@ class SBMLTestModelFromMyokit(unittest.TestCase):
             myokit.Multiply(myokit.Number(4), myokit.Name(p))
         )
 
+    def test_incompatible_unit(self):
+        m = myokit.Model()
+        c = m.add_component('comp')
+
+        t = c.add_variable('time', rhs=myokit.Number(0))
+        t.set_unit(myokit.units.second)
+        t.set_binding('time')
+
+        p = c.add_variable('param')
+        p.set_rhs(myokit.Number(2))
+        p.set_unit(myokit.units.meter)
+
+        v = c.add_variable('var', initial_value=myokit.Number(1))
+        v.set_rhs(myokit.Plus(myokit.Name(p), myokit.Name(t)))
+
+        s = sbml.Model.from_myokit_model(m)
+        parameter_names = [v.sid() for v in s.parameters()]
+        self.assertCountEqual(parameter_names, ['var', 'param'])
+
+        p = s.parameter('var')
+        self.assertIsNone(p.units())
+
 
 if __name__ == '__main__':
     import warnings
