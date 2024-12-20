@@ -86,6 +86,7 @@ class SBMLWriter:
                     child.attrib['multiplier'] = str(multiplier)
                     multiplier = None
                 node.append(child)
+        # might also have a dimensionless unit and a multiplier
         if multiplier is not None:
             child = etree.Element('unit')
             child.attrib['kind'] = 'dimensionless'
@@ -125,8 +126,6 @@ class SBMLWriter:
 
         def flhs(lhs):
             var = lhs.var()
-            if isinstance(var, str):
-                return var
             if var.binding() == 'time':
                 return "http://www.sbml.org/sbml/symbols/time"
             return var.uname()
@@ -260,6 +259,21 @@ class SBMLWriter:
         }
         for unit in model.units().values():
             unit_map_to_str[unit] = create_unit_name(unit)
+        for compartment in model.compartments():
+            if compartment.size_units() not in unit_map_to_str:
+                unit_map_to_str[compartment.size_units()] = create_unit_name(
+                    compartment.size_units()
+                )
+        for species in model.species_list():
+            if species.substance_units() not in unit_map_to_str:
+                unit_map_to_str[species.substance_units()] = create_unit_name(
+                    species.substance_units()
+                )
+        for parameter in model.parameters():
+            if parameter.units() not in unit_map_to_str:
+                unit_map_to_str[parameter.units()] = create_unit_name(
+                    parameter.units()
+                )
 
         name = model.name() if model.name() else 'unnamed_model'
         model_root = etree.Element('model', id=name)
