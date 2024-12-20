@@ -27,7 +27,7 @@ def write_file(path: str, model: Model):
 
 def write_string(model: Model) -> str:
     """
-    Writes a CellML 1.0 or 1.1 model to a string and returns it.
+    Writes an SBML model to a string and returns it.
     """
     return SBMLWriter.write_string(model)
 
