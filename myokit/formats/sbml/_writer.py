@@ -20,7 +20,7 @@ from myokit.formats.cellml.v2._api import create_unit_name
 
 def write_file(path: str, model: Model):
     """
-    Writes a CellML 1.0 or 1.1 model to the given path.
+    Writes an SBML model to the given path.
     """
     return SBMLWriter.write_file(path, model)
 
