@@ -36,6 +36,12 @@ class TestSBMLExport(unittest.TestCase):
         sbml_str = write_string(model).decode("utf8")
         self.assertIn('timeUnits="second"', sbml_str)
 
+        model = Model()
+        model.set_time_units(1e3 * myokit.units.second)
+        sbml_str = write_string(model).decode("utf8")
+        self.assertIn('<listOfUnitDefinitions>', sbml_str)
+        self.assertIn('<unitDefinition id="s_times_1e3">', sbml_str)
+
     def test_area_unit(self):
         # Test setting the area unit
         model = Model()
@@ -88,14 +94,20 @@ class TestSBMLExport(unittest.TestCase):
         c = model.add_compartment("my_compartment")
         c.set_size_units(myokit.units.litre)
         c.set_spatial_dimensions(3)
-        model.add_compartment("my_compartment2")
+        c = model.add_compartment("my_compartment2")
+        c.set_size_units(1e3 * myokit.units.metre ** 3)
         sbml_str = write_string(model).decode("utf8")
         self.assertIn("<listOfCompartments>", sbml_str)
         self.assertIn(
             '<compartment id="my_compartment" units="litre" spatialDimensions="3.0"/>',  # noqa: E501
             sbml_str
         )
-        self.assertIn('<compartment id="my_compartment2"/>', sbml_str)
+        self.assertIn(
+            '<compartment id="my_compartment2" units="m3_times_1e3"/>',
+            sbml_str
+        )
+        self.assertIn("<listOfUnitDefinitions>", sbml_str)
+        self.assertIn('<unitDefinition id="m3_times_1e3">', sbml_str)
 
     def test_list_of_parameters(self):
         # Test setting a list of parameters
@@ -117,6 +129,8 @@ class TestSBMLExport(unittest.TestCase):
         )
         self.assertNotIn("<listOfRules>", sbml_str)
         self.assertNotIn("<listOfInitialAssignments>", sbml_str)
+        self.assertIn("<listOfUnitDefinitions>", sbml_str)
+        self.assertIn('<unitDefinition id="m_per_s_times_1e3">', sbml_str)
 
         model = Model()
         p = model.add_parameter("my_parameter", is_constant=False)
@@ -142,6 +156,14 @@ class TestSBMLExport(unittest.TestCase):
         s.set_substance_units(myokit.units.mole)
         s.set_value(myokit.Number(1), True)
         s.set_initial_value(myokit.Number(2), in_amount=True)
+        s = model.add_species(c, "my_species3", is_amount=True)
+        s.set_value(myokit.Number(1), True)
+        s.set_initial_value(myokit.Number(2))
+        s = model.add_species(c, "my_species4", is_amount=True)
+        s.set_value(myokit.Number(1), True)
+        s.set_initial_value(myokit.Number(2), in_amount=False)
+        s = model.add_species(c, "my_species5")
+        s.set_value(myokit.Number(1), False)
         sbml_str = write_string(model).decode("utf8")
         self.assertIn("<listOfSpecies>", sbml_str)
         self.assertIn(
@@ -152,19 +174,30 @@ class TestSBMLExport(unittest.TestCase):
             '<species id="my_species2" compartment="my_compartment" initialAmount="2.0" constant="False" units="mole" boundaryCondition="False"/>',  # noqa: E501
             sbml_str,
         )
+        self.assertIn(
+            '<species id="my_species3" compartment="my_compartment" initialAmount="2.0" constant="False" boundaryCondition="False"/>',  # noqa: E501
+            sbml_str,
+        )
+        self.assertIn(
+            '<species id="my_species4" compartment="my_compartment" initialConcentration="2.0" constant="False" boundaryCondition="False"/>',  # noqa: E501
+            sbml_str,
+        )
         self.assertIn("<listOfRules>", sbml_str)
         self.assertIn('<rateRule variable="my_species">', sbml_str)
         self.assertIn("<cn>1.0</cn>", sbml_str)
+        self.assertIn('<assignmentRule variable="my_species5">', sbml_str)
 
     def test_list_of_reactions(self):
         # test kinetic law
         model = Model()
         c = model.add_compartment("my_compartment")
         s = model.add_species(c, "my_species")
+        s2 = model.add_species(c, "my_species2")
         r = model.add_reaction("my_reaction")
-        r.add_reactant(s)
+        r.add_reactant(s, "my_reaction_reactant")
         r.add_product(s)
         r.add_modifier(s)
+        r.add_modifier(s2, "my_modifier")
         r.set_kinetic_law(myokit.Number(1))
         sbml_str = write_string(model).decode("utf8")
         self.assertIn("<listOfReactions>", sbml_str)
@@ -172,9 +205,14 @@ class TestSBMLExport(unittest.TestCase):
         self.assertIn("<listOfReactants>", sbml_str)
         self.assertIn("<listOfProducts>", sbml_str)
         self.assertIn('<speciesReference species="my_species"/>', sbml_str)
+        self.assertIn('<speciesReference species="my_species" id="my_reaction_reactant"/>', sbml_str)  # noqa: E501
         self.assertIn("<listOfModifiers>", sbml_str)
         self.assertIn(
             '<modifierSpeciesReference species="my_species"/>',
+            sbml_str
+        )
+        self.assertIn(
+            '<modifierSpeciesReference species="my_species2" id="my_modifier"/>',  # noqa: E501
             sbml_str
         )
         self.assertIn("<kineticLaw>", sbml_str)

@@ -15,7 +15,6 @@ from myokit.formats.sbml._api import (
     Parameter, Species,
     Reaction, SpeciesReference
 )
-from myokit.formats.cellml.v2._api import create_unit_name
 
 
 def write_file(path: str, model: Model):
@@ -257,23 +256,8 @@ class SBMLWriter:
         unit_map_to_str = {
             unit: string for string, unit in Model._base_units.items()
         }
-        for unit in model.units().values():
-            unit_map_to_str[unit] = create_unit_name(unit)
-        for compartment in model.compartments():
-            if compartment.size_units() not in unit_map_to_str:
-                unit_map_to_str[compartment.size_units()] = create_unit_name(
-                    compartment.size_units()
-                )
-        for species in model.species_list():
-            if species.substance_units() not in unit_map_to_str:
-                unit_map_to_str[species.substance_units()] = create_unit_name(
-                    species.substance_units()
-                )
-        for parameter in model.parameters():
-            if parameter.units() not in unit_map_to_str:
-                unit_map_to_str[parameter.units()] = create_unit_name(
-                    parameter.units()
-                )
+        for unitid, unit in model.units().items():
+            unit_map_to_str[unit] = unitid
 
         name = model.name() if model.name() else 'unnamed_model'
         model_root = etree.Element('model', id=name)

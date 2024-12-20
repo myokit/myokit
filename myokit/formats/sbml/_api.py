@@ -11,7 +11,7 @@ import re
 
 import myokit
 import myokit.units
-from myokit.formats.cellml.v2._api import create_unit_name
+from myokit.formats.cellml.v2._api import create_unit_name as cellml_create_unit_name  # noqa: E501
 
 
 # Regex for id checking
@@ -158,6 +158,7 @@ class Compartment(Quantity):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._size_units = units
+        self._model.add_unit_if_possible(units)
 
     def sid(self):
         """Returns this compartment's sid."""
@@ -250,6 +251,12 @@ class Model:
         self._time = CSymbolVariable(_SBML_TIME)
 
     @staticmethod
+    def create_unit_name(unit):
+        if unit in Model._base_units_reverse:
+            return Model._base_units_reverse[unit]
+        return cellml_create_unit_name(unit)
+
+    @staticmethod
     def from_myokit_model(model: myokit.Model) -> 'Model':
         """
         Creates an SBML model from a :class:`myokit.Model`.
@@ -294,20 +301,6 @@ class Model:
         time_unit = variable_unit(time, None)
         if time_unit is not None:
             m.set_time_units(time_unit)
-
-        # Gather unit objects used in Myokit model that are not
-        # built-in SBML units
-        used = set()
-        for variable in model.variables(deep=True):
-            # Add variable unit, or unit evaluated from variable's RHS
-            unit = variable_unit(variable, time_unit)
-            if unit is not None and unit not in Model._base_units.values():
-                used.add(unit)
-
-        # Add non-base units to model
-        for unit in used:
-            name = create_unit_name(unit)
-            m.add_unit(name, unit)
 
         # Create unames in model for nested variables
         model.create_unique_names()
@@ -396,6 +389,19 @@ class Model:
         self._assignables[sid] = s
 
         return s
+
+    def add_unit_if_possible(self, unit):
+        """
+        Adds a unit to the model if it's not already present or in the set
+        of base units, and returns the unit's name.
+        """
+        unitsid = Model.create_unit_name(unit)
+        if unitsid in self._base_units or unitsid == 'celsius':
+            return
+        if unitsid in self._units:
+            return
+        self.add_unit(unitsid, unit)
+        return unitsid
 
     def add_unit(self, unitsid, unit):
         """Adds a user unit with the given ``unitsid`` and myokit ``unit``."""
@@ -529,6 +535,7 @@ class Model:
         Sets the default compartment size units for 2-dimensional compartments.
         """
         self._area_units = units
+        self.add_unit_if_possible(units)
 
     def set_conversion_factor(self, factor):
         """
@@ -552,6 +559,7 @@ class Model:
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._extent_units = units
+        self.add_unit_if_possible(units)
 
     def set_length_units(self, units):
         """
@@ -562,6 +570,7 @@ class Model:
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._length_units = units
+        self.add_unit_if_possible(units)
 
     def set_notes(self, notes=None):
         """Sets an optional notes string for this model."""
@@ -574,6 +583,7 @@ class Model:
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._substance_units = units
+        self.add_unit_if_possible(units)
 
     def set_time_units(self, units):
         """Sets the time units used throughout the model."""
@@ -582,6 +592,7 @@ class Model:
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._time_units = units
+        self.add_unit_if_possible(units)
 
     def set_volume_units(self, units):
         """
@@ -592,6 +603,7 @@ class Model:
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._volume_units = units
+        self.add_unit_if_possible(units)
 
     def __str__(self):
         if self._name is None:
@@ -689,6 +701,10 @@ class Model:
         'weber': myokit.units.Wb,
     }
 
+    _base_units_reverse = {
+        v: k for k, v in _base_units.items()
+    }
+
 
 class Parameter(Quantity):
     """
@@ -723,6 +739,7 @@ class Parameter(Quantity):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._units = units
+        self._model.add_unit_if_possible(units)
 
     def is_constant(self):
         """Returns ``True`` if this parameter is constant, else ``False``."""
@@ -1011,6 +1028,7 @@ class Species(Quantity):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._units = units
+        self._compartment._model.add_unit_if_possible(units)
 
     def sid(self):
         """Returns this species's sid."""
