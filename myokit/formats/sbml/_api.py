@@ -647,7 +647,11 @@ class Model:
 
     def units(self) -> Dict[str, myokit.Unit]:
         """Returns a dict mapping sid to unit for all units in this model."""
-        return self._units
+        return dict(self._units)
+
+    def has_units(self) -> bool:
+        """Returns ``True`` if this model has any units defined."""
+        return bool(self._units)
 
     def unit(self, unitsid):
         """Returns a user-defined or predefined unit."""

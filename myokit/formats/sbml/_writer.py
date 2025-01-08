@@ -302,7 +302,7 @@ class SBMLWriter:
                 model.volume_units()
             ]
 
-        if model.units():
+        if model.has_units():
             list_of_units = etree.Element('listOfUnitDefinitions')
             for sid, unit in model.units().items():
                 node = SBMLWriter._unit(sid, unit)
