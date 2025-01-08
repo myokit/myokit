@@ -14,7 +14,7 @@ import myokit.formats.sbml as sbml
 
 class SBMLExporter(myokit.formats.Exporter):
     """
-    This:class:`Exporter <myokit.formats.Exporter>` creates a SBML model.
+    This :class:`Exporter<myokit.formats.Exporter>` creates an SBML model.
     """
 
     def __init__(self):
@@ -22,14 +22,14 @@ class SBMLExporter(myokit.formats.Exporter):
 
     def model(self, path, model, protocol=None):
         """
-        Writes a SBML model to the given filename.
+        Writes an SBML model to the given filename.
 
         Arguments:
 
         ``path``
             The path/filename to write the generated code to.
         ``model``
-            The model to export
+            The model to export.
         ``protocol``
             If given, an attempt will be made to convert the protocol to an
             expression and insert it into the model before exporting. See
