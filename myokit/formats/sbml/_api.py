@@ -402,7 +402,7 @@ class Model:
         of base units, and returns the unit's name.
         """
         unitsid = Model.create_unit_name(unit)
-        if unitsid in self._base_units or unitsid == 'celsius':
+        if unitsid in self.base_units or unitsid == 'celsius':
             return
         if unitsid in self._units:
             return
@@ -413,7 +413,7 @@ class Model:
         """Adds a user unit with the given ``unitsid`` and myokit ``unit``."""
         if not _re_id.match(unitsid):
             raise SBMLError('Invalid UnitSId "' + str(unitsid) + '".')
-        if unitsid in self._base_units or unitsid == 'celsius':
+        if unitsid in self.base_units or unitsid == 'celsius':
             raise SBMLError(
                 'User unit overrides built-in unit: "' + str(unitsid) + '".')
         if unitsid in self._units:
@@ -463,7 +463,7 @@ class Model:
 
         try:
             # Find and return
-            return self._base_units[unitsid]
+            return self.base_units[unitsid]
         except KeyError:
             raise SBMLError(
                 '<' + unitsid + '> is not an SBML base unit.')
@@ -669,7 +669,7 @@ class Model:
         return self._volume_units
 
     # SBML base units (except Celsius, because it's not defined in myokit)
-    _base_units = {
+    base_units = {
         'ampere': myokit.units.A,
         'avogadro': myokit.parse_unit('1 (6.02214179e23)'),
         'becquerel': myokit.units.Bq,
@@ -708,7 +708,7 @@ class Model:
     }
 
     _base_units_reverse = {
-        v: k for k, v in _base_units.items()
+        v: k for k, v in base_units.items()
     }
 
 

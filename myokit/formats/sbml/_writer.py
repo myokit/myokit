@@ -270,7 +270,7 @@ class SBMLWriter:
 
         # setup a map from unit to string
         unit_map_to_str = {
-            unit: string for string, unit in Model._base_units.items()
+            unit: string for string, unit in Model.base_units.items()
         }
         for unitid, unit in model.units().items():
             unit_map_to_str[unit] = unitid
