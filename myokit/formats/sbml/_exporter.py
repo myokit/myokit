@@ -4,13 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import warnings
+
 import myokit
 from myokit.formats.sbml._writer import write_file
 import myokit.lib.guess
 import myokit.formats.sbml as sbml
-
-
-import warnings
 
 
 class SBMLExporter(myokit.formats.Exporter):

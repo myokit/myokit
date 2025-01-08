@@ -36,6 +36,7 @@ class SBMLWriter:
     Writes SBML documents
     """
 
+    @staticmethod
     def write_file(path: str, model: Model):
         tree = SBMLWriter._model(model)
         # Write to disk
@@ -47,6 +48,7 @@ class SBMLWriter:
             pretty_print=True,
         )
 
+    @staticmethod
     def write_string(model: Model) -> str:
         tree = SBMLWriter._model(model)
         return etree.tostring(
@@ -56,6 +58,7 @@ class SBMLWriter:
             pretty_print=True,
         )
 
+    @staticmethod
     def _compartment(
             compartment: Compartment,
             unit_to_str: dict
@@ -69,6 +72,7 @@ class SBMLWriter:
             )
         return node
 
+    @staticmethod
     def _unit(sid: str, unit: myokit.Unit) -> etree.Element:
         node = etree.Element('unitDefinition', id=sid)
         kinds = [
@@ -93,6 +97,7 @@ class SBMLWriter:
             node.append(child)
         return node
 
+    @staticmethod
     def _parameter(
             parameter: Parameter,
             unit_to_str_map: dict
@@ -119,6 +124,7 @@ class SBMLWriter:
             initial_assignment, rule = SBMLWriter._quantity(parameter)
             return parameter_xml, initial_assignment, rule
 
+    @staticmethod
     def _math(expression: myokit.Expression) -> etree.Element:
         math = etree.Element(
             'math',
@@ -138,6 +144,7 @@ class SBMLWriter:
         mathml_writer.ex(expression, math)
         return math
 
+    @staticmethod
     def _quantity(quantity: Quantity) -> etree.Element:
         initial_value = quantity.initial_value()
         initial_assignment = None
@@ -160,6 +167,7 @@ class SBMLWriter:
             rule.append(math)
         return initial_assignment, rule
 
+    @staticmethod
     def _reaction(reaction: Reaction) -> etree.Element:
         reaction_xml = etree.Element('reaction', id=reaction.sid())
         list_of_reactants = etree.Element('listOfReactants')
@@ -184,6 +192,7 @@ class SBMLWriter:
             reaction_xml.append(kinetic_law)
         return reaction_xml
 
+    @staticmethod
     def _species(species: Species, unit_to_str_map: dict) -> Tuple[
         etree.Element, etree.Element
     ]:
@@ -226,6 +235,7 @@ class SBMLWriter:
         rule.append(math)
         return species_xml, rule
 
+    @staticmethod
     def _species_reference(ref: SpeciesReference) -> etree.Element:
         species_reference = etree.Element(
             'speciesReference',
@@ -239,6 +249,7 @@ class SBMLWriter:
             species_reference.attrib['stoichiometry'] = str(value_eval)
         return species_reference
 
+    @staticmethod
     def _modifier_species_reference(ref: SpeciesReference) -> etree.Element:
         species_reference = etree.Element(
             'modifierSpeciesReference',
@@ -248,6 +259,7 @@ class SBMLWriter:
             species_reference.attrib['id'] = ref.sid()
         return species_reference
 
+    @staticmethod
     def _model(model: Model) -> etree.ElementTree:
         root = etree.Element(
             'sbml',
