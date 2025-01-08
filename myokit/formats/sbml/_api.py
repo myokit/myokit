@@ -286,7 +286,8 @@ class Model:
             rhs = variable.rhs()
             if rhs is not None:
                 try:
-                    # Tolerant evaluation, see above. Result may be None.
+                    # If unit not set try to infer from the rhs.
+                    # Result may be None.
                     unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
                 except myokit.IncompatibleUnitError:
                     return None
@@ -312,7 +313,12 @@ class Model:
                 variable.uname(),
                 variable.is_constant(),
             )
-            v.set_value(variable.rhs(), variable.is_state())
+            if variable.is_state() or variable.is_literal():
+                v.set_value(variable.rhs(), variable.is_state())
+            else:
+                # if variable is constant but not literal,
+                # set via initial value
+                v.set_initial_value(variable.rhs())
 
             if variable.is_state():
                 v.set_initial_value(variable.initial_value())
@@ -744,6 +750,10 @@ class Parameter(Quantity):
     def is_constant(self):
         """Returns ``True`` if this parameter is constant, else ``False``."""
         return self._is_constant
+
+    def is_literal(self):
+        """Returns ``True`` if this parameter is a literal value."""
+        return self.is_constant() and self._value is not None
 
     def sid(self):
         """Returns this parameter's sid."""

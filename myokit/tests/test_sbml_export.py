@@ -116,6 +116,37 @@ class TestSBMLExport(unittest.TestCase):
         self.assertIn("<listOfUnitDefinitions>", sbml_str)
         self.assertIn('<unitDefinition id="m3_times_1e3">', sbml_str)
 
+    def test_constants_and_literals(self):
+        m = myokit.Model()
+        c = m.add_component('comp')
+        t = c.add_variable('time', rhs=myokit.Number(0))
+        t.set_unit(myokit.units.second)
+        t.set_binding('time')
+        v = c.add_variable('my_parameter')
+        v.set_rhs(myokit.Number(1))
+        v2 = c.add_variable('my_parameter2')
+        v2.set_rhs(myokit.Multiply(myokit.Number(2), myokit.Name(v)))
+
+        # check that the equation is exported correctly to sbml.Model
+        s = sbml.Model.from_myokit_model(m)
+        parameter_names = [v.sid() for v in s.parameters()]
+        self.assertCountEqual(
+            parameter_names, ['my_parameter', 'my_parameter2']
+        )
+        sbml_v = s.parameter('my_parameter')
+        sbml_v2 = s.parameter('my_parameter2')
+        self.assertEqual(sbml_v.value(), myokit.Number(1))
+        self.assertIsNone(sbml_v.initial_value())
+        self.assertEqual(
+            sbml_v2.initial_value(),
+            myokit.Multiply(myokit.Number(2), myokit.Name(v))
+        )
+        self.assertIsNone(sbml_v2.value())
+        self.assertTrue(sbml_v.is_constant())
+        self.assertTrue(sbml_v2.is_constant())
+        self.assertFalse(sbml_v2.is_literal())
+        self.assertTrue(sbml_v.is_literal())
+
     def test_list_of_parameters(self):
         # Test setting a list of parameters
         model = Model()
@@ -138,6 +169,29 @@ class TestSBMLExport(unittest.TestCase):
         self.assertNotIn("<listOfInitialAssignments>", sbml_str)
         self.assertIn("<listOfUnitDefinitions>", sbml_str)
         self.assertIn('<unitDefinition id="m_per_s_times_1e3">', sbml_str)
+
+        # Test setting a constant parameter that depends on another parameter
+        model = Model()
+        p = model.add_parameter("my_parameter")
+        p.set_value(myokit.Number(1))
+        p = model.add_parameter("my_parameter2")
+        p.set_initial_value(
+            myokit.Multiply(myokit.Name("my_parameter"), myokit.Number(2))
+        )
+        sbml_str = write_string(model).decode("utf8")
+        self.assertIn("<listOfParameters>", sbml_str)
+        self.assertIn(
+            '<parameter id="my_parameter" constant="true" value="1.0"/>',
+            sbml_str
+        )
+        self.assertIn(
+            '<parameter id="my_parameter2" constant="true"/>',  # noqa: E501
+            sbml_str
+        )
+        self.assertNotIn("<listOfRules>", sbml_str)
+        self.assertIn("<listOfInitialAssignments>", sbml_str)
+        self.assertIn('<initialAssignment symbol="my_parameter2">', sbml_str)
+        self.assertIn("<times/>\n            <ci>my_parameter</ci>\n            <cn>2.0</cn>", sbml_str)  # noqa: E501
 
         model = Model()
         p = model.add_parameter("my_parameter", is_constant=False)

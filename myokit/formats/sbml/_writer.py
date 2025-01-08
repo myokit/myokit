@@ -110,6 +110,8 @@ class SBMLWriter:
 
         if parameter.is_constant():
             parameter_xml.attrib['constant'] = 'true'
+
+        if parameter.is_literal():
             value = parameter.value().eval()
             parameter_xml.attrib['value'] = str(value)
             return parameter_xml, None, None
@@ -125,6 +127,8 @@ class SBMLWriter:
 
         def flhs(lhs):
             var = lhs.var()
+            if isinstance(var, str):
+                return var
             if var.binding() == 'time':
                 return "http://www.sbml.org/sbml/symbols/time"
             return var.uname()
