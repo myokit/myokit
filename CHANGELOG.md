@@ -2,12 +2,11 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.37.2] - 2025-01-09
 - Added
   - [#1098](https://github.com/myokit/myokit/pull/1098) @martinjrobins Added SBML export.
 - Changed
   - [#1102](https://github.com/myokit/myokit/pull/1102) Replaced the HEKA method `c_fast_tau` with a method `c_fast_detailed`.
-- Deprecated
 - Removed
   - [#1111](https://github.com/myokit/myokit/pull/1111) No longer testing on Python 3.7.
 - Fixed
