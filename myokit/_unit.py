@@ -656,8 +656,6 @@ class Unit:
         if rep is None:
             rep = self._str(True)
 
-        # Store new representation and return
-        Unit._preferred_representations[self] = rep[1:-1]
         return rep
 
     def __truediv__(self, other):
