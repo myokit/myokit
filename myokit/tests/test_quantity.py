@@ -107,10 +107,10 @@ class QuantityTest(unittest.TestCase):
         # Test has does not change in quantity's lifetime
 
         try:
-            u = myokit.units.m**8
+            u = myokit.units.m / myokit.units.mol
             q1 = myokit.Quantity(1, u)
             h1 = hash(q1)
-            myokit.Unit.register_preferred_representation('abc', u)
+            myokit.Unit.register_preferred_representation('km/kmol', u)
             q2 = myokit.Quantity(1, u)
             h2 = hash(q2)
             self.assertEqual(h1, h2)
