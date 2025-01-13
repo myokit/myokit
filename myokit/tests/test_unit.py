@@ -365,6 +365,18 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertEqual(str(c), '[V]')
         self.assertEqual(str(d), '[V]')
 
+    def test_str_1115(self):
+        # Test str() does not store representations with () in them
+        unit1 = myokit.units.mol / (1e3 * myokit.units.g)
+        unit2 = 1e-12 * myokit.units.mol / (1e3 * myokit.units.g)
+        unit3 = 1e-6 * unit2
+        self.assertEqual(str(unit1), '[mol/g (0.001)]')
+        # In issue 1115, this would be registered as a preferred
+        # representation, leading to the situation where str(unit2) would
+        # return [mol/g (0.001) (1e-12)]
+        self.assertEqual(str(unit2), '[mol/g (1e-15)]')
+        self.assertEqual(str(unit3), '[mol/g (1e-21)]')
+
     def test_repr(self):
         # Test :meth:`Unit.repr()`.
 
