@@ -616,7 +616,8 @@ class Unit:
 
     def __str__(self):
 
-        # Strategy 1: Try simple look-up (using float.eq comparison)
+        # Strategy 1: Try simple look-up (using hash based on _str() followed
+        # by check of exponents in __eq__ for comparison
         try:
             return '[' + Unit._preferred_representations[self] + ']'
         except KeyError:
@@ -655,6 +656,11 @@ class Unit:
         # Strategy 4: Build a new representation
         if rep is None:
             rep = self._str(True)
+
+        # Store new representation, unless it contains a multiplier, see
+        # https://github.com/myokit/myokit/issues/1115
+        if '(' not in rep:
+            Unit._preferred_representations[self] = rep[1:-1]
 
         return rep
 
