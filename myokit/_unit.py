@@ -487,56 +487,55 @@ class Unit:
         return self.__rtruediv__(other)
 
     @staticmethod
-    def register(name, unit, quantifiable=False, output=False):
+    def register(name, unit, quantifiable=False,
+                 preferred_representation=False):
         """
-        Registers a unit name with the Unit class. Registered units will be
-        recognised by the parse() method.
+        Registers a unit name with the :class:`Unit` class so that it will be
+        recognised when parsing.
 
         Arguments:
 
         ``name``
-            The unit name. A variable will be created using this name.
+            The unit name. This must be a valid myokit name, i.e.
+            ``myokit.check_name(name)`` should not raise any errors.
         ``unit``
             A valid unit object
         ``quantifiable``
             ``True`` if this unit should be registered with the unit class as a
-            quantifiable unit. Typically this should only be done for the
-            unquantified symbol notation of SI or SI derived units. For example
-            m, g, Hz, N but not meter, kg, hertz or forthnight.
-        ``output``
-            ``True`` if this units name should be used to display this unit in.
-            This should be set for all common units (m, kg, nm, Hz) but not for
-            more obscure units (furlong, parsec). Having ``output`` set to
-            ``False`` will cause one-way behavior: Myokit will recognise the
-            unit name but never use it in output.
-            Setting this to ``True`` will also register the given name as a
-            preferred representation format.
+            _quantifiable_ unit, i.e. a unit that can be preceded by an SI
+            prefix such as "m" or "G". Typically this should only be done
+            for the unquantified symbol notation of SI or SI derived units. For
+            example "m", "g", or "Hz" but not "km", "meter", or "bushel".
+        ``preferred_representation``
+            Set to ``True`` to also register ``name`` as the preferred
+            representation for ``unit``.
 
         """
-        if not isinstance(name, str):
-            raise TypeError('Given name must be a string.')
+        name = myokit.check_name(name)
         if not isinstance(unit, Unit):
             raise TypeError('Given unit must be myokit.Unit')
         Unit._units[name] = unit
         if quantifiable:
             # Overwrite existing entries without warning
             Unit._quantifiable.add(name)
-        if output:
+        if preferred_representation:
             # Overwrite existing entries without warning
             Unit._preferred_representations[unit] = name
 
     @staticmethod
     def register_preferred_representation(rep, unit):
         """
-        Registers a preferred representation for the given unit without
-        registering it as a new type. This method can be used to register
-        common representations such as "umol/L" and "km/h".
+        Sets the preferred representation for the a unit, in terms of already
+        defined units.
+
+        This method can be used to register common representations such as
+        "umol/L" and "km/h". The given representation should be parseable by
+        Myokit, with the result equalling ``unit``.
 
         Arguments:
 
         ``rep``
-            A string, containing the preferred name for this unit. This should
-            be something that Myokit can parse.
+            A string containing the preferred representation for this unit.
         ``unit``
             The unit to register a notation for.
 
@@ -545,9 +544,14 @@ class Unit:
         # Overwrite existing entries without warning
         if not isinstance(unit, myokit.Unit):
             raise ValueError(
-                'Second argument to register_preferred_representation must be'
-                ' a myokit.Unit')
-        Unit._preferred_representations[unit] = str(rep)
+                'The second argument to register_preferred_representation must'
+                ' be a myokit.Unit')
+        rep = str(rep)
+        if not myokit.parse_unit(rep) == unit:
+            raise ValueError(
+                f'The representation [{rep}] does not equal {unit._str(True)}'
+                ' when parsed.')
+        Unit._preferred_representations[unit] = rep
 
     def __repr__(self):
         """
@@ -616,7 +620,8 @@ class Unit:
 
     def __str__(self):
 
-        # Strategy 1: Try simple look-up (using float.eq comparison)
+        # Strategy 1: Try simple look-up (using hash based on _str() followed
+        # by check of exponents in __eq__ for comparison
         try:
             return '[' + Unit._preferred_representations[self] + ']'
         except KeyError:
@@ -629,8 +634,8 @@ class Unit:
                 rep = '[' + test + ']'
                 break
 
-        # Strategy 3: Try finding a representation for the exponent and adding
-        # a multiplier to that.
+        # Strategy 3: Try finding a representation for the exponent (without a
+        # multiplier) and adding a multiplier to that.
         if rep is None:
 
             # Because kilos are defined with a multiplier of 1000, the
@@ -640,17 +645,20 @@ class Unit:
             u = Unit(list(self._x), m)
             rep = Unit._preferred_representations.get(u, None)
 
-            # Add multiplier part
+            # Add multiplier part:
             if rep is not None:
-                m = myokit.float.cround(self._m - m)
-                m = 10**m
-                if m >= 1:
-                    m = myokit.float.cround(m)
-                if m < 1e6:
-                    m = str(m)
+                if '(' in rep:
+                    rep = None
                 else:
-                    m = '{:<1.0e}'.format(m)
-                rep = '[' + rep + ' (' + m + ')]'
+                    m = myokit.float.cround(self._m - m)
+                    m = 10**m
+                    if m >= 1:
+                        m = myokit.float.cround(m)
+                    if m < 1e6:
+                        m = str(m)
+                    else:
+                        m = '{:<1.0e}'.format(m)
+                    rep = '[' + rep + ' (' + m + ')]'
 
         # Strategy 4: Build a new representation
         if rep is None:
