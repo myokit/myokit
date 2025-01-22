@@ -2,15 +2,12 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
-- Added
+## [1.37.3] - 2025-01-09
 - Changed
   - [#1116](https://github.com/myokit/myokit/pull/1116) Unit names passed to `Unit.register` are now validated using `myokit.check_name`, and the fourth argument to `Unit.register` is now called `preferred_representation`.
   - [#1116](https://github.com/myokit/myokit/pull/1116) The method `Unit.register_preferred_representation` now checks that the given representation parses to the given unit.
-- Deprecated
-- Removed
 - Fixed
-  - [#1116](https://github.com/myokit/myokit/pull/1116) Fixed issue where units were represented with double multipliers, e.g. ``[m (0.001) (1e-3)]``.
+  - [#1116](https://github.com/myokit/myokit/pull/1116) Fixed issue where units were represented with double multipliers, e.g. ``[m (0.001) (1e-3)]``, causing unparseable code to be written.
 
 ## [1.37.2] - 2025-01-09
 - Added
