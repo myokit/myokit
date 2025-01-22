@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.37.3] - 2025-01-09
 - Changed
   - [#1116](https://github.com/myokit/myokit/pull/1116) Unit names passed to `Unit.register` are now validated using `myokit.check_name`, and the fourth argument to `Unit.register` is now called `preferred_representation`.
