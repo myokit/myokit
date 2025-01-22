@@ -313,15 +313,18 @@ class Model:
                 variable.uname(),
                 variable.is_constant(),
             )
-            if variable.is_state() or variable.is_literal():
-                v.set_value(variable.rhs(), variable.is_state())
-            else:
-                # if variable is constant but not literal,
-                # set via initial value
-                v.set_initial_value(variable.rhs())
 
-            if variable.is_state():
-                v.set_initial_value(variable.initial_value())
+            if variable.is_constant():
+                if variable.is_literal():
+                    v.set_value(variable.rhs())
+                else:
+                    v.set_initial_value(variable.rhs())
+            else:
+                if variable.is_state():
+                    v.set_initial_value(variable.initial_value())
+                    v.set_value(variable.rhs(), True)
+                else:
+                    v.set_value(variable.rhs())
 
             unit = variable_unit(variable, time_unit)
             if unit is not None:
