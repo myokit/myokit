@@ -170,6 +170,7 @@ class TestSBMLExport(unittest.TestCase):
         self.assertIn("<listOfUnitDefinitions>", sbml_str)
         self.assertIn('<unitDefinition id="m_per_s_times_1e3">', sbml_str)
 
+    def test_list_of_parameters_const_depend(self):
         # Test setting a constant parameter that depends on another parameter
         model = Model()
         p = model.add_parameter("my_parameter")
@@ -193,6 +194,7 @@ class TestSBMLExport(unittest.TestCase):
         self.assertIn('<initialAssignment symbol="my_parameter2">', sbml_str)
         self.assertIn("<times/>\n            <ci>my_parameter</ci>\n            <cn>2.0</cn>", sbml_str)  # noqa: E501
 
+    def test_list_of_parameters_var(self):
         model = Model()
         p = model.add_parameter("my_parameter", is_constant=False)
         p.set_initial_value(myokit.Number(1))
@@ -325,3 +327,22 @@ class TestSBMLExport(unittest.TestCase):
             sbml_str
         )
 
+    def test_variable_dependent_variables(self):
+        m = myokit.Model()
+        c = m.add_component('comp')
+        t = c.add_variable('time', rhs=myokit.Number(0))
+        t.set_unit(myokit.units.second)
+        t.set_binding('time')
+        v = c.add_variable('var', initial_value=3)
+        v.set_rhs(myokit.Number(1))
+        v2 = c.add_variable('var2')
+        v2.set_rhs(myokit.Name(v))
+
+        s = sbml.Model.from_myokit_model(m)
+        self.assertEqual(s.parameter('var2').is_rate(), False)
+        self.assertEqual(s.parameter('var').is_rate(), True)
+
+        sbml_str = write_string(s).decode("utf8")
+        self.assertIn('<initialAssignment symbol="var">', sbml_str)
+        self.assertNotIn('<initialAssignment symbol="var2">', sbml_str)
+        self.assertIn('<assignmentRule variable="var2">', sbml_str)
