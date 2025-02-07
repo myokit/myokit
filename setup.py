@@ -86,7 +86,6 @@ setup(
         'lxml',
         'matplotlib>=2.2',
         'numpy',
-        'setuptools',
         # PyQT or PySide?
         # (PySide is pip installable, Actions can get PyQt from apt)
     ],
