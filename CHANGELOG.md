@@ -7,6 +7,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1118](https://github.com/myokit/myokit/pull/1118) @kwabenantim Added a minimal `pyproject.toml` specifying the build system.
   - [#1120](https://github.com/myokit/myokit/pull/1120) Added "close" and "close all" menu items in the data log viewer.
 - Changed
+  - [#1121](https://github.com/myokit/myokit/pull/1121) The filter 2 frequency in Patchmaster files is now returned in kHz instead of Hz. Added a method to get the filter 1 frequency. Both frequencies are added to the meta data when creating a DataLog.
 - Deprecated
 - Removed
 - Fixed

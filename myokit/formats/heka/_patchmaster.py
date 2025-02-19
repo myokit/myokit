@@ -984,6 +984,8 @@ class Series(TreeNode, myokit.formats.SweepSource):
             log.meta[f'{pre}current_gain_mV_per_pA'] = a.current_gain()
             log.meta[f'{pre}filter1'] = a.filter1_str()
             log.meta[f'{pre}filter2'] = a.filter2_str()
+            log.meta[f'{pre}filter1_kHz'] = a.filter1().frequency()
+            log.meta[f'{pre}filter2_kHz'] = a.filter2()[2]
             log.meta[f'{pre}stimulus_filter'] = a.stimulus_filter_str()
             log.meta[f'{pre}ljp_correction_mV'] = a.ljp()
             log.meta[f'{pre}voltage_offset_mV'] = a.v_off()
@@ -1697,10 +1699,13 @@ class AmplifierState:
         # 2 is the combined bandwidth of Filter 1 and Filter 2.
         handle.seek(i + 239)  # sF2Response = 239; (* BYTE *)
         self._filter2_type = Filter2Type(reader.read1('b'))
-        handle.seek(i + 24)  # sF2Frequency = 24; (* LONGREAL *)
-        self._filter2_freq_solo = reader.read1('d')
+        if self._filter2_type is Filter2Type.BYPASS:
+            self._filter2_freq_solo = 0
+        else:
+            handle.seek(i + 24)  # sF2Frequency = 24; (* LONGREAL *)
+            self._filter2_freq_solo = reader.read1('d') * 1e-3
         handle.seek(i + 16)  # sF2Bandwidth = 16; (* LONGREAL *)
-        self._filter2_freq_both = reader.read1('d')
+        self._filter2_freq_both = reader.read1('d') * 1e-3
 
         # Suspect this indicates external filter 2
         #handle.seek(i + 287)  # sF2Source = 287; (* BYTE *)
@@ -1818,11 +1823,13 @@ class AmplifierState:
         """
         Returns a tuple ``(type, f_both, f_solo)`` describing the Filter 2
         settings, where ``type`` is a :class:`Filter2Type`, where ``f_both`` is
-        the frequency in Hz of both filters combined, and when ``f_solo`` is
-        the frequency of Filter 2 alone.
+        the frequency in kHz of both filters combined, and when ``f_solo`` is
+        the frequency in kHz of Filter 2 alone.
 
         The frequency shown in PatchMaster is that of both filters combined.
         If the "bypass" filter is selected, the frequency settings are unused.
+        In this case, ``f_both`` will be the frequency of filter 1 and
+        ``f_solo`` will be returned as 0.
 
         For more information on Filter 1 and 2, see :class:`Filter1Setting`.
         """
@@ -1840,8 +1847,8 @@ class AmplifierState:
         """
         if self._filter2_type is Filter2Type.BYPASS:
             return str(self._filter2_type)
-        fb = round(self._filter2_freq_both * 1e-3, 2)
-        fs = round(self._filter2_freq_solo * 1e-3, 2)
+        fb = round(self._filter2_freq_both, 2)
+        fs = round(self._filter2_freq_solo, 2)
         fb = int(fb) if fb == int(fb) else fb
         return f'{self._filter2_type} {fb} kHz combined, {fs} kHz f2-only'
 
@@ -1948,6 +1955,17 @@ class Filter1Setting(enum.Enum):
             return 'Bessel 10 kHz'
         else:
             return 'HQ 30 kHz'
+
+    def frequency(self):
+        """ Returns the cut-off frequency for this filter setting, in kHz. """
+        if self is Filter1Setting.BESSEL_100K:
+            return 100
+        elif self is Filter1Setting.BESSEL_30K:
+            return 30
+        elif self is Filter1Setting.BESSEL_10K:
+            return 10
+        else:
+            return 30
 
 
 class Filter2Type(enum.Enum):
