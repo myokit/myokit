@@ -4,10 +4,13 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1118](https://github.com/myokit/myokit/pull/1118) @kwabenantim Added a minimal `pyproject.toml` specifying the build system.
+  - [#1120](https://github.com/myokit/myokit/pull/1120) Added "close" and "close all" menu items in the data log viewer.
 - Changed
 - Deprecated
 - Removed
 - Fixed
+  - [#1117](https://github.com/myokit/myokit/pull/1117) @martinjrobins Fixed a bug in SBML export of non-constant, non-state variables.
 
 ## [1.37.3] - 2025-01-09
 - Changed
