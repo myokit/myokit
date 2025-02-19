@@ -162,6 +162,8 @@ class DataLogViewer(myokit.gui.MyokitApplication):
                 self._tool_next_file.setEnabled(True)
                 self._tool_prev_file.setEnabled(True)
             self._tabs.setCurrentIndex(0)
+            self._tool_close.setEnabled(True)
+            self._tool_close_all.setEnabled(True)
 
     def action_about(self):
         """
@@ -453,9 +455,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
                     self._path = path
 
     def load_file(self, filename):
-        """
-        Loads a data file.
-        """
+        """ Loads a data file. """
         root, ext = os.path.splitext(os.path.basename(filename))
         try:
             action = self._load_actions[ext.lower()]
