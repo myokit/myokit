@@ -3,8 +3,6 @@
 #
 # Specifically, it targets the 2x90.2 format.
 #
-# It has not been extensively tested.
-#
 # Notes:
 #  - HEKA publishes a lot of information about its file format on its FTP
 #    server: server.hekahome.de
@@ -25,6 +23,8 @@
 #    numbers of steps are given; the manual mentions two types of log
 #    interpretation but there is no obvious field to select one; a "toggle"
 #    mode is mentioned in the manual but again is not easy to find in the file.
+#  - Series resistance prediction percentage is not stored in the Patchmaster
+#    file.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -993,6 +993,10 @@ class Series(TreeNode, myokit.formats.SweepSource):
             if a.c_fast_enabled():
                 log.meta[f'{pre}c_fast_compensation_enabled'] = 'true'
                 log.meta[f'{pre}c_fast_pF'] = a.c_fast()
+                cf = a.c_fast_detailed()
+                log.meta[f'{pre}c_fast_amp1_pF'] = cf[0]
+                log.meta[f'{pre}c_fast_amp2_pF'] = cf[1]
+                log.meta[f'{pre}c_fast_tau2_us'] = cf[2]
             else:
                 log.meta[f'{pre}c_fast_compensation_enabled'] = 'false'
             log.meta[f'{pre}c_slow_pF'] = a.c_slow()
@@ -1082,6 +1086,9 @@ class Series(TreeNode, myokit.formats.SweepSource):
             # C fast
             if a.c_fast_enabled():
                 out.append(f'  C fast compensation: {a.c_fast()} pF,')
+                cf = a.c_fast_detailed()
+                out.append(f'  C fast (amp1, amp2, tau2): {cf[0]} pF, {cf[1]}'
+                           f' pF, {cf[2]} us')
             else:
                 out.append('  C fast compensation: not enabled')
             # C slow
@@ -1637,6 +1644,17 @@ class Trace(TreeNode):
 class AmplifierState:
     """
     Describes the state of an amplifier used by PatchMaster.
+
+    This "state" contains lots of valuable meta data about the fast and slow
+    capacitance correction, the series resistance compensation (but not
+    prediction! see below), the filtering, the gain, and voltage offset
+    corrections (zeroing and online LJP).
+
+    A notable omission is information about the series compensation
+    _prediction_ feature. This should have an on/off statement, and a
+    percentage (which can be set separately from the _correction_ percentage in
+    Patchmaster). Unfortunately this is not stored in the format yet (20 feb
+    2025).
     """
     def __init__(self, handle, reader):
 
@@ -1664,6 +1682,10 @@ class AmplifierState:
         self._rs_enabled = bool(reader.read1('b'))
         handle.seek(i + 304)  # sRsTau = 304; (* LONGREAL *)
         self._rs_tau = reader.read1('d')
+
+        # Prediction is not recorded!
+        self._rs_prediction = PredictionSetting.UNKNOWN if self._rs_enabled \
+            else PredictionSetting.OFF
 
         # Fast capacitance correction
         handle.seek(i + 56)    # sCFastAmp1 = 56; (* LONGREAL *)
@@ -1896,6 +1918,19 @@ class AmplifierState:
         """
         return self._rs_tau * 1e6 if self._rs_enabled else 0
 
+    def r_series_prediction(self):
+        """
+        The percentage "prediction" is not recorded in the file: this method
+        returns ``PredictionSetting.OFF`` if compensation (and therefore
+        prediction) was disabled, and ``UNKNOWN`` if compensation was enabled
+        (so prediction may have been active).
+
+        This serves as a placeholder in case future changes to the format
+        incorporate it, and as a place to document that this feature is missing
+        by design.
+        """
+        return self._rs_prediction
+
     def stimulus_filter(self):
         """
         Returns a :class:`StimulusFilterSetting` descibing the stimulus filter
@@ -2036,6 +2071,24 @@ class StimulusFilterSetting(enum.Enum):
             return 'Bessel 2 us (off)'
         else:
             return 'Bessel 20 us (on)'
+
+
+class PredictionSetting(enum.Enum):
+    """
+    Very limited information about the series resistance compensation
+    prediction.
+
+    Series resistance compensation includes a "prediction" pathway,
+    configurable via a percentage prediction in Patchmaster. Unfortunately this
+    is not stored in the file format, so that knowledge of this parameters is
+    limited to "off" (when series resistance compensation is disabled) or
+    "unknown" (when series resistance compensation is enabled).
+    """
+    OFF = 0
+    UNKNOWN = 1
+
+    def __str__(self):
+        return 'Off' if self is PredictionSetting.OFF else 'Unknown'
 
 
 #
