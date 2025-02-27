@@ -752,7 +752,8 @@ class SweepSourceTab(GraphTabWidget):
         widget.setLayout(vbox)
 
         # Add tab
-        self.addTab(widget, name)
+        adda = 'D/A' if da else 'A/D'
+        self.addTab(widget, f'{adda}: {name}')
 
     '''
     def debug_tab(self, channel_index, da=True):
