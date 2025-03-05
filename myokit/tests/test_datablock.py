@@ -5,23 +5,21 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
+
 import numpy as np
 
 import myokit
 
-from shared import TemporaryDirectory, DIR_DATA, DIR_IO
-from shared import TestReporter, CancellingReporter, WarningCollector
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+from myokit.tests import (
+    TemporaryDirectory,
+    DIR_DATA,
+    DIR_IO,
+    TestReporter,
+    CancellingReporter,
+    WarningCollector,
+)
 
 
 class DataBlock1dTest(unittest.TestCase):
@@ -169,11 +167,11 @@ class DataBlock1dTest(unittest.TestCase):
         d = myokit.DataLog()
         d.set_time_key('time')
         d['time'] = time
-        d['x', 0] = np.array(down, copy=True)
-        d['x', 1] = np.array(down, copy=True)
-        d['x', 2] = np.array(down, copy=True)
-        d['x', 3] = np.array(down, copy=True)
-        d['x', 4] = np.array(down, copy=True)
+        d['x', 0] = np.copy(down)
+        d['x', 1] = np.copy(down)
+        d['x', 2] = np.copy(down)
+        d['x', 3] = np.copy(down)
+        d['x', 4] = np.copy(down)
         d['x', 1][10:] = 40
         b = myokit.DataBlock1d.from_log(d)
         self.assertEqual(b.cv('x'), 0)
@@ -182,11 +180,11 @@ class DataBlock1dTest(unittest.TestCase):
         d = myokit.DataLog()
         d.set_time_key('time')
         d['time'] = time
-        d['x', 0] = np.array(down, copy=True)
-        d['x', 1] = np.array(down, copy=True)
-        d['x', 2] = np.array(down, copy=True)
-        d['x', 3] = np.array(down, copy=True)
-        d['x', 4] = np.array(down, copy=True)
+        d['x', 0] = np.copy(down)
+        d['x', 1] = np.copy(down)
+        d['x', 2] = np.copy(down)
+        d['x', 3] = np.copy(down)
+        d['x', 4] = np.copy(down)
         d['x', 1][10:] = 40
         d['x', 2][10:] = 40
         d['x', 3][10:] = 40
@@ -399,19 +397,19 @@ class DataBlock1dTest(unittest.TestCase):
         # Not enough data: detected at time level
         path = os.path.join(DIR_IO, 'bad1d-6-time-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more time data',
             myokit.DataBlock1d.load, path)
 
         # Not enoug data: detected at 0d level
         path = os.path.join(DIR_IO, 'bad1d-7-0d-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more 0d data',
             myokit.DataBlock1d.load, path)
 
         # Not enough data: detected at 1d level
         path = os.path.join(DIR_IO, 'bad1d-8-1d-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more 1d data',
             myokit.DataBlock1d.load, path)
 
         # Test progress reporter
@@ -698,6 +696,90 @@ class DataBlock2dTest(unittest.TestCase):
             [[153, 61, 143], [153, 61, 143]],
         ])
         c = b.colors('x', colormap='traditional')
+        self.assertTrue(np.all(c[0] == t0))
+        self.assertTrue(np.all(c[1] == t1))
+        self.assertTrue(np.all(c[2] == t2))
+
+        # Gray colormap
+        t0 = np.array([  # Deepest array is a pixel
+            [[0] * 3, [51] * 3],
+            [[102] * 3, [153] * 3],
+            [[204] * 3, [255] * 3],
+        ])
+        t1 = np.array([
+            [[255] * 3, [204] * 3],
+            [[153] * 3, [102] * 3],
+            [[51] * 3, [0] * 3],
+        ])
+        t2 = np.array([
+            [[0] * 3, [0] * 3],
+            [[0] * 3, [0] * 3],
+            [[0] * 3, [0] * 3],
+        ])
+        c = b.colors('x', colormap='gray')
+        self.assertTrue(np.all(c[0] == t0))
+        self.assertTrue(np.all(c[1] == t1))
+        self.assertTrue(np.all(c[2] == t2))
+
+        # Cividis colormap
+        t0 = np.array([  # Deepest array is a pixel
+            [[0, 32, 76], [49, 68, 107]],
+            [[102, 104, 112], [150, 143, 119]],
+            [[203, 186, 104], [255, 233, 69]],
+        ])
+        t1 = np.array([
+            [[255, 233, 69], [203, 186, 104]],
+            [[150, 143, 119], [102, 104, 112]],
+            [[49, 68, 107], [0, 32, 76]],
+        ])
+        t2 = np.array([
+            [[0, 32, 76], [0, 32, 76]],
+            [[0, 32, 76], [0, 32, 76]],
+            [[0, 32, 76], [0, 32, 76]],
+        ])
+        c = b.colors('x', colormap='cividis')
+        self.assertTrue(np.all(c[0] == t0))
+        self.assertTrue(np.all(c[1] == t1))
+        self.assertTrue(np.all(c[2] == t2))
+
+        # Inferno colormap
+        t0 = np.array([  # Deepest array is a pixel
+            [[0, 0, 4], [66, 10, 104]],
+            [[148, 38, 104], [223, 82, 57]],
+            [[253, 167, 12], [253, 255, 165]],
+        ])
+        t1 = np.array([
+            [[253, 255, 165], [253, 167, 12]],
+            [[223, 82, 57], [148, 38, 104]],
+            [[66, 10, 104], [0, 0, 4]],
+        ])
+        t2 = np.array([
+            [[0, 0, 4], [0, 0, 4]],
+            [[0, 0, 4], [0, 0, 4]],
+            [[0, 0, 4], [0, 0, 4]],
+        ])
+        c = b.colors('x', colormap='inferno')
+        self.assertTrue(np.all(c[0] == t0))
+        self.assertTrue(np.all(c[1] == t1))
+        self.assertTrue(np.all(c[2] == t2))
+
+        # Viridis colormap
+        t0 = np.array([  # Deepest array is a pixel
+            [[68, 1, 84], [65, 68, 136]],
+            [[42, 121, 143], [35, 170, 132]],
+            [[125, 211, 80], [254, 232, 37]],
+        ])
+        t1 = np.array([
+            [[254, 232, 37], [125, 211, 80]],
+            [[35, 170, 132], [42, 121, 143]],
+            [[65, 68, 136], [68, 1, 84]],
+        ])
+        t2 = np.array([
+            [[68, 1, 84], [68, 1, 84]],
+            [[68, 1, 84], [68, 1, 84]],
+            [[68, 1, 84], [68, 1, 84]],
+        ])
+        c = b.colors('x', colormap='viridis')
         self.assertTrue(np.all(c[0] == t0))
         self.assertTrue(np.all(c[1] == t1))
         self.assertTrue(np.all(c[2] == t2))
@@ -1062,8 +1144,8 @@ class DataBlock2dTest(unittest.TestCase):
         d['y', 0, 2] = [6, 6, 6]
         d['y', 1, 2] = [7, 7, 2]
         myokit.DataBlock2d.from_log(d)
-        del(d['0.2.y'])
-        del(d['1.2.y'])
+        del d['0.2.y']
+        del d['1.2.y']
         self.assertRaises(ValueError, myokit.DataBlock2d.from_log, d)
 
     def test_images(self):
@@ -1242,19 +1324,19 @@ class DataBlock2dTest(unittest.TestCase):
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-6-time-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more time data',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-7-0d-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more 0d data',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-8-2d-too-short.zip')
         self.assertRaisesRegex(
-            myokit.DataBlockReadError, 'larger data',
+            myokit.DataBlockReadError, 'more 2d data',
             myokit.DataBlock2d.load, path)
 
         # Test progress reporter

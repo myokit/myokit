@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 
 import myokit.formats
@@ -67,7 +64,7 @@ class MatlabExporter(myokit.formats.TemplatedRunnableExporter):
         # Variable naming function
         def v(var):
             if isinstance(var, myokit.Derivative):
-                return 'ydot(' + str(1 + var.var().indice()) + ')'
+                return 'ydot(' + str(1 + var.var().index()) + ')'
             if isinstance(var, myokit.Name):
                 var = var.var()
             if var.is_constant():
@@ -81,7 +78,7 @@ class MatlabExporter(myokit.formats.TemplatedRunnableExporter):
         ew.set_condition_function('ifthenelse')
 
         # Process bound variables
-        bound_variables = model.prepare_bindings({
+        bound_variables = myokit._prepare_bindings(model, {
             'time': 't',
             'pace': 'pace',
         })

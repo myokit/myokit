@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import sys
 import unittest
 
@@ -91,8 +88,7 @@ class FloatTest(unittest.TestCase):
         # Test float to string conversion.
 
         # String should be passed through
-        # Note: convert to str() to test in python 2 and 3.
-        self.assertEqual(myokit.float.str(str('123')), '123')
+        self.assertEqual(myokit.float.str('123'), '123')
 
         # Simple numbers
         self.assertEqual(myokit.float.str(0), '0')

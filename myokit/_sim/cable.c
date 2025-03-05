@@ -26,11 +26,11 @@ model.create_unique_names()
 w = ansic.AnsiCExpressionWriter()
 
 # Process bindings, remove unsupported bindings.
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time'         : 'engine_time',
     'pace'         : 'engine_pace',
     'diffusion_current' : 'diffusion_current',
-    })
+})
 
 # Define var/lhs function
 def v(var, pre='cell->'):
@@ -67,8 +67,13 @@ equations = model.solvable_order()
 #include <math.h>
 #include "pacing.h"
 
-/* Show debug output */
-/*#define MYOKIT_DEBUG */
+<?
+if myokit.DEBUG_SM:
+    print('// Show debug output')
+    print('#ifndef MYOKIT_DEBUG_MESSAGES')
+    print('#define MYOKIT_DEBUG_MESSAGES')
+    print('#endif')
+?>
 
 /*
  * Engine variables
@@ -235,13 +240,13 @@ for label, eqs in equations.items():
 static PyObject*
 sim_clean()
 {
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Clean called.\n");
     #endif
 
     if (running != 0) {
 
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("Cleaning.\n");
         #endif
 
@@ -274,12 +279,12 @@ py_sim_clean()
 }
 
 /*
- * Initialise a run
+ * Initialize a run
  */
 static PyObject*
 sim_init(PyObject *self, PyObject *args)
 {
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Initialising.\n");
     #endif
 
@@ -362,9 +367,7 @@ sim_init(PyObject *self, PyObject *args)
     for(i_state=0; i_state<ncells * N_STATE; i_state++) {
         flt = PyList_GetItem(state_in, i_state);    /* Borrowed reference */
         if (!PyFloat_Check(flt)) {
-            char errstr[200];
-            sprintf(errstr, "Item %d in state vector is not a float.", i_state);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in state vector is not a float.", i_state);
             return sim_clean();
         }
     }
@@ -411,7 +414,7 @@ print(tab + '}')
     }
 
     /* Set up pacing */
-    pacing = ESys_Create(&flag_pacing);
+    pacing = ESys_Create(tmin, &flag_pacing);
     if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_Populate(pacing, protocol);
     if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
@@ -436,7 +439,7 @@ for label, eqs in equations.items():
         /* Initial values */
 <?
 for var in model.states():
-    print(tab*2 + v(var) + ' = PyFloat_AsDouble(PyList_GetItem(state_in, icell * N_STATE + ' + str(var.indice()) + '));')
+    print(tab*2 + v(var) + ' = PyFloat_AsDouble(PyList_GetItem(state_in, icell * N_STATE + ' + str(var.index()) + '));')
 ?>
         /* Zeros for pacing and diffusion current */
 <?
@@ -476,7 +479,7 @@ sim_step(PyObject *self, PyObject *args)
     int steps_taken = 0;
     double d;
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Entering sim_step.\n");
     #endif
 
@@ -513,7 +516,7 @@ sim_step(PyObject *self, PyObject *args)
 
         /* Move to next time (1) Update the time variable */
         engine_time += dt;
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("t=%f, dt=%f\n", engine_time, dt);
         #endif
 
@@ -546,7 +549,7 @@ for var in model.states():
          * Check this *before* logging: Last point reached should not be
          * logged (half-open convention for fixed interval logging!)
          */
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("t=%f, tmax=%f, t>=tmax %d\n", engine_time, tmax, engine_time>=tmax);
         #endif
         if (engine_time >= tmax) break;
@@ -569,19 +572,19 @@ for var in model.states():
     }
 
     /* Set final state */
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Setting final state.\n");
     #endif
     cell = cells;
     for(icell=0; icell<ncells; icell++) {
 <?
 for var in model.states():
-    print(tab*2 + 'PyList_SetItem(state_out, icell * N_STATE + ' + str(var.indice()) + ', PyFloat_FromDouble(' + v(var) + '));')
+    print(tab*2 + 'PyList_SetItem(state_out, icell * N_STATE + ' + str(var.index()) + ', PyFloat_FromDouble(' + v(var) + '));')
 ?>
         cell++;
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Done, tidying up and returning.\n");
     #endif
 

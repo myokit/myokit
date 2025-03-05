@@ -136,3 +136,16 @@ internally to write expressions in Python format with or without NumPy support.
 
 .. autofunction:: numpy_writer
 
+Data formats
+============
+
+In addition to model and protocol formats, Myokit can read some
+electrophysiology formats. Support for advanced features is usually not
+implemented, but basic access is provided to ABF, WCP and HEKA files.
+Classes for these three formats share a common API, and make use of the
+:class`SweepSource` class shown below.
+
+.. currentmodule:: myokit.formats
+
+.. autoclass:: SweepSource
+

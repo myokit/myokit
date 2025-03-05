@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import warnings
 
 from lxml import etree
@@ -59,10 +56,10 @@ class CellMLParsingError(myokit.ImportError):
                 message = 'Error on line ' + line + '. ' + message
             except AttributeError:
                 pass
-        super(CellMLParsingError, self).__init__(message)
+        super().__init__(message)
 
 
-class CellMLParser(object):
+class CellMLParser:
     """
     Parses CellML 2.0 documents, and performs (partial) validation.
 
@@ -198,7 +195,7 @@ class CellMLParser(object):
         except myokit.formats.mathml.MathMLError as e:
             raise CellMLParsingError(str(e))
         finally:
-            del(self._ns, self._ids, self._vois)
+            del self._ns, self._ids, self._vois
 
     def parse_file(self, path):
         """
@@ -834,7 +831,7 @@ class CellMLParser(object):
             if fresh:
                 for name in fresh:
                     resolved.add(name)
-                    del(unresolved[name])
+                    del unresolved[name]
                 for name, deps in unresolved.items():
                     deps.difference_update(fresh)
             else:

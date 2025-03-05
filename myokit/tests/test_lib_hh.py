@@ -5,23 +5,17 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
+
 import numpy as np
 
 import myokit
 import myokit.lib.hh as hh
 
-from shared import DIR_DATA
+from myokit.tests import DIR_DATA
 
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+from myokit.tests import WarningCollector
 
 
 MODEL = """
@@ -229,7 +223,7 @@ class HHDetectionTest(unittest.TestCase):
         self.assertEqual(tau, m.get('ikr.a.tau'))
         self.assertFalse(hh.has_inf_tau_form(r, v))
         self.assertIsNone(hh.get_inf_and_tau(r, v))
-        del(r)
+        del r
 
         # a is not a state
         self.assertTrue(hh.has_inf_tau_form(a, v))
@@ -365,13 +359,13 @@ class HHDetectionTest(unittest.TestCase):
         a = m2.get('ikr.a')
         rl = hh.get_rl_expression(a, myokit.Name(dt))
         a1 = rl.eval()
-        a2 = a.state_value() + dt.eval() * a.rhs().eval()
+        a2 = a.initial_value(True) + dt.eval() * a.rhs().eval()
         self.assertAlmostEqual(a1, a2)
         # And for r
         r = m2.get('ikr.r')
         rl = hh.get_rl_expression(r, myokit.Name(dt))
         r1 = rl.eval()
-        r2 = r.state_value() + dt.eval() * r.rhs().eval()
+        r2 = r.initial_value(True) + dt.eval() * r.rhs().eval()
         self.assertAlmostEqual(r1, r2)
 
         # Dt must be an expression
@@ -608,7 +602,7 @@ class HHModelTest(unittest.TestCase):
         # Test if derivatives are zero
         for k, x in enumerate(['ina.m', 'ina.h', 'ina.j']):
             x = model.get(x)
-            x.set_state_value(ss[k])
+            x.set_initial_value(ss[k])
             self.assertAlmostEqual(x.eval(), 0)
 
         # Test arguments
@@ -644,6 +638,20 @@ class HHModelTest(unittest.TestCase):
         m = hh.HHModel.from_component(model.get('binding'))
 
         self.assertEqual(len(m.states()), 3)
+
+    def test_initial_value_conversion(self):
+        # Tests that initial value expressions are converted to floats
+
+        model = myokit.parse_model(MODEL)
+        model.get('ikr.a').set_initial_value('1 / sqrt(7)')
+        model.get('ikr.r').set_initial_value('log(binding.koff, 10)')
+        m = hh.HHModel.from_component(model.get('ikr'))
+        x0 = m.default_state()
+        self.assertEqual(len(x0), 2)
+        self.assertIsInstance(x0[0], float)
+        self.assertIsInstance(x0[1], float)
+        self.assertAlmostEqual(x0[0], 0.377964473)
+        self.assertAlmostEqual(x0[1], -5)
 
 
 class AnalyticalSimulationTest(unittest.TestCase):
@@ -708,7 +716,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         s2 = hh.AnalyticalSimulation(m2)
         # But simulation still works
         self.assertIsInstance(s2.run(10), myokit.DataLog)
-        del(model2, m2, s2)
+        del model2, m2, s2
 
         # Create protocol
 
@@ -752,8 +760,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
             ValueError, 'Log interval', s.run, 1, log_interval=-1)
         d['hello'] = [1, 2, 3]
         self.assertRaisesRegex(ValueError, 'extra keys', s.run, 1, log=d)
-        del(d['hello'])
-        del(d[next(iter(d.keys()))])
+        del d['hello']
+        del d[next(iter(d.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d)
 
         # Reset should reset the state
@@ -907,6 +915,40 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test current output is very similar
         e = np.abs(d1['binding.I'] - d2['binding.I'])
         self.assertLess(np.max(e), 2e-4)
+
+    def test_tau_overflow(self):
+        # Overflows leading to tau=0 should still report current
+        # https://github.com/myokit/myokit/issues/1059
+
+        # Load model and convert to inf-tau form
+        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
+        model = hh.convert_hh_states_to_inf_tau_form(myokit.load_model(fname))
+
+        # Get initial state and set steady state
+        initial_state = model.get('ina.m').initial_value(as_float=True)
+        steady_state = 0.75
+        model.get('ina.m.inf').set_rhs(steady_state)
+
+        # Create an analytical simulation
+        model = hh.HHModel(model, states=['ina.m', 'ina.h', 'ina.j'],
+                           parameters=['ina.p5'], current='ina.INa')
+        p = myokit.pacing.steptrain_linear(20, 40, 10, -80, 10, 10)
+        s = hh.AnalyticalSimulation(model, protocol=p)
+
+        # Setting p5=0.001 will trigger an overflow in ina.m.beta
+        s.set_parameters([0.001])
+        with WarningCollector() as wc:
+            # Log times chosen so that s._function varies length of _t
+            log = s.run(41, log_times=np.array([0, 1, 2, 10, 11, 12, 20, 40]))
+        self.assertIn('overflow', wc.text())
+
+        # Should be no NaNs in log
+        self.assertFalse(np.any(np.isnan(log['ina.INa'])))
+        self.assertFalse(np.any(np.isnan(log['ina.m'])))
+
+        # Should immediately jump from initial state to steady state
+        self.assertTrue(log['ina.m'][0] == initial_state)
+        self.assertTrue(np.all(log['ina.m'][1:] == steady_state))
 
 
 if __name__ == '__main__':

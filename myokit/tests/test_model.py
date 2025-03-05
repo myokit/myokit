@@ -8,22 +8,13 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import pickle
+import re
 import unittest
 
 import myokit
 
-from shared import TemporaryDirectory, WarningCollector
-
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+from myokit.tests import TemporaryDirectory, WarningCollector
 
 
 class ModelTest(unittest.TestCase):
@@ -95,6 +86,32 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.InvalidFunction, 'never declared',
             m.add_function, 'fun', ('a', ), 'a + b')
+
+    def test_add_variable_extended(self):
+        # Extended add_variable syntax
+
+        m = myokit.Model()
+        c = m.add_component('comp')
+        v = c.add_variable('a', unit='ms', rhs='5 [ms]', label='a_time')
+        self.assertEqual(v.unit(), myokit.units.ms)
+        self.assertEqual(v.rhs().code(), '5 [ms]')
+        self.assertEqual(v.label(), 'a_time')
+        v = c.add_variable('b', unit='V', rhs='3 [V] + a * 7 [V/ms]')
+        self.assertEqual(v.unit(), myokit.units.V)
+        self.assertEqual(v.rhs().code(), '3 [V] + comp.a * 7 [A/F (1000)]')
+        v = c.add_variable('c', rhs='1', binding='time')
+        self.assertEqual(v.unit(), None)
+        self.assertEqual(v.rhs(), myokit.Number(1))
+        self.assertEqual(v.binding(), 'time')
+        v = c.add_variable('e', rhs=2, binding='x', label='y')
+        self.assertEqual(v.binding(), 'x')
+        self.assertEqual(v.label(), 'y')
+        self.assertEqual(v.rhs(), myokit.Number(2))
+        self.assertFalse(v.is_state())
+        v = c.add_variable('f', rhs='3', initial_value='2 + comp.b')
+        self.assertEqual(v.rhs(), myokit.Number(3))
+        self.assertEqual(v.initial_value().code(), '2 + comp.b')
+        self.assertTrue(v.is_state())
 
     def test_binding(self):
         # Tests setting and getting of bindings
@@ -286,18 +303,39 @@ class ModelTest(unittest.TestCase):
         m1 = myokit.load_model('example')
         m2 = m1.clone()
         self.assertFalse(m1 is m2)
-        self.assertEqual(m1, m2)
+        self.assertNotEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2, True))
 
         # Test unames and uname prefixes
         m1.reserve_unique_names('barnard', 'lincoln', 'glasgow')
         m1.reserve_unique_name_prefix('monkey', 'giraffe')
         m1.reserve_unique_name_prefix('ostrich', 'turkey')
         m2 = m1.clone()
-        self.assertEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2, True))
 
         # Test tokens are not cloned
         self.assertTrue(m1.has_parse_info())
         self.assertFalse(m2.has_parse_info())
+
+        # Test initial value expressions are maintained
+        m1 = myokit.Model('moo')
+        component = m1.add_component('c')
+        p = component.add_variable('p')
+        q = component.add_variable('q')
+        r = component.add_variable('r')
+        s = component.add_variable('s')
+        z = component.add_variable('z')
+        z.set_rhs(123)
+        p.promote(1)
+        q.promote('1 + exp(3)')
+        r.promote('c.z')
+        s.promote('1 [g] + c.z / 2 [1/g]')
+        m2 = m1.clone()
+        self.assertEqual(m2.get('c.p').initial_value(), myokit.Number(1))
+        self.assertEqual(m2.get('c.q').initial_value().code(), '1 + exp(3)')
+        self.assertEqual(m2.get('c.r').initial_value(), m2.get('c.z').lhs())
+        self.assertEqual(m2.get('c.s').initial_value().code(),
+                         '1 [g] + c.z / 2 [1/g]')
 
     def test_code(self):
         # Test :meth:`Model.code()`.
@@ -353,38 +391,41 @@ class ModelTest(unittest.TestCase):
             '13 d = comp1.a\n'
         )
 
-    def test_equals(self):
-        # Check that equality takes both code() and unames into account
+        # Test initial value expressions are maintained
+        model = myokit.Model('moo')
+        component = model.add_component('c')
+        p = component.add_variable('p')
+        q = component.add_variable('q')
+        r = component.add_variable('r')
+        s = component.add_variable('s')
+        z = component.add_variable('z')
+        z.set_rhs(123)
+        p.promote(1)
+        q.promote('1 + exp(3)')
+        r.promote('c.z')
+        s.promote('1 [g] + c.z / 2 [1/g]')
 
-        # Test without custom reserved names
-        m1 = myokit.load_model('example')
-        m2 = m1.clone()
-        self.assertIsInstance(m2, myokit.Model)
-        self.assertFalse(m1 is m2)
-        self.assertEqual(m1, m2)
-        self.assertEqual(m1, m1)
+        p.set_rhs(1)
+        q.set_rhs(2)
+        r.set_rhs(3)
+        s.set_rhs('4 [g/s]')
 
-        # Test with none-model
-        self.assertNotEqual(m1, None)
-        self.assertNotEqual(m1, m1.code())
-
-        # Add reserved names
-        m1.reserve_unique_names('bertie')
-        self.assertNotEqual(m1, m2)
-        m1.reserve_unique_names('clair')
-        self.assertNotEqual(m1, m2)
-        m2.reserve_unique_names('clair', 'bertie')
-        self.assertEqual(m1, m2)
-
-        # Add reserved name prefixes
-        m1.reserve_unique_name_prefix('aa', 'bb')
-        m1.reserve_unique_name_prefix('cc', 'dd')
-        self.assertNotEqual(m1, m2)
-        m2.reserve_unique_name_prefix('aa', 'bb')
-        m2.reserve_unique_name_prefix('cc', 'ee')
-        self.assertNotEqual(m1, m2)
-        m2.reserve_unique_name_prefix('cc', 'dd')
-        self.assertEqual(m1, m2)
+        self.assertEqual(model.code(line_numbers=False), '\n'.join([
+            '[[model]]',
+            'name: moo',
+            '# Initial values',
+            'c.p = 1',
+            'c.q = 1 + exp(3)',
+            'c.r = c.z',
+            'c.s = 1 [g] + c.z / 2 [1/g]',
+            '',
+            '[c]',
+            'dot(p) = 1',
+            'dot(q) = 2',
+            'dot(r) = 3',
+            'dot(s) = 4 [g/s]',
+            'z = 123\n\n',
+        ]))
 
     def test_evaluate_derivatives(self):
         # Test Model.evaluate_derivatives().
@@ -396,31 +437,75 @@ class ModelTest(unittest.TestCase):
         a = component.add_variable('a')
         b = component.add_variable('b')
         c = component.add_variable('c')
+        d = component.add_variable('d')
+        e = component.add_variable('e')
         a.promote(1)
         a.set_rhs('1')
         b.promote(2)
         b.set_rhs('2 * b')
         c.promote(3)
-        c.set_rhs('b + c')
+        c.set_rhs('b + d')
+        d.set_rhs('1 * c')
+        e.set_rhs(0)
         model.validate()
+
+        # Test without input
         self.assertEqual(model.evaluate_derivatives(), [1, 4, 5])
+        self.assertEqual(model.evaluate_derivatives(ignore_errors=True),
+                         [1, 4, 5])
+
+        # Test with alternative state
         self.assertEqual(
-            model.evaluate_derivatives(state=[1, 1, 2]), [1, 2, 3])
+            model.evaluate_derivatives(state=[2, 3, 4]), [1, 6, 7])
+        self.assertEqual(
+            model.evaluate_derivatives(state=[2, 3, 4], ignore_errors=True),
+            [1, 6, 7])
+
+        # Test with input
         c.set_rhs('b + c + time')
         self.assertEqual(model.evaluate_derivatives(), [1, 4, 6])
         self.assertEqual(
-            model.evaluate_derivatives(state=[1, 1, 2], inputs={'time': 0}),
-            [1, 2, 3])
+            model.evaluate_derivatives(ignore_errors=True), [1, 4, 6])
+        self.assertEqual(
+            model.evaluate_derivatives(state=[2, 3, 4]), [1, 6, 8])
+        self.assertEqual(
+            model.evaluate_derivatives(state=[2, 3, 4], ignore_errors=True),
+            [1, 6, 8])
+        self.assertEqual(
+            model.evaluate_derivatives(state=[2, 3, 4], inputs={'time': 10}),
+            [1, 6, 17])
+        self.assertEqual(
+            model.evaluate_derivatives(
+                state=[2, 3, 4], inputs={'time': 10}, ignore_errors=True),
+            [1, 6, 17])
+        d.set_rhs(10)
+        e.set_rhs(20)
+        d.set_binding('realtime')
+        e.set_binding('evaluations')
+        c.set_rhs('d + e + time')
+        self.assertEqual(model.evaluate_derivatives(), [1, 4, 31])
+        self.assertEqual(
+            model.evaluate_derivatives(inputs={'evaluations': 1.2}),
+            [1, 4, 12.2])
+        e.set_binding(None)
+        self.assertEqual(model.evaluate_derivatives(), [1, 4, 31])
+        e.set_binding('pace')
+        self.assertEqual(model.evaluate_derivatives(), [1, 4, 31])
+        self.assertEqual(
+            model.evaluate_derivatives(inputs={'pace': 10}), [1, 4, 21])
+        self.assertEqual(
+            model.evaluate_derivatives(inputs={'pace': 10, 'time': 20}),
+            [1, 4, 40])
 
         # Deprecated name
         with WarningCollector() as w:
             self.assertEqual(
                 model.eval_state_derivatives(
                     state=[1, 1, 2], inputs={'time': 0}),
-                [1, 2, 3])
+                [1, 2, 30])
         self.assertIn('deprecated', w.text())
 
-        # Errors
+        # Ignoring errors should lead to Nans
         c.set_rhs('(b + c) / 0')
         self.assertRaises(myokit.NumericalError, model.evaluate_derivatives)
         nan = model.evaluate_derivatives(ignore_errors=True)[2]
@@ -462,7 +547,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid state argument
         self.assertRaisesRegex(
-            ValueError, r'list of \(8\)', m.format_state, [1, 2, 3])
+            ValueError, r'sequence of \(8\)', m.format_state, [1, 2, 3])
 
         # Test with precision argument
         state1 = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -494,8 +579,25 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid second state argument
         self.assertRaisesRegex(
-            ValueError, r'list of \(8\)', m.format_state,
+            ValueError, r'sequence of \(8\)', m.format_state,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
+
+        # Test with model that has expressions in its initial state.
+        # These will be evaluated (the method handles states, not initial state
+        # expressions).
+        m.get('ina.m').set_initial_value('sqrt(4) / 4')
+        m.get('ina.h').set_initial_value('ina.gNa / 20')
+        self.assertEqual(
+            m.format_state(),
+            'membrane.V = -84.5286\n'
+            'ina.m      = 0.5\n'
+            'ina.h      = 0.8\n'
+            'ina.j      = 0.995484\n'
+            'ica.d      = 3e-06\n'
+            'ica.f      = 1.0\n'
+            'ik.x       = 0.0057\n'
+            'ica.Ca_i   = 0.0002'
+        )
 
     def test_format_state_derivatives(self):
         # Test Model.format_state_derivatives().
@@ -503,37 +605,57 @@ class ModelTest(unittest.TestCase):
         self.maxDiff = None
         m = myokit.load_model('example')
 
+        # For whatever reason, CI gives slightly different final digits some
+        # times.
+        r1 = re.compile(
+            r'^[a-zA-Z]\w*\.[a-zA-Z]\w*\s+=\s+([^\s]+)\s+dot\s+=\s+([^\s]+)$')
+
+        def almost_equal(x, y):
+            if x == y:
+                return True
+            g1, g2 = r1.match(x), r1.match(y)
+            if g1 is None or g2 is None:
+                return False
+            x, y = float(g1.group(2)), float(g2.group(2))
+            return myokit.float.close(x, y)
+
         # Test without arguments
-        self.assertEqual(
-            m.format_state_derivatives(),
-'membrane.V = -84.5286                   dot = -5.68008003798848027e-02\n' # noqa
-'ina.m      = 0.0017                     dot = -4.94961486033834719e-03\n' # noqa
-'ina.h      = 0.9832                     dot =  9.02025299127830887e-06\n' # noqa
-'ina.j      = 0.995484                   dot = -3.70409866928434243e-04\n' # noqa
-'ica.d      = 3e-06                      dot =  3.68067721821794798e-04\n' # noqa
-'ica.f      = 1.0                        dot = -3.55010150519739432e-07\n' # noqa
-'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n' # noqa
-'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'    # noqa
-        )
+        x = m.format_state_derivatives().splitlines()
+        y = [
+'membrane.V = -84.5286                   dot = -5.68008003798848027e-02', # noqa
+'ina.m      = 0.0017                     dot = -4.94961486033834719e-03', # noqa
+'ina.h      = 0.9832                     dot =  9.02025299127830887e-06', # noqa
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04', # noqa
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04', # noqa
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07', # noqa
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07', # noqa
+'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'  # noqa
+        ]
+        for a, b in zip(x, y):
+            self.assertTrue(almost_equal(a, b))
+        self.assertEqual(len(x), len(y))
 
         # Test with state argument
-        state1 = [1, 2, 3, 4, 5, 6, 7, 8]
+        state1 = [-40, 2, 3, 4, 5, 6, 7, 8]
         state1[2] = 536.46745856785678567845745637
-        self.assertEqual(
-            m.format_state_derivatives(state1),
-'membrane.V = 1                          dot =  1.90853168050245158e+07\n' # noqa
-'ina.m      = 2                          dot = -1.56738349674489310e+01\n' # noqa
-'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03\n' # noqa
-'ina.j      = 4                          dot = -1.15731427949362953e+00\n' # noqa
-'ica.d      = 5                          dot = -1.85001944916516836e-01\n' # noqa
-'ica.f      = 6                          dot = -2.15435819790876573e-02\n' # noqa
-'ik.x       = 7                          dot = -1.25154369264425316e-02\n' # noqa
-'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01' # noqa                                       ^ ^^    ^ ---------   ^
-        )
+        x = m.format_state_derivatives(state1).splitlines()
+        y = [
+'membrane.V = -40                        dot =  3.03469590344436094e+07', # noqa
+'ina.m      = 2                          dot = -1.05478017767301395e+01', # noqa
+'ina.h      =  5.36467458567856738e+02   dot = -2.46776607600654586e+02', # noqa
+'ina.j      = 4                          dot = -3.72528160028099076e-01', # noqa
+'ica.d      = 5                          dot = -1.69660729614147049e-01', # noqa
+'ica.f      = 6                          dot = -6.23551094458582103e-02', # noqa
+'ik.x       = 7                          dot = -1.18521143826784449e-02', # noqa
+'ica.Ca_i   = 8                          dot = -5.52361267451130011e-01', # noqa
+        ]
+        for a, b in zip(x, y):
+            self.assertTrue(almost_equal(a, b))
+        self.assertEqual(len(x), len(y))
 
         # Test with invalid state argument
         self.assertRaisesRegex(
-            ValueError, r'list of \(8\)',
+            ValueError, r'sequence of \(8\)',
             m.format_state_derivatives, [1, 2, 3])
 
         # Test with state and precision argument
@@ -542,7 +664,7 @@ class ModelTest(unittest.TestCase):
         out = m.format_state_derivatives(
             state1, precision=myokit.SINGLE_PRECISION).splitlines()
         self.assertEqual(len(out), 8)
-        self.assertEqual(out[0][:15], 'membrane.V = 1 ')
+        self.assertEqual(out[0][:16], 'membrane.V = -40')
         self.assertEqual(out[1][:15], 'ina.m      = 2 ')
         self.assertEqual(out[2][:29], 'ina.h      =  5.364674586e+02')
         self.assertEqual(out[3][:15], 'ina.j      = 4 ')
@@ -551,18 +673,18 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(out[6][:15], 'ik.x       = 7 ')
         self.assertEqual(out[7][:15], 'ica.Ca_i   = 8 ')
         out = [x[x.index('dot') + 6:] for x in out]
-        self.assertEqual(out[0][:8], ' 1.90853')
-        self.assertEqual(out[1][:8], '-1.56738')
-        self.assertEqual(out[2][:8], '-3.05729')
-        self.assertEqual(out[3][:8], '-1.15731')
-        self.assertEqual(out[4][:8], '-1.85001')
-        self.assertEqual(out[5][:8], '-2.15435')
-        self.assertEqual(out[6][:8], '-1.25154')
-        self.assertEqual(out[7][:8], '-5.63431')
+        self.assertEqual(out[0][:8], ' 3.03469')
+        self.assertEqual(out[1][:8], '-1.05478')
+        self.assertEqual(out[2][:8], '-2.46776')
+        self.assertEqual(out[3][:8], '-3.72528')
+        self.assertEqual(out[4][:8], '-1.69660')
+        self.assertEqual(out[5][:8], '-6.23551')
+        self.assertEqual(out[6][:8], '-1.18521')
+        self.assertEqual(out[7][:8], '-5.52361')
         self.assertEqual(out[0][12:], 'e+07')
         self.assertEqual(out[1][12:], 'e+01')
-        self.assertEqual(out[2][12:], 'e+03')
-        self.assertEqual(out[3][12:], 'e+00')
+        self.assertEqual(out[2][12:], 'e+02')
+        self.assertEqual(out[3][12:], 'e-01')
         self.assertEqual(out[4][12:], 'e-01')
         self.assertEqual(out[5][12:], 'e-02')
         self.assertEqual(out[6][12:], 'e-02')
@@ -584,8 +706,27 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid derivs argument
         self.assertRaisesRegex(
-            ValueError, r'list of \(8\)', m.format_state_derivatives,
+            ValueError, r'sequence of \(8\)', m.format_state_derivatives,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
+
+        # Test without expressions in the initial state (these will be
+        # evaluated)
+        m.get('ina.m').set_initial_value('sqrt(0.25)')
+        m.get('ina.h').set_initial_value('ina.gNa / 20')
+        x = m.format_state_derivatives().splitlines()
+        y = [
+'membrane.V = -84.5286                   dot =  2.46843981754470434e+02', # noqa
+'ina.m      = 0.5                        dot = -8.68225658924664856e+01', # noqa
+'ina.h      = 0.8                        dot =  4.89677127030544446e-02', # noqa
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04', # noqa
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04', # noqa
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07', # noqa
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07', # noqa
+'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'  # noqa
+        ]
+        for a, b in zip(x, y):
+            self.assertTrue(almost_equal(a, b))
+        self.assertEqual(len(x), len(y))
 
     def test_get(self):
         # Test Model.get().
@@ -600,6 +741,10 @@ class ModelTest(unittest.TestCase):
         # Get by variable ref (useful for handling unknown input type)
         w = m.get(v)
         self.assertIs(w, v)
+
+        # Get by variable from another model
+        m2 = m.clone()
+        self.assertRaisesRegex(ValueError, 'different model', m2.get, v)
 
         # Get nested
         a = m.get('ina.m.alpha')
@@ -669,8 +814,12 @@ class ModelTest(unittest.TestCase):
         # Source model, to import stuff from
         ms = myokit.parse_model('''
             [[model]]
+            n.c = 1 + n.p
+            n.b = sqrt(0.25)
             p.b = 0.2
             q.e = 0.2
+            y.e = 0.2
+            x.a = 0.2
 
             [e]
             t = 0 [s] bind time
@@ -700,6 +849,40 @@ class ModelTest(unittest.TestCase):
             d = 0.2 [A] * a
                 in [A/s]
 
+            # Two components to import at the same time
+            # (independent of the rest of the model)
+            [x]
+            use y.e
+            dot(a) = c * e
+                in [m*A]
+            b = 3 * dot(e)
+                in [m/s]
+            c = 0.2 [A] * d
+                in [A/s]
+            d = 1 [1/s]
+                in [1/s]
+
+            [y]
+            use x.d
+            dot(e) = d * sub_e
+                in [m]
+                sub_e = 2 * e
+                    in [m]
+
+            # Another group component but this isn't independent
+            [z]
+            use x.d
+            use y.e
+            use e.h
+            f = d * e * h
+                in [m/s]
+
+            # A component with expressions in initial states
+            [n]
+            a = 1
+            dot(b) = 1 [1/s]
+            dot(c) = 2 [1/s]
+            p = 0.1
         ''')
         ms.validate()
         ms.check_units(myokit.UNIT_STRICT)
@@ -713,13 +896,13 @@ class ModelTest(unittest.TestCase):
         self.assertTrue(m1.has_component('p'))
         self.assertFalse(m1['p'] is ms['p'])
         self.assertEqual(m1['p'].code(), ms['p'].code())
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import a second time, without renaming
         m1.import_component, ms['p']  # Check errors happen before changes
         m1_unaltered = m1.clone()
         self.assertRaises(myokit.DuplicateName, m1.import_component, ms['p'])
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
 
         # Import a second time, and rename
         m1.import_component(ms['p'], new_name='p2')
@@ -729,7 +912,7 @@ class ModelTest(unittest.TestCase):
         cs = '\n'.join((ms['p'].code().splitlines())[1:])
         c1 = '\n'.join((m1['p2'].code().splitlines())[1:])
         self.assertEqual(cs, c1)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import independent component with labels and bindings
         m1.import_component(ms['e'])
@@ -738,7 +921,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m1['e'].code(), ms['e'].code())
         self.assertEqual(m1.label('this_is_g'), m1.get('e.g'))
         self.assertEqual(m1.binding('time'), m1.get('e.t'))
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Now that it has a time variable, m1 should be valid
         m1.validate()
@@ -751,13 +934,13 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.InvalidLabelError, 'label "this_is_g"',
             m1.import_component, ms['e'], new_name='dinosaur')
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         ms.get('e.t').set_binding('time')
         ms.label('this_is_g').set_label(None)
         self.assertRaisesRegex(
             myokit.InvalidBindingError, 'binding "time"',
             m1.import_component, ms['e'], new_name='hello')
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         ms = ms_unaltered.clone()
 
         # Import r, using a custom variable mapping
@@ -771,7 +954,7 @@ class ModelTest(unittest.TestCase):
         cs = '\n'.join((ms['p'].code().splitlines())[4:])
         c1 = '\n'.join((m1['p2'].code().splitlines())[4:])
         self.assertEqual(cs, c1)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import r, using a label for p.b
         ms.get('p.b').set_label('this_is_b')
@@ -788,7 +971,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(cs, c1)
         ms.get('p.b').set_label(None)
         m1.get('p2.b').set_label(None)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import r, using a binding for e.h
         ms.get('e.h').set_binding('this_is_h')
@@ -805,7 +988,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(cs, c1)
         ms.get('e.h').set_binding(None)
         m1.get('e.h').set_binding(None)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import r, using (partial) name mapping
         var_map = {'p.a': 'p2.a'}
@@ -818,84 +1001,182 @@ class ModelTest(unittest.TestCase):
         cs = '\n'.join((ms['p'].code().splitlines())[2:])
         c1 = '\n'.join((m1['p2'].code().splitlines())[2:])
         self.assertEqual(cs, c1)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
+
+        # Import multiple components
+        component_list = [ms['x'], ms['y']]
+        m1.import_component(component_list)
+        self.assertTrue(m1.has_component('x'))
+        self.assertTrue(m1.has_component('y'))
+        self.assertFalse(m1['x'] is ms['x'])
+        self.assertFalse(m1['y'] is ms['y'])
+        self.assertEqual(m1['x'].code(), ms['x'].code())
+        self.assertEqual(m1['y'].code(), ms['y'].code())
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
+        # Check that state order is preserved
+        self.assertLess(m1.get('y.e').index(), m1.get('x.a').index())
+
+        # Import multiple components and rename
+        component_list = [ms['x'], ms['y']]
+        m1.import_component(component_list, new_name=['xx', 'yy'])
+        self.assertTrue(m1.has_component('xx'))
+        self.assertTrue(m1.has_component('yy'))
+        self.assertFalse(m1['xx'] is ms['x'])
+        self.assertFalse(m1['yy'] is ms['y'])
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
+        # Check that state order is preserved
+        self.assertLess(m1.get('yy.e').index(), m1.get('xx.a').index())
+
+        # Import 1 component in list
+        m1.import_component([ms['p']], new_name='p3')
+        self.assertTrue(m1.has_component('p3'))
+        self.assertFalse(m1['p3'] is ms['p'])
+        self.assertFalse(m1['p3'] is m1['p'])
+        cs = '\n'.join((ms['p'].code().splitlines())[1:])
+        c1 = '\n'.join((m1['p3'].code().splitlines())[1:])
+        self.assertEqual(cs, c1)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
+
+        # Import state variables with expressions in their initial values
+        m1_unaltered = m1.clone()
+        m1.import_component(ms['n'])
+        self.assertEqual(m1.get('n.b').initial_value().code(), 'sqrt(0.25)')
+        self.assertEqual(
+            m1.get('n.c').initial_value(),
+            myokit.Plus(myokit.Number(1), myokit.Name(m1.get('n.p'))))
+        # Check that state order is preserved
+        self.assertLess(m1.get('n.c').index(), m1.get('n.b').index())
+        m1 = m1_unaltered
+
+        # ...including references to parameters in other components
+        ms2 = ms.clone()
+        ms2.get('n.c').set_initial_value('1 + e.h')
+        ms2_unaltered = ms2.clone()
+        self.assertRaises(
+            myokit.VariableMappingError, m1.import_component, ms2['n'])
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms2.is_similar(ms2_unaltered, True))
 
         # Try and fail to import r without a mapping
         m1_unaltered = m1.clone()
         self.assertRaises(
             myokit.VariableMappingError,
             m1.import_component, ms['q'], new_name='q9')
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # With an invalid mapping
         self.assertRaisesRegex(
             TypeError, 'dict or None',
             m1.import_component, ms['q'], new_name='q9', var_map=[3])
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         self.assertRaisesRegex(
             TypeError, 'objects or fully qualified',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'p.a': 123, 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         self.assertRaisesRegex(
             TypeError, 'objects or fully qualified',
             m1.import_component, ms['q'], new_name='q9',
             var_map={345: 'p.a', 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'Multiple variables map',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'p.a': 'p.a', 'p.b': 'p.a', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # With variables from another model or that don't exist
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'was not found in this model',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'p.a': 'one.two', 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'was not found in the source model',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'ppp.aaa': 'p.a', 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         v = myokit.Model('a').add_component('p').add_variable('b')
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'is not part of this model',
             m1.import_component, ms['q'], new_name='q9',
             var_map={'p.a': v, 'p.b': 'p.b'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'is not part of the source model',
             m1.import_component, ms['q'], new_name='q9',
             var_map={v: 'p.a', 'p.b': 'p.b', 'e.h': 'e.h'})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Incomplete mapping
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'cannot be mapped',
             m1.import_component, ms['q'], new_name='q9', var_map={})
-        self.assertEqual(m1, m1_unaltered)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(m1.is_similar(m1_unaltered, True))
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Import something that's not a component
         self.assertRaisesRegex(
             TypeError, 'myokit.Component',
             m1.import_component, 'q')
 
+        self.assertRaisesRegex(
+            TypeError, 'myokit.Component',
+            m1.import_component, [ms['q'], 'q'])
+
         # Import your own components
         self.assertRaisesRegex(
             ValueError, 'part of this model',
             m1.import_component, m1['p'], new_name='abc')
+
+        # new_name is not string or list of correct length
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, m1['p'], new_name=1)
+
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, [m1['p'], m1['q']], new_name='abs')
+
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, [m1['p'], m1['q']], new_name=['abs', 1])
+
+        self.assertRaisesRegex(
+            TypeError, 'new_name must be',
+            m1.import_component, [m1['p'], m1['q']], new_name=['abs'])
+
+        # Multiple imported components must be all from the same model
+        m2 = myokit.parse_model('''
+            [[model]]
+            p.b = 0.2
+
+            # Independent (except for time)
+            [p]
+            t = 0 [s] bind time
+                in [s]
+            a = 1 [m]
+                in [m]
+            # Comments should be stripped out during parsing, so this is OK.
+            dot(b) = 2 * a
+                in [m*s]
+
+        ''')
+        m2.validate()
+        m2.check_units(myokit.UNIT_STRICT)
+
+        self.assertRaisesRegex(
+            ValueError, 'must be from the same model',
+            m1.import_component, [m1['p'], m2['p']])
 
     def test_import_component_units(self):
         # Test :meth: 'import_component()' with unit conversion.
@@ -905,6 +1186,8 @@ class ModelTest(unittest.TestCase):
             [[model]]
             p.c = 0.1
             r.f = 0.2
+            x.a = 0.2
+            y.e = 0.2
 
             [e]
             t = 0 [s] bind time
@@ -929,6 +1212,26 @@ class ModelTest(unittest.TestCase):
             use p.a, p.b
             dot(f) = a / b
                 in [m]
+
+            # Two components to import at the same time
+            # (independent of the rest of the model)
+            [x]
+            use y.e
+            dot(a) = c * e
+                in [m*A]
+            b = 3 * dot(e)
+                in [m/s]
+            c = 0.2 [A] * d
+                in [A/s]
+            d = 1 [1/s]
+                in [1/s]
+
+            [y]
+            use x.d
+            dot(e) = d * sub_e
+                in [m]
+                sub_e = 2 * e
+                    in [m]
 
             # No time units used
             [s]
@@ -961,7 +1264,7 @@ class ModelTest(unittest.TestCase):
 
         # Import q, should be same except for dot() expression
         m1.import_component(ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('q', m1)
         self.assertEqual(len(m1['q']), 2)
         self.assertEqual(m1.get('q.e').code(), ms.get('q.e').code())
@@ -974,17 +1277,35 @@ class ModelTest(unittest.TestCase):
 
         # Import r, should be same except for the state's RHS
         m1.import_component(ms['r'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('r', m1)
         self.assertEqual(len(m1['r']), 1)
         self.assertIn('f', m1['r'])
         self.assertTrue(m1.get('r.f').is_state())
         self.assertEqual(m1.get('r.f').unit(), ms.get('r.f').unit())
         self.assertEqual(
-            m1.get('r.f').state_value(), ms.get('r.f').state_value())
+            m1.get('r.f').initial_value(), ms.get('r.f').initial_value())
         self.assertEqual(
             m1.get('r.f').rhs().code(),
             myokit.Multiply(ms.get('r.f').rhs(), s2ms).code())
+
+        # Import multiple components
+        m1.import_component([ms['x'], ms['y']], convert_units=True)
+        self.assertTrue(m1.has_component('x'))
+        self.assertTrue(m1.has_component('y'))
+        self.assertFalse(m1['x'] is ms['x'])
+        self.assertFalse(m1['y'] is ms['y'])
+        self.assertEqual(m1.get('x.a').unit(), ms.get('x.a').unit())
+        self.assertEqual(
+            m1.get('x.a').initial_value(), ms.get('x.a').initial_value())
+        self.assertEqual(
+            m1.get('x.a').rhs().code(),
+            myokit.Multiply(ms.get('x.a').rhs(), s2ms).code())
+        self.assertEqual(
+            m1.get('y.e').initial_value(), ms.get('y.e').initial_value())
+        self.assertEqual(
+            m1.get('y.e').rhs().code(),
+            myokit.Multiply(ms.get('y.e').rhs(), s2ms).code())
 
         # Target model with different space units
         m1 = myokit.parse_model('''
@@ -1006,7 +1327,7 @@ class ModelTest(unittest.TestCase):
 
         # Import q, converting p.a and dot(p.c)
         m1.import_component(ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('q', m1)
         self.assertEqual(len(m1['q']), 2)
         self.assertEqual(m1.get('q.d').unit(), ms.get('q.d').unit())
@@ -1043,9 +1364,9 @@ class ModelTest(unittest.TestCase):
         m1.validate()
         m1.check_units(myokit.UNIT_STRICT)
 
-        # Import q, converting p.a and dot(p.c)
+        # Import q and p, converting p.a and dot(p.c)
         m1.import_component(ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
         self.assertIn('q', m1)
         self.assertEqual(len(m1['q']), 2)
         self.assertEqual(m1.get('q.d').unit(), ms.get('q.d').unit())
@@ -1077,7 +1398,7 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'time variables',
             m1.import_component, ms['p'], convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Attempt import with incompatible time units 1:
         # Component that uses a dot expression
@@ -1100,7 +1421,7 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'time variables',
             m1.import_component, ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
 
         # Attempt import with incompatible mapped (space) units
         m1 = myokit.parse_model('''
@@ -1123,7 +1444,114 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'Unable to convert',
             m1.import_component, ms['q'], var_map=vm, convert_units=True)
-        self.assertEqual(ms, ms_unaltered)
+        self.assertTrue(ms.is_similar(ms_unaltered, True))
+
+    def test_initial_values(self):
+        # Tests :meth:`Model.initial_values`.
+
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 2
+            c.y = 1 + 2
+            c.z = 2 * c.p
+
+            [c]
+            t = 0 bind time
+            dot(x) = 0
+            dot(y) = 0
+            dot(z) = 0
+            p = 3
+            q = 4
+        ''')
+
+        # Test expression version
+        p = m.get('c.p')
+        x0 = m.initial_values()
+        self.assertEqual(x0[0], myokit.Number(2))
+        self.assertEqual(
+            x0[1], myokit.Plus(myokit.Number(1), myokit.Number(2)))
+        self.assertEqual(x0[2], myokit.Multiply(myokit.Number(2), p.lhs()))
+
+        # Test float version
+        self.assertEqual(m.initial_values(True), [2, 3, 6])
+
+        # Test deprecated alias
+        with WarningCollector() as w:
+            self.assertEqual(m.state(), m.initial_values(True))
+        self.assertIn('deprecated', w.text())
+
+        # Test cycles are detected before evaluation
+        p.set_rhs('1 / q')
+        m.get('c.q').set_rhs('1 + p')
+        m.initial_values()  # No evaluation, so no error
+        self.assertRaises(
+            myokit.CyclicalDependencyError, m.initial_values, as_floats=True)
+
+    def test_inits(self):
+        # Tests :meth:`Model.inits`
+
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 2
+            c.y = 1 + 2
+            c.z = 2 * c.p
+
+            [c]
+            t = 0 bind time
+            dot(x) = 0
+            dot(y) = 0
+            dot(z) = 0
+            p = 3
+        ''')
+        with WarningCollector() as w:
+            eqs = m.inits()
+        self.assertIn('deprecated', w.text())
+
+        E, N, M = myokit.Equation, myokit.Number, myokit.Multiply
+        self.assertEqual(list(eqs), [
+            E(myokit.Name(m.get('c.x')), N(2)),
+            E(myokit.Name(m.get('c.y')), myokit.Plus(N(1), N(2))),
+            E(myokit.Name(m.get('c.z')), M(N(2), m.get('c.p').lhs()))
+        ])
+
+    def test_is_similar(self):
+        # Check that equality takes both code() and unames into account
+
+        # Test without custom reserved names
+        m1 = myokit.load_model('example')
+        m2 = m1.clone()
+        self.assertIsInstance(m2, myokit.Model)
+        self.assertFalse(m1 is m2)
+        self.assertNotEqual(m1, m2)
+        self.assertNotEqual(m2, m1)
+        self.assertTrue(m1.is_similar(m2, False))
+        self.assertTrue(m1.is_similar(m2, True))
+        self.assertTrue(m2.is_similar(m1, False))
+        self.assertTrue(m2.is_similar(m1, True))
+        self.assertTrue(m1.is_similar(m1, True))
+        self.assertTrue(m2.is_similar(m2, False))
+
+        # Test with none-model
+        self.assertFalse(m1.is_similar(None))
+        self.assertFalse(m1.is_similar(m1.code()))
+
+        # Add reserved names
+        m1.reserve_unique_names('bertie')
+        self.assertFalse(m1.is_similar(m2))
+        m1.reserve_unique_names('clair')
+        self.assertFalse(m1.is_similar(m2))
+        m2.reserve_unique_names('clair', 'bertie')
+        self.assertTrue(m1.is_similar(m2))
+
+        # Add reserved name prefixes
+        m1.reserve_unique_name_prefix('aa', 'bb')
+        m1.reserve_unique_name_prefix('cc', 'dd')
+        self.assertFalse(m1.is_similar(m2))
+        m2.reserve_unique_name_prefix('aa', 'bb')
+        m2.reserve_unique_name_prefix('cc', 'ee')
+        self.assertFalse(m1.is_similar(m2))
+        m2.reserve_unique_name_prefix('cc', 'dd')
+        self.assertTrue(m1.is_similar(m2))
 
     def test_item_at_text_position(self):
         # Test :meth:`Model.item_at_text_position()`.
@@ -1263,17 +1691,21 @@ class ModelTest(unittest.TestCase):
         # Test :meth:`Model.save_state()` and :meth:`Model.load_state()`.
 
         m = myokit.load_model('example')
-        s1 = m.state()
+        s1 = m.initial_values(True)
         with TemporaryDirectory() as d:
             path = d.path('state.csv')
-            m.save_state(path)
-            self.assertEqual(m.state(), s1)
+            with WarningCollector() as w:
+                m.save_state(path)
+            self.assertIn('deprecated', w.text())
+            self.assertEqual(m.initial_values(True), s1)
             sx = list(s1)
             sx[0] = 10
-            m.set_state(sx)
-            self.assertNotEqual(m.state(), s1)
-            m.load_state(path)
-            self.assertEqual(m.state(), s1)
+            m.set_initial_values(sx)
+            self.assertNotEqual(m.initial_values(True), s1)
+            with WarningCollector() as w:
+                m.load_state(path)
+            self.assertIn('deprecated', w.text())
+            self.assertEqual(m.initial_values(True), s1)
 
     def test_map_to_state(self):
         # Test :meth:`Model.map_to_state()`.
@@ -1369,8 +1801,9 @@ class ModelTest(unittest.TestCase):
         m_bytes = pickle.dumps(m1)
         m2 = pickle.loads(m_bytes)
         self.assertFalse(m1 is m2)
+        self.assertFalse(m1 == m2)
         self.assertIsInstance(m2, myokit.Model)
-        self.assertEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2))
 
         # Test unique names and prefixes (see also test_clone)
         m1.reserve_unique_names('barnard', 'lincoln', 'glasgow')
@@ -1378,7 +1811,7 @@ class ModelTest(unittest.TestCase):
         m1.reserve_unique_name_prefix('ostrich', 'turkey')
         m_bytes = pickle.dumps(m1)
         m2 = pickle.loads(m_bytes)
-        self.assertEqual(m1, m2)
+        self.assertTrue(m1.is_similar(m2, True))
 
     def test_remove_component(self):
         # Test the removal of a component.
@@ -1432,7 +1865,7 @@ class ModelTest(unittest.TestCase):
     def test_remove_derivative_references(self):
         # Test the remove_derivative_references() method.
 
-        m0 = myokit.parse_model("""
+        m0 = myokit.parse_model('''
             [[model]]
             c.x = 0
             c.y = 1
@@ -1451,8 +1884,8 @@ class ModelTest(unittest.TestCase):
 
             [d]
             z = 3 * dot(c.x) / dot(c.y)
-            """)
-        m2 = myokit.parse_model("""
+            ''')
+        m2 = myokit.parse_model('''
             [[model]]
             c.x = 0
             c.y = 1
@@ -1473,7 +1906,7 @@ class ModelTest(unittest.TestCase):
 
             [d]
             z = 3 * c.dot_x_1 / c.dot_y
-            """)
+            ''')
 
         # Remove derivatives from m1
         m1 = m0.clone()
@@ -1507,31 +1940,6 @@ class ModelTest(unittest.TestCase):
         m1.get('c.y').set_unit('mV')
         m1.remove_derivative_references()
         self.assertEqual(m1.get('c.dot_y').unit(), myokit.parse_unit('mV/ms'))
-
-    def test_remove_variable_with_alias(self):
-        # Test cloning of a variable with an alias after an add / remove event.
-
-        m = myokit.Model('AddRemoveClone')
-        c = m.add_component('c')
-        p = c.add_variable('p')
-        p.set_binding('time')
-        p.set_rhs(0)
-        q = c.add_variable('q')
-        q.set_rhs(12)
-        m.validate()    # Raises error if not ok
-        m.clone()       # Raises error if not ok
-        d = m.add_component('d')
-        d.add_alias('bert', p)
-        e = d.add_variable('e')
-        e.set_rhs('10 * bert')
-        m.validate()
-        m.clone()
-        d.add_alias('ernie', q)
-        m.validate()
-        m.clone()
-        c.remove_variable(q)
-        m.validate()
-        m.clone()   # Will raise error if alias isn't deleted
 
     def test_reorder_state(self):
         # Test :meth:`Model.reorder_state()`.
@@ -1638,6 +2046,70 @@ class ModelTest(unittest.TestCase):
         c = model['membrane']
         self.assertEqual(c.name(), 'membrane')
 
+    def test_set_initial_values(self):
+        # Tests :meth:`Model.set_initial_values()`.
+        m = myokit.load_model('example')
+        states = [v.qname() for v in m.states()]
+        values = m.initial_values(as_floats=True)
+
+        # Set with floats
+        values[0] += 2
+        m.set_initial_values(values)
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Set with expressions
+        values[1] -= 3
+        m.set_initial_values([myokit.Number(v) for v in values])
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Set with mix, including strings and expressions
+        values[2] += 10
+        mixed = list(values)
+        mixed[2] = myokit.Number(mixed[2])
+        mixed[3] = str(values[3])
+        m.set_initial_values(mixed)
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Set with dict of floats
+        values = m.initial_values(as_floats=True)
+        s = dict(zip(states, values))
+        m.set_initial_values(s)
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Set with one big string
+        values[0] += 5
+        s = dict(zip(states, values))
+        s = '\n'.join([str(a) + '=' + str(b) for a, b in s.items()])
+        m.set_initial_values(s)
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Test that errors are detected in validation
+        values[0] = myokit.Name(m.get('membrane.V'))
+        m.set_initial_values(values)
+        self.assertRaisesRegex(myokit.IntegrityError, 'not const', m.validate)
+        values[0] = 'sqrt(3)'
+        m.set_initial_values(values)
+        m.validate()
+
+        # Deprecated alias
+        values = m.initial_values(as_floats=True)
+        values[0] += 10
+        with WarningCollector() as w:
+            m.set_state(values)
+        self.assertIn('deprecated', w.text())
+        for val, ref in zip(m.initial_values(True), values):
+            self.assertEqual(val, ref)
+
+        # Wrong number of elements
+        self.assertRaisesRegex(
+            ValueError, 'Wrong number of initial values',
+            m.set_initial_values, [1, 2, 3])
+
     def test_show_evaluation_of(self):
         # Test :meth:`Model.show_evaluation_of(variable)`.
         # Depends mostly on `references()`, and `code()` methods.
@@ -1675,6 +2147,16 @@ class ModelTest(unittest.TestCase):
         self.assertIn('Literal constant', e)
         self.assertEqual(len(e.splitlines()), 7)
 
+        # Test with expressions in initial values
+        m.get('ina.m').set_initial_value('1 / sqrt(4)')
+        e = m.show_evaluation_of('ina.m')
+        self.assertIn('Initial value = 1 / sqrt(4)', e)
+        self.assertEqual(len(e.splitlines()), 16)
+        m.get('ina.m').set_initial_value('1 / sqrt(ina.gNa)')
+        e = m.show_evaluation_of('ina.m')
+        self.assertIn('Initial value = 1 / sqrt(ina.gNa)', e)
+        self.assertIn('              = 2.5000000', e)
+
         # Test with nothing similar
         m = myokit.Model()
         self.assertRaises(Exception, m.show_evaluation_of, 'Hello')
@@ -1694,7 +2176,7 @@ class ModelTest(unittest.TestCase):
         m = myokit.load_model('example')
         v = m.get('ina.INa')
         e = m.show_line_of(v)
-        self.assertIn('Defined on line 91', e)
+        self.assertIn('Defined on line 90', e)
         self.assertIn('Intermediary variable', e)
         self.assertEqual(len(e.splitlines()), 4)
 
@@ -1707,7 +2189,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(len(e.splitlines()), 3)
 
         # 'raw' version
-        self.assertEqual(m.show_line_of(v, raw=True), 91)
+        self.assertEqual(m.show_line_of(v, raw=True), 90)
         self.assertIsNone(m2.show_line_of(v2, raw=True))
 
     def test_str(self):
@@ -1859,6 +2341,56 @@ class ModelTest(unittest.TestCase):
             ValueError, 'prepend cannot start with prefix',
             m.reserve_unique_name_prefix, 'x', 'x')
 
+    def test_unused_and_cycles(self):
+        # Test unused variable and cycle detection.
+
+        m = myokit.Model('LotkaVolterra')
+        c0 = m.add_component('c0')
+        t = c0.add_variable('time')
+        t.set_rhs(myokit.Number(0))
+        t.set_binding('time')
+        c1 = m.add_component('c1')
+        m.add_component('c2')
+        c1_a = c1.add_variable('a')
+        c1_b = c1.add_variable('b')
+        c1_a.promote(1.0)
+        c1_a.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(0.5)))
+        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(1.0)))
+        # b is unused, test if found
+        m.validate()
+        w = m.warnings()
+        self.assertEqual(len(w), 1)
+        self.assertEqual(type(w[0]), myokit.UnusedVariableError)
+        # b is used by c, c is unused, test if found
+        c1_c = c1.add_variable('c')
+        c1_c.set_rhs(myokit.Name(c1_b))
+        m.validate()
+        w = m.warnings()
+        self.assertEqual(len(w), 2)
+        self.assertEqual(type(w[0]), myokit.UnusedVariableError)
+        self.assertEqual(type(w[1]), myokit.UnusedVariableError)
+        # Test 1:1 cycle
+        c1_b.set_rhs(myokit.Name(c1_b))
+        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
+        # Test longer cycles
+        c1_b.set_rhs(myokit.Multiply(myokit.Number(10), myokit.Name(c1_c)))
+        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
+        # Reset
+        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(1.0)))
+        m.validate()
+        # Test cycle involving state variable
+        c1_a.set_rhs(myokit.Name(c1_b))
+        m.validate()
+        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_b)))
+        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
+        c1_b.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_c)))
+        c1_c.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Number(3)))
+        m.validate()
+        w = m.warnings()
+        self.assertEqual(len(w), 0)
+        c1_c.set_rhs(myokit.Multiply(myokit.Name(c1_a), myokit.Name(c1_b)))
+        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
+
     def test_validate_and_remove_unused_variables(self):
         # Test :class:`Model.validate` with ``remove_unused_variables=True``.
 
@@ -1930,3 +2462,4 @@ class ModelTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

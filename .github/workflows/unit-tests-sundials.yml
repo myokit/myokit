@@ -17,19 +17,20 @@ jobs:
     strategy:
       matrix:
         # Latest of each major sundials branche (may overlap with ubuntu tests).
-        sundials-version: ['v2.7.0', 'v3.2.1', 'v4.1.0', 'v5.8.0', 'v6.0.0']
+        sundials-version: ['v2.7.0', 'v3.2.1', 'v4.1.0', 'v5.8.0', 'v6.4.1', 'v7.0.0']
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Configure Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
-          #python-version: ${{ matrix.python-version }}
-          architecture: x64
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: setup.py
 
       - name: Check out Sundials ${{ matrix.sundials-version }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: LLNL/sundials
           path: sundials
@@ -42,12 +43,18 @@ jobs:
       - name: Install Myokit
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip
           python -m pip install .[optional]
+
+      - name: Show Myokit info
+        run: |
+          python -m myokit system
+
+      - name: Do a simple test
+        run: |
+          python -c "import myokit; myokit.Simulation(myokit.load_model('example'))"
 
       - name: Run unit tests
         run: |
-          python -m myokit system
-          python myokit/tests/test_simulation_cvode.py
           python myokit/tests/test_simulation_cvodes.py
 

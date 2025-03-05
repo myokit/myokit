@@ -4,15 +4,6 @@
 myokit.lib
 ==========
 
-myokit.lib.common
------------------
-- :class:`myokit.lib.common.Activation`
-- :class:`myokit.lib.common.Inactivation`
-- :class:`myokit.lib.common.Recovery`
-- :class:`myokit.lib.common.Restitution`
-- :class:`myokit.lib.common.StepProtocol`
-- :class:`myokit.lib.common.StrengthDuration`
-
 myokit.lib.deps
 ---------------
 - :meth:`myokit.lib.deps.create_component_dependency_graph`

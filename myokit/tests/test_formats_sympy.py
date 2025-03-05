@@ -5,19 +5,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
 import myokit.formats.sympy as mypy
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class SymPyReadWriteTest(unittest.TestCase):
@@ -73,6 +64,9 @@ class SymPyReadWriteTest(unittest.TestCase):
         self.assertEqual(w.ex(x), cb)
         # Note: Sympy doesn't seem to have a prefix plus
         self.assertEqual(r.ex(cb), b)
+        x = myokit.Divide(myokit.PrefixPlus(myokit.Plus(a, b)), self._b)
+        y = r.ex(w.ex(x))
+        self.assertEqual(y.code(), 'c.b^-1 * (12 + c.a)')
 
         # Prefix minus
         # Note: SymPy treats -x as Mul(NegativeOne, x)
@@ -114,8 +108,12 @@ class SymPyReadWriteTest(unittest.TestCase):
 
         # Power
         x = myokit.Power(a, b)
-        self.assertEqual(w.ex(x), ca ** cb)
-        self.assertEqual(float(r.ex(ca ** cb)), float(x))
+        self.assertEqual(w.ex(x), ca**cb)
+        self.assertEqual(float(r.ex(ca**cb)), float(x))
+        x = myokit.Power(myokit.Power(a, b), self._b)
+        self.assertEqual(w.ex(x), (ca**cb)**sp.Symbol('c.b'))
+        x = myokit.Power(a, myokit.Power(b, self._b))
+        self.assertEqual(w.ex(x), ca**(cb**sp.Symbol('c.b')))
 
         # Sqrt
         x = myokit.Sqrt(a)
@@ -239,10 +237,10 @@ class SymPyReadWriteTest(unittest.TestCase):
         self.assertEqual(r.ex(cx), x)
 
         # Not
-        x = myokit.Not(a)
-        cx = sp.Not(ca)
+        x = myokit.Not(x)
+        cx = sp.Not(cx)
         self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r.ex(cx), x)
+        self.assertEqual(r.ex(cx), myokit.More(a, b))  # Can't test!
 
         # And
         cond1 = myokit.More(a, b)
@@ -305,7 +303,7 @@ class SymPyReadWriteTest(unittest.TestCase):
         # The ereader can handle it, but it becomes and Equals expression.
 
         # Test sympy division
-        del(m, avar, x, cx, e, ce)
+        del m, avar, x, cx, e, ce
         a = self._model.get('c.a')
         b = self._model.get('c').add_variable('bbb')
         b.set_rhs('1 / a')
@@ -362,7 +360,7 @@ class SymPyReadWriteTest(unittest.TestCase):
         except ImportError:
             print('Sympy not found, skipping test.')
             return
-        del(sp)
+        del sp
 
         w = myokit.formats.ewriter('sympy')
         self.assertIsInstance(w, mypy.SymPyExpressionWriter)

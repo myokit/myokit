@@ -5,18 +5,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class EventBasedPacingPythonTest(unittest.TestCase):
@@ -97,6 +88,24 @@ class EventBasedPacingPythonTest(unittest.TestCase):
             s.advance(t)
         m = str(e.exception)
         self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
+
+    def test_negative_time(self):
+        # Test starting from a negative time
+
+        p = myokit.pacing.blocktrain(level=1, duration=1, period=2)
+        s = myokit.PacingSystem(p, initial_time=-100)
+        self.assertEqual(s.time(), -100)
+        self.assertEqual(s.next_time(), 0)
+        self.assertEqual(s.pace(), 0)
+
+        p = myokit.pacing.blocktrain(level=1, duration=1, period=2, offset=1)
+        s = myokit.PacingSystem(p, initial_time=-100)
+        self.assertEqual(s.time(), -100)
+        self.assertEqual(s.next_time(), 1)
+        self.assertEqual(s.pace(), 0)
+        s.advance(s.next_time())
+        self.assertEqual(s.time(), 1)
+        self.assertEqual(s.pace(), 1)
 
 
 if __name__ == '__main__':

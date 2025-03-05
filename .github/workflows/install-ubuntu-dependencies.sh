@@ -1,21 +1,21 @@
 #!/bin/bash
 set -ev
 
-# Update apt-get
-apt-get -qq update;
+# Install OpenCL (CPU) runtime
+# https://www.intel.com/content/www/us/en/developer/articles/technical/intel-cpu-runtime-for-opencl-applications-with-sycl-support.html
+# https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux/top/installation/install-using-package-managers/apt.html
 
-# Install sundials
-apt-get install -y libsundials-dev;
+# Add intel repository
+wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null;
+echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list;
+
+# Update apt and install "oneapi" opencl driver
+apt-get -qq update;
+apt-get install -y intel-oneapi-runtime-libs intel-oneapi-runtime-opencl;
 
 # Install OpenCL headers
 apt-get install -y opencl-headers ocl-icd-opencl-dev;
 
-# Install OpenCL (CPU) runtime
-# https://software.intel.com/en-us/articles/opencl-drivers#latest_CPU_runtime
-PACKAGE_URL=http://registrationcenter-download.intel.com/akdlm/irc_nas/12556/opencl_runtime_16.1.2_x64_rh_6.4.0.37.tgz
-PACKAGE_NAME=opencl_runtime_16.1.2_x64_rh_6.4.0.37
-wget -q ${PACKAGE_URL} -O /tmp/opencl_runtime.tgz
-tar -xzf /tmp/opencl_runtime.tgz -C /tmp
-sed 's/decline/accept/g' -i /tmp/${PACKAGE_NAME}/silent.cfg
-/tmp/${PACKAGE_NAME}/install.sh -s /tmp/${PACKAGE_NAME}/silent.cfg
+# Install sundials
+apt-get install -y libsundials-dev;
 

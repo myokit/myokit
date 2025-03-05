@@ -6,27 +6,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
 
 import myokit
 
-from shared import DIR_DATA
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
+from myokit.tests import DIR_DATA
 
 
 # Extra output
@@ -55,7 +40,7 @@ class DepTest(unittest.TestCase):
         """
         # If a string lhs is given, interpret it as a variable name and get
         # the lhs of its defining equation
-        if isinstance(key, basestring):
+        if isinstance(key, str):
             key = self.m.get(key)
             if isinstance(key, myokit.Variable):
                 key = key.lhs()
@@ -64,7 +49,7 @@ class DepTest(unittest.TestCase):
         # convert it to a Name. Ensure no duplicates are given.
         deps = list(set(deps))
         for k, dep in enumerate(deps):
-            if isinstance(dep, basestring):
+            if isinstance(dep, str):
                 deps[k] = self.n(dep)
 
         # Get dep map
@@ -449,7 +434,7 @@ class DeepDepTest(DepTest):
             return self.has_lhs(depmap, lhs, *deps)
 
         def nhas(lhs):
-            if isinstance(lhs, basestring):
+            if isinstance(lhs, str):
                 lhs = self.m.get(lhs).lhs()
             self.assertNotIn(lhs, depmap)
 
@@ -594,7 +579,7 @@ class DeepDepTest(DepTest):
             return self.has_lhs(depmap, lhs, *deps)
 
         def nhas(lhs):
-            if isinstance(lhs, basestring):
+            if isinstance(lhs, str):
                 lhs = self.m.get(lhs).lhs()
             self.assertNotIn(lhs, depmap)
 
@@ -1332,6 +1317,11 @@ class ComponentDepTest(DepTest):
 class SolvableOrderTest(DepTest):
     """
     Tests if the solvable order of the equations is determined correctly.
+
+    TODO: This test was written with the assumption that the order returned
+    could vary in ways that did not affect solvability. This has now been
+    changed so that the solvable order returned is consistent for models that
+    are equivalent.
     """
     def test_solvable_order(self):
         # Test model.solvable_order()
@@ -1355,10 +1345,10 @@ class SolvableOrderTest(DepTest):
 
         def before(lhs1, *lhs2s):
             """ Asserts lhs1 comes before lhs2 in the current component """
-            if isinstance(lhs1, basestring):
+            if isinstance(lhs1, str):
                 lhs1 = self.m.get(self.ccomp + '.' + lhs1).lhs()
             for lhs2 in lhs2s:
-                if isinstance(lhs2, basestring):
+                if isinstance(lhs2, str):
                     lhs2 = self.m.get(self.ccomp + '.' + lhs2).lhs()
                 i1 = i2 = None
                 for i, eq in enumerate(self.order[self.ccomp]):
@@ -1473,8 +1463,8 @@ class SolvableOrderTest(DepTest):
         before(self.d('test.t1'), 'inter')
         before('inter', 't2')
         self.head('Finished testing solvable_order')
-        del(self.ccomp)
-        del(self.order)
+        del self.ccomp
+        del self.order
 
         # Test with cycles
         self.m.get('ina.j').demote()
@@ -1503,14 +1493,14 @@ class SolvableOrderTest(DepTest):
 
         def before(lhs1, *lhs2s):
             """ Asserts lhs2 comes before lhs1 """
-            if isinstance(lhs1, basestring):
+            if isinstance(lhs1, str):
                 if lhs1.startswith('dot('):
                     lhs1 = myokit.Derivative(myokit.Name(
                         self.m.get(lhs1[4:-1])))
                 else:
                     lhs1 = myokit.Name(self.m.get(lhs1))
             for lhs2 in lhs2s:
-                if isinstance(lhs2, basestring):
+                if isinstance(lhs2, str):
                     if lhs2.startswith('dot('):
                         lhs2 = myokit.Derivative(myokit.Name(
                             self.m.get(lhs2[4:-1])))
@@ -1542,7 +1532,7 @@ class SolvableOrderTest(DepTest):
         before('dot(ina.m)', 'ina.m.tau', 'ina.m.inf')
         before('ina.m.inf', 'ina.m.alpha', 'ina.m.tau')
         before('ina.m.tau', 'ina.m.alpha', 'ina.m.beta')
-        del(self.eqs, self.vrs)
+        del self.eqs, self.vrs
 
         # Larger test (and try with LhsExpression instead of string)
         self.eqs, self.vrs = self.m.expressions_for(
@@ -1578,7 +1568,7 @@ class SolvableOrderTest(DepTest):
         before('ica.ICa', 'ica.ICa.nest1', 'ica.E')
         before('ica.ICa.nest1', 'ica.ICa.nest2', 'ica.gCa')
         before('ica.E', 'cell.Ca_o')
-        del(self.eqs, self.vrs)
+        del self.eqs, self.vrs
 
         # Multiple variables
         self.eqs, self.vrs = self.m.expressions_for('ina.m', 'ina.h')
@@ -1595,7 +1585,7 @@ class SolvableOrderTest(DepTest):
         before('ina.h.tau', 'ina.h.alpha', 'ina.h.beta')
         before('ina.h.alpha', 'ina.a')
         before('ina.h.beta', 'ina.a')
-        del(self.eqs, self.vrs)
+        del self.eqs, self.vrs
 
         # Variables that depend on dot() expressions
         self.eqs, self.vrs = self.m.expressions_for('test.t1', 'test.t2')
@@ -1603,7 +1593,7 @@ class SolvableOrderTest(DepTest):
         before('dot(test.t2)', 'test.inter')
         before('test.inter', 'dot(test.t1)')
         before('dot(test.t1)', 'dot(membrane.V)')
-        del(self.eqs, self.vrs)
+        del self.eqs, self.vrs
 
         # Unsolvable system
         m = myokit.Model()
@@ -1619,6 +1609,91 @@ class SolvableOrderTest(DepTest):
         eqs, vrs = self.m.expressions_for()
         self.assertEqual(len(eqs), 0)
         self.assertEqual(len(vrs), 0)
+
+    def test_equivalent_models_1(self):
+        # Tests that the order returned for equivalent models is the same
+        # (This is new 2022-06-22). Tests above do not assume this is the case.
+
+        m1 = myokit.parse_model('''
+        [[model]]
+        comp_2.h = 1.234
+
+        [engine]
+        time = 0 bind time
+
+        [comp_1]
+        a = 30
+        b = 10
+        c = a + b + d
+        d = 20
+
+        [comp_2]
+        e = 35 - f
+        f = 40
+        g = 50 - j
+        dot(h) = e / f + j
+        i = 5 * h
+        j = 60 - e
+        ''')
+        m2 = myokit.parse_model('''
+        [[model]]
+        comp_2.h = 1.234
+
+        [engine]
+        time = 0 bind time
+
+        [comp_2]
+        j = 60 - e
+        i = 5 * h
+        dot(h) = e / f + j
+        g = 50 - j
+        f = 40
+        e = 35 - f
+
+        [comp_1]
+        d = 20
+        c = a + b + d
+        b = 10
+        a = 30
+        ''')
+
+        # Models are equivalent, despite different ordering internally
+        self.assertEqual(m1.code(), m2.code())
+
+        # Get solvable orders as flat lists of variable names
+        o1, o2 = [], []
+        for eqlist in m1.solvable_order().values():
+            for eq in eqlist:
+                o1.append(str(eq.lhs))
+        for eqlist in m2.solvable_order().values():
+            for eq in eqlist:
+                o2.append(str(eq.lhs))
+        self.assertEqual(len(o1), len(o2))  # If not, we have bigger problems..
+
+        # Compare entries
+        for v1, v2 in zip(o1, o2):
+            self.assertEqual(v1, v2)
+
+    def test_equivalent_models_2(self):
+        # Tests that the order returned for equivalent models is the same
+        # (This is new 2022-06-22). Tests above do not assume this is the case.
+
+        m1 = self.m
+        m2 = myokit.parse_model(m1.code())
+
+        # Get solvable orders as flat lists of variable names
+        o1, o2 = [], []
+        for eqlist in m1.solvable_order().values():
+            for eq in eqlist:
+                o1.append(str(eq.lhs))
+        for eqlist in m2.solvable_order().values():
+            for eq in eqlist:
+                o2.append(str(eq.lhs))
+        self.assertEqual(len(o1), len(o2))  # If not, we have bigger problems..
+
+        # Compare entries
+        for v1, v2 in zip(o1, o2):
+            self.assertEqual(v1, v2)
 
 
 if __name__ == '__main__':

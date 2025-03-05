@@ -4,10 +4,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
+
 from myokit.formats.xml import split
 
 
@@ -63,10 +61,10 @@ class MathMLError(myokit.ImportError):
                 message = 'Error on line ' + line + '. ' + message
             except AttributeError:
                 pass
-        super(MathMLError, self).__init__(message)
+        super().__init__(message)
 
 
-class MathMLParser(object):
+class MathMLParser:
     """
     Parses MathML expressions into :class:`myokit.Expression` objects.
 
@@ -84,7 +82,7 @@ class MathMLParser(object):
         will be added to this set.
 
     This is not a validating parser: if the MathML is invalid the method's
-    behaviour is undefined.
+    behavior is undefined.
 
     The following MathML elements are recognised:
 
@@ -703,6 +701,7 @@ class MathMLParser(object):
         Parses a ``<cn>`` element and returns a number object created by the
         number factory.
         """
+        # https://www.w3.org/TR/MathML2/chapter4.html#contm.typeattrib
         kind = element.attrib.get('type', 'real')
 
         # Get value
@@ -721,6 +720,8 @@ class MathMLParser(object):
                     element)
 
             # Get value
+            # Note: We are being tolerant here and allowing e-notation (which
+            # is not consistent with the spec!)
             if element.text is None:
                 raise MathMLError('Empty <cn> element', element)
             try:

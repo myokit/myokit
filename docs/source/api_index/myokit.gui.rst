@@ -18,6 +18,7 @@ myokit.gui
 ===========================
 myokit.gui.datablock_viewer
 ===========================
+- :class:`myokit.gui.datablock_viewer.AutoFloatField`
 - :class:`myokit.gui.datablock_viewer.DataBlockViewer`
 - :class:`myokit.gui.datablock_viewer.GraphArea`
 - :meth:`myokit.gui.datablock_viewer.icon`
@@ -27,11 +28,15 @@ myokit.gui.datablock_viewer
 ===========================
 myokit.gui.datalog_viewer
 ===========================
-- :class:`myokit.gui.datalog_viewer.DataLogViewer`
 - :class:`myokit.gui.datalog_viewer.AbfTab`
 - :class:`myokit.gui.datalog_viewer.AtfTab`
 - :class:`myokit.gui.datalog_viewer.CsvTab`
+- :class:`myokit.gui.datalog_viewer.DataLogViewer`
+- :class:`myokit.gui.datalog_viewer.GraphTabWidget`
 - :class:`myokit.gui.datalog_viewer.MatTab`
+- :class:`myokit.gui.datalog_viewer.PatchMasterTab`
+- :class:`myokit.gui.datalog_viewer.SweepSourceTab`
+- :class:`myokit.gui.datalog_viewer.TabWidget`
 - :class:`myokit.gui.datalog_viewer.TxtTab`
 - :class:`myokit.gui.datalog_viewer.WcpTab`
 
@@ -45,7 +50,9 @@ myokit.gui.ide
 =================
 - :class:`myokit.gui.ide.Console`
 - :meth:`myokit.gui.ide.icon`
+- :class:`myokit.gui.ide.ModelNavigator`
 - :class:`myokit.gui.ide.MyokitIDE`
+- :class:`myokit.gui.ide.TabbedToolBar`
 
 ===================
 myokit.gui.progress
@@ -57,7 +64,7 @@ myokit.gui.progress
 myokit.gui.source
 =================
 - :class:`myokit.gui.source.Editor`
-- :class:`myokit.gui.source.FindDialog`
+- :class:`myokit.gui.source.FindReplaceWidget`
 - :class:`myokit.gui.source.LineNumberArea`
 - :class:`myokit.gui.source.ModelHighlighter`
 - :class:`myokit.gui.source.ProtocolHighlighter`

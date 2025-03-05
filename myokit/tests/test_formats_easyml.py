@@ -5,29 +5,24 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
 
 import myokit
 import myokit.formats
 import myokit.formats.easyml
+import myokit.tests
 
-from shared import TemporaryDirectory, WarningCollector, DIR_DATA
+from myokit import (
+    Number, PrefixPlus, PrefixMinus, Plus, Minus,
+    Multiply, Divide, Quotient, Remainder, Power, Sqrt,
+    Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
+    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
+    If, Piecewise,
+)
 
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:  # pragma: no python 3 cover
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+from myokit.tests import TemporaryDirectory, WarningCollector, DIR_DATA
 
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
 
 # Model that requires unit conversion
 units_model = """
@@ -261,164 +256,167 @@ class EasyMLExporterTest(unittest.TestCase):
         self.assertTrue(e.supports_model())
 
 
-class EasyMLExpressionWriterTest(unittest.TestCase):
-    """ Tests EasyML expression writer functionality. """
+class EasyMLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
+    """ Test conversion to EasyML syntax. """
+    _name = 'easyml'
+    _target = myokit.formats.easyml.EasyMLExpressionWriter
 
-    def test_all(self):
-        w = myokit.formats.ewriter('easyml')
+    def test_number(self):
+        self.eq(Number(1), '1.0')
+        self.eq(Number(-2), '-2.0')
+        self.eq(Number(13, 'mV'), '13.0')
 
-        model = myokit.Model()
-        component = model.add_component('c')
-        avar = component.add_variable('a')
+    def test_name(self):
+        # Inherited from CBasedExpressionWriter
+        self.eq(self.a, 'a')
+        w = self._target()
+        w.set_lhs_function(lambda v: v.var().qname().upper())
+        self.assertEqual(w.ex(self.a), 'COMP.A')
 
-        # Name
-        a = myokit.Name(avar)
-        self.assertEqual(w.ex(a), 'c.a')
-        # Number with unit
-        b = myokit.Number('12', 'pF')
-        self.assertEqual(w.ex(b), '12.0')
-        # Integer
-        c = myokit.Number(1)
-        self.assertEqual(w.ex(c), '1.0')
-        # Integer
+    def test_derivative(self):
+        # Inherited from CBasedExpressionWriter
+        self.eq(myokit.Derivative(self.a), 'dot(a)')
 
-        # Prefix plus
-        x = myokit.PrefixPlus(b)
-        self.assertEqual(w.ex(x), '12.0')
-        # Prefix minus
-        x = myokit.PrefixMinus(b)
-        self.assertEqual(w.ex(x), '(-12.0)')
+    def test_partial_derivative(self):
+        e = myokit.PartialDerivative(self.a, self.b)
+        self.assertRaisesRegex(NotImplementedError, 'Partial', self.w.ex, e)
 
-        # Plus
-        x = myokit.Plus(a, b)
-        self.assertEqual(w.ex(x), 'c.a + 12.0')
-        # Minus
-        x = myokit.Minus(a, b)
-        self.assertEqual(w.ex(x), 'c.a - 12.0')
-        # Multiply
-        x = myokit.Multiply(a, b)
-        self.assertEqual(w.ex(x), 'c.a * 12.0')
-        # Divide
-        x = myokit.Divide(a, b)
-        self.assertEqual(w.ex(x), 'c.a / 12.0')
+    def test_initial_value(self):
+        e = myokit.InitialValue(self.a)
+        self.assertRaisesRegex(NotImplementedError, 'Initial', self.w.ex, e)
 
-        # 1 - exp() and exp() - 1
-        x = myokit.Minus(myokit.Exp(myokit.Number(2)), myokit.Number(1))
-        self.assertEqual(w.ex(x), 'expm1(2.0)')
-        x = myokit.Minus(myokit.Number(1), myokit.Exp(myokit.Number(3)))
-        self.assertEqual(w.ex(x), '-expm1(3.0)')
+    def test_prefix_plus_minus(self):
+        # Inherited from CBasedExpressionWriter
+        p = Number(11, 'kV')
+        a, b, c = self.abc
+        self.eq(PrefixPlus(p), '+11.0')
+        self.eq(PrefixPlus(PrefixPlus(PrefixPlus(p))), '+(+(+11.0))')
+        self.eq(Divide(PrefixPlus(Plus(a, b)), c), '+(a + b) / c')
+        self.eq(PrefixMinus(p), '-11.0')
+        self.eq(PrefixMinus(PrefixMinus(p)), '-(-11.0)')
+        self.eq(PrefixMinus(Number(-1)), '-(-1.0)')
+        self.eq(PrefixMinus(Minus(a, b)), '-(a - b)')
+        self.eq(Multiply(PrefixMinus(Plus(b, a)), c), '-(b + a) * c')
+        self.eq(PrefixMinus(Divide(b, a)), '-(b / a)')
 
-        # Quotient
-        x = myokit.Quotient(a, b)
+    def test_plus_minus(self):
+        a, b, c = self.abc
+        self.eq(Plus(a, b), 'a + b')
+        self.eq(Plus(Plus(a, b), c), 'a + b + c')
+        self.eq(Plus(a, Plus(b, c)), 'a + (b + c)')
+
+        self.eq(Minus(a, b), 'a - b')
+        self.eq(Minus(Minus(a, b), c), 'a - b - c')
+        self.eq(Minus(a, Minus(b, c)), 'a - (b - c)')
+
+        self.eq(Minus(a, b), 'a - b')
+        self.eq(Plus(Minus(a, b), c), 'a - b + c')
+        self.eq(Minus(a, Plus(b, c)), 'a - (b + c)')
+        self.eq(Minus(Plus(a, b), c), 'a + b - c')
+        self.eq(Minus(a, Plus(b, c)), 'a - (b + c)')
+
+        # Substitution of expm for 1 - exp() and exp() - 1
+        self.eq(Minus(Exp(Number(2)), Number(1)), 'expm1(2.0)')
+        self.eq(Minus(Number(1), Exp(Number(3))), '-expm1(3.0)')
+
+    def test_multiply_divide(self):
+        # Inherited from CBasedExpressionWriter
+        a, b, c = self.abc
+        self.eq(Multiply(a, b), 'a * b')
+        self.eq(Multiply(Multiply(a, b), c), 'a * b * c')
+        self.eq(Multiply(a, Multiply(b, c)), 'a * (b * c)')
+        self.eq(Divide(a, b), 'a / b')
+        self.eq(Divide(Divide(a, b), c), 'a / b / c')
+        self.eq(Divide(a, Divide(b, c)), 'a / (b / c)')
+
+    def test_quotient(self):
+        # Inherited from CBasedExpressionWriter
+        a, b, c = self.abc
+        with WarningCollector():
+            self.eq(Quotient(a, b), 'floor(a / b)')
+            self.eq(Quotient(Plus(a, c), b), 'floor((a + c) / b)')
+            self.eq(Quotient(Divide(a, c), b), 'floor(a / c / b)')
+            self.eq(Quotient(a, Divide(b, c)), 'floor(a / (b / c))')
+            self.eq(Multiply(Quotient(a, b), c), 'floor(a / b) * c')
+            self.eq(Multiply(c, Quotient(a, b)), 'c * (floor(a / b))')
+
+    def test_remainder(self):
+        # Inherited from CBasedExpressionWriter
+        a, b, c = self.abc
+        with WarningCollector():
+            self.eq(Remainder(a, b), '(a - b * floor(a / b))')
+            self.eq(Remainder(Plus(a, c), b),
+                    '(a + c - b * floor((a + c) / b))')
+            self.eq(Multiply(Remainder(a, b), c), '(a - b * floor(a / b)) * c')
+            self.eq(Divide(c, Remainder(b, a)), 'c / ((b - a * floor(b / a)))')
+
+    def test_power(self):
+        # Inherited from CBasedExpressionWriter
+        a, b, c = self.abc
+        self.eq(Power(a, b), 'pow(a, b)')
+        self.eq(Power(Power(a, b), c), 'pow(pow(a, b), c)')
+        self.eq(Power(a, Power(b, c)), 'pow(a, pow(b, c))')
+
+    def test_log(self):
+        # Inherited from CBasedExpressionWriter
+        a, b = self.ab
+        self.eq(Log(a), 'log(a)')
+        self.eq(Log10(a), 'log10(a)')
+        self.eq(Log(a, b), '(log(a) / log(b))')
+
+    def test_functions(self):
+        a, b = self.ab
+
+        self.eq(Sqrt(a), 'sqrt(a)')
+        self.eq(Exp(a), 'exp(a)')
+        self.eq(Cos(a), 'cos(a)')
+        self.eq(ACos(a), 'acos(a)')
+        self.eq(Abs(a), 'fabs(a)')
+
         with WarningCollector() as c:
-            self.assertEqual(w.ex(x), 'floor(c.a / 12.0)')
-        # Remainder
-        x = myokit.Remainder(a, b)
-        with WarningCollector() as c:
-            self.assertEqual(w.ex(x), 'c.a - 12.0 * (floor(c.a / 12.0))')
-
-        # Power
-        x = myokit.Power(a, b)
-        self.assertEqual(w.ex(x), 'pow(c.a, 12.0)')
-        # Sqrt
-        x = myokit.Sqrt(b)
-        self.assertEqual(w.ex(x), 'sqrt(12.0)')
-        # Exp
-        x = myokit.Exp(a)
-        self.assertEqual(w.ex(x), 'exp(c.a)')
-        # Log(a)
-        x = myokit.Log(b)
-        self.assertEqual(w.ex(x), 'log(12.0)')
-        # Log(a, b)
-        x = myokit.Log(a, b)
-        self.assertEqual(w.ex(x), '(log(c.a) / log(12.0))')
-        # Log10
-        x = myokit.Log10(b)
-        self.assertEqual(w.ex(x), 'log10(12.0)')
-
-        # Sin
-        with WarningCollector() as c:
-            x = myokit.Sin(b)
-            self.assertEqual(w.ex(x), 'sin(12.0)')
-            # Cos
-            x = myokit.Cos(b)
-            self.assertEqual(w.ex(x), 'cos(12.0)')
-            # Tan
-            x = myokit.Tan(b)
-            self.assertEqual(w.ex(x), 'tan(12.0)')
-            # ASin
-            x = myokit.ASin(b)
-            self.assertEqual(w.ex(x), 'asin(12.0)')
-            # ACos
-            x = myokit.ACos(b)
-            self.assertEqual(w.ex(x), 'acos(12.0)')
-            # ATan
-            x = myokit.ATan(b)
-            self.assertEqual(w.ex(x), 'atan(12.0)')
+            self.eq(Sin(a), 'sin(a)')
+        self.assertIn('Unsupported', c.text())
 
         with WarningCollector() as c:
-            # Floor
-            x = myokit.Floor(b)
-            self.assertEqual(w.ex(x), 'floor(12.0)')
-            # Ceil
-            x = myokit.Ceil(b)
-            self.assertEqual(w.ex(x), 'ceil(12.0)')
-            # Abs
-            x = myokit.Abs(b)
-            self.assertEqual(w.ex(x), 'fabs(12.0)')
+            self.eq(Tan(a), 'tan(a)')
+        self.assertIn('Unsupported', c.text())
 
-        # Equal
-        x = myokit.Equal(a, b)
-        self.assertEqual(w.ex(x), '(c.a == 12.0)')
-        # NotEqual
-        x = myokit.NotEqual(a, b)
-        self.assertEqual(w.ex(x), '(c.a != 12.0)')
-        # More
-        x = myokit.More(a, b)
-        self.assertEqual(w.ex(x), '(c.a > 12.0)')
-        # Less
-        x = myokit.Less(a, b)
-        self.assertEqual(w.ex(x), '(c.a < 12.0)')
-        # MoreEqual
-        x = myokit.MoreEqual(a, b)
-        self.assertEqual(w.ex(x), '(c.a >= 12.0)')
-        # LessEqual
-        x = myokit.LessEqual(a, b)
-        self.assertEqual(w.ex(x), '(c.a <= 12.0)')
+        with WarningCollector() as c:
+            self.eq(ASin(a), 'asin(a)')
+        self.assertIn('Unsupported', c.text())
 
-        # Not
-        cond1 = myokit.parse_expression('5 > 3')
-        cond2 = myokit.parse_expression('2 < 1')
-        x = myokit.Not(cond1)
-        self.assertEqual(w.ex(x), '!((5.0 > 3.0))')
-        # And
-        x = myokit.And(cond1, cond2)
-        self.assertEqual(w.ex(x), '((5.0 > 3.0) and (2.0 < 1.0))')
-        # Or
-        x = myokit.Or(cond1, cond2)
-        self.assertEqual(w.ex(x), '((5.0 > 3.0) or (2.0 < 1.0))')
+        with WarningCollector() as c:
+            self.eq(ATan(a), 'atan(a)')
+        self.assertIn('Unsupported', c.text())
 
-        # If
-        x = myokit.If(cond1, a, b)
-        self.assertEqual(w.ex(x), '((5.0 > 3.0) ? c.a : 12.0)')
-        # Piecewise
-        c = myokit.Number(1)
-        x = myokit.Piecewise(cond1, a, cond2, b, c)
-        self.assertEqual(
-            w.ex(x),
-            '((5.0 > 3.0) ? c.a : ((2.0 < 1.0) ? 12.0 : 1.0))')
+        with WarningCollector() as c:
+            self.eq(Floor(a), 'floor(a)')
+        self.assertIn('Unsupported', c.text())
 
-        # Test without a Myokit expression
-        self.assertRaisesRegex(
-            ValueError, 'Unknown expression type', w.ex, 7)
+        with WarningCollector() as c:
+            self.eq(Ceil(a), 'ceil(a)')
+        self.assertIn('Unsupported', c.text())
 
-    def test_easyml_ewriter_fetching(self):
+    def test_conditions(self):
+        # Inherited from CBasedExpressionWriter
+        a, b, c, d = self.abcd
+        self.eq(Not(NotEqual(a, b)), '(!(a != b))')
+        self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) && (c != d))')
+        self.eq(Or(More(d, c), MoreEqual(b, a)), '((d > c) || (b >= a))')
+        self.eq(Or(Less(d, c), LessEqual(b, a)), '((d < c) || (b <= a))')
+        self.eq(
+            Not(Or(Equal(Number(1), Number(2)), Equal(Number(3), Number(4)))),
+            '(!((1.0 == 2.0) || (3.0 == 4.0)))')
+        self.eq(Not(Less(Number(1), Number(2))), '(!(1.0 < 2.0))')
 
-        # Test fetching using ewriter method
-        w = myokit.formats.ewriter('easyml')
-        self.assertIsInstance(w, myokit.formats.easyml.EasyMLExpressionWriter)
+    def test_conditionals(self):
+        # Inherited from CBasedExpressionWriter
+        a, b, c, d = self.abcd
+        self.eq(If(Equal(a, b), d, c), '((a == b) ? d : c)')
+        self.eq(Piecewise(NotEqual(d, c), b, a), '((d != c) ? b : a)')
+        self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
+                '((a == b) ? c : ((a == d) ? 3.0 : 4.0))')
 
 
 if __name__ == '__main__':
     unittest.main()
-

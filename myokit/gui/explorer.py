@@ -4,25 +4,16 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-# Standard library imports
-
-# Myokit
 import myokit
-
-# Qt imports
-from myokit.gui import QtCore, QtGui, QtWidgets
-
-# GUI components
 import myokit.gui
+
+from myokit.gui import QtCore, QtGui, QtWidgets
+from myokit.gui import matplotlib_backend as backend
 from . import progress
 
 # Matplotlib (must be imported _after_ gui has had chance to set backend)
 import matplotlib
 import matplotlib.figure
-from myokit.gui import matplotlib_backend as backend
 
 
 # Constants
@@ -44,18 +35,23 @@ class Explorer(QtWidgets.QDialog):
     *Extends:* ``QtWidgets.QDialog``
     """
     def __init__(self, parent, sim_method, output_stream, duration=1000):
-        super(Explorer, self).__init__(parent)
+        super().__init__(parent)
         self.setWindowTitle('Myokit Explorer')
         self._sim_method = sim_method
         self._stream = output_stream
+
         # Set guess for run times
         guess_pre = 0
         guess_run = duration
+
         # Explorer data
         self._data = None
         self._keys = None
+
         # Fix background color of line edits
-        self.setStyleSheet('QLineEdit{background: white;}')
+        if not myokit.gui._in_dark_mode(QtGui.QGuiApplication.palette()):
+            self.setStyleSheet('QLineEdit{background: white;}')
+
         # Create top widgets
         label1 = QtWidgets.QLabel('Run unlogged for ')
         label2 = QtWidgets.QLabel(' and then log for ')
@@ -71,6 +67,7 @@ class Explorer(QtWidgets.QDialog):
         self._clear_button.clicked.connect(self.action_clear)
         self._run_button = QtWidgets.QPushButton('Run')
         self._run_button.clicked.connect(self.action_run)
+
         # Create graph widgets
         self._axes = None
         self._figure = matplotlib.figure.Figure()
@@ -80,27 +77,35 @@ class Explorer(QtWidgets.QDialog):
         self._select_x.currentIndexChanged.connect(self.combo_changed)
         self._select_y = QtWidgets.QComboBox()
         self._select_y.currentIndexChanged.connect(self.combo_changed)
+
         # Create bottom widgets
         self._close_button = QtWidgets.QPushButton('Close')
         self._close_button.clicked.connect(self.action_close)
+
         # Create button layout
-        button_layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
+        button_layout = QtWidgets.QBoxLayout(
+            QtWidgets.QBoxLayout.Direction.LeftToRight)
         button_layout.addWidget(label1)
         button_layout.addWidget(self._pre_field)
         button_layout.addWidget(label2)
         button_layout.addWidget(self._run_field)
         button_layout.addWidget(self._clear_button)
         button_layout.addWidget(self._run_button)
+
         # Create graph options layout
         graph_option_layout = QtWidgets.QBoxLayout(
-            QtWidgets.QBoxLayout.LeftToRight)
+            QtWidgets.QBoxLayout.Direction.LeftToRight)
         graph_option_layout.addWidget(self._select_x)
         graph_option_layout.addWidget(self._select_y)
+
         # Create bottom layout
-        bottom_layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
+        bottom_layout = QtWidgets.QBoxLayout(
+            QtWidgets.QBoxLayout.Direction.LeftToRight)
         bottom_layout.addWidget(self._close_button)
+
         # Create central layout
-        layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
+        layout = QtWidgets.QBoxLayout(
+            QtWidgets.QBoxLayout.Direction.TopToBottom)
         layout.addLayout(button_layout)
         layout.addLayout(graph_option_layout)
         layout.addWidget(self._canvas)
@@ -155,11 +160,11 @@ class Explorer(QtWidgets.QDialog):
         """
         pbar = progress.ProgressBar(self, 'Creating simulation')
         QtWidgets.QApplication.processEvents(
-            QtCore.QEventLoop.ExcludeUserInputEvents)
+            QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         try:
             pbar.show()
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             # Create and run simulation
             out = self._sim_method()
             if type(out) == str:
@@ -168,7 +173,7 @@ class Explorer(QtWidgets.QDialog):
             else:
                 m, p, s = out
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             pre = float(self._pre_field.text())
             run = float(self._run_field.text())
             if pre:
@@ -176,7 +181,7 @@ class Explorer(QtWidgets.QDialog):
             d = s.run(run, progress=pbar.reporter()).npview()
             self._stream.write('Final state: \n' + m.format_state(s.state()))
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         except myokit.SimulationCancelledError:
             return
         except myokit.MyokitError as e:
@@ -189,7 +194,7 @@ class Explorer(QtWidgets.QDialog):
             pbar.close()
             pbar.deleteLater()
             QtWidgets.QApplication.processEvents(
-                QtCore.QEventLoop.ExcludeUserInputEvents)
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         # Reset combo-box keys?
         reset_keys = True
         if self._keys:

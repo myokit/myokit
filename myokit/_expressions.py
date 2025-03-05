@@ -5,26 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import io
 import math
 import numpy
 
 import myokit
-from myokit import IntegrityError
 
-# StringIO in Python 2 and 3
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
 
 # Expression precedence levels
 FUNCTION_CALL = 70
@@ -37,7 +23,7 @@ CONDITION_AND = 10
 LITERAL = 0
 
 
-class Expression(object):
+class Expression:
     """
     Myokit's most generic interface for expressions. All expressions extend
     this class.
@@ -60,6 +46,11 @@ class Expression(object):
 
         # Store operands
         self._operands = () if operands is None else operands
+        for op in self._operands:
+            if not isinstance(op, Expression):
+                raise myokit.IntegrityError(
+                    'Expression operands must be other Expression objects.'
+                    f' Found: {type(op)}.', self._token)
 
         # Store references
         self._references = set()
@@ -85,8 +76,8 @@ class Expression(object):
         self._cached_unit_tolerant = None
         self._cached_unit_strict = None
 
-    def __bool__(self):     # pragma: no python 2 cover
-        """ Python 3 method to determine the outcome of "if expression". """
+    def __bool__(self):
+        # Determines the outcome of "if expression".
         return True
 
     def bracket(self, op=None):
@@ -131,13 +122,18 @@ class Expression(object):
         """
         Returns this expression formatted in ``mmt`` syntax.
 
-        When :class:`LhsExpressions <LhsExpression>` are encountered, their
-        full qname is rendered, except in two cases: (1) if the variable's
-        component matches the argument ``component`` or (2) if the variable is
-        nested. Aliases are used in place of qnames if found in the given
-        component.
+        When :class:`Name` objects are encountered, the fullly qualified name
+        of the :class:`myokit.Variable` that they refer to is rendered, with
+        the following exceptions:
+
+        - if the variable's component matches the argument ``component`` or the
+          variable is nested, then the local variable name is used
+        - if the given ``component`` has an alias for the variable, this alias
+          is used.
         """
-        b = StringIO()
+        # Note: Because variable and component names can change, the output of
+        # code can not be cached (for non-literal expressions).
+        b = io.StringIO()
         self._code(b, component)
         return b.getvalue()
 
@@ -182,13 +178,57 @@ class Expression(object):
             return lhs in self._references
 
         # Determine if this variable has a (deep) dependency on the given lhs
-        dependent = False
         done = set()
+        if isinstance(self, myokit.LhsExpression):
+            done.add(self)
         todo = set(self._references)
         while todo:
             ref = todo.pop()
+            done.add(ref)
             if ref == lhs:
-                dependent = True
+                return True
+            elif ref._has_partials or ref._has_initials:
+                # Partial derivatives and initial values have no rhs
+                continue
+            elif not ref._proper:
+                # Values that are not variables count as independent
+                continue
+
+            var = ref.var()
+            if ref.is_state_value() or var.is_bound():
+                # State values and bound variables have no rhs
+                continue
+            else:
+                todo.update(var.rhs()._references - done)
+        return False
+
+    def depends_on_state(self, deep=False):
+        """
+        Returns ``True`` if this :class:`Expression` depends on one or more
+        state variables.
+
+        With ``deep=False`` (default), only dependencies appearing directly in
+        the expression are checked. With ``deep=True`` the method also checks
+        the right-hand side equation defined in the model for any
+        :class:`Name` or :class:`Derivative` it encounters.
+        """
+        # Shallow check
+        if not deep:
+            for lhs in self._references:
+                if lhs.is_state_value():
+                    return True
+            return False
+
+        # Determine if this variable has a (deep) dependency on a state
+        todo = set(self._references)
+        done = set()
+        if isinstance(self, myokit.LhsExpression):
+            done.add(self)
+        while todo:
+            ref = todo.pop()
+            done.add(ref)
+            if ref.is_state_value():
+                return True
             elif ref._has_partials or ref._has_initials:
                 # Partial derivatives and initial values have no rhs
                 continue
@@ -196,13 +236,9 @@ class Expression(object):
                 # Values that are not variables count as independent
                 continue
             var = ref.var()
-            if ref.is_state_value() or var.is_bound():
-                # State values and bound variables have no rhs
-                continue
-            else:
+            if not var.is_bound():
                 todo.update(var.rhs()._references - done)
-
-        return dependent
+        return False
 
     def diff(self, lhs, independent_states=True):
         """
@@ -224,15 +260,14 @@ class Expression(object):
         - The partial derivative of a :class:`Name` referencing a state
           variable is zero if ``independent_states=True``, but will otherwise
           be represented as a :class:`PartialDerivative`.
-        - The partial derivative of a :class:`Derivative`, and the partial
-          derivative of a :class:`Name` referencing a non-state variable, will
-          both be determined based on the corresponding right-hand side
-          expression. If this references the ``lhs`` a ``PartialDerivative``
-          will be returned. If it does not reference the ``lhs`` and
-          ``independent_states=True``, then zero will be returned. If it does
-          not reference the ``lhs``, but ``independent_states=False`` and one
-          or more states are referenced, a :class:`PartialDerivative` will be
-          returned.
+        - The partial derivative of a :class:`Derivative` or of a :class:`Name`
+          referencing a non-state variable, will both be determined based on
+          the corresponding right-hand side expression. If this references the
+          ``lhs``, then a ``PartialDerivative`` will be returned. If it does
+          not reference the ``lhs`` and ``independent_states=True``, then zero
+          will be returned. If it does not reference the ``lhs``, but
+          ``independent_states=False`` and one or more states are referenced,
+          then a :class:`PartialDerivative` will be returned.
         - The partial derivative of a :class:`Name` referencing a bound
           variable is zero.
 
@@ -332,17 +367,20 @@ class Expression(object):
         return unit1 / unit2
 
     def __eq__(self, other):
-        if type(self) != type(other):
+        # Equality checking method, used by all expressions.
+        if self is other:
+            return True
+        elif type(self) != type(other):
             return False
-        # Get polish is fast because it uses caching
-        return self._polish() == other._polish()
+        else:
+            # Compare cached polish expression (which uses ids)
+            # Note that the polish representation uses object ids instead of
+            # qnames
+            return self._polish() == other._polish()
 
     def eval(self, subst=None, precision=myokit.DOUBLE_PRECISION):
         """
-        Evaluates this expression and returns the result. This operation will
-        fail if the expression contains any
-        :class:`Names <Name>` that do not resolve to
-        numerical values.
+        Evaluates this expression and returns the result.
 
         The optional argument ``subst`` can be used to pass a dictionary
         mapping :class:`LhsExpression` objects to expressions or numbers to
@@ -351,6 +389,10 @@ class Expression(object):
         For debugging purposes, the argument ``precision`` can be set to
         ``myokit.SINGLE_PRECISION`` to perform the evaluation with 32 bit
         floating point numbers.
+
+        Note: This operation will fail if the expression contains :class:`Name`
+        objects with a value other than an :class:`Expression` or (an object
+        that can be cast to) a float.
         """
         # Check subst dict
         if subst:
@@ -485,14 +527,10 @@ class Expression(object):
         return result
 
     def _eval_unit(self, mode):
-        """
-        Internal version of eval_unit()
-        """
+        """ Internal version of eval_unit(). """
         raise NotImplementedError
 
     def __float__(self):
-        # Cast to float is required in Python 3: numpy float etc. are ok, but
-        # this is deprecated.
         return float(self.eval())
 
     def __getitem__(self, key):
@@ -502,9 +540,7 @@ class Expression(object):
         if self._cached_hash is None:
             self._cached_hash = hash(self._polish())
         return self._cached_hash
-        # Note for Python3:
-        #   In Python3, anything that has an __eq__ stops inheriting this hash
-        #   method!
+        # Note: anything that has an __eq__ stops inheriting this hash method!
         # From: https://docs.python.org/3.1/reference/datamodel.html
         # > If a class that overrides __eq__() needs to retain the
         #   implementation of __hash__() from a parent class, the interpreter
@@ -546,7 +582,7 @@ class Expression(object):
 
     def is_literal(self):
         """
-        Returns ``True`` if this expression doesn't contain any references.
+        Returns ``True`` if this expression does not contain any references.
         """
         return len(self._references) == 0
 
@@ -559,8 +595,10 @@ class Expression(object):
 
     def is_number(self, value=None):
         """
-        Returns ``True`` only if this expression is a :class:`myokit.Number`
-        (and has the value ``value``, if given).
+        Returns ``True`` only if this expression is a :class:`myokit.Number`.
+
+        If the optional argument ``value`` is set, it will also return
+        ``False`` if the number does not have the given value.
         """
         return False
 
@@ -580,10 +618,6 @@ class Expression(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def __nonzero__(self):  # pragma: no python 3 cover
-        """ Python 2 method to determine the outcome of "if expression". """
-        return True
-
     def operator_rep(self):
         """
         Returns a representation of this expression's type. (For example '+' or
@@ -596,9 +630,13 @@ class Expression(object):
         Returns a reverse-polish notation version of this expression's code,
         using Variable id's instead of Variable name's to create immutable,
         unambiguous expressions.
+
+        Note that id's are immutable _during the Variable's lifetime_. Since a
+        Name object stores a reference to the Variable, this means the
+        variable id is immutable in the expression's lifetime.
         """
         if self._cached_polish is None:
-            b = StringIO()
+            b = io.StringIO()
             self._polishb(b)
             self._cached_polish = b.getvalue()
         return self._cached_polish
@@ -615,7 +653,7 @@ class Expression(object):
 
     def pyfunc(self, use_numpy=True):
         """
-        Converts this expression to python and returns the new function's
+        Converts this expression to Python and returns the new function's
         handle.
 
         By default, when converting mathematical functions such as ``log``, the
@@ -630,25 +668,25 @@ class Expression(object):
 
         # Create function text
         args = [w.ex(x) for x in self._references]
-        c = 'def ex_pyfunc_generated(' + ','.join(args) + '):\n    return ' \
-            + w.ex(self)
+        c = ('def ex_pyfunc_generated(' + ','.join(sorted(args))
+             + '):\n    return ' + w.ex(self))
 
         # Create function
         local = {}
         if use_numpy:
-            myokit._exec(c, {'numpy': numpy}, local)
+            exec(c, {'numpy': numpy}, local)
         else:
-            myokit._exec(c, {'math': math}, local)
+            exec(c, {'math': math}, local)
 
         # Return
         return local['ex_pyfunc_generated']
 
     def pystr(self, use_numpy=False):
         """
-        Returns a string representing this expression in python syntax.
+        Returns a string representing this expression in Python syntax.
 
-        By default, built-in functions such as 'exp' are converted to the
-        python version 'math.exp'. To use the numpy versions, set
+        By default, built-in functions such as ``exp`` are converted to the
+        Python version ``math.exp``. To use the numpy versions, set
         ``numpy=True``.
         """
         # Get expression writer
@@ -659,6 +697,15 @@ class Expression(object):
 
         # Return string
         return w.ex(self)
+
+    def __reduce__(self):
+        """ Called when attempting to pickle an expression. """
+        raise NotImplementedError(
+            'Individual myokit Expressions can not be pickled. Please try e.g.'
+            ' pickling a full model, or pickling the output of'
+            ' `Expression.code()` and following unpickling with a call to'
+            ' `myokit.parse_expression(unpickled_code, context=a_model)` to'
+            ' recreate the Expression.')
 
     def references(self):
         """
@@ -678,7 +725,7 @@ class Expression(object):
         Returns a string representing the parse tree corresponding to this
         expression.
         """
-        b = StringIO()
+        b = io.StringIO()
         self._tree_str(b, 0)
         return b.getvalue()
 
@@ -701,28 +748,27 @@ class Expression(object):
 
         # Check for cyclical dependency
         if id(self) in trail:
-            raise IntegrityError('Cyclical expression found', self._token)
+            raise myokit.IntegrityError(
+                'Cyclical expression found', self._token)
         trail2 = trail + [id(self)]
-
         # It's okay to do this check with id's. Even if there are multiple
         # objects that are equal, if they're cyclical you'll get back round to
         # the same ones eventually. Doing this with the value requires hash()
         # which requires code() which may not be safe to use before the
         # expressions have been validated.
+
+        # Check kids
         for op in self:
-            if not isinstance(op, Expression):
-                raise IntegrityError(
-                    'Expression operands must be other Expression objects.'
-                    ' Found: ' + str(type(op)) + '.', self._token)
             op._validate(trail2)
 
         # Cache validation status
         self._cached_validation = True
 
+    # This is a relatively slow operation. Do _not_ use in performance
+    # sensitive parts of the expression system code.
     def walk(self, allowed_types=None):
         """
-        Returns an iterator over this expression tree (depth-first). This is a
-        slow operation. Do _not_ use in performance sensitive code!
+        Returns an iterator over this expression tree (depth-first).
 
         Example::
 
@@ -766,7 +812,6 @@ class Expression(object):
 class Number(Expression):
     """
     Represents a number with an optional unit for use in Myokit expressions.
-    All numbers used in Myokit expressions are floating point.
 
     >>> import myokit
     >>> x = myokit.Number(10)
@@ -777,11 +822,12 @@ class Number(Expression):
     >>> print(x)
     5 [V]
 
+    All numbers used in Myokit expressions are floating point.
+
     Arguments:
 
     ``value``
         A numerical value (something that can be converted to a ``float``).
-        Number objects are immutable so no clone constructor is provided.
     ``unit``
         A unit to associate with this number. If no unit is specified the
         number's unit will be left undefined.
@@ -791,7 +837,7 @@ class Number(Expression):
     _rbp = LITERAL
 
     def __init__(self, value, unit=None):
-        super(Number, self).__init__()
+        super().__init__()
         if isinstance(value, myokit.Quantity):
             # Conversion from Quantity class
             if unit is not None:
@@ -805,11 +851,12 @@ class Number(Expression):
             self._value = float(value) if value else 0.0
             if unit is None or isinstance(unit, myokit.Unit):
                 self._unit = unit
-            elif isinstance(unit, basestring):
+            elif isinstance(unit, str):
                 self._unit = myokit.parse_unit(unit)
             else:
                 raise ValueError(
                     'Unit in myokit.Number should be a myokit.Unit or None.')
+
         # Create nice string representation
         self._str = myokit.float.str(self._value)
         if self._str[-2:] == '.0':
@@ -848,8 +895,10 @@ class Number(Expression):
 
     def convert(self, unit):
         """
-        Returns a copy of this number in a different unit. If the two units are
-        not compatible a :class:`myokit.IncompatibleUnitError` is raised.
+        Returns a copy of this number in a different unit.
+
+        If the two units are not compatible a
+        :class:`myokit.IncompatibleUnitError` is raised.
         """
         return Number(myokit.Unit.convert(self._value, self._unit, unit), unit)
 
@@ -921,7 +970,7 @@ class LhsExpression(Expression):
         return self.var().is_constant()
 
     def is_literal(self):
-        """See :meth:`Expression.is_constant()`."""
+        """See :meth:`Expression.is_literal()`."""
         return False
 
     def rhs(self):
@@ -949,10 +998,10 @@ class Name(LhsExpression):
     *Extends:* :class:`LhsExpression`
     """
     _rbp = LITERAL
-    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+    __hash__ = LhsExpression.__hash__
 
     def __init__(self, value):
-        super(Name, self).__init__()
+        super().__init__()
         self._value = value
         self._references = set([self])
         self._proper = isinstance(self._value, myokit.Variable)
@@ -979,6 +1028,7 @@ class Name(LhsExpression):
 
     def _code(self, b, c):
         if self._proper:
+            # Handle proper variable references
             if self._value.is_nested():
                 b.write(self._value.name())
             else:
@@ -989,11 +1039,12 @@ class Name(LhsExpression):
                     except KeyError:
                         pass
                 b.write(self._value.qname(c))
-        elif isinstance(self._value, basestring):
+        elif isinstance(self._value, str):
             # Allow strings for debugging
             b.write('str:' + str(self._value))
         else:
-            # And sneaky abuse of the expression system
+            # Allow "misusing" the expression system by storing other types as
+            # values.
             b.write(str(self._value))
 
     def _diff(self, lhs, idstates):
@@ -1007,10 +1058,14 @@ class Name(LhsExpression):
             return PartialDerivative(self, lhs)
 
         # If idstates=False, a state variable reference returns an object, and
-        # any intermediary variable is dependent on the lhs (via a state)
+        # any state-dependent variable is dependent on the lhs.
         if not idstates:
-            if self._value.is_state() or self._value.is_intermediary():
+            if self._value.is_state():
                 return PartialDerivative(self, lhs)
+            elif self._value.is_intermediary():
+                # Possible state dependency: check!
+                if self.depends_on_state(deep=True):
+                    return PartialDerivative(self, lhs)
 
         # Otherwise, check for dependency (includes checks on this variable!)
         if self.depends_on(lhs, deep=True):
@@ -1036,7 +1091,15 @@ class Name(LhsExpression):
     def __eq__(self, other):
         if type(other) != Name:
             return False
-        return self._value == other._value
+        if self._proper:
+            # Value is name? Then just check with is
+            return self._value is other._value
+        else:
+            # Debug thing? Then convert to string and see if the
+            # representations match. (This is the same as what would happen if
+            # __eq__ was called on an expression _containing_ a Name, e.g
+            # myokit.PrefixPlus(myokit.Name(1.23)).
+            return self.code() == other.code()
 
     def is_name(self, var=None):
         """See :meth:`Expression.is_name()`."""
@@ -1047,7 +1110,7 @@ class Name(LhsExpression):
         return self._proper and self._value.is_state()
 
     def _polishb(self, b):
-        if isinstance(self._value, basestring):
+        if isinstance(self._value, str):
             # Allow an exception for strings
             b.write('str:')
             b.write(self._value)
@@ -1066,7 +1129,7 @@ class Name(LhsExpression):
         """See :meth:`LhsExpression.rhs()`."""
         if self._proper:
             if self._value.is_state():
-                return Number(self._value.state_value())
+                return self._value.initial_value()
             elif self._value.lhs() == self:
                 return self._value.rhs()
         return None
@@ -1075,12 +1138,12 @@ class Name(LhsExpression):
         b.write(' ' * n + str(self._value) + '\n')
 
     def _validate(self, trail):
-        super(Name, self)._validate(trail)
+        super()._validate(trail)
         # Check value: String is allowed at construction for debugging, but
         # not here!
         if not self._proper:
-            raise IntegrityError(
-                'Name value "' + repr(self._value) + '" is not an instance of'
+            raise myokit.IntegrityError(
+                f'Name value "{repr(self._value)}" is not an instance of'
                 ' class myokit.Variable', self._token)
 
     def var(self):
@@ -1096,13 +1159,14 @@ class Derivative(LhsExpression):
     """
     _rbp = FUNCTION_CALL
     _nargs = [1]    # Allows parsing as a function
-    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+    __hash__ = LhsExpression.__hash__
 
     def __init__(self, op):
-        super(Derivative, self).__init__((op,))
+        super().__init__((op,))
         if not isinstance(op, Name):
-            raise IntegrityError(
-                'The dot() operator can only be used on variables.',
+            raise myokit.TypeError(
+                'The dot() operator can only be used on variables (a'
+                ' myokit.Derivative requires a myokit.Name as argument).',
                 self._token)
         self._op = op
         self._proper = self._op._proper
@@ -1134,23 +1198,23 @@ class Derivative(LhsExpression):
         rhs = self._op._value.rhs()
 
         # Not treating states as independent: then return object if any of the
-        # RHS's references are to intermediary or state variables
+        # RHS's references are to intermediary or state variables.
+        # (Note that the fact that this is a dot(state) doesn't mean it depends
+        # on that state: We should instead inspect the RHS.)
         if not idstates:
             for ref in rhs._references:
                 var = ref.var()
-                if (ref == lhs or (not ref._proper) or
-                        var.is_intermediary() or var.is_state()):
+                if ref == lhs or (not ref._proper) or var.is_state():
                     return PartialDerivative(self, lhs)
+                if var.is_intermediary():
+                    # Possible state dependency: check!
+                    if ref.depends_on_state(deep=True):
+                        return PartialDerivative(self, lhs)
 
         # Check for dependencies in RHS
         if rhs.depends_on(lhs, deep=True):
             return PartialDerivative(self, lhs)
         return None
-
-    def __eq__(self, other):
-        if type(other) != Derivative:
-            return False
-        return self._op == other._op
 
     def _eval_unit(self, mode):
         # Get numerator (never None in strict mode)
@@ -1196,11 +1260,11 @@ class Derivative(LhsExpression):
         return self._op._value
 
     def _validate(self, trail):
-        super(Derivative, self)._validate(trail)
+        super()._validate(trail)
         # Check that value is a variable has already been performed by name
         # Check if value is the name of a state variable
         if not self._op._value.is_state():
-            raise IntegrityError(
+            raise myokit.IntegrityError(
                 'Derivatives can only be defined for state variables.',
                 self._token)
 
@@ -1217,16 +1281,18 @@ class PartialDerivative(LhsExpression):
     """
     _rbp = FUNCTION_CALL
     _nargs = [2]    # Allows parsing as a function
-    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+    __hash__ = LhsExpression.__hash__
 
     def __init__(self, var1, var2):
-        super(PartialDerivative, self).__init__((var1, var2))
+        super().__init__((var1, var2))
+
+        # Type checking
         if not isinstance(var1, (Name, Derivative)):
-            raise IntegrityError(
+            raise myokit.TypeError(
                 'The first argument to a partial derivative must be a'
-                ' variable name or a dot() operator.', self._token)
+                ' variable name or a dot() expression.', self._token)
         if not isinstance(var2, (Name, InitialValue)):
-            raise IntegrityError(
+            raise myokit.TypeError(
                 'The second argument to a partial derivative must be a'
                 ' variable name or an initial value.', self._token)
 
@@ -1267,11 +1333,6 @@ class PartialDerivative(LhsExpression):
     def _diff(self, lhs, idstates):
         raise NotImplementedError(
             'Partial derivatives of partial derivatives are not supported.')
-
-    def __eq__(self, other):
-        if type(other) != PartialDerivative:
-            return False
-        return (self._var1 == other._var1) and (self._var2 == other._var2)
 
     def _eval_unit(self, mode):
         unit1 = self._var1._eval_unit(mode)
@@ -1319,7 +1380,7 @@ class PartialDerivative(LhsExpression):
         As with time-derivatives, this returns the variable of which a
         derivative is taken (i.e. the dependent variable "y" in "dy/dx").
         """
-        return self._var1._value
+        return self._var1.var()
 
 
 class InitialValue(LhsExpression):
@@ -1333,14 +1394,15 @@ class InitialValue(LhsExpression):
     """
     _rbp = FUNCTION_CALL
     _nargs = [1]    # Allows parsing as a function
-    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+    __hash__ = LhsExpression.__hash__
 
     def __init__(self, var):
-        super(InitialValue, self).__init__((var, ))
+        super().__init__((var, ))
+
+        # Type checking
         if not isinstance(var, Name):
-            raise IntegrityError(
-                'The first argument to an initial condition must be a variable'
-                ' name.', self._token)
+            raise myokit.TypeError('The argument to an initial value must be a'
+                                   ' variable name.', self._token)
 
         self._var = var
         self._references = set([self])
@@ -1365,12 +1427,7 @@ class InitialValue(LhsExpression):
 
     def _diff(self, lhs, idstates):
         raise NotImplementedError(
-            'Partial derivatives of initial conditions are not supported.')
-
-    def __eq__(self, other):
-        if type(other) != InitialValue:
-            return False
-        return self._var == other._var
+            'Partial derivatives of initial values are not supported.')
 
     def _eval_unit(self, mode):
         return self._var._eval_unit(mode)
@@ -1387,7 +1444,7 @@ class InitialValue(LhsExpression):
         See :meth:`LhsExpression.rhs()`.
 
         The RHS returned in this case will be ``None``, as there is no RHS
-        associated with initial conditions in the model.
+        associated with initial values in the model.
         """
         # Note: This _could_ return a Number(init, var unit) instead...
         return None
@@ -1400,12 +1457,12 @@ class InitialValue(LhsExpression):
         return self._var._value
 
     def _validate(self, trail):
-        super(InitialValue, self)._validate(trail)
+        super()._validate(trail)
         # Check if value is the name of a state variable
         var = self._var._value
         if not (isinstance(var, myokit.Variable) and var.is_state()):
-            raise IntegrityError(
-                'Initial conditions can only be defined for state variables.',
+            raise myokit.IntegrityError(
+                'Initial values can only be defined for state variables.',
                 self._token)
 
 
@@ -1419,7 +1476,7 @@ class PrefixExpression(Expression):
     _rep = None
 
     def __init__(self, op):
-        super(PrefixExpression, self).__init__((op,))
+        super().__init__((op,))
         self._op = op
 
     def bracket(self, op):
@@ -1451,7 +1508,17 @@ class PrefixExpression(Expression):
         self._op._tree_str(b, n + self._treeDent)
 
 
-class PrefixPlus(PrefixExpression):
+class NumericalPrefixExpression(PrefixExpression):
+    """ Base class for expressions with a single numerical operand. """
+    def __init__(self, op):
+        super().__init__(op)
+        if isinstance(op, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid operand type: expected a numerical operand but'
+                f' found a condition ({type(op)}).', self._token)
+
+
+class PrefixPlus(NumericalPrefixExpression):
     """
     Prefixed plus. Indicates a positive number ``+op``.
 
@@ -1463,6 +1530,9 @@ class PrefixPlus(PrefixExpression):
     *Extends:* :class:`PrefixExpression`
     """
     _rep = '+'
+
+    def __init__(self, op):
+        super().__init__(op)
 
     def _diff(self, lhs, idstates):
         return self._op._diff(lhs, idstates)
@@ -1477,7 +1547,7 @@ class PrefixPlus(PrefixExpression):
         self._op._polishb(b)
 
 
-class PrefixMinus(PrefixExpression):
+class PrefixMinus(NumericalPrefixExpression):
     """
     Prefixed minus. Indicates a negative number ``-op``.
 
@@ -1518,7 +1588,7 @@ class InfixExpression(Expression):
     _spaces_round_operator = True
 
     def __init__(self, left, right):
-        super(InfixExpression, self).__init__((left, right))
+        super().__init__((left, right))
         self._op1 = left
         self._op2 = right
 
@@ -1571,7 +1641,23 @@ class InfixExpression(Expression):
         self._op2._tree_str(b, n + self._treeDent)
 
 
-class Plus(InfixExpression):
+class NumericalInfixExpression(InfixExpression):
+    """ Base class for infix expressions with numerical operands. """
+    def __init__(self, left, right):
+        super().__init__(left, right)
+        if isinstance(left, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for first operand: expected a numerical operand'
+                f' but found a condition ({type(left)}).',
+                self._token)
+        if isinstance(right, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for second operand: expected a numerical operand'
+                f' but found a condition ({type(left)}).',
+                self._token)
+
+
+class Plus(NumericalInfixExpression):
     """
     Represents the addition of two operands: ``left + right``.
 
@@ -1619,7 +1705,7 @@ class Plus(InfixExpression):
             + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
 
-class Minus(InfixExpression):
+class Minus(NumericalInfixExpression):
     """
     Represents subtraction: ``left - right``.
 
@@ -1668,7 +1754,7 @@ class Minus(InfixExpression):
             + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
 
-class Multiply(InfixExpression):
+class Multiply(NumericalInfixExpression):
     """
     Represents multiplication: ``left * right``.
 
@@ -1713,7 +1799,7 @@ class Multiply(InfixExpression):
         return unit1 * unit2
 
 
-class Divide(InfixExpression):
+class Divide(NumericalInfixExpression):
     """
     Represents division: ``left / right``.
 
@@ -1770,7 +1856,7 @@ class Divide(InfixExpression):
         return unit1 / unit2
 
 
-class Quotient(InfixExpression):
+class Quotient(NumericalInfixExpression):
     """
     Represents the quotient of a division ``left // right``, also known as
     integer division.
@@ -1812,7 +1898,7 @@ class Quotient(InfixExpression):
         #
         # Alternatively, a // b = floor(a / b).
         #
-        # Here we ignore the discontinuities in favour of a left or right
+        # Here we ignore the discontinuities in favor of a left or right
         # derivative, and simply return zero for all points.
         return None
 
@@ -1836,7 +1922,7 @@ class Quotient(InfixExpression):
         return unit1 / unit2
 
 
-class Remainder(InfixExpression):
+class Remainder(NumericalInfixExpression):
     """
     Represents the remainder of a division (the "modulo"), expressed in ``mmt``
     syntax as ``left % right``.
@@ -1914,7 +2000,7 @@ class Remainder(InfixExpression):
         return unit1
 
 
-class Power(InfixExpression):
+class Power(NumericalInfixExpression):
     """
     Represents exponentiation: ``left ^ right``.
 
@@ -2012,7 +2098,8 @@ class Function(Expression):
     has ``_nargs=[1]`` while :class:`Log` has ``_nargs=[1,2]``, showing that
     ``Log`` can be called with either ``1`` or ``2`` arguments.
 
-    If errors occur when creating a function, an IntegrityError may be thrown.
+    If errors occur when creating a function, a :class:`myokit.IntegrityError`
+    may be thrown.
 
     *Abstract class, extends:* :class:`Expression`
     """
@@ -2021,12 +2108,12 @@ class Function(Expression):
     _rbp = FUNCTION_CALL
 
     def __init__(self, *ops):
-        super(Function, self).__init__(ops)
+        super().__init__(ops)
         if self._nargs is not None:
             if not len(ops) in self._nargs:
-                raise IntegrityError(
-                    'Function (' + str(self._fname) + ') created with wrong'
-                    ' number of arguments (' + str(len(ops)) + ', expecting '
+                raise myokit.IntegrityError(
+                    f'Function ({self._fname}) created with wrong number of'
+                    ' arguments ({len(ops)}, expecting '
                     + ' or '.join([str(x) for x in self._nargs]) + ').',
                     self._token)
 
@@ -2069,12 +2156,28 @@ class Function(Expression):
             op._tree_str(b, n + self._treeDent)
 
 
-class UnaryDimensionlessFunction(Function):
+class UnaryNumericalFunction(Function):
     """
-    Function with a single operand that has dimensionless input and output.
+    Function with a single numerical operand and numerical output.
 
     *Abstract class, extends:* :class:`Function`
     """
+    def __init__(self, *ops):
+        super().__init__(*ops)
+        if isinstance(self._operands[0], myokit.Condition):
+            raise myokit.TypeError(
+                f'Function {self._fname}() expects a numerical operand, got a'
+                f' {type(self._operands[0])}.', self._token)
+
+
+class UnaryNumericalDimensionlessFunction(UnaryNumericalFunction):
+    """
+    Function with a single operand that has numerical, dimensionless input and
+    output.
+
+    *Abstract class, extends:* :class:`UnaryNumericalFunction`
+    """
+
     def _eval_unit(self, mode):
         unit = self._operands[0]._eval_unit(mode)
 
@@ -2092,7 +2195,7 @@ class UnaryDimensionlessFunction(Function):
         return myokit.units.dimensionless
 
 
-class Sqrt(Function):
+class Sqrt(UnaryNumericalFunction):
     """
     Represents the square root ``sqrt(x)``.
 
@@ -2125,7 +2228,7 @@ class Sqrt(Function):
         return unit ** 0.5
 
 
-class Sin(UnaryDimensionlessFunction):
+class Sin(UnaryNumericalDimensionlessFunction):
     """
     Represents the sine function ``sin(x)``.
 
@@ -2137,7 +2240,7 @@ class Sin(UnaryDimensionlessFunction):
     >>> print(round(x.eval(), 1))
     1.0
 
-    *Extends:* :class:`UnaryDimensionlessFunction`
+    *Extends:* :class:`UnaryNumericalDimensionlessFunction`
     """
     _fname = 'sin'
 
@@ -2155,7 +2258,7 @@ class Sin(UnaryDimensionlessFunction):
             raise EvalError(self, subst, e)
 
 
-class Cos(UnaryDimensionlessFunction):
+class Cos(UnaryNumericalDimensionlessFunction):
     """
     Represents the cosine function ``cos(x)``.
 
@@ -2167,7 +2270,7 @@ class Cos(UnaryDimensionlessFunction):
     >>> print(round(x.eval(), 1))
     0.0
 
-    *Extends:* :class:`UnaryDimensionlessFunction`
+    *Extends:* :class:`UnaryNumericalDimensionlessFunction`
     """
     _fname = 'cos'
 
@@ -2185,7 +2288,7 @@ class Cos(UnaryDimensionlessFunction):
             raise EvalError(self, subst, e)
 
 
-class Tan(UnaryDimensionlessFunction):
+class Tan(UnaryNumericalDimensionlessFunction):
     """
     Represents the tangent function ``tan(x)``.
 
@@ -2194,7 +2297,7 @@ class Tan(UnaryDimensionlessFunction):
     >>> print(round(x.eval(), 1))
     1.0
 
-    *Extends:* :class:`UnaryDimensionlessFunction`
+    *Extends:* :class:`UnaryNumericalDimensionlessFunction`
     """
     _fname = 'tan'
 
@@ -2212,7 +2315,7 @@ class Tan(UnaryDimensionlessFunction):
             raise EvalError(self, subst, e)
 
 
-class ASin(UnaryDimensionlessFunction):
+class ASin(UnaryNumericalDimensionlessFunction):
     """
     Represents the inverse sine function ``asin(x)``.
 
@@ -2221,7 +2324,7 @@ class ASin(UnaryDimensionlessFunction):
     >>> print(round(x.eval(), 1))
     1.0
 
-    *Extends:* :class:`UnaryDimensionlessFunction`
+    *Extends:* :class:`UnaryNumericalDimensionlessFunction`
     """
     _fname = 'asin'
 
@@ -2239,7 +2342,7 @@ class ASin(UnaryDimensionlessFunction):
             raise EvalError(self, subst, e)
 
 
-class ACos(UnaryDimensionlessFunction):
+class ACos(UnaryNumericalDimensionlessFunction):
     """
     Represents the inverse cosine ``acos(x)``.
 
@@ -2248,7 +2351,7 @@ class ACos(UnaryDimensionlessFunction):
     >>> print(round(x.eval(), 1))
     3.0
 
-    *Extends:* :class:`UnaryDimensionlessFunction`
+    *Extends:* :class:`UnaryNumericalDimensionlessFunction`
     """
     _fname = 'acos'
 
@@ -2269,7 +2372,7 @@ class ACos(UnaryDimensionlessFunction):
             raise EvalError(self, subst, e)
 
 
-class ATan(UnaryDimensionlessFunction):
+class ATan(UnaryNumericalDimensionlessFunction):
     """
     Represents the inverse tangent function ``atan(x)``.
 
@@ -2283,7 +2386,7 @@ class ATan(UnaryDimensionlessFunction):
     (positive) x-axis. In this case, the returned value will be in the range
     (-pi, pi].
 
-    *Extends:* :class:`UnaryDimensionlessFunction`
+    *Extends:* :class:`UnaryNumericalDimensionlessFunction`
     """
     _fname = 'atan'
 
@@ -2301,7 +2404,7 @@ class ATan(UnaryDimensionlessFunction):
             raise EvalError(self, subst, e)
 
 
-class Exp(UnaryDimensionlessFunction):
+class Exp(UnaryNumericalDimensionlessFunction):
     """
     Represents a power of *e*. Written ``exp(x)`` in ``.mmt`` syntax.
 
@@ -2310,7 +2413,7 @@ class Exp(UnaryDimensionlessFunction):
     >>> print(round(x.eval(), 4))
     2.7183
 
-    *Extends:* :class:`UnaryDimensionlessFunction`
+    *Extends:* :class:`UnaryNumericalDimensionlessFunction`
     """
     _fname = 'exp'
 
@@ -2349,6 +2452,20 @@ class Log(Function):
     """
     _fname = 'log'
     _nargs = [1, 2]
+
+    def __init__(self, *ops):
+        super().__init__(*ops)
+        if isinstance(self._operands[0], myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for first operand: function log() expects'
+                f' numerical operands but found a {type(self._operands[0])}.',
+                self._token)
+        if len(self._operands) == 2 and isinstance(
+                self._operands[1], myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for second operand: function log() expects'
+                f' numerical operands but found a {type(self._operands[0])}.',
+                self._token)
 
     def _diff(self, lhs, idstates):
 
@@ -2437,7 +2554,7 @@ class Log(Function):
         return myokit.units.dimensionless
 
 
-class Log10(UnaryDimensionlessFunction):
+class Log10(UnaryNumericalDimensionlessFunction):
     """
     Represents the base-10 logarithm ``log10(x)``.
 
@@ -2446,7 +2563,7 @@ class Log10(UnaryDimensionlessFunction):
     >>> print(round(x.eval(), 1))
     2.0
 
-    *Extends:* :class:`UnaryDimensionlessFunction`
+    *Extends:* :class:`UnaryNumericalDimensionlessFunction`
     """
     _fname = 'log10'
 
@@ -2464,7 +2581,7 @@ class Log10(UnaryDimensionlessFunction):
             raise EvalError(self, subst, e)
 
 
-class Floor(Function):
+class Floor(UnaryNumericalFunction):
     """
     Represents a rounding towards minus infinity ``floor(x)``.
 
@@ -2496,7 +2613,7 @@ class Floor(Function):
         return self._operands[0]._eval_unit(mode)
 
 
-class Ceil(Function):
+class Ceil(UnaryNumericalFunction):
     """
     Represents a rounding towards positve infinity ``ceil(x)``.
 
@@ -2528,7 +2645,7 @@ class Ceil(Function):
         return self._operands[0]._eval_unit(mode)
 
 
-class Abs(Function):
+class Abs(UnaryNumericalFunction):
     """
     Returns the absolute value of a number ``abs(x)``.
 
@@ -2592,10 +2709,23 @@ class If(Function):
     _fname = 'if'
 
     def __init__(self, i, t, e):
-        super(If, self).__init__(i, t, e)
+        super().__init__(i, t, e)
         self._i = i     # if
         self._t = t     # then
         self._e = e     # else
+
+        if not isinstance(i, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for first operand: expected a condition but'
+                f' found {type(i)}.', self._token)
+        if isinstance(t, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for second operand: expected a numerical operand'
+                f' but found a condition ({type(t)}).', self._token)
+        if isinstance(e, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for third operand: expected a numerical operand'
+                f' but found a condition ({type(e)}).', self._token)
 
     def condition(self):
         """
@@ -2644,16 +2774,14 @@ class If(Function):
 
         # Mismatching units
         raise EvalUnitError(
-            self, 'Units of `then` and `else` part of an `if`'
-            ' must match. Got ' + str(unit2) + ' and ' + str(unit3) + '.')
+            self, 'Units of `then` and `else` part of an `if` must match.'
+            f' Got {unit2} and {unit3}.')
 
     def is_conditional(self):
         return True
 
     def piecewise(self):
-        """
-        Returns an equivalent ``Piecewise`` object.
-        """
+        """ Returns an equivalent ``Piecewise`` object. """
         return Piecewise(self._i, self._t, self._e)
 
     def value(self, which):
@@ -2698,16 +2826,16 @@ class Piecewise(Function):
     _fname = 'piecewise'
 
     def __init__(self, *ops):
-        super(Piecewise, self).__init__(*ops)
+        super().__init__(*ops)
 
         # Check number of arguments
         n = len(self._operands)
         if n % 2 == 0:
-            raise IntegrityError(
+            raise myokit.IntegrityError(
                 'Piecewise function must have odd number of arguments:'
                 ' ([condition, value]+, else_value).', self._token)
         if n < 3:
-            raise IntegrityError(
+            raise myokit.IntegrityError(
                 'Piecewise function must have 3 or more arguments.',
                 self._token)
 
@@ -2720,6 +2848,19 @@ class Piecewise(Function):
             self._i[i] = next(oper)
             self._e[i] = next(oper)
         self._e[m] = next(oper)
+
+        # Check argument types
+        for i, e in enumerate(self._i):
+            if not isinstance(e, myokit.Condition):
+                raise myokit.TypeError(
+                    f'operand at index {2 * i} must be a condition, but found'
+                    f' {type(e)}.', self._token)
+        for i, e in enumerate(self._e):
+            if isinstance(e, myokit.Condition):
+                j = 2 * i if i == len(self._e) - 1 else 1 + 2 * i
+                raise myokit.TypeError(
+                    f'operand at index {j} must be numerical, but found'
+                    f' {type(e)}.', self._token)
 
     def conditions(self):
         """
@@ -2786,31 +2927,18 @@ class Piecewise(Function):
         return iter(self._e)
 
 
-class Condition(object):
+class Condition:
     """
-    *Abstract class*
-
-    Interface for conditional expressions that can be evaluated to True or
-    False. Doesn't add any methods but simply indicates that this is a
-    condition.
+    Base class for conditional expressions that evaluate to True or False.
     """
-
     def _diff(self, lhs, idstates):
         raise NotImplementedError(
             'Conditions do not have partial derivatives.')
 
 
-class PrefixCondition(Condition, PrefixExpression):
+class Not(PrefixExpression, Condition):
     """
-    Interface for prefix conditions.
-
-    *Abstract class, extends:* :class:`Condition`, :class:`PrefixExpression`
-    """
-
-
-class Not(PrefixCondition):
-    """
-    Negates a condition. Written as ``not x``.
+    Negates a condition: ``not x``.
 
     >>> from myokit import *
     >>> x = parse_expression('1 == 1')
@@ -2823,9 +2951,18 @@ class Not(PrefixCondition):
     >>> print(x.eval())
     True
 
-    *Extends:* :class:`PrefixCondition`
+    The operand to ``Not`` must be a condition.
+
+    *Extends:* :class:`PrefixExpression`, :class:`Condition`
     """
     _rep = 'not'
+
+    def __init__(self, op):
+        super().__init__(op)
+        if not isinstance(op, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid operand type: expected a condition but found a'
+                f' {type(op)}.', self._token)
 
     def _code(self, b, c):
         b.write('not ')
@@ -2838,23 +2975,24 @@ class Not(PrefixCondition):
 
     def _eval(self, subst, precision):
         try:
-            return not(self._op._eval(subst, precision))
+            return not self._op._eval(subst, precision)
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
-        unit = self._op._eval_unit(mode)
-        if unit not in (None, myokit.units.dimensionless):
-            raise EvalUnitError(
-                self, 'Operator `not` expects a dimensionless operand.')
-        return unit
+        # Make child check units
+        self._op._eval_unit(mode)
+
+        # No further checking necessary: operand is a condition so must return
+        # unitless.
+        return myokit.units.dimensionless
 
     def _polishb(self, b):
         b.write('not ')
         self._op._polishb(b)
 
 
-class InfixCondition(Condition, InfixExpression):
+class InfixCondition(InfixExpression, Condition):
     """
     Base class for infix expressions.
 
@@ -2867,24 +3005,38 @@ class BinaryComparison(InfixCondition):
     """
     Base class for infix comparisons of two entities.
 
+    Takes numerical operands as input, but returns a condition.
+
     *Abstract class, extends:* :class:`InfixCondition`
     """
+    def __init__(self, left, right):
+        super().__init__(left, right)
+        if isinstance(left, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for first operand: expected a numerical operand'
+                f' but found a {type(left)}.',
+                self._token)
+        if isinstance(right, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for second operand: expected a numerical operand'
+                f' but found a {type(right)}.',
+                self._token)
+
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
 
-        # Equal (including both None) is always ok
+        # Equal (including both None-or-dimensionless) is always ok.
         if unit1 == unit2:
-            return None if unit1 is None else myokit.units.dimensionless
+            return myokit.units.dimensionless
 
-        # In tolerant mode, a single None is OK
+        # In tolerant mode, we might still have a None, but this is OK too.
         if unit1 is None or unit2 is None:
             return myokit.units.dimensionless
 
         # Otherwise must match
-        raise EvalUnitError(
-            self, 'Condition ' + self._rep + ' requires equal units on both'
-            ' sides, got ' + str(unit1) + ' and ' + str(unit2) + '.')
+        raise EvalUnitError(self, f'Condition {self._rep} requires equal units'
+                            f' on both sides, got {unit1} and {unit2}.')
 
 
 class Equal(BinaryComparison):
@@ -2977,7 +3129,7 @@ class Less(BinaryComparison):
 
 class MoreEqual(BinaryComparison):
     """
-    Represents an is-more-than-or-equal check ``x > y``.
+    Represents an is-more-than-or-equal check ``x >= y``.
 
     >>> from myokit import *
     >>> print(parse_expression('2 >= 2').eval())
@@ -3027,10 +3179,25 @@ class And(InfixCondition):
     >>> print(parse_expression('1 == 1 and 4 == 4').eval())
     True
 
+    Both operands must be a condition.
+
     *Extends:* :class:`InfixCondition`
     """
     _rbp = CONDITION_AND
     _rep = 'and'
+
+    def __init__(self, left, right):
+        super().__init__(left, right)
+        if not isinstance(left, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for first operand: expected a condition but'
+                f' found a {type(left)}.',
+                self._token)
+        if not isinstance(right, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for second operand: expected a condition but'
+                f' found a {type(right)}.',
+                self._token)
 
     def _eval(self, subst, precision):
         try:
@@ -3041,21 +3208,11 @@ class And(InfixCondition):
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
-        unit1 = self._op1._eval_unit(mode)
-        unit2 = self._op2._eval_unit(mode)
-
-        # Propagate both None in tolerant mode
-        if unit1 is None and unit2 is None:
-            return None
-
-        # Ideal: both dimensionless
-        unit1 = myokit.units.dimensionless if unit1 is None else unit1
-        unit2 = myokit.units.dimensionless if unit2 is None else unit2
-        if unit1 == unit2 == myokit.units.dimensionless:
-            return unit1
-
-        raise EvalUnitError(
-            self, 'Operator `and` expects dimensionless operands.')
+        # Get children to check units: both must be conditions so result does
+        # not matter and no further checking is necessary.
+        self._op1._eval_unit(mode)
+        self._op2._eval_unit(mode)
+        return myokit.units.dimensionless
 
 
 class Or(InfixCondition):
@@ -3066,10 +3223,25 @@ class Or(InfixCondition):
     >>> print(parse_expression('1 == 1 or 2 == 4').eval())
     True
 
+    Both operands must be a condition.
+
     *Extends:* :class:`InfixCondition`
     """
     _rbp = CONDITION_AND
     _rep = 'or'
+
+    def __init__(self, left, right):
+        super().__init__(left, right)
+        if not isinstance(left, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for first operand: expected a condition but'
+                f' found a {type(left)}.',
+                self._token)
+        if not isinstance(right, myokit.Condition):
+            raise myokit.TypeError(
+                'Invalid type for second operand: expected a condition but'
+                f' found a {type(right)}.',
+                self._token)
 
     def _eval(self, subst, precision):
         try:
@@ -3080,21 +3252,11 @@ class Or(InfixCondition):
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
-        unit1 = self._op1._eval_unit(mode)
-        unit2 = self._op2._eval_unit(mode)
-
-        # Propagate both None in tolerant mode
-        if unit1 is None and unit2 is None:
-            return None
-
-        # Ideal: both dimensionless
-        unit1 = myokit.units.dimensionless if unit1 is None else unit1
-        unit2 = myokit.units.dimensionless if unit2 is None else unit2
-        if unit1 == unit2 == myokit.units.dimensionless:
-            return unit1
-
-        raise EvalUnitError(
-            self, 'Operator `or` expects dimensionless operands.')
+        # Get children to check units: both must be conditions so result does
+        # not matter and no further checking is necessary.
+        self._op1._eval_unit(mode)
+        self._op2._eval_unit(mode)
+        return myokit.units.dimensionless
 
 
 class EvalError(Exception):

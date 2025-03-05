@@ -66,13 +66,16 @@ model.reserve_unique_names(
     )
 model.create_unique_names()
 
+# Get initial values (before time binding is removed and model becomes invalid)
+initial_values = model.initial_values(True)
+
 # Process bindings, remove unsupported bindings, get map of bound variables to
 # internal names
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     #'time' : 'time',
     #'pace' : 'pace',
     'diffusion_current' : 'I_diff',
-    })
+})
 
 # Get equations
 equations = model.solvable_order()
@@ -190,7 +193,7 @@ for group in equations.values():
 print('')
 print('/* Aliases of state variables. */')
 for var in model.states():
-    print('#define ' + var.uname() + ' state[' + str(var.indice()) + ']')
+    print('#define ' + var.uname() + ' state[' + str(var.index()) + ']')
 
 ?>
 
@@ -295,10 +298,10 @@ int get_default_initial_state(Real *state)
     if (state == 0) return(-1);
 
 <?
-for var in model.states():
+for var, val in zip(model.states(), initial_values):
     if 'desc' in var.meta:
         print(tab + '// ' + var.meta['desc'])
-    print(tab + v(var) + ' = ' + myokit.float.str(var.state_value()) + ';')
+    print(tab + v(var) + ' = ' + myokit.float.str(val) + ';')
 ?>
 
     return(0);

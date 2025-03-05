@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 from lxml import etree
 
 import myokit
@@ -28,7 +25,7 @@ class CellMLImporter(myokit.formats.Importer):
     from CellML.
     """
     def __init__(self, verbose=False):
-        super(CellMLImporter, self).__init__()
+        super().__init__()
 
     def model(self, path):
         """

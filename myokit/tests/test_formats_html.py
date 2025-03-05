@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit.formats.html
@@ -115,9 +112,7 @@ line break.
 
 
 class AsciifierTest(unittest.TestCase):
-    """
-    Tests the method to convert html to ascii.
-    """
+    """ Tests converting HTML to ASCII. """
     def test_asciify(self):
 
         # Compare line by line

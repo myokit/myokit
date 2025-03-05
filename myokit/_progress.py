@@ -4,15 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import timeit
 
 import myokit
 
 
-class ProgressReporter(object):
+class ProgressReporter:
     """
     Interface for progress updates in Simulations. Also allows some job types
     to be cancelled by the user.
@@ -21,7 +18,7 @@ class ProgressReporter(object):
     pass in an object implementing this interface. The simulation will use this
     object to report on its progress.
 
-    Note that progress reporters should be re-usable, but the behaviour when
+    Note that progress reporters should be re-usable, but the behavior when
     making calls to a reporter from two different processes (either through
     multi-threading/multi-processing or jobs nested within jobs) is undefined.
 
@@ -62,7 +59,7 @@ class ProgressReporter(object):
         """
         pass
 
-    class _Job(object):
+    class _Job:
         def __init__(self, parent, msg):
             self._parent = parent
             self._msg = msg
@@ -97,7 +94,7 @@ class ProgressPrinter(ProgressReporter):
     status every ten percent.
     """
     def __init__(self, digits=1):
-        super(ProgressPrinter, self).__init__()
+        super().__init__()
         self._b = myokit.tools.Benchmarker()
         self._f = None
         self._d = int(digits)
@@ -138,7 +135,7 @@ class Timeout(ProgressReporter):
     Progress reporter that cancels a simulation after ``timeout`` seconds.
     """
     def __init__(self, timeout):
-        super(Timeout, self).__init__()
+        super().__init__()
         self._timeout = float(timeout)
 
     def enter(self, msg=None):

@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 from ._exporter import CellMLExporter, CellML1Exporter, CellML2Exporter
 from ._ewriter import CellMLExpressionWriter
 from ._importer import CellMLImporter, CellMLImporterError  # noqa

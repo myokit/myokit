@@ -16,7 +16,7 @@ jobs:
     if: github.event.pull_request.draft == false
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Activate conda
         run: |
@@ -25,11 +25,16 @@ jobs:
       - name: Install Myokit
         run: |
           C:\Miniconda\python.exe --version
-          C:\Miniconda\python.exe -m pip install --upgrade pip setuptools wheel
+          C:\Miniconda\python.exe -m pip install --upgrade pip
           C:\Miniconda\python.exe -m pip install .[optional]
+          C:\Miniconda\python.exe .github/workflows/select-opencl-device.py
+
+      - name: Show Myokit info
+        run: |
+          C:\Miniconda\python.exe -m myokit system
+          C:\Miniconda\python.exe -m myokit opencl
 
       - name: Run unit tests
         run: |
-          C:\Miniconda\python.exe -m myokit system
           C:\Miniconda\python.exe -m myokit test unit
 

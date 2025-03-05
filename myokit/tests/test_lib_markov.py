@@ -5,23 +5,15 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
+
 import numpy as np
 
 import myokit
 import myokit.lib.markov as markov
 
-from shared import DIR_DATA, WarningCollector
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class LinearModelTest(unittest.TestCase):
@@ -155,8 +147,8 @@ class LinearModelTest(unittest.TestCase):
 
         # States must sum to 1
         m2 = model.clone()
-        m2.get(states[0]).set_state_value(0.6)
-        m2.get(states[1]).set_state_value(0.6)
+        m2.get(states[0]).set_initial_value(0.6)
+        m2.get(states[1]).set_initial_value(0.6)
         self.assertRaisesRegex(
             markov.LinearModelError, 'sum of states',
             markov.LinearModel, m2, states, parameters, current)
@@ -283,7 +275,7 @@ class LinearModelTest(unittest.TestCase):
 
         # Check that derivatives with ss are close to zero
         ss = list(ss)
-        model.set_state(ss + ss)    # Model has 2 ina's
+        model.set_initial_values(ss + ss)    # Model has 2 ina's
         derivs = model.evaluate_derivatives()
         for i in range(len(ss)):
             self.assertAlmostEqual(0, derivs[i])
@@ -310,7 +302,7 @@ class LinearModelTest(unittest.TestCase):
         self.assertTrue(np.all(ss <= 1))
 
         # Check that derivatives with ss are close to zero
-        model.set_state(ss)
+        model.set_initial_values(ss)
         derivs = model.evaluate_derivatives()
         for i in range(len(ss)):
             self.assertAlmostEqual(0, derivs[i])
@@ -330,6 +322,22 @@ class LinearModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'Illegal parameter vector size',
             m.rates, parameters=[0.01] * 22)
+
+    def test_initial_value_conversion(self):
+        # Tests that initial value expressions are converted to floats
+
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(fname)
+        model.get('ina.C3').set_initial_value('1 / sqrt(7)')
+        model.get('ina.C2').set_initial_value('-1 / log(ina_ref.p)')
+        model.get('ina.C1').set_initial_value(0.5134619065149598)
+        m = markov.LinearModel.from_component(model.get('ina'))
+        x0 = m.default_state()
+        self.assertEqual(len(x0), 6)
+        self.assertIsInstance(x0[0], float)
+        self.assertIsInstance(x0[1], float)
+        self.assertAlmostEqual(x0[0], 0.3779644730092272)
+        self.assertAlmostEqual(x0[1], 0.10857362047581297)
 
 
 class AnalyticalSimulationTest(unittest.TestCase):
@@ -386,7 +394,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
             Exception, 'did not specify a current', s2.current, s2.state())
         # But simulation still works
         self.assertIsInstance(s2.run(10), myokit.DataLog)
-        del(model2, m2, s2)
+        del model2, m2, s2
 
         # Create protocol
 
@@ -430,8 +438,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
             ValueError, 'Log interval', s.run, 1, log_interval=-1)
         d['hello'] = [1, 2, 3]
         self.assertRaisesRegex(ValueError, 'extra keys', s.run, 1, log=d)
-        del(d['hello'])
-        del(d[next(iter(d.keys()))])
+        del d['hello']
+        del d[next(iter(d.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d)
 
         # Reset should reset the state
@@ -638,7 +646,7 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertEqual(len(d['engine.time']), len(d['ina.i']))
         self.assertEqual(len(d['engine.time']), len(d['ina.O']))
         d2 = d.clone()
-        del(d2[next(iter(d2.keys()))])
+        del d2[next(iter(d2.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d2)
         d2 = d.clone()
         d2['hello'] = [1, 2, 3]
@@ -662,7 +670,7 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertEqual(len(d['engine.time']), len(d['ina.O']))
         self.assertNotIn('ina.i', d)
         d2 = d.clone()
-        del(d2[next(iter(d2.keys()))])
+        del d2[next(iter(d2.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d2)
         d2 = d.clone()
         d2['hello'] = [1, 2, 3]
@@ -847,7 +855,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         self.assertEqual([v.qname() for v in m2], [
             'ina_ref.C1', 'ina_ref.C2', 'ina_ref.C3', 'ina_ref.IF',
             'ina_ref.IS', 'ina_ref.O'])
-        del(models, m1, m2)
+        del models, m1, m2
 
         # Try with `1 - sum(xi)` state
         c = model.get('ina_ref')
@@ -860,7 +868,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         self.assertEqual([v.qname() for v in m2], [
             'ina_ref.C1', 'ina_ref.C2', 'ina_ref.C3', 'ina_ref.IF',
             'ina_ref.IS', 'ina_ref.O'])
-        del(models, m1, m2)
+        del models, m1, m2
 
         # Try with `1 - sum(xi)` state, with a funny RHS
         c = model.get('ina_ref')
@@ -1079,7 +1087,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         self.assertEqual(terms[3], myokit.PrefixMinus(myokit.Name(v4)))
         self.assertEqual(terms[4], myokit.PrefixMinus(myokit.Name(v5)))
         self.assertEqual(terms[5], myokit.PrefixMinus(myokit.Name(v6)))
-        del(terms)
+        del terms
 
         # Case with brackets
         v3.set_rhs('-(+(IF) + C1 -(-IS - C2)) + 1 - O')

@@ -4,14 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
 import myokit.formats
 
 
-class SymPyExpressionReader(object):
+class SymPyExpressionReader:
     """
     Converts Sympy expressions to Myokit expressions.
 
@@ -159,7 +156,8 @@ class SymPyExpressionReader(object):
     def _ex_abs(self, e):
         return myokit.Abs(self.ex(e.args[0]))
 
-    def _ex_not(self, e):
+    def _ex_not(self, e):   # pragma: no cover
+        # Sympy turns not(a == b) into a != b etc., so can't test!
         return myokit.Not(self.ex(e.args[0]))
 
     def _ex_equal(self, e):

@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit.formats
 
 
@@ -19,7 +16,7 @@ class AbfImporter(myokit.formats.Importer):
     def supports_protocol(self):
         return True
 
-    def protocol(self, filename, channel=None):
+    def protocol(self, filename, channel=0):
         """
         Attempts to load the protocol from the file at ``filename``.
 
@@ -28,4 +25,4 @@ class AbfImporter(myokit.formats.Importer):
         """
         from myokit.formats.axon import AbfFile
         abf = AbfFile(filename)
-        return abf.myokit_protocol(channel)
+        return abf.da_protocol(channel)

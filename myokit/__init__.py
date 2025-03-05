@@ -20,24 +20,11 @@ and then a myokit.Simulation which you can .run() to obtain simulated results.
 # Without an explicit __all__, importing * will result in importing all
 # functions and classes described below. No submodules of myokit will be
 # loaded!
-
-
 #
 # GUI and graphical modules should not be auto-included because they define a
 # matplotlib backend to use. If the user requires a different backend, this
 # will generate an error.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-
-#
-# Configure logging
-#
-import logging  # noqa  (not at top of file)
-logging.basicConfig()
-del(logging)
-
 
 #
 # Check python version
@@ -52,28 +39,14 @@ del(logging)
 #
 import sys  # noqa
 if sys.hexversion < 0x03000000:  # pragma: no cover
-    import logging  # noqa
-    log = logging.getLogger(__name__)
-    log.warning(
-        'Myokit support for Python 2.7 is nearing the end of its lifetime.'
-        ' Please upgrade as soon as possible! Detected Python version: '
-        + sys.version)
-    del(logging, log)
-elif sys.hexversion < 0x03050000:  # pragma: no cover
-    import logging  # noqa
-    log = logging.getLogger(__name__)
-    log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.5.0. Detected'
-        ' Python version: ' + sys.version)
-    del(logging, log)
-
-
-# Exec() that works with Python 2 versions before 2.7.9
-if sys.hexversion < 0x020709F0:     # pragma: no python 3 cover
-    from ._exec_old import _exec    # noqa
-else:
-    from ._exec_new import _exec    # noqa
-del(sys)
+    raise Exception('This version of Myokit does not support Python 2.')
+elif sys.hexversion < 0x03070000:  # pragma: no cover
+    import warnings  # noqa
+    warnings.warn(
+        'Myokit is not tested on Python versions before 3.7. Detected'
+        f' version {sys.version}.')
+    del warnings
+del sys
 
 
 #
@@ -87,12 +60,10 @@ from ._myokit_version import (  # noqa
 
 
 # Warn about development version
-import logging  # noqa
-log = logging.getLogger(__name__)
-log.info('Loading Myokit version ' + __version__)
 if not __release__:     # pragma: no cover
-    log.warning('Using development version of Myokit (' + __version__ + ').')
-del(log, logging)
+    import warnings  # noqa
+    warnings.warn(f'Using development version of Myokit ({__version__}).')
+    del warnings
 
 
 #
@@ -108,7 +79,7 @@ Copyright (c) 2017-2020 University of Oxford. All rights reserved.
  (University of Oxford means the Chancellor, Masters and Scholars of the
   University of Oxford, having an administrative office at Wellington Square,
   Oxford OX1 2JD, UK).
-Copyright (c) 2020-2021 University of Nottingham. All rights reserved.
+Copyright (c) 2020-2025 University of Nottingham. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -147,7 +118,7 @@ LICENSE_HTML = """
     <br />(University of Oxford means the Chancellor, Masters and Scholars of
     the University of Oxford, having an administrative office at Wellington
     Square, Oxford OX1 2JD, UK).
-    <br />Copyright (c) 2020-2021 University of Nottingham. All rights
+    <br />Copyright (c) 2020-2025 University of Nottingham. All rights
     reserved.</br></p>
 <p>
     Redistribution and use in source and binary forms, with or without
@@ -204,7 +175,7 @@ try:
 finally:
     # Always manually delete frame
     # https://docs.python.org/2/library/inspect.html#the-interpreter-stack
-    del(frame)
+    del frame
 
 # Binary data files
 DIR_DATA = os.path.join(DIR_MYOKIT, '_bin')
@@ -222,13 +193,13 @@ if os.path.exists(DIR_USER_OLD):    # pragma: no cover
     if not os.path.exists(DIR_USER):
         import shutil  # noqa
         shutil.move(DIR_USER_OLD, DIR_USER)
-        del(shutil)
+        del shutil
 
 # Ensure the user config directory exists and is writable
 if os.path.exists(DIR_USER):    # pragma: no cover
     if not os.path.isdir(DIR_USER):
         raise Exception(
-            'File or link found in place of user directory: ' + str(DIR_USER))
+            f'File or link found in place of user directory: {DIR_USER}')
 else:                           # pragma: no cover
     os.makedirs(DIR_USER)
 
@@ -236,14 +207,31 @@ else:                           # pragma: no cover
 EXAMPLE = os.path.join(DIR_DATA, 'example.mmt')
 
 # Don't expose standard libraries as part of Myokit
-del(os, inspect)
+del os, inspect
 
 
 #
-# Debugging mode: Simulation code will be shown, not executed
+# Debugging modes
 #
-DEBUG = False
+# Show Generated code, or Write Generated code to file(s):
+DEBUG_SG = False
+DEBUG_WG = False
+# Show compiler output, with lots of warnings enabled:
+DEBUG_SC = False
+# Show C debug Messages when running compiled code:
+DEBUG_SM = False
+# Show C profiling information when running compiled code:
+DEBUG_SP = False
+# Show C detailed simulator stats when running simulations
+DEBUG_SS = False
 
+#
+# Compatibility settings: Some users report problems with output capturing.
+#
+# Disable capturing (but don't add extra warning flags)
+COMPAT_NO_CAPTURE = False
+# Disable file-descriptor mode capturing
+COMPAT_NO_FD_CAPTURE = False
 
 #
 # Data logging flags (bitmasks)
@@ -280,17 +268,11 @@ DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 TIME_FORMAT = '%H:%M:%S'
 
 #
-# Add line numbers to debug output of simulations
+# GUI: Favor PySide or PyQt
 #
-DEBUG_LINE_NUMBERS = True
-
-
-#
-# GUI: Favour PySide or PyQt
-#
+FORCE_PYQT6 = False
 FORCE_PYQT5 = False
-FORCE_PYQT4 = False
-FORCE_PYSIDE = False
+FORCE_PYSIDE6 = False
 FORCE_PYSIDE2 = False
 
 
@@ -332,6 +314,7 @@ from ._err import (  # noqa
     GenerationError,
     IllegalAliasError,
     IllegalReferenceError,
+    IllegalReferenceInInitialValueError,
     ImportError,
     IncompatibleModelError,
     IncompatibleUnitError,
@@ -345,7 +328,6 @@ from ._err import (  # noqa
     MissingRhsError,
     MissingTimeVariableError,
     MyokitError,
-    NonLiteralValueError,
     NumericalError,
     ParseError,
     ProtocolEventError,
@@ -354,27 +336,11 @@ from ._err import (  # noqa
     SimulationCancelledError,
     SimulationError,
     SimultaneousProtocolEventError,
+    TypeError,
     UnresolvedReferenceError,
     UnusedVariableError,
     VariableMappingError,
 )
-
-# Check if all errors imported
-# Dynamically importing them doesn't seem to be possible, and forgetting to
-#  import an error creates a hard to debug bug (something needs to go wrong
-#  before the interpreter reaches the code raising the error and notices it's
-#  not there).
-from . import _err  # noqa
-import inspect  # noqa
-_globals = globals()
-ex, name, clas = None, None, None
-for ex in inspect.getmembers(_err):
-    name, clas = ex
-    if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-        if name not in _globals:    # pragma: no cover
-            raise Exception('Failed to import exception: ' + name)
-del(ex, name, clas, _globals, inspect)  # Prevent public visibility
-del(_err)
 
 # Tools
 from . import float  # noqa
@@ -386,10 +352,14 @@ from ._model_api import ( # noqa
     Component,
     Equation,
     EquationList,
+    MetaDataContainer,
     Model,
     ModelPart,
+    ObjectWithMetaData,
     UserFunction,
     Variable,
+    VarOwner,
+    VarProvider,
 )
 
 # Expressions
@@ -399,6 +369,7 @@ from ._expressions import (  # noqa
     And,
     ASin,
     ATan,
+    BinaryComparison,
     Ceil,
     Condition,
     Cos,
@@ -424,6 +395,8 @@ from ._expressions import (  # noqa
     Multiply,
     Name,
     Number,
+    NumericalInfixExpression,
+    NumericalPrefixExpression,
     Not,
     NotEqual,
     Or,
@@ -431,7 +404,6 @@ from ._expressions import (  # noqa
     Piecewise,
     Plus,
     Power,
-    PrefixCondition,
     PrefixExpression,
     PrefixMinus,
     PrefixPlus,
@@ -440,6 +412,8 @@ from ._expressions import (  # noqa
     Sin,
     Sqrt,
     Tan,
+    UnaryNumericalFunction,
+    UnaryNumericalDimensionlessFunction,
 )
 
 # Unit and quantity
@@ -453,6 +427,7 @@ from ._protocol import (  # noqa
     PacingSystem,
     Protocol,
     ProtocolEvent,
+    TimeSeriesProtocol,
 )
 from . import pacing  # noqa
 
@@ -496,6 +471,7 @@ from ._aux import (  # noqa
     default_script,
     ModelComparison,
     numpy_writer,
+    _prepare_bindings,
     python_writer,
     run,
     step,
@@ -523,6 +499,7 @@ from ._progress import (    # noqa
 
 # Data logging
 from ._datalog import (     # noqa
+    ColumnMetaData,
     DataLog,
     _dimco,
     LoggedVariableInfo,
@@ -555,11 +532,8 @@ from ._sim.opencl import (  # noqa
 )
 from ._sim.cmodel import CModel             # noqa
 from ._sim.cvodessim import Simulation      # noqa
-from ._sim.cvodesim import Simulation as LegacySimulation  # noqa
 from ._sim.cable import Simulation1d        # noqa
 from ._sim.rhs import RhsBenchmarker        # noqa
-from ._sim.icsim import ICSimulation        # noqa
-from ._sim.psim import PSimulation          # noqa
 from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
 from ._sim.openclsim import SimulationOpenCL                    # noqa
 from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
@@ -568,12 +542,12 @@ from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
 #
 # Globally shared progress reporter
 #
-_Simulation_progress = None
+_simulation_progress = None
 
 
 #
 # Load settings
 #
 from . import _config   # noqa
-del(_config)
+del _config
 

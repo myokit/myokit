@@ -29,10 +29,10 @@ model.create_unique_names()
 
 # Process bindings, remove unsupported bindings, get map of bound variables to
 # internal names
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time' : 'time',
     'pace' : 'pace',
-    })
+})
 
 # Get equations
 equations = model.solvable_order()
@@ -95,7 +95,7 @@ def v(var):
     if var in bound_variables:
         return bound_variables[var]
     if var.is_state():
-        return pre + 'state[' + str(var.indice()) + ']'
+        return pre + 'state[' + str(var.index()) + ']'
     elif var.is_constant():
         return pre + 'C_' + var.uname()
     else:
@@ -126,7 +126,7 @@ typedef double Real;
 #define N_STATE <?= model.count_states() ?>
 <?
 for var in model.states():
-    print('#define S_' + var.uname() + ' state[' + str(var.indice()) + ']')
+    print('#define S_' + var.uname() + ' state[' + str(var.index()) + ']')
 ?>
 
 /* Define constants, calculated constants */
@@ -220,7 +220,7 @@ int main()
     Real state[N_STATE];
 <?
 for var in model.states():
-    print(tab + v(var) + ' = ' + myokit.float.str(var.state_value()) + ';')
+    print(tab + v(var) + ' = ' + myokit.float.str(var.initial_value(True)) + ';')
 
 ?>
 

@@ -5,14 +5,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
-import myokit
-import numpy as np
 import platform
+
 from collections import OrderedDict
+
+import numpy as np
+
+import myokit
 
 
 # Location of C and OpenCL sources
@@ -56,9 +56,10 @@ class SimulationOpenCL(myokit.CModule):
     ``time``
         The simulation time
     ``pace``
-        The pacing level, this is set if a protocol was passed in.
+        The pacing level, this is set if a protocol was passed in. Will be set
+        to 0 if no protocol is provided.
     ``diffusion_current`` (if enabled)
-        The current flowing from the cell to its neighbours. This will be
+        The current flowing from the cell to its neighbors. This will be
         positive when the cell is acting as a source, negative when it is
         acting as a sink.
 
@@ -103,7 +104,7 @@ class SimulationOpenCL(myokit.CModule):
     cells ``i - 1`` and ``i + 1`` (except at the boundaries).
     Similarly, if ``ncells`` is a 2-dimensional tuple ``(nx, ny)`` a grid will
     be assumed so that each (non-boundary) cell is connected to four
-    neighbours.
+    neighbors.
     Finally, arbitrary geometries can be used by passing a scalar to ``ncells``
     and specifying the connections with :meth:`set_connections`.
 
@@ -148,7 +149,7 @@ class SimulationOpenCL(myokit.CModule):
     def __init__(
             self, model, protocol=None, ncells=256, diffusion=True,
             precision=myokit.SINGLE_PRECISION, native_maths=False, rl=False):
-        super(SimulationOpenCL, self).__init__()
+        super().__init__()
 
         # Require a valid model
         if not model.is_valid():
@@ -225,7 +226,7 @@ class SimulationOpenCL(myokit.CModule):
             # Convert alpha-beta formulations to inf-tau forms, cloning model
             self._model = hh.convert_hh_states_to_inf_tau_form(model, vm)
             self._vm = self._model.get(vm.qname())
-            del(model, vm)
+            del model, vm
 
             # Get (inf, tau) tuple for every Rush-Larsen state
             for state in self._model.states():
@@ -240,7 +241,7 @@ class SimulationOpenCL(myokit.CModule):
                 self._vm = None
             else:
                 self._vm = self._model.get(vm.qname())
-            del(model, vm)
+            del model, vm
 
         # Set default conductance values
         self._gx = self._gy = None
@@ -272,7 +273,7 @@ class SimulationOpenCL(myokit.CModule):
         self._nstate = self._model.count_states()
 
         # Set state and default state
-        self._state = self._model.state() * self._ntotal
+        self._state = self._model.initial_values(True) * self._ntotal
         self._default_state = list(self._state)
 
         # List of globally logged inputs
@@ -283,7 +284,7 @@ class SimulationOpenCL(myokit.CModule):
         inputs = {'time': 'time', 'pace': 'pace'}
         if self._diffusion_enabled:
             inputs['diffusion_current'] = 'idiff'
-        self._bound_variables = self._model.prepare_bindings(inputs)
+        self._bound_variables = myokit._prepare_bindings(self._model, inputs)
 
         # Create unique names
         self._model.create_unique_names()
@@ -299,13 +300,6 @@ class SimulationOpenCL(myokit.CModule):
             'precision': self._precision,
             'dims': len(self._dims),
         }
-
-        # Debug
-        if myokit.DEBUG:
-            print(self._code(
-                fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            #import sys
-            #sys.exit(1)
 
         # Define libraries
         libs = []
@@ -324,7 +318,8 @@ class SimulationOpenCL(myokit.CModule):
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
         self._sim = self._compile(
-            mname, fname, args, libs, libd, incd, larg=flags)
+            mname, fname, args, libs, libd, incd, larg=flags,
+            continue_in_debug_mode=True)
 
     def calculate_conductance(self, r, sx, chi, dx):
         """
@@ -368,12 +363,17 @@ class SimulationOpenCL(myokit.CModule):
     def default_state(self, x=None, y=None):
         """
         Returns the current default simulation state as a list of
-        ``len(state) * ncells`` floating point values.
+        ``len(state) * n_total_cells`` floating point values, where
+        ``n_total_cells`` is the total number of cells.
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index a
         single cell's state is returned. For example ``state(4)`` can be
         used with a 1d simulation, while ``state(4, 2)`` is a valid index in
         the 2d case.
+
+        For 2d simulations, the list is indexed so that x changes first (the
+        first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+        ``y = 1`` and so on).
         """
         if x is None:
             return list(self._default_state)
@@ -467,7 +467,7 @@ class SimulationOpenCL(myokit.CModule):
                 raise myokit.FindNanError(
                     'Method requires a simulation log containing all states'
                     ' and bound variables. Missing variable <' + key + '>.')
-        del(t)
+        del t
 
         # Error criterium
         if watch_var is None:
@@ -534,7 +534,7 @@ class SimulationOpenCL(myokit.CModule):
                 lower, upper = safe_range
                 for dims in myokit._dimco(*self._dims):
                     key = '.'.join([str(x) for x in dims]) + post
-                    ar = np.array(_log[key], copy=False)
+                    ar = np.asarray(_log[key])
                     i = np.where(
                         (ar < lower)
                         | (ar > upper)
@@ -657,7 +657,10 @@ class SimulationOpenCL(myokit.CModule):
         var = self._model.get('.'.join(kfirst.split('.')[ndims:]))
 
         # Get value causing error
-        value = states[1 if ifirst > 0 else 0][var.indice()]
+        if var.is_state():
+            value = states[1 if ifirst > 0 else 0][var.index()]
+        else:  # pragma: no cover
+            value = bounds[1 if ifirst > 0 else 0][var.qname()]
         var = var.qname()
 
         # Get time error occurred
@@ -763,9 +766,9 @@ class SimulationOpenCL(myokit.CModule):
 
             I_diff[i] = sum[g[i,j] * (V[i] - V[j])]
 
-        in which the sum is over all neighbours ``j`` of cell ``i``.
+        in which the sum is over all neighbors ``j`` of cell ``i``.
 
-        Alternatively, with capacitance and currents normalised to membrane
+        Alternatively, with capacitance and currents normalized to membrane
         area, we can write::
 
             dV/dt = -1/cm (i_ion + i_stim + i_diff)
@@ -778,24 +781,24 @@ class SimulationOpenCL(myokit.CModule):
         (see the argument list below for the meaning of the variables).
 
         This can be equated to Myokit's diffusion current, but only if we
-        assume **zero-flux boundary conditions**, a **regularly spaced grid**,
-        and **no spatial heterogeneity in D** (or g).
+        assume *zero-flux boundary conditions*, a *regularly spaced grid*,
+        and *no spatial heterogeneity in D* (or g).
 
         With these assumptions, we can use finite differences to find::
 
             g_bar = (1 / chi) * (k / (k + 1)) * D * (1 / dx^2)
 
-        where ``g_bar`` is the cell-to-cell conductance, but normalised with
+        where ``g_bar`` is the cell-to-cell conductance, but normalized with
         respect to unit membrane area.
-        For models with currents normalised to area this is unproblematic, but
-        to convert to models with unnormalised currents this means we have
-        added the further assumption that **each node contains some fixed
-        amount of membrane**, determined by an area A::
+        For models with currents normalized to area this is unproblematic, but
+        to convert to models with unnormalized currents this means we have
+        added the further assumption that *each node contains some fixed
+        amount of membrane*, determined by an area A::
 
             g = (1 / chi) * (k / (k + 1)) * D * (1 / dx^2) * A
 
         This equation can also be applied in two dimensions, but only if
-        **we assume that the conductivity matrix is diagonal**, in which case::
+        *we assume that the conductivity matrix is diagonal*, in which case::
 
             gx = (1 / chi) * (k / (k + 1)) * Dx * (1 / dx^2) * A
             gy = (1 / chi) * (k / (k + 1)) * Dy * (1 / dy^2) * A
@@ -823,9 +826,9 @@ class SimulationOpenCL(myokit.CModule):
         """
         return D * A * k / ((k + 1) * chi * dx * dx)
 
-    def neighbours(self, x, y=None):
+    def neighbors(self, x, y=None):
         """
-        Returns a list of indices specifying the neighbours of the cell at
+        Returns a list of indices specifying the neighbors of the cell at
         index ``x`` (or index ``(x, y)`` for 2d simulations).
 
         Indices are given either as integers (1d or arbitrary geometry) or as
@@ -855,29 +858,38 @@ class SimulationOpenCL(myokit.CModule):
 
         # User-specified connections (always 1d)
         if self._connections is not None:
-            neighbours = []
+            neighbors = []
             for i, j, c in self._connections:
                 if i == x:
-                    neighbours.append(j)
+                    neighbors.append(j)
                 elif j == x:
-                    neighbours.append(i)
-            return neighbours
+                    neighbors.append(i)
+            return neighbors
 
-        # Left and right neighbours
-        neighbours = []
+        # Left and right neighbors
+        neighbors = []
         if x > 0:
-            neighbours.append(x - 1)
+            neighbors.append(x - 1)
         if x + 1 < self._dims[0]:
-            neighbours.append(x + 1)
+            neighbors.append(x + 1)
 
-        # Top and bottom neighbours
+        # Top and bottom neighbors
         if len(self._dims) == 2:
-            neighbours = [(i, y) for i in neighbours]
+            neighbors = [(i, y) for i in neighbors]
             if y > 0:
-                neighbours.append((x, y - 1))
+                neighbors.append((x, y - 1))
             if y + 1 < self._dims[1]:
-                neighbours.append((x, y + 1))
-        return neighbours
+                neighbors.append((x, y + 1))
+        return neighbors
+
+    def neighbours(self, x, y=None):
+        """ Alias of :meth:`neighbors`. """
+        # Deprecated since 2023-06-07
+        import warnings
+        warnings.warn('The method SimulationOpenCL.neighbours() is deprecated.'
+                      ' Please use neighbors() instead.')
+
+        return self.neighbors(x, y)
 
     def pre(self, duration, report_nan=True, progress=None,
             msg='Pre-pacing SimulationOpenCL'):
@@ -916,7 +928,7 @@ class SimulationOpenCL(myokit.CModule):
         if isinstance(var, myokit.Variable):
             var = var.qname()
         var = self._model.get(var)
-        del(self._fields[var])
+        del self._fields[var]
 
     def reset(self):
         """
@@ -1057,13 +1069,6 @@ class SimulationOpenCL(myokit.CModule):
             'heterogeneous': self._gx_field is not None,
             'fiber_tissue': False,
         }
-        if myokit.DEBUG:    # pragma: no cover
-            print('-' * 79)
-            print(
-                self._code(kernel_file, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
         kernel = self._export(kernel_file, args)
 
         # Logging period (0 = disabled)
@@ -1075,7 +1080,7 @@ class SimulationOpenCL(myokit.CModule):
         n = len(self._fields) * self._nx * self._ny
         if n:
             field_data = self._fields.values()
-            field_data = [np.array(x, copy=False) for x in field_data]
+            field_data = [np.asarray(x) for x in field_data]
             field_data = np.vstack(field_data)
             field_data = list(field_data.reshape(n, order='F'))
         else:
@@ -1083,7 +1088,7 @@ class SimulationOpenCL(myokit.CModule):
 
         # Get progress indication function (if any)
         if progress is None:
-            progress = myokit._Simulation_progress
+            progress = myokit._simulation_progress
         if progress:
             if not isinstance(progress, myokit.ProgressReporter):
                 raise ValueError(
@@ -1170,14 +1175,14 @@ class SimulationOpenCL(myokit.CModule):
                     vdiff = self._model.binding('diffusion_current')
                     vdiff = None if vdiff is None else vdiff.qname()
 
-                # List all neighbours for this cell
-                neighbours = self.neighbours(*icell)
+                # List all neighbors for this cell
+                neighbors = self.neighbors(*icell)
                 if len(self._dims) == 2:
-                    neighbours_str = ', '.join(
+                    neighbors_str = ', '.join(
                         ('(' + ','.join([str(i) for i in j]) + ')')
-                        for j in neighbours)
+                        for j in neighbors)
                 else:
-                    neighbours_str = ', '.join(str(j) for j in neighbours)
+                    neighbors_str = ', '.join(str(j) for j in neighbors)
 
                 # Show final state
                 txt.append('State during:')
@@ -1197,8 +1202,8 @@ class SimulationOpenCL(myokit.CModule):
                     txt.append(
                         '  Diffusion current: ' + myokit.float.str(
                             bounds[0][vdiff], precision=self._precision))
-                if neighbours:
-                    txt.append('  Connected cells: ' + neighbours_str)
+                if neighbors:
+                    txt.append('  Connected cells: ' + neighbors_str)
 
                 # Show previous state (and derivatives)
                 n_states = len(states)
@@ -1244,8 +1249,8 @@ class SimulationOpenCL(myokit.CModule):
                         txt.append(
                             '  Diffusion current: ' + myokit.float.str(
                                 bounds[1][vdiff], precision=self._precision))
-                    if neighbours:
-                        txt.append('  Connected cells: ' + neighbours_str)
+                    if neighbors:
+                        txt.append('  Connected cells: ' + neighbors_str)
 
                     # Show all variables with non-finite values
                     txt.append(
@@ -1337,7 +1342,7 @@ class SimulationOpenCL(myokit.CModule):
                 'This method is unavailable when diffusion is disabled.')
 
         # Check the field's size
-        gx = np.array(gx, copy=False, dtype=float)
+        gx = np.asarray(gx, dtype=float)
         if len(self._dims) == 1:
             s = self._nx - 1
             if gx.shape != (s, ):
@@ -1355,7 +1360,7 @@ class SimulationOpenCL(myokit.CModule):
             if gy is None:
                 raise ValueError(
                     'The argument `gy` must be set for 2-d simulations.')
-            gy = np.array(gy, copy=False, dtype=float)
+            gy = np.asarray(gy, dtype=float)
             s = (self._ny - 1, self._nx)
             if gy.shape != s:
                 raise ValueError(
@@ -1437,7 +1442,7 @@ class SimulationOpenCL(myokit.CModule):
 
             # Store connection
             conns.append((i, j, c))
-        del(doubles)
+        del doubles
         self._connections = conns
         self._gx_field = self._gy_field = None
 
@@ -1470,14 +1475,17 @@ class SimulationOpenCL(myokit.CModule):
         This can be used in three different ways:
 
         1. When called with an argument ``state`` of size ``n_states`` and
-           ``x=None`` the given state will be set as the new state of all
-           cells in the simulation.
-        2. Called with an argument ``state`` of size n_states and
+           ``x=None`` the given state will be set as the new default state of
+           all cells in the simulation.
+        2. Called with an argument ``state`` of size ``n_states`` and
            ``x, y`` equal to a valid cell index, this method will update only
-           the selected cell's state.
-        3. Finally, when called with a ``state`` of size ``n_states * n_cells``
-           the method will treat ``state`` as a concatenation of state vectors
-           for each cell.
+           the selected cell's default state.
+        3. Finally, when called with a ``state`` of size
+           ``n_states * n_total_cells``, the method will treat ``state`` as a
+           concatenation of default state vectors for each cell. For 2d
+           simulations, the list should be indexed so that x changes first (the
+           first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+           ``y = 1`` and so on).
 
         """
         self._default_state = self._set_state(state, x, y, self._default_state)
@@ -1506,7 +1514,7 @@ class SimulationOpenCL(myokit.CModule):
         if not var.is_constant():
             raise ValueError('Only constants can be used for fields.')
         # Check values
-        values = np.array(values, copy=False, dtype=float)
+        values = np.asarray(values, dtype=float)
         if len(self._dims) == 1:
             if values.shape != (self._nx, ):
                 raise ValueError(
@@ -1678,12 +1686,15 @@ class SimulationOpenCL(myokit.CModule):
         1. When called with an argument ``state`` of size ``n_states`` and
            ``x=None`` the given state will be set as the new state of all
            cells in the simulation.
-        2. Called with an argument ``state`` of size n_states and
+        2. Called with an argument ``state`` of size ``n_states`` and
            ``x, y`` equal to a valid cell index, this method will update only
            the selected cell's state.
-        3. Finally, when called with a ``state`` of size ``n_states * n_cells``
-           the method will treat ``state`` as a concatenation of state vectors
-           for each cell.
+        3. Finally, when called with a ``state`` of size
+           ``n_states * n_total_cells``, the method will treat ``state`` as a
+           concatenation of state vectors for each cell. For 2d simulations,
+           the list should be indexed so that x changes first (the first ``nx``
+           entries have ``y = 0``, the second ``nx`` entries have ``y = 1`` and
+           so on).
 
         """
         self._state = self._set_state(state, x, y, self._state)
@@ -1698,16 +1709,12 @@ class SimulationOpenCL(myokit.CModule):
         self._step_size = step_size
 
     def set_time(self, time=0):
-        """
-        Sets the current simulation time.
-        """
-        if time < 0:
-            raise ValueError('Simulation time cannot be negative')
+        """ Sets the current simulation time. """
         self._time = float(time)
 
     def shape(self):
         """
-        Returns the shape of this Simulation's grid of cells as a tuple
+        Returns the shape of this simulation's grid of cells as a tuple
         ``(ny, nx)`` for 2d simulations, or a single value ``nx`` for 1d
         simulations.
         """
@@ -1717,13 +1724,18 @@ class SimulationOpenCL(myokit.CModule):
 
     def state(self, x=None, y=None):
         """
-        Returns the current simulation state as a list of ``len(state) *
-        ncells`` floating point values.
+        Returns the current simulation state as a list of
+        ``len(state) * n_total_cells`` floating point values, where
+        ``n_total_cells`` is the total number of cells.
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index a
         single cell's state is returned. For example ``state(4)`` can be
         used with a 1d simulation, while ``state(4, 2)`` is a valid index in
         the 2d case.
+
+        For 2d simulations, the list is indexed so that x changes first (the
+        first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+        ``y = 1`` and so on).
         """
         if x is None:
             return list(self._state)

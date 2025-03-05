@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 
 import myokit.formats
@@ -121,7 +118,7 @@ class AnsiCCableExporter(myokit.formats.TemplatedRunnableExporter):
     ``pace``
         The value of the pacing variable, implemented using the given protocol.
     ``diffusion_current``
-        The current flowing from each cell to its neighbours. This will be
+        The current flowing from each cell to its neighbors. This will be
         positive if the cell is acting as a source, negative when it's acting
         as a sink.
 

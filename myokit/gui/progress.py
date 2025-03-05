@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
 from myokit.gui import Qt, QtCore, QtWidgets
 
@@ -22,9 +19,10 @@ class ProgressBar(QtWidgets.QProgressDialog):
     and other tasks implementing the ``ProgressReporter`` interface.
     """
     def __init__(self, parent, message):
-        super(ProgressBar, self).__init__(
-            message, 'Cancel', 0, N, parent=parent)
-        self.setWindowModality(Qt.WindowModal)
+        super().__init__(
+            message, 'Cancel', 0, N, parent)
+        self.setWindowTitle(' ')
+        self.setWindowModality(Qt.WindowModality.WindowModal)
         self.setAutoClose(False)
         self.setAutoReset(False)
         self._reporter = ProgressBarReporter(self)
@@ -51,7 +49,7 @@ class ProgressBarReporter(myokit.ProgressReporter):
     """
 
     def __init__(self, pd):
-        super(ProgressBarReporter, self).__init__()
+        super().__init__()
         self._pd = pd
 
     def enter(self, msg=None):
@@ -60,8 +58,9 @@ class ProgressBarReporter(myokit.ProgressReporter):
         if msg is not None:
             self._pd.setLabelText(str(msg))
         self._pd.setValue(0)
+        self._pd.repaint()
         QtWidgets.QApplication.processEvents(
-            QtCore.QEventLoop.ExcludeUserInputEvents)
+            QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
 
     def exit(self):
         self._pd.setEnabled(False)
@@ -69,5 +68,6 @@ class ProgressBarReporter(myokit.ProgressReporter):
     def update(self, f):
         self._pd.setValue((int)(N * f))
         QtWidgets.QApplication.processEvents(
-            QtCore.QEventLoop.ExcludeUserInputEvents)
+            QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        self._pd.repaint()
         return not self._pd.wasCanceled()

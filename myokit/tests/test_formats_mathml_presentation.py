@@ -5,20 +5,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import re
 import unittest
 
 import myokit
 import myokit.formats.mathml as mathml
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class PresentationMathMLTest(unittest.TestCase):
@@ -31,6 +22,7 @@ class PresentationMathMLTest(unittest.TestCase):
         model = myokit.Model()
         component = model.add_component('c')
         cls.avar = component.add_variable('a')
+        cls.bvar = component.add_variable('b')
 
         cls.w = mathml.MathMLExpressionWriter()
         cls.w.set_mode(presentation=True)
@@ -55,33 +47,40 @@ class PresentationMathMLTest(unittest.TestCase):
 
         # Plus
         x = myokit.Plus(a, b)
-        self.assertWrite(x, '<mrow>' + ca + '<mo>+</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>+</mo>{cb}</mrow>')
 
         # Minus
         x = myokit.Minus(a, b)
-        self.assertWrite(x, '<mrow>' + ca + '<mo>-</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>-</mo>{cb}</mrow>')
 
         # Multiply
         x = myokit.Multiply(a, b)
-        self.assertWrite(x, '<mrow>' + ca + '<mo>*</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>*</mo>{cb}</mrow>')
 
         # Divide
         x = myokit.Divide(a, b)
-        self.assertWrite(x, '<mfrac>' + ca + cb + '</mfrac>')
+        self.assertWrite(x, f'<mfrac>{ca + cb}</mfrac>')
 
     def test_arithmetic_unary(self):
         # Tests writing prefix operators
 
+        a = myokit.Name(self.avar)
         b = myokit.Number('12', 'pF')
+        ca = '<mi>c.a</mi>'
         cb = '<mn>12.0</mn>'
 
         # Prefix plus
         x = myokit.PrefixPlus(b)
-        self.assertWrite(x, '<mrow><mo>+</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow><mo>+</mo>{cb}</mrow>')
+        x = myokit.Divide(myokit.PrefixPlus(myokit.Plus(a, b)), a)
+        self.assertWrite(
+            x,
+            f'<mfrac><mrow><mo>+</mo><mo>(</mo><mrow>{ca}<mo>+</mo>{cb}</mrow>'
+            f'<mo>)</mo></mrow>{ca}</mfrac>')
 
         # Prefix minus
         x = myokit.PrefixMinus(b)
-        self.assertWrite(x, '<mrow><mo>-</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow><mo>-</mo>{cb}</mrow>')
 
     def test_conditionals(self):
         # Tests if and piecewise writing
@@ -103,8 +102,8 @@ class PresentationMathMLTest(unittest.TestCase):
         self.assertWrite(
             x,
             '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<otherwise>' + cb + '</otherwise>'
+            f'<piece>{ca + c1}</piece>'
+            f'<otherwise>{cb}</otherwise>'
             '</piecewise>'
         )
         # Piecewise
@@ -112,9 +111,9 @@ class PresentationMathMLTest(unittest.TestCase):
         self.assertWrite(
             x,
             '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<piece>' + cb + c2 + '</piece>'
-            '<otherwise>' + cc + '</otherwise>'
+            f'<piece>{ca + c1}</piece>'
+            f'<piece>{cb + c2}</piece>'
+            f'<otherwise>{cc}</otherwise>'
             '</piecewise>'
         )
 
@@ -128,63 +127,69 @@ class PresentationMathMLTest(unittest.TestCase):
         # Tests writing basic functions
 
         a = myokit.Name(self.avar)
-        b = myokit.Number('12', 'pF')
+        b = myokit.Name(self.bvar)
+        c = myokit.Number('12', 'pF')
         ca = '<mi>c.a</mi>'
-        cb = '<mn>12.0</mn>'
+        cb = '<mi>c.b</mi>'
+        cc = '<mn>12.0</mn>'
 
         # Power
         x = myokit.Power(a, b)
-        self.assertWrite(x, '<msup>' + ca + cb + '</msup>')
+        self.assertWrite(x, f'<msup>{ca}{cb}</msup>')
+        x = myokit.Power(myokit.Power(a, b), c)
+        self.assertWrite(x, f'<msup><msup>{ca}{cb}</msup>{cc}</msup>')
+        x = myokit.Power(a, myokit.Power(b, c))
+        self.assertWrite(x, f'<msup>{ca}<msup>{cb}{cc}</msup></msup>')
 
         # Sqrt
         x = myokit.Sqrt(b)
         self.assertWrite(
-            x, '<mrow><mi>root</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>root</mi><mfenced>{cb}</mfenced></mrow>')
 
         # Exp
         x = myokit.Exp(a)
-        self.assertWrite(x, '<msup><mi>e</mi>' + ca + '</msup>')
+        self.assertWrite(x, f'<msup><mi>e</mi>{ca}</msup>')
 
         # Log(a)
         x = myokit.Log(b)
         self.assertWrite(
-            x, '<mrow><mi>ln</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>ln</mi><mfenced>{cb}</mfenced></mrow>')
 
         # Log(a, b)
         x = myokit.Log(a, b)
         self.assertWrite(
             x,
-            '<mrow><msub><mi>log</mi>' + cb + '</msub>'
-            '<mfenced>' + ca + '</mfenced></mrow>'
+            f'<mrow><msub><mi>log</mi>{cb}</msub>'
+            f'<mfenced>{ca}</mfenced></mrow>'
         )
 
         # Log10
         x = myokit.Log10(b)
         self.assertWrite(
-            x, '<mrow><mi>log</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>log</mi><mfenced>{cb}</mfenced></mrow>')
 
         # Floor
         x = myokit.Floor(b)
         self.assertWrite(
-            x, '<mrow><mi>floor</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>floor</mi><mfenced>{cb}</mfenced></mrow>')
 
         # Ceil
         x = myokit.Ceil(b)
         self.assertWrite(
-            x, '<mrow><mi>ceiling</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>ceiling</mi><mfenced>{cb}</mfenced></mrow>')
 
         # Abs
         x = myokit.Abs(b)
         self.assertWrite(
-            x, '<mrow><mi>abs</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>abs</mi><mfenced>{cb}</mfenced></mrow>')
 
         # Quotient
         x = myokit.Quotient(a, b)
-        self.assertWrite(x, '<mrow>' + ca + '<mo>//</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>//</mo>{cb}</mrow>')
 
         # Remainder
         x = myokit.Remainder(a, b)
-        self.assertWrite(x, '<mrow>' + ca + '<mo>%</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>%</mo>{cb}</mrow>')
 
     def test_inequalities(self):
         # Test writing (in)equalities
@@ -196,31 +201,29 @@ class PresentationMathMLTest(unittest.TestCase):
 
         # Equal
         x = myokit.Equal(a, b)
-        self.assertWrite(x, '<mrow>' + ca + '<mo>==</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>==</mo>{cb}</mrow>')
 
         # NotEqual
         x = myokit.NotEqual(a, b)
-        self.assertWrite(x, '<mrow>' + ca + '<mo>!=</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>!=</mo>{cb}</mrow>')
 
         # More
         x = myokit.More(a, b)
-        self.assertWrite(x, '<mrow>' + ca + '<mo>&gt;</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>&gt;</mo>{cb}</mrow>')
 
         # Less
         x = myokit.Less(a, b)
-        self.assertWrite(x, '<mrow>' + ca + '<mo>&lt;</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>&lt;</mo>{cb}</mrow>')
 
         # MoreEqual
         # Named version &ge; is not output, shows decimal code instead
         x = myokit.MoreEqual(a, b)
-        self.assertWrite(
-            x, '<mrow>' + ca + '<mo>&#8805;</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>&#8805;</mo>{cb}</mrow>')
 
         # LessEqual
         # Named version &le; is not output, shows decimal code instead
         x = myokit.LessEqual(a, b)
-        self.assertWrite(
-            x, '<mrow>' + ca + '<mo>&#8804;</mo>' + cb + '</mrow>')
+        self.assertWrite(x, f'<mrow>{ca}<mo>&#8804;</mo>{cb}</mrow>')
 
     def test_logic_operators(self):
         # Tests writing logic operators
@@ -233,33 +236,31 @@ class PresentationMathMLTest(unittest.TestCase):
         # Not
         x = myokit.Not(cond1)
         self.assertWrite(
-            x, '<mrow><mo>(</mo><mo>not</mo>' + c1 + '<mo>)</mo></mrow>')
+            x, f'<mrow><mo>not</mo><mo>(</mo>{c1}<mo>)</mo></mrow>')
 
         # And
         x = myokit.And(cond1, cond2)
-        self.assertWrite(x, '<mrow>' + c1 + '<mo>and</mo>' + c2 + '</mrow>')
+        self.assertWrite(x, f'<mrow>{c1}<mo>and</mo>{c2}</mrow>')
 
         # Or
         x = myokit.Or(cond1, cond2)
-        self.assertWrite(x, '<mrow>' + c1 + '<mo>or</mo>' + c2 + '</mrow>')
+        self.assertWrite(x, f'<mrow>{c1}<mo>or</mo>{c2}</mrow>')
 
     def test_name_and_numbers(self):
         # Test name and number writing
 
         # Name
-        a = myokit.Name(self.avar)
-        ca = '<mi>c.a</mi>'
-        self.assertWrite(a, ca)
+        self.assertWrite(myokit.Name(self.avar), '<mi>c.a</mi>')
 
         # Number with unit
-        b = myokit.Number('12', 'pF')
-        cb = '<mn>12.0</mn>'
-        self.assertWrite(b, cb)
+        self.assertWrite(myokit.Number(12, 'pF'), '<mn>12.0</mn>')
 
         # Number without unit
-        c = myokit.Number(1)
-        cc = '<mn>1.0</mn>'
-        self.assertWrite(c, cc)
+        self.assertWrite(myokit.Number(1), '<mn>1.0</mn>')
+
+        # E-notation is allowed in presentation MathML
+        self.assertWrite(myokit.Number(1e-6), '<mn>1e-06</mn>')
+        self.assertWrite(myokit.Number(1e24), '<mn>1e+24</mn>')
 
     def test_trig_basic(self):
         # Test writing basic trig functions
@@ -270,32 +271,32 @@ class PresentationMathMLTest(unittest.TestCase):
         # Sin
         x = myokit.Sin(b)
         self.assertWrite(
-            x, '<mrow><mi>sin</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>sin</mi><mfenced>{cb}</mfenced></mrow>')
 
         # Cos
         x = myokit.Cos(b)
         self.assertWrite(
-            x, '<mrow><mi>cos</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>cos</mi><mfenced>{cb}</mfenced></mrow>')
 
         # Tan
         x = myokit.Tan(b)
         self.assertWrite(
-            x, '<mrow><mi>tan</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>tan</mi><mfenced>{cb}</mfenced></mrow>')
 
         # ASin
         x = myokit.ASin(b)
         self.assertWrite(
-            x, '<mrow><mi>arcsin</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>arcsin</mi><mfenced>{cb}</mfenced></mrow>')
 
         # ACos
         x = myokit.ACos(b)
         self.assertWrite(
-            x, '<mrow><mi>arccos</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>arccos</mi><mfenced>{cb}</mfenced></mrow>')
 
         # ATan
         x = myokit.ATan(b)
         self.assertWrite(
-            x, '<mrow><mi>arctan</mi><mfenced>' + cb + '</mfenced></mrow>')
+            x, f'<mrow><mi>arctan</mi><mfenced>{cb}</mfenced></mrow>')
 
     def test_unknown_expression(self):
         # Test without a Myokit expression

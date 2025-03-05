@@ -8,29 +8,20 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
+
 import numpy as np
 
 import myokit
 
-from shared import (
+from myokit.tests import (
     CancellingReporter,
     DIR_DATA,
     OpenCL_FOUND,
     OpenCL_DOUBLE_PRECISION_CONNECTIONS,
     WarningCollector,
 )
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
 
 # Show simulation output
 debug = False
@@ -621,7 +612,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertRaisesRegex(
             RuntimeError, 'method is unavailable', s.is_paced, 0)
         self.assertRaisesRegex(
-            RuntimeError, 'method is unavailable', s.neighbours, 0)
+            RuntimeError, 'method is unavailable', s.neighbors, 0)
         self.assertRaisesRegex(
             RuntimeError, 'method is unavailable', s.set_conductance)
         self.assertRaisesRegex(
@@ -666,105 +657,153 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 1]))
         self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
 
-    def test_neighbours_0d(self):
-        # Test listing neighbours in a 0d simulation
+    def test_initial_value_expressions(self):
+        # Test if initial value expressions are converted to floats
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 1 + sqrt(3)
+            c.y = 1 / c.p
+            c.z = 3
 
-        x = self.s0.neighbours(0)
+            [c]
+            t = 0 bind time
+            dot(x) = 1 label membrane_potential
+            dot(y) = 2
+            dot(z) = 3
+            p = log(3)
+            q = 0 bind diffusion_current
+        ''')
+        s = myokit.SimulationOpenCL(m, ncells=2)
+        x = s.state()
+        self.assertIsInstance(x[0], float)
+        self.assertIsInstance(x[1], float)
+        self.assertIsInstance(x[2], float)
+        self.assertEqual(x[:3], x[3:])
+        self.assertEqual(x, m.initial_values(True) * 2)
+        self.assertEqual(x, s.default_state())
+
+    def test_negative_time(self):
+        # Test starting at a negative time
+
+        p = myokit.pacing.blocktrain(duration=1, level=1, period=2)
+        self.s0.reset()
+        self.s0.set_protocol(p)
+        self.s0.set_time(-10)
+        self.assertEqual(self.s0.time(), -10)
+        d = self.s0.run(5, log=['engine.pace']).npview()
+        self.assertEqual(self.s0.time(), -5)
+        self.assertTrue(np.all(d['engine.pace'] == 0))
+        d = self.s0.run(6, log=['engine.time', 'engine.pace']).npview()
+        #print(d['engine.time'])
+        #print(d['engine.pace'])
+        self.assertEqual(self.s0.time(), 1)
+        self.assertTrue(np.all(d['engine.pace'][:-1] == 0))
+        self.assertEqual(d['engine.pace'][-1], 1)
+
+    def test_neighbors_0d(self):
+        # Test listing neighbors in a 0d simulation
+
+        x = self.s0.neighbors(0)
         self.assertEqual(len(x), 0)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s0.neighbours, -1)
+            IndexError, 'out of range', self.s0.neighbors, -1)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s0.neighbours, 1)
+            IndexError, 'out of range', self.s0.neighbors, 1)
         self.assertRaisesRegex(
-            ValueError, '1-dimensional', self.s0.neighbours, 0, 1)
+            ValueError, '1-dimensional', self.s0.neighbors, 0, 1)
 
-    def test_neighbours_1d(self):
-        # Test listing neighbours in a 1d simulation
+        # Test alias
+        with WarningCollector() as w:
+            self.assertEqual(self.s0.neighbours(0), self.s0.neighbors(0))
+        self.assertIn('deprecated', w.text())
+
+    def test_neighbors_1d(self):
+        # Test listing neighbors in a 1d simulation
 
         # Left edge
-        x = self.s1.neighbours(0)
+        x = self.s1.neighbors(0)
         self.assertEqual(len(x), 1)
         self.assertIn(1, x)
         # Middle
-        x = self.s1.neighbours(1)
+        x = self.s1.neighbors(1)
         self.assertEqual(len(x), 2)
         self.assertIn(0, x)
         self.assertIn(2, x)
         # Right edge
-        x = self.s1.neighbours(9)
+        x = self.s1.neighbors(9)
         self.assertEqual(len(x), 1)
         self.assertIn(8, x)
 
         # Out of range
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s1.neighbours, -1)
+            IndexError, 'out of range', self.s1.neighbors, -1)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s1.neighbours, 10)
+            IndexError, 'out of range', self.s1.neighbors, 10)
         self.assertRaisesRegex(
-            ValueError, '1-dimensional', self.s1.neighbours, 0, 1)
+            ValueError, '1-dimensional', self.s1.neighbors, 0, 1)
 
-    def test_neighbours_1d_connections(self):
-        # Test listing neighbours in a 1d simulation with arbitrary geometry
+    def test_neighbors_1d_connections(self):
+        # Test listing neighbors in a 1d simulation with arbitrary geometry
 
         try:
             g = 1
             self.s1.set_connections(
                 [(0, 1, g), (0, 2, g), (3, 0, g), (3, 2, g)])
-            x = self.s1.neighbours(0)
+            x = self.s1.neighbors(0)
             self.assertEqual(len(x), 3)
             self.assertIn(1, x)
             self.assertIn(2, x)
             self.assertIn(3, x)
-            x = self.s1.neighbours(1)
+            x = self.s1.neighbors(1)
             self.assertEqual(len(x), 1)
             self.assertIn(0, x)
-            x = self.s1.neighbours(2)
+            x = self.s1.neighbors(2)
             self.assertEqual(len(x), 2)
             self.assertIn(0, x)
             self.assertIn(3, x)
-            x = self.s1.neighbours(3)
+            x = self.s1.neighbors(3)
             self.assertEqual(len(x), 2)
             self.assertIn(0, x)
             self.assertIn(2, x)
-            x = self.s1.neighbours(4)
+            x = self.s1.neighbors(4)
             self.assertEqual(len(x), 0)
         finally:
             # Restore defaults
             self.s1.set_conductance()
 
-    def test_neighbours_2d(self):
-        # Test listing neighbours in a 2d simulation
+    def test_neighbors_2d(self):
+        # Test listing neighbors in a 2d simulation
 
         # Corners
-        x = self.s2.neighbours(0, 0)
+        x = self.s2.neighbors(0, 0)
         self.assertEqual(len(x), 2)
         self.assertIn((1, 0), x)
         self.assertIn((0, 1), x)
-        x = self.s2.neighbours(3, 2)
+        x = self.s2.neighbors(3, 2)
         self.assertEqual(len(x), 2)
         self.assertIn((3, 1), x)
         self.assertIn((2, 2), x)
 
         # Edges
-        x = self.s2.neighbours(1, 0)
+        x = self.s2.neighbors(1, 0)
         self.assertEqual(len(x), 3)
         self.assertIn((0, 0), x)
         self.assertIn((2, 0), x)
         self.assertIn((1, 1), x)
-        x = self.s2.neighbours(3, 1)
+        x = self.s2.neighbors(3, 1)
         self.assertEqual(len(x), 3)
         self.assertIn((2, 1), x)
         self.assertIn((3, 0), x)
         self.assertIn((3, 2), x)
 
         # Middle
-        x = self.s2.neighbours(1, 1)
+        x = self.s2.neighbors(1, 1)
         self.assertEqual(len(x), 4)
         self.assertIn((0, 1), x)
         self.assertIn((2, 1), x)
         self.assertIn((1, 0), x)
         self.assertIn((1, 2), x)
-        x = self.s2.neighbours(2, 1)
+        x = self.s2.neighbors(2, 1)
         self.assertEqual(len(x), 4)
         self.assertIn((1, 1), x)
         self.assertIn((3, 1), x)
@@ -773,15 +812,15 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Out of range
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s2.neighbours, -1, 0)
+            IndexError, 'out of range', self.s2.neighbors, -1, 0)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s2.neighbours, 0, -1)
+            IndexError, 'out of range', self.s2.neighbors, 0, -1)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s2.neighbours, 4, 0)
+            IndexError, 'out of range', self.s2.neighbors, 4, 0)
         self.assertRaisesRegex(
-            IndexError, 'out of range', self.s2.neighbours, 0, 3)
+            IndexError, 'out of range', self.s2.neighbors, 0, 3)
         self.assertRaisesRegex(
-            ValueError, '2-dimensional', self.s2.neighbours, 0)
+            ValueError, '2-dimensional', self.s2.neighbors, 0)
 
     def test_protocol(self):
         # Tests changing the protocol
@@ -792,11 +831,19 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertEqual(np.max(d0['engine.pace']), 1)
 
         try:
-            # Unset protocol
+            # Make pace high
+            x = 0.0123
+            self.s0.set_protocol(
+                myokit.pacing.blocktrain(level=x, duration=1000, period=1000))
+            self.s0.reset()
+            d0 = self.s0.run(3, log=['engine.pace']).npview()
+            self.assertTrue(np.all(d0['engine.pace'] == x))
+
+            # Unset protocol: pace must now be 0
             self.s0.reset()
             self.s0.set_protocol(None)
             d0 = self.s0.run(3, log=['engine.pace']).npview()
-            self.assertEqual(np.max(d0['engine.pace']), 0)
+            self.assertTrue(np.all(d0['engine.pace'] == 0))
 
             # Add new protocol
             p = myokit.pacing.blocktrain(period=1000, duration=2, offset=3)
@@ -853,8 +900,6 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.assertEqual(self.s0.time(), 10)
             self.s0.run(1)
             self.assertEqual(self.s0.time(), 11)
-            self.assertRaisesRegex(
-                ValueError, 'negative', self.s0.set_time, -1)
 
             # Test running for a negative amount of time
             self.assertRaisesRegex(
@@ -1180,7 +1225,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         m = 8
         n = 10
         self.s1.reset()
-        sm = self.m.state()
+        sm = self.m.initial_values(True)
         ss = [self.s1.state(x) for x in range(n)]
         for si in ss:
             self.assertEqual(sm, si)
@@ -1277,7 +1322,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         m = 8
         nx, ny = 4, 3
         self.s2.reset()
-        sm = self.m.state()
+        sm = self.m.initial_values(True)
         for i in range(nx):
             for j in range(ny):
                 self.assertEqual(sm, self.s2.state(i, j))
@@ -1307,6 +1352,23 @@ class SimulationOpenCLTest(unittest.TestCase):
                     self.assertEqual(self.s2.state(i, j), sx)
                 else:
                     self.assertEqual(self.s2.state(i, j), sm)
+
+        # Test indexing in state vector is x first, then y
+        self.s2.set_state(sx)
+        self.s2.set_state(sm, x=1, y=2)
+        s = self.s2.state()[::8]
+        self.assertEqual(s[0], 0)   # 0, 0
+        self.assertEqual(s[1], 0)   # 1, 0
+        self.assertEqual(s[2], 0)   # 2, 0
+        self.assertEqual(s[3], 0)   # 3, 0
+        self.assertEqual(s[4], 0)   # 0, 1
+        self.assertEqual(s[5], 0)   # 1, 1
+        self.assertEqual(s[6], 0)   # 2, 1
+        self.assertEqual(s[7], 0)   # 3, 1
+        self.assertEqual(s[8], 0)   # 0, 2
+        self.assertEqual(s[9], sm[0])   # 1, 2
+        self.assertEqual(s[10], 0)   # 2, 2
+        self.assertEqual(s[11], 0)   # 3, 2
 
         # Check error messages for set_state
         self.assertRaisesRegex(

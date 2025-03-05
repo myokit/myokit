@@ -23,11 +23,11 @@ model.create_unique_names()
 w = ansic.AnsiCExpressionWriter()
 
 # Process bindings, remove unsupported bindings
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time'         : 't',
     'pace'         : 'pace',
     'diffusion_current' : 'current'
-    }).keys()
+}).keys()
 
 if model.binding('diffusion_current') is None:
     raise Exception('This exporter requires a variable to be bound to'
@@ -155,8 +155,8 @@ static void
 Cell_set_initial_state(Cell *cell)
 {
 <?
-for eq in model.inits():
-    print(tab + w.eq(eq) + ';')
+for var, init in zip(model.states(), model.initial_values(True)):
+    print(tab + v(var) + ' = ' + myokit.float.str(init) + ';')
 ?>}
 
 /*

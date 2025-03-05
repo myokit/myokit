@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
@@ -15,19 +12,7 @@ import myokit.formats
 import myokit.formats.sbml
 from myokit.formats.sbml import SBMLParser, SBMLParsingError
 
-from shared import WarningCollector
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:  # pragma: no python 3 cover
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
+from myokit.tests import WarningCollector
 
 
 class TestSBMLParser(unittest.TestCase):
@@ -689,10 +674,10 @@ class TestSBMLParser(unittest.TestCase):
              '  <compartment id="c" size="1.2" />'
              ' </listOfCompartments>'
              ' <listOfSpecies>'
-             '  <species id="S1" compartment="c" />'
-             '  <species id="S2" compartment="c" />'
-             '  <species id="S3" compartment="c" />'
-             '  <species id="S4" compartment="c" />'
+             '  <species id="S1" compartment="c" initialAmount="0"/>'
+             '  <species id="S2" compartment="c" initialAmount="0"/>'
+             '  <species id="S3" compartment="c" initialAmount="0"/>'
+             '  <species id="S4" compartment="c" initialAmount="0"/>'
              ' </listOfSpecies>'
              ' <listOfParameters>'
              '  <parameter id="k1" value="3" />'
@@ -827,6 +812,99 @@ class TestSBMLParser(unittest.TestCase):
              '  <speciesReference species="S2" stoichiometry="one" id="r2" />'
              ' </listOfReactants>')
         self.assertBad(a + x + c + d + e, 'Unable to convert stoichiometry')
+
+        # Check that rate of change equations are correctly computed from
+        # multiple reactions
+        f = ('  <reaction id="reaction2">'
+             '   <listOfReactants>'
+             '    <speciesReference species="S1" />'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="S3" />'
+             '   </listOfProducts>'
+             '   <listOfModifiers>'
+             '    <modifierSpeciesReference species="S4" />'
+             '   </listOfModifiers>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <times/>'
+             '      <ci> c </ci>'
+             '      <ci> k1 </ci>'
+             '      <ci> S1 </ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>')
+
+        # Parse reaction
+        m = self.parse(a + b + c + d + f + e)
+
+        # Check first reaction
+        r = m.reaction('r')
+        self.assertEqual(r.sid(), 'r')
+
+        # Check reaction knows S1, S2, S3 but not S4
+        self.assertEqual(r.species('S1'), m.species('S1'))
+        self.assertEqual(r.species('S2'), m.species('S2'))
+        self.assertEqual(r.species('S3'), m.species('S3'))
+        self.assertRaises(KeyError, r.species, 'S4')
+        m.species('S4')
+
+        # Check reactants, products, modifiers
+        s1r = r.reactants()
+        self.assertEqual(len(s1r), 1)
+        s1r = s1r[0]
+        self.assertEqual(s1r.species(), m.species('S1'))
+        self.assertEqual(s1r.initial_value(), myokit.Number(2))
+        s2r = r.products()
+        self.assertEqual(len(s2r), 1)
+        s2r = s2r[0]
+        self.assertEqual(s2r.species(), m.species('S2'))
+        self.assertEqual(s2r.initial_value(), myokit.Number(5))
+        s3r = r.modifiers()
+        self.assertEqual(len(s3r), 1)
+        s3r = s3r[0]
+        self.assertEqual(s3r.species(), m.species('S3'))
+        with self.assertRaises(AttributeError):
+            s3r.initial_value()
+
+        # Reactants and products are assignable, modifier is not
+        self.assertEqual(m.assignable('r1'), s1r)
+        self.assertEqual(m.assignable('r2'), s2r)
+        self.assertRaises(KeyError, m.assignable, 'r3')
+
+        # Check kinetic law
+        self.assertEqual(
+            r.kinetic_law().code(),
+            '<Compartment c> * <Parameter k1> * <Species S1>')
+
+        # Check second reaction
+        r = m.reaction('reaction2')
+        self.assertEqual(r.sid(), 'reaction2')
+
+        # Check reaction knows S1, S3, S4 but not S2
+        self.assertEqual(r.species('S1'), m.species('S1'))
+        self.assertEqual(r.species('S3'), m.species('S3'))
+        self.assertEqual(r.species('S4'), m.species('S4'))
+        self.assertRaises(KeyError, r.species, 'S2')
+        m.species('S2')
+
+        # Check kinetic law
+        self.assertEqual(
+            r.kinetic_law().code(),
+            '<Compartment c> * <Parameter k1> * <Species S1>')
+
+        # Check species reactions (no unecessary zeros and all terms present)
+        model_mmt = m.myokit_model().code()
+        S1_rhs = \
+            'dot(S1_amount) = -(r1 * (size * global.k1 * S1_concentration)) ' \
+            + '- size * global.k1 * S1_concentration'
+        self.assertTrue(S1_rhs in model_mmt)
+        S2_rhs = 'dot(S2_amount) = r2 * (size * global.k1 * S1_concentration)'
+        self.assertTrue(S2_rhs in model_mmt)
+        S3_rhs = 'dot(S3_amount) = size * global.k1 * S1_concentration'
+        self.assertTrue(S3_rhs in model_mmt)
 
     def test_parse_rule(self):
         # Tests parsing assignment rules and rate rules

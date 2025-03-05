@@ -6,22 +6,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
+
 import numpy as np
 
 import myokit
 
-from shared import DIR_DATA, TemporaryDirectory
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:
-    basestring = str
+from myokit.tests import DIR_DATA, TemporaryDirectory
 
 
 class LoadSaveMmtTest(unittest.TestCase):
@@ -105,7 +97,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         m, p, x = myokit.load(spath)
         self.assertIsNone(m)
         self.assertIsNone(p)
-        self.assertTrue(isinstance(x, basestring))
+        self.assertTrue(isinstance(x, str))
 
         self.assertRaises(
             myokit.SectionNotFoundError, myokit.load_model, ppath)
@@ -128,7 +120,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         m, p, x = myokit.load('example')
         self.assertIsInstance(m, myokit.Model)
         self.assertIsInstance(p, myokit.Protocol)
-        self.assertTrue(isinstance(x, basestring))
+        self.assertTrue(isinstance(x, str))
 
         # Save all three and reload
         with TemporaryDirectory() as d:
@@ -255,6 +247,12 @@ class LoadSaveMmtTest(unittest.TestCase):
                 text = f.read()
             self.assertEqual(text, myokit.save(model=m, protocol=p, script=x))
 
+        # Save nothing
+        with TemporaryDirectory() as d:
+            opath = d.path('test.mmt')
+            self.assertRaises(ValueError, myokit.save, opath)
+            self.assertFalse(os.path.exists(opath))
+
     def test_save_model(self):
         # Test if the correct parts are saved/loaded from disk using the
         # ``save_model()`` method.
@@ -312,10 +310,10 @@ class LoadSaveMmtTest(unittest.TestCase):
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
         # Test example loading
         x = myokit.load_script('example')
-        self.assertTrue(isinstance(x, basestring))
+        self.assertTrue(isinstance(x, str))
         # Test file loading
         x = myokit.load_script(ipath)
-        self.assertTrue(isinstance(x, basestring))
+        self.assertTrue(isinstance(x, str))
         with TemporaryDirectory() as d:
             opath = d.path('test.mmt')
             myokit.save_script(opath, x)
@@ -327,7 +325,7 @@ class LoadSaveMmtTest(unittest.TestCase):
             self.assertTrue('[[script]]' in text)
             # Test reloading
             xx = myokit.load_script(opath)
-            self.assertTrue(isinstance(xx, basestring))
+            self.assertTrue(isinstance(xx, str))
             self.assertEqual(x, xx)
 
 
@@ -340,22 +338,22 @@ class LoadSaveStateTest(unittest.TestCase):
         with TemporaryDirectory() as d:
             # Test save and load without model
             f = d.path('state.txt')
-            myokit.save_state(f, m.state())
-            self.assertEqual(myokit.load_state(f), m.state())
+            myokit.save_state(f, m.initial_values(True))
+            self.assertEqual(myokit.load_state(f), m.initial_values(True))
 
             # Test save and load with model argument
-            myokit.save_state(f, m.state(), m)
-            self.assertEqual(myokit.load_state(f, m), m.state())
+            myokit.save_state(f, m.initial_values(True), m)
+            self.assertEqual(myokit.load_state(f, m), m.initial_values(True))
 
             # Save without, load with model
-            myokit.save_state(f, m.state())
-            self.assertEqual(myokit.load_state(f, m), m.state())
+            myokit.save_state(f, m.initial_values(True))
+            self.assertEqual(myokit.load_state(f, m), m.initial_values(True))
 
             # Save with model, load without
             # Loaded version is dict!
-            myokit.save_state(f, m.state(), m)
-            dct = dict(zip([v.qname() for v in m.states()], m.state()))
-            self.assertEqual(myokit.load_state(f), dct)
+            myokit.save_state(f, m.initial_values(True), m)
+            self.assertEqual(myokit.load_state(f), dict(zip(
+                [v.qname() for v in m.states()], m.initial_values(True))))
 
     def test_load_save_state_bin(self):
         # Test loading/saving state in binary format.
@@ -364,13 +362,15 @@ class LoadSaveStateTest(unittest.TestCase):
 
             # Test save and load with double precision
             f = d.path('state.bin')
-            myokit.save_state_bin(f, m.state())
-            self.assertEqual(myokit.load_state_bin(f), m.state())
+            myokit.save_state_bin(f, m.initial_values(True))
+            self.assertEqual(myokit.load_state_bin(f), m.initial_values(True))
 
             # Test save and load with single precision
             f = d.path('state.bin')
-            myokit.save_state_bin(f, m.state(), myokit.SINGLE_PRECISION)
-            d = np.array(myokit.load_state_bin(f)) - np.array(m.state())
+            myokit.save_state_bin(
+                f, m.initial_values(True), myokit.SINGLE_PRECISION)
+            d = np.array(myokit.load_state_bin(f))
+            d -= np.array(m.initial_values(True))
             self.assertTrue(np.all(np.abs(d) < 1e-5))   # Not very precise!
 
 

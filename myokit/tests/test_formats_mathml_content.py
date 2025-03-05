@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import re
 import unittest
 
@@ -15,12 +12,6 @@ import lxml.etree as etree
 
 import myokit
 import myokit.formats.mathml as mathml
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class ContentMathMLParserTest(unittest.TestCase):
@@ -90,6 +81,10 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Prefix plus
         e = myokit.PrefixPlus(myokit.Number(1))
         x = '<apply><plus/><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+        e = myokit.PrefixPlus(myokit.Plus(myokit.Number(3), myokit.Number(4)))
+        x = ('<apply><plus/><apply><plus /><cn>3.0</cn><cn>4.0</cn></apply>'
+             '</apply>')
         self.assertEqual(self.p(x), e)
 
         # Prefix minus
@@ -367,8 +362,17 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Power
         a = myokit.Name('a')
         b = myokit.Number(1)
+        c = myokit.Number(2)
         e = myokit.Power(a, b)
         x = '<apply><power/><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+        e = myokit.Power(myokit.Power(a, b), c)
+        x = ('<apply><power/><apply><power/><ci>a</ci><cn>1.0</cn></apply>'
+             '<cn>2.0</cn></apply>')
+        self.assertEqual(self.p(x), e)
+        e = myokit.Power(a, myokit.Power(b, c))
+        x = ('<apply><power/><ci>a</ci><apply><power/><cn>1.0</cn><cn>2.0</cn>'
+             '</apply></apply>')
         self.assertEqual(self.p(x), e)
 
         #TODO: Degree etc.
@@ -1112,11 +1116,26 @@ class ContentMathMLWriterTest(unittest.TestCase):
         self.assertWrite(myokit.Name('a'), '<ci>a</ci>')
 
         # Number without unit
+        self.assertWrite(myokit.Number(0), '<cn>0.0</cn>')
         self.assertWrite(myokit.Number(1), '<cn>1.0</cn>')
 
         # Number with unit
         # Unit isn't exported by default!
-        self.assertWrite(myokit.Number('12', 'pF'), '<cn>12.0</cn>')
+        self.assertWrite(myokit.Number('-12', 'pF'), '<cn>-12.0</cn>')
+
+        # Number with e notation (note that Python will turn e.g. 1e3 into
+        # 1000, so must pick tests carefully)
+        self.assertWrite(myokit.Number(1e3), '<cn>1000.0</cn>')
+        self.assertWrite(myokit.Number(1e-3), '<cn>0.001</cn>')
+        self.assertWrite(
+            myokit.Number(1e-6),
+            '<cn type="e-notation">1<sep/>-6</cn>')
+        self.assertWrite(
+            myokit.Number(2.3e24),
+            '<cn type="e-notation">2.3<sep/>24</cn>')
+        # myokit.float.str(1.23456789) = 1.23456788999999989e+00
+        self.assertWrite(
+            myokit.Number(1.23456789), '<cn>1.23456788999999989</cn>')
 
     def test_trig_basic(self):
         # Test writing basic trig functions

@@ -4,12 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
-import myokit
 import platform
+
+import myokit
 
 # Location of source file
 SOURCE_FILE = 'cable.c'
@@ -37,11 +35,12 @@ class Simulation1d(myokit.CModule):
     ``time``
         The simulation time
     ``pace``
-        The pacing level, this is set if a protocol was passed in.
+        The pacing level, this is set if a protocol was passed in. Will be set
+        to 0 if no protocol is provided.
     ``diffusion_current``
-        The current flowing from the cell to its neighbours. This will be
+        The current flowing from the cell to its neighbors. This will be
         positive when the cell is acting as a source, negative when it is
-        acting as a sink.
+        acting as a sink. Will be set to 0 if no connections are made.
 
     The variable ``time`` is set globally, meaning each cell uses the same
     value. The variables ``pace`` and ``diffusion_current`` have different
@@ -77,7 +76,7 @@ class Simulation1d(myokit.CModule):
 
         i = sum[g * (V - V_j)]
 
-    Where the sum is taken over all neighbouring cells j (see [1]).
+    Where the sum is taken over all neighboring cells j (see [1]).
 
     The resulting ODE system is solved using a forward Euler (FE) method with
     fixed step sizes. Smaller step sizes lead to more accurate results, and it
@@ -101,7 +100,7 @@ class Simulation1d(myokit.CModule):
     _index = 0      # Unique id for generated module
 
     def __init__(self, model, protocol=None, ncells=50, rl=False):
-        super(Simulation1d, self).__init__()
+        super().__init__()
 
         # Require a valid model
         model.validate()
@@ -133,7 +132,7 @@ class Simulation1d(myokit.CModule):
             # Convert alpha-beta formulations to inf-tau forms, cloning model
             self._model = hh.convert_hh_states_to_inf_tau_form(model, vm)
             self._vm = self._model.get(vm.qname())
-            del(model, vm)
+            del model, vm
 
             # Get (inf, tau) tuple for every Rush-Larsen state
             for state in self._model.states():
@@ -145,7 +144,7 @@ class Simulation1d(myokit.CModule):
             # Clone model, store
             self._model = model.clone()
             self._vm = self._model.get(vm.qname())
-            del(model, vm)
+            del model, vm
 
         # Set number of cells paced
         self.set_paced_cells()
@@ -176,7 +175,7 @@ class Simulation1d(myokit.CModule):
                 ' next')
 
         # Set state and default state
-        self._state = self._model.state() * ncells
+        self._state = self._model.initial_values(True) * ncells
         self._default_state = list(self._state)
 
         # Unique simulation id
@@ -193,13 +192,6 @@ class Simulation1d(myokit.CModule):
             'rl_states': rl_states,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
-
-        # Debug
-        if myokit.DEBUG:
-            print(self._code(
-                fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
 
         # Define libraries
         libs = []
@@ -358,7 +350,7 @@ class Simulation1d(myokit.CModule):
 
         # Get progress indication function (if any)
         if progress is None:
-            progress = myokit._Simulation_progress
+            progress = myokit._simulation_progress
         if progress:
             if not isinstance(progress, myokit.ProgressReporter):
                 raise ValueError(

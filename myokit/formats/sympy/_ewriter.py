@@ -4,15 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
+import myokit.formats
 
 try:
     import sympy as sp
 except ImportError:
     pass
-
-import myokit.formats
 
 
 class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
@@ -23,14 +20,14 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
     The returned type is a SymPy object, not a string!
     """
     def __init__(self):
-        super(SymPyExpressionWriter, self).__init__()
+        super().__init__()
 
         self._flhs = None
         self.set_lhs_function(lambda lhs: str(lhs))
 
         # Import sympy again, will trigger error if can't be done.
         import sympy
-        del(sympy)
+        del sympy
 
     def set_lhs_function(self, f):
         """

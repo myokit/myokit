@@ -123,7 +123,8 @@ For example, the code for `myokit.Model` lives in the hidden module `myokit._mod
 - Configuration loading and storing is handled in `_config.py`.
 - System information is be queried in `_system.py`
 
-
+More information can be found in Myokit's [Technical Notes](https://github.com/myokit/examples#technical-notes).
+A high-level plan for Myokit's future is provided by the [roadmap](./ROADMAP.md).
 
 
 
@@ -162,10 +163,15 @@ Avoid abbreviations when possible without making names overly long.
 Class names are CamelCase, and start with an upper case letter, for example `SuperDuperSimulation`.
 Method and variable names are lower case, and use underscores for word separation, for example `x` or `iteration_count`.
 
-### Python 2 and 3
+### Spelling
 
-Myokit runs in Python 2.7+ and 3.5+.
-All new code should be written [to work on both](http://python-future.org/compatible_idioms.html).
+Because most libraries do, Myokit uses American spelling (e.g. "color", "fiber", "normalize").
+
+## Python and C versions
+
+Myokit is developed for Python 3.7 and newer, and tested on whatever GitHub Actions (easily) allows (3.7+ at time of writing).
+
+The C code in Myokit should stick to C89 with some exceptions, see [here](https://peps.python.org/pep-0007/)).
 
 ## Dependencies and reusing code
 
@@ -291,7 +297,7 @@ Then have a look at `<your myokit path>/doc/build/html/index.html`.
 - Coverage is tested using [codecov.io](https://docs.codecov.io/docs) which builds on [coverage](https://coverage.readthedocs.io/). 
   Configuration file: `.coveragerc` ([syntax](https://coverage.readthedocs.io/en/latest/config.html)).
 - Documentation is built using [readthedocs](readthedocs.org) and [published here](https://myokit.readthedocs.io/).
-  Configuration file `.readthedocs.txt`.
+  Configuration file `.readthedocs.yaml`.
 - Code style is checked using flake8.
   Configuration file: `.flake8` ([syntax](http://flake8.pycqa.org/en/latest/user/configuration.html)).
 

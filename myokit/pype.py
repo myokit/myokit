@@ -4,25 +4,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import ast
+import io
 import re
 import sys
 import traceback
 
-import myokit
 
-try:
-    # Python 2
-    from cStringIO import StringIO
-except ImportError:
-    # Python3
-    from io import StringIO
-
-
-class TemplateEngine(object):
+class TemplateEngine:
     """
     A tiny templating engine using a php style syntax.
 
@@ -40,7 +29,7 @@ class TemplateEngine(object):
     stream specified by the user.
     """
     def __init__(self):
-        super(TemplateEngine, self).__init__()
+        super().__init__()
         self.stream = None
         self.error = None
 
@@ -71,8 +60,8 @@ class TemplateEngine(object):
         script = self._convert(filename)
 
         # Get or create output stream
-        stdout = self.stream if self.stream else StringIO()
-        stderr = StringIO()
+        stdout = self.stream if self.stream else io.StringIO()
+        stderr = io.StringIO()
 
         # Run and handle errors
         error = None
@@ -84,7 +73,7 @@ class TemplateEngine(object):
                 syserr = sys.stderr
                 sys.stdout = stdout
                 sys.stderr = stderr
-                myokit._exec(script, variables)
+                exec(script, variables)
             except Exception:
                 error = sys.exc_info()
             finally:
@@ -119,7 +108,7 @@ class TemplateEngine(object):
                                 break
                             next = next.tb_next
                     finally:
-                        del(next)
+                        del next
 
                 if line:
                     # Error during template execution
@@ -144,7 +133,7 @@ class TemplateEngine(object):
             # by deleting reference.
             # See: http://docs.python.org/library/sys.html#sys.exc_info
             if error:
-                del(error)
+                del error
 
         # Custom stream? Then don't interfere. If not, return stream contents.
         return None if self.stream else stdout.getvalue()
@@ -245,5 +234,5 @@ class PypeError(Exception):
     *Extends:* Exception
     """
     def __init__(self, message):
-        super(PypeError, self).__init__(message)
+        super().__init__(message)
 

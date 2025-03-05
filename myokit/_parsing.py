@@ -4,22 +4,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import re
-#import unicodedata
+
 from collections import OrderedDict
 
 import myokit
-from myokit import ParseError, ProtocolParseError
 
-# Strings in Python2 and Python3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
+from myokit import ParseError, ProtocolParseError
 
 
 def parse(source):
@@ -34,7 +26,7 @@ def parse(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -78,7 +70,7 @@ def parse_model(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -100,7 +92,7 @@ def parse_protocol(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -122,7 +114,7 @@ def parse_script(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -162,7 +154,7 @@ def parse_state(state):
     """
     # Get raw stream
     raw = state
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
 
@@ -205,7 +197,7 @@ def split(source):
     """
     # Get raw stream
     raw = source
-    if isinstance(raw, basestring):
+    if isinstance(raw, str):
         raw = raw.splitlines()
     raw = iter(raw)
     segments = ['', '', '']
@@ -317,7 +309,7 @@ def unexpected_token(token, expected):
     # Parse expected token(s) or string
     if type(expected) == int:
         expected = [expected]
-    if not isinstance(expected, basestring):
+    if not isinstance(expected, str):
         if len(expected) > 2:
             expected = 'one of [' \
                 + ', '.join([token_str[i] for i in expected]) + ']'
@@ -348,10 +340,11 @@ def reg_token(info, token, obj):
         d[token[3]] = (token, obj)
 
 
-class ParseInfo(object):
+class ParseInfo:
     def __init__(self):
         self.model = None
         self.initial_values = OrderedDict()
+        self.initial_value_tokens = {}
         self.alias_map = {}
         self.user_functions = {}
 
@@ -420,10 +413,10 @@ def parse_model_from_stream(stream, syntax_only=False):
                     'Duplicate initial value', t0[2], t0[3],
                     'A value for <' + name + '> was already specified.')
             expect(next(stream), EQUAL)
-            expr = parse_expression_stream(stream)
+            expr = parse_proto_expression(stream)
             expect(next(stream), EOL)
             info.initial_values[name] = expr
-            reg_token(info, t0, expr)
+            info.initial_value_tokens[name] = t0
 
         token = stream.peek()
 
@@ -438,15 +431,6 @@ def parse_model_from_stream(stream, syntax_only=False):
     # Syntax checking mode
     if syntax_only:
         return True
-
-    # All initial variables must have been used
-    for qname, e in info.initial_values.items():
-        raise ParseError(
-            'Unused initial value', 0, 0,
-            'An unused initial value was found for "' + str(qname) + '".')
-
-    # Re-order the model state
-    model.reorder_state(state_order)
 
     # Order encountered tokens
     m = model._tokens
@@ -466,7 +450,24 @@ def parse_model_from_stream(stream, syntax_only=False):
             # No need to check for IllegalReferenceErrors here, since these
             # won't have been resolved in the first place.
             var.set_rhs(convert_proto_expression(var._proto_rhs, var, info))
-        del(var._proto_rhs)
+        del var._proto_rhs
+
+    # Resolve variable references in initial values
+    for i, var in enumerate(model.states()):
+        e = info.initial_values[var.qname()]
+        expr = convert_proto_expression(e, model, info)
+        var.set_initial_value(expr)
+        del info.initial_values[var.qname()]
+
+    # All initial variables must have been used
+    for qname, e in info.initial_values.items():
+        t = info.initial_value_tokens[qname]
+        raise ParseError(
+            'Unused initial value', t[2], t[3],
+            'An unused initial value was found for "' + qname + '".')
+
+    # Re-order the model state
+    model.reorder_state(state_order)
 
     # Check the semantics of the model
     try:
@@ -520,7 +521,7 @@ def parse_component(stream, info=None):
     Parses a component
     """
     # Info should have model
-    assert(not(info is None or info.model is None))
+    assert info is not None and info.model is not None
 
     # Parse component declaration
     expect(next(stream), BRACKET_OPEN)
@@ -667,7 +668,7 @@ def parse_variable(stream, info, parent):
     # Register tokens
     for token in toreg:
         reg_token(info, token, var)
-    del(toreg)
+    del toreg
 
     # Set initial value for states
     if is_state:
@@ -675,14 +676,7 @@ def parse_variable(stream, info, parent):
             raise ParseError(
                 'Missing initial value', line, char,
                 'No initial value was found for "' + var.qname() + '"')
-        state_value = info.initial_values[var.qname()]
-        try:
-            var.promote(state_value)
-        except myokit.NonLiteralValueError as e:
-            t = state_value._token
-            raise ParseError(
-                'Illegal state value', t[2], t[3], str(e), cause=e)
-        del(info.initial_values[var.qname()])
+        var.promote()
 
     # Parse definition, quick unit, bind, label and description syntax
     # These token must occur in a fixed order!
@@ -962,7 +956,7 @@ def parse_protocol_from_stream(stream):
     t_last = None
     t_next = 0
     n = stream.peek()
-    while(n[0] not in (EOF, SEGMENT_HEADER)):
+    while n[0] not in (EOF, SEGMENT_HEADER):
 
         # Parse level
         v = parse_number(stream)
@@ -1069,7 +1063,7 @@ def strip_expression_units(model_text, skip_literals=True):
     This method will raise a :class:`myokit.ParseError` if the given code
     cannot be parsed to a valid model.
     """
-    if isinstance(model_text, basestring):
+    if isinstance(model_text, str):
         lines = model_text.splitlines()
     else:
         lines = model_text
@@ -1085,7 +1079,7 @@ def strip_expression_units(model_text, skip_literals=True):
         for e in rhs.walk(allowed_types=myokit.Number):
             u = e.unit()
             if u is not None:
-                assert(u._token is not None)
+                assert u._token is not None
                 token, text, line, char = u._token
                 toks.append(u._token)
                 # Lines start at 1, chars start at 0...
@@ -1265,7 +1259,7 @@ _COMPEQ = '=!><'
 _COMPEQ_MAP = [EQEQUAL, NOTEQUAL, MOREEQUAL, LESSEQUAL]
 
 
-class Tokenizer(object):
+class Tokenizer:
     """
     Takes a stream of lines as input and provides a stream interface returning
     tokens.
@@ -1310,7 +1304,7 @@ class Tokenizer(object):
         self._catcheri = 0
 
         # String given instead of stream of lines? Convert
-        if isinstance(stream_of_lines, basestring):
+        if isinstance(stream_of_lines, str):
             stream_of_lines = iter(stream_of_lines.splitlines())
 
         # Create tokenizer
@@ -1379,7 +1373,7 @@ class Tokenizer(object):
         input.
         """
         txt = ''.join(self._catchers[handle])
-        del(self._catchers[handle])
+        del self._catchers[handle]
         return txt
 
     def _tizer(self, stream, check_indenting):
@@ -1853,7 +1847,10 @@ def parse_expression_string(string, context=None):
     info = None
     if context is not None:
         info = ParseInfo()
-        info.model = context.model()
+        if isinstance(context, myokit.Model):
+            info.model = context
+        else:
+            info.model = context.model()
 
     # Tokenise and parse string to proto expression
     s = Tokenizer(string)
@@ -1960,7 +1957,7 @@ def format_parse_error(ex, source=None):
     line = None
 
     if ex.line > 0 and source is not None:
-        if isinstance(source, basestring) and os.path.isfile(source):
+        if isinstance(source, str) and os.path.isfile(source):
             # Re-open file, find line
             with open(source, 'r') as f:
                 for i in range(0, ex.line):
@@ -2010,7 +2007,7 @@ def format_parse_error(ex, source=None):
     return '\n'.join(out)
 
 
-class NudParser(object):
+class NudParser:
     """
     Expression parser for nud operators.
 
@@ -2079,7 +2076,7 @@ class FunctionParser(NudParser):
     Parser for function calls.
     """
     def __init__(self):
-        super(FunctionParser, self).__init__()
+        super().__init__()
         self._rbp = myokit.Function._rbp
 
     def parse(self, stream, info):
@@ -2120,7 +2117,7 @@ class FunctionParser(NudParser):
         return (func, ops, (name,))
 
 
-class LedParser(object):
+class LedParser:
     """
     Expression parser for led operators.
 

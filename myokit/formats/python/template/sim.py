@@ -45,7 +45,7 @@ w.set_lhs_function(v)
 e = w.eq
 
 # Process bindings
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time' : 'engine.time',
     'pace' : 'engine.pace',
     })
@@ -73,7 +73,7 @@ for comp in components:
     w.set_lhs_function(lambda x: v(x, comp))
 
     ?>
-class <?= names[1] ?>(object):
+class <?= names[1] ?>:
     def __init__(self):
 <?
     for var in comp.variables(deep=True):
@@ -96,9 +96,9 @@ class <?= names[1] ?>(object):
         Resets the state variables to their initial values
         """
 <?
-    for eq in model.inits():
-        if eq.lhs.var().parent() == comp:
-            print(tab2 + e(eq))
+    for var, value in zip(model.states(), model.initial_values(True)):
+        if var.parent() == comp:
+            print(tab2 + v(var, comp) + ' = ' + myokit.float.str(value))
     ?>    def update(self):
         """
         Re-calculates all values for the current time and state
@@ -118,7 +118,7 @@ class <?= names[1] ?>(object):
 #
 # Engine component
 #
-class Engine(object):
+class Engine:
     """
     Calculates the derivatives in the current state
     """
@@ -213,10 +213,10 @@ def test_step():
 #
 # Pacing
 #
-class Protocol(object):
+class Protocol:
     """ Holds an ordered set of ProtocolEvent objects """
     def __init__(self):
-        super(Protocol, self).__init__()
+        super().__init__()
         self.head = None
     def add(self, e):
         """ Schedules an event """
@@ -238,9 +238,11 @@ class Protocol(object):
         if self.head is not None:
             self.head = self.head.next
         return e
-class ProtocolEvent(object):
+
+
+class ProtocolEvent:
     def __init__(self, level, start, duration, period=0, multiplier=0):
-        super(ProtocolEvent, self).__init__()
+        super().__init__()
         self.level = float(level)
         self.start = float(start)
         self.duration = float(duration)
@@ -255,6 +257,7 @@ class ProtocolEvent(object):
         if self.period == 0 and self.multiplier > 0:
             raise Exception('Non-periodic event cannot occur more than once')
         self.next = None
+
 
 def pacing_protocol():
     pacing = Protocol()
@@ -377,10 +380,7 @@ if __name__ == '__main__':
         except ArithmeticError as e:
             print('Arithmetic error occurred')
             y = 'Continue with smaller stepsize? (y/n): '
-            try:
-                y = raw_input(y)    # Python 2
-            except NameError:
-                y = input(y)        # Python 3
+            y = input(y)
             if y.lower()[0:1] == 'y':
                 small /= 2
                 large /= 2

@@ -4,13 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
-import myokit
-import numpy as np
 import platform
+
+import numpy as np
+
+import myokit
 
 # Location of C source file
 SOURCE_FILE = 'jacobian.cpp'
@@ -45,7 +44,7 @@ class JacobianTracer(myokit.CppModule):
     _index = 0  # Unique id
 
     def __init__(self, model):
-        super(JacobianTracer, self).__init__()
+        super().__init__()
 
         # Require a valid model
         model.validate()
@@ -68,13 +67,6 @@ class JacobianTracer(myokit.CppModule):
             'inputs': self._inputs,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
-
-        # Debug
-        if myokit.DEBUG:
-            print(self._code(fname, args,
-                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
 
         # Define libraries
         libs = []
@@ -174,7 +166,7 @@ class JacobianTracer(myokit.CppModule):
             self._ext.calculate(state, bound, deriv, partial)
             # Discard derivatives
             # Convert partial derivatives to numpy array and store
-            partial = np.array(partial, copy=False)
+            partial = np.asarray(partial)
             partial = partial.reshape((ns, ns))
             partials.append(partial)
         partials = np.array(partials)
@@ -223,12 +215,16 @@ class JacobianCalculator(myokit.CppModule):
     _index = 0  # Unique id
 
     def __init__(self, model):
-        super(JacobianCalculator, self).__init__()
+        super().__init__()
         # Require a valid model
         model.validate()
 
         # Clone model
         self._model = model.clone()
+
+        # Store the initial values (won't be able to access once time binding
+        # is removed).
+        self._state = self._model.initial_values(as_floats=True)
 
         # Unbind all inputs
         for label, var in self._model.bindings():
@@ -247,14 +243,6 @@ class JacobianCalculator(myokit.CppModule):
             'inputs': [],
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
-
-        # Debug
-        if myokit.DEBUG:
-            print(
-                self._code(fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
-            import sys
-            sys.exit(1)
 
         # Define libraries
         libs = []
@@ -294,8 +282,8 @@ class JacobianCalculator(myokit.CppModule):
         self._ext.calculate(state, inputs, deriv, partial)
 
         # Create numpy versions and return
-        deriv = np.array(deriv, copy=False)
-        partial = np.array(partial, copy=False).reshape((n, n))
+        deriv = np.asarray(deriv)
+        partial = np.asarray(partial).reshape((n, n))
         return deriv, partial
 
     def newton_root(self, x=None, accuracy=0, max_iter=50, damping=1):
@@ -325,7 +313,7 @@ class JacobianCalculator(myokit.CppModule):
 
         # Get initial state
         if x is None:
-            x = self._model.state()
+            x = self._state
         x = np.array(x)
 
         # Calculate derivatives & jacobian

@@ -4,14 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import numpy as np
+
 import myokit
 
 
-class HHModel(object):
+class HHModel:
     """
     Represents a Hodgkin-Huxley (HH)-style model of an ion channel, extracted
     from a :class:`myokit.Model`.
@@ -29,7 +27,8 @@ class HHModel(object):
     The model variables to treat as parameter are specified by the user when
     the model is created. Any other variables, for example state variables such
     as intercellular calcium or constants such as temperature, are fixed when
-    the current model is created and can no longer be changed.
+    the current model is created and can no longer be changed. Initial values
+    written as expressions are evaluated when the model is made.
 
     The current variable is optional.
 
@@ -83,7 +82,7 @@ class HHModel(object):
         # Load a model from disk
         model = myokit.load_model('some-model.mmt')
 
-        # Extract a markov model
+        # Extract a Hodgkin-Huxley style channel model
         mm = hh.HHModel.from_component(model.get('ina'))
 
     """
@@ -93,7 +92,7 @@ class HHModel(object):
     # A HHModel can return a function to calculate state values, but it never
     # updates its internal state in any way.
     def __init__(self, model, states, parameters=None, current=None, vm=None):
-        super(HHModel, self).__init__()
+        super().__init__()
 
         #
         # Check input
@@ -114,7 +113,7 @@ class HHModel(object):
         # Ensure all HH-states in the model are written in inf-tau form
         # This returns a clone of the original model
         self._model = convert_hh_states_to_inf_tau_form(model, vm)
-        del(model)
+        del model
 
         # Check and collect state variables
         self._states = []
@@ -132,7 +131,7 @@ class HHModel(object):
                 raise HHModelError(
                     'State <' + state.qname() + '> was added twice.')
             self._states.append(state)
-        del(states)
+        del states
 
         # Check and collect parameter variables
         unique = set()
@@ -155,8 +154,8 @@ class HHModel(object):
                     'Parameter listed twice: <' + str(parameter) + '>.')
             unique.add(parameter)
             self._parameters.append(parameter)
-        del(unique)
-        del(parameters)
+        del unique
+        del parameters
 
         # Check current variable
         if current is not None:
@@ -166,7 +165,7 @@ class HHModel(object):
             if current.is_state():
                 raise HHModelError('Current variable can not be a state.')
         self._current = current
-        del(current)
+        del current
 
         # Check membrane potential variable
         self._membrane_potential = self._model.get(vm)
@@ -181,17 +180,20 @@ class HHModel(object):
         if self._membrane_potential == self._current:
             raise HHModelError(
                 'The membrane potential should not be the current variable.')
-        del(vm)
+        del vm
+
+        # Get values of all states
+        # Note: Do this _before_ changing the model!
+        s = self._model.initial_values(True)
+        self._model.set_initial_values(s)  # Remove expressions
+        self._default_state = np.array(
+            [v.initial_value(True) for v in self._states])
 
         #
         # Demote unnecessary states and remove bindings
         #
-        # Get values of all states
-        # Note: Do this _before_ changing the model!
-        self._default_state = np.array([v.state_value() for v in self._states])
 
         # Freeze remaining, non-current-model states
-        s = self._model.state()   # Get state values before changing anything!
         # Note: list() cast is required so that we iterate over a static list,
         # otherwise we can get issues because the iterator depends on the model
         # (which we're changing).
@@ -296,6 +298,9 @@ class HHModel(object):
                 '_y[' + k + '] = ' + state.uname() + ' = '
                 + inf + ' + (_y0[' + k + '] - ' + inf
                 + ') * numpy.exp(-_t / ' + tau + ')')
+            f.append(
+                '_y[' + k + '][_t == 0] = ' + state.uname() + '[_t == 0] = '
+                + '_y0[' + k + ']')
 
         # Add current calculation
         if self._current is not None:
@@ -346,19 +351,19 @@ class HHModel(object):
 
     def default_membrane_potential(self):
         """
-        Returns this markov model's default membrane potential value.
+        Returns this HH model's default membrane potential value.
         """
         return self._default_inputs[0]
 
     def default_parameters(self):
         """
-        Returns this markov model's default parameter values
+        Returns this HH model's default parameter values
         """
         return list(self._default_inputs[1:])
 
     def default_state(self):
         """
-        Returns this markov model's default state values.
+        Returns this HH model's default state values.
         """
         return list(self._default_state)
 
@@ -389,8 +394,8 @@ class HHModel(object):
             # Get state variables
             states = [x for x in component.variables(state=True)]
 
-            # Sort by state indice
-            states.sort(key=lambda x: x.indice())
+            # Sort by state index
+            states.sort(key=lambda x: x.index())
 
         else:
 
@@ -529,7 +534,7 @@ class HHModel(object):
         return self._steady_state_function(*inputs)
 
 
-class AnalyticalSimulation(object):
+class AnalyticalSimulation:
     """
     Analytically evaluates a :class:`HHModel`'s state for a given set of points
     in time.
@@ -579,7 +584,7 @@ class AnalyticalSimulation(object):
 
     """
     def __init__(self, model, protocol=None):
-        super(AnalyticalSimulation, self).__init__()
+        super().__init__()
 
         # Check model
         if not isinstance(model, HHModel):

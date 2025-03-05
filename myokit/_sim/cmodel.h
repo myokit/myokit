@@ -45,7 +45,8 @@ States:
 State derivatives:
     Calculated by the model.
 Bound variables:
-    External inputs to the model (e.g. time and pacing).
+    External inputs to the model (e.g. time and pacing). There are an arbitrary
+    number of these, and the model stores the current value of each
 Intermediary variables:
     The remaining variables that depend on state variables.
 Constants:
@@ -153,7 +154,7 @@ will be a myokit.DataLog.
 
 Methods:
 
-Model_InitialiseLogging(Model model, PyObject* log_dict)
+Model_InitializeLogging(Model model, PyObject* log_dict)
     Sets up logging for all variables used as keys in log_dict (assuming fully
     qualified names). Will raise an error if the dict contains keys that do not
     correspond to model variables. The values in the dict should implement the
@@ -163,9 +164,9 @@ Model_Log(model)
     If logging has been set up, this will log the current values of variables
     to the sequences in the log dict.
 
-Model_DeInitialiseLogging(model)
-    De-initialises logging. This only needs to be called if logging needs to be
-    set up differently, i.e. before a new call to Model_InitialiseLogging.
+Model_DeInitializeLogging(model)
+    De-initializes logging. This only needs to be called if logging needs to be
+    set up differently, i.e. before a new call to Model_InitializeLogging.
 
 Logging sensitivities
 =====================
@@ -207,13 +208,15 @@ typedef int Model_Flag;
 /* General */
 #define Model_INVALID_MODEL                 -100
 /* Logging */
-#define Model_LOGGING_ALREADY_INITIALISED   -200
-#define Model_LOGGING_NOT_INITIALISED       -201
+#define Model_LOGGING_ALREADY_INITIALIZED   -200
+#define Model_LOGGING_NOT_INITIALIZED       -201
 #define Model_UNKNOWN_VARIABLES_IN_LOG      -202
 #define Model_LOG_APPEND_FAILED             -203
 /* Logging sensitivities */
 #define Model_NO_SENSITIVITIES_TO_LOG       -300
 #define Model_SENSITIVITY_LOG_APPEND_FAILED -303
+/* Pacing */
+#define Model_INVALID_PACING                -400
 
 /* Caching doesn't help much when running without jacobians etc., so disabled
    for now
@@ -240,11 +243,11 @@ Model_SetPyErr(Model_Flag flag)
         PyErr_SetString(PyExc_Exception, "CModel error: Invalid model pointer provided.");
         break;
     /* Logging */
-    case Model_LOGGING_ALREADY_INITIALISED:
-        PyErr_SetString(PyExc_Exception, "CModel error: Logging initialised twice.");
+    case Model_LOGGING_ALREADY_INITIALIZED:
+        PyErr_SetString(PyExc_Exception, "CModel error: Logging initialized twice.");
         break;
-    case Model_LOGGING_NOT_INITIALISED:
-        PyErr_SetString(PyExc_Exception, "CModel error: Logging not initialised.");
+    case Model_LOGGING_NOT_INITIALIZED:
+        PyErr_SetString(PyExc_Exception, "CModel error: Logging not initialized.");
         break;
     case Model_UNKNOWN_VARIABLES_IN_LOG:
         PyErr_SetString(PyExc_Exception, "CModel error: Unknown variables found in logging dictionary.");
@@ -259,16 +262,14 @@ Model_SetPyErr(Model_Flag flag)
     case Model_SENSITIVITY_LOG_APPEND_FAILED:
         PyErr_SetString(PyExc_Exception, "CModel error: Call to append() failed on sensitivity matrix logging list.");
         break;
-
+    case Model_INVALID_PACING:
+        PyErr_SetString(PyExc_Exception, "CModel error: Invalid pacing provided.");
+        break;
     /* Unknown */
     default:
-    {
-        int i = (int)flag;
-        char buffer[1024];
-        sprintf(buffer, "CModel error: Unlisted error %d", i);
-        PyErr_SetString(PyExc_Exception, buffer);
+        PyErr_Format(PyExc_Exception, "CModel error: Unlisted error %d", (int)flag);
         break;
-    }};
+    };
 }
 
 /*
@@ -281,9 +282,12 @@ struct Model_Memory {
     /* If this model has sensitivities this will be 1, otherwise 0. */
     int has_sensitivities;
 
+    /* Pacing */
+    realtype *pace_values;
+    int n_pace;
+
     /* Bound variables */
     realtype time;
-    realtype pace;
     realtype realtime;
     realtype evaluations;
 
@@ -330,8 +334,8 @@ struct Model_Memory {
     int ns_intermediary;
     realtype* s_intermediary;
 
-    /* Logging initialised? */
-    int logging_initialised;
+    /* Logging initialized? */
+    int logging_initialized;
 
     /* Which variables are we logging? */
     int logging_states;
@@ -449,6 +453,43 @@ Model_ClearCache(Model model)
 }
 
 /*
+ * Sets up (i.e. allocates memory for) array of protocol-determined values
+ *
+ * Arguments
+ *  n_pace: the number of pacing values to use.
+ *
+ * Returns a model flag.
+ *
+ */
+Model_Flag
+Model_SetupPacing(Model model, int n_pace)
+{
+    int i;
+    if (model == NULL) return Model_INVALID_MODEL;
+    if (n_pace < 0) return Model_INVALID_PACING;
+
+    /* Free any existing pacing */
+    if (model->n_pace > 0) {
+        free(model->pace_values);
+    }
+
+    /* Allocate new pacing */
+    model->n_pace = n_pace;
+    model->pace_values = (realtype*)malloc((size_t)n_pace * sizeof(realtype));
+    if (model->pace_values == NULL) {
+        return Model_OUT_OF_MEMORY;
+    }
+
+    /* Clear values */
+    for (i = 0; i < n_pace; i++) {
+        model->pace_values[i] = 0;
+        /* Note: This will be overruled by the first call to SetBoundVariables */
+    }
+
+    return Model_OK;
+}
+
+/*
  * (Re)calculates the values of all constants that are derived from other
  * constants.
  *
@@ -507,14 +548,14 @@ for eq in parameter_derived.values():
  *  literals : An array of size model->n_literals
  *
  * Returns a model flag.
- */
+ *
 Model_Flag
 Model_SetLiteralVariables(Model model, const realtype* literals)
 {
     int i;
     if (model == NULL) return Model_INVALID_MODEL;
 
-    /* Scan for changes */
+    * Scan for changes *
     i = 0;
     #ifdef Model_CACHING
     if (Model__ValidCache(model)) {
@@ -526,7 +567,7 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
     }
     #endif
 
-    /* Update remaining */
+    * Update remaining *
     if (i < model->n_literals) {
         for (; i<model->n_literals; i++) {
             model->literals[i] = literals[i];
@@ -539,7 +580,7 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
     }
 
     return Model_OK;
-}
+}*/
 
 /*
  * Updates the parameter variables to the values given in `parameters`.
@@ -661,25 +702,36 @@ Model_SetParametersFromIndependents(Model model, const realtype* independents)
 Model_Flag
 Model_SetBoundVariables(
     Model model,
-    const realtype time, const realtype pace,
-    const realtype realtime, const realtype evaluations)
+    const realtype time,
+    const realtype *pace_values,
+    const realtype realtime,
+    const realtype evaluations)
 {
+    int i;
+    #ifdef Model_CACHING
     int changed;
+    #endif
     if (model == NULL) return Model_INVALID_MODEL;
 
+    #ifdef Model_CACHING
     changed = 0;
+    #endif
     if (time != model->time) {
         model->time = time;
+        #ifdef Model_CACHING
         changed = 1;
+        #endif
     }
 
-<?
-if model.binding('pace') is not None:
-    print(tab + 'if (pace != model->pace) {')
-    print(tab + '    model->pace = pace;')
-    print(tab + '    changed = 1;')
-    print(tab + '}')
-?>
+    for (i=0; i<model->n_pace; i++) {
+        if (pace_values[i] != model->pace_values[i]) {
+            model->pace_values[i] = pace_values[i];
+            #ifdef Model_CACHING
+            changed = 1;
+            #endif
+        }
+    }
+
     #ifdef Model_CACHING
     if (changed) {
         Model__InvalidateCache(model);
@@ -694,7 +746,7 @@ if model.binding('pace') is not None:
 }
 
 /*
- * Updates the state variables to the values given in `states`.
+ * Updates the state variables to the float values given in `states`.
  *
  * If any of the values are changed, the model caches are cleared.
  *
@@ -869,13 +921,11 @@ for eqs in s_output_equations:
  * Private method: Add a variable to the logging lists. Returns 1 if
  * successful.
  *
- * Note: The variable names are all ascii compatible. In Python2, the strings
- * inside log_dict are either unicode or bytes, but they can be matched
- * without conversion.
+ * Note: The variable names are all ascii compatible.
  *
  * Arguments
  *  log_dict : A dictionary mapping variable names to sequences.
- *  i : The next indice to add logs and vars.
+ *  i : The next index to add logs and vars.
  *  name : The name to check.
  *  var : A pointer to the variable.
  *
@@ -884,44 +934,43 @@ for eqs in s_output_equations:
 int
 Model__AddVariableToLog(
     Model model,
-    PyObject* log_dict, int i, const char* name, const realtype* var)
+    PyObject* log_dict, int i, const char* name, const realtype* variable)
 {
-    int added = 0;
-    PyObject* key = PyUnicode_FromString(name);     /* TODO: Remove double lookup */
-    if (PyDict_Contains(log_dict, key)) {
-        model->_log_lists[i] = PyDict_GetItem(log_dict, key);
-        model->_log_vars[i] = (realtype*)var;
-        added = 1;
-    }
+    PyObject* key = PyUnicode_FromString(name);     /* New reference */
+    PyObject* val = PyDict_GetItem(log_dict, key);  /* Borrowed reference, or NULL */
     Py_DECREF(key);
-    return added;
+    if (val == NULL) { return 0; }
+
+    model->_log_lists[i] = val;
+    model->_log_vars[i] = (realtype*)variable;
+    return 1;
 }
 
 /*
- * Initialises logging, using the given dict. An error is returned if logging
- * is already initialised.
+ * Initializes logging, using the given dict. An error is returned if logging
+ * is already initialized.
  *
  * Arguments
- *  model : The model whose logging system to initialise.
+ *  model : The model whose logging system to initialize.
  *  log_dict : A Python dict mapping fully qualified variable names to sequence
  *             objects to log in.
  *
  * Returns a model flag
  */
 Model_Flag
-Model_InitialiseLogging(Model model, PyObject* log_dict)
+Model_InitializeLogging(Model model, PyObject* log_dict)
 {
     int i, j;
 
     if (model == NULL) return Model_INVALID_MODEL;
-    if (model->logging_initialised) return Model_LOGGING_ALREADY_INITIALISED;
+    if (model->logging_initialized) return Model_LOGGING_ALREADY_INITIALIZED;
 
     /* Number of variables to log */
-    model->n_logged_variables = PyDict_Size(log_dict);
+    model->n_logged_variables = (int)PyDict_Size(log_dict);
 
     /* Allocate pointer lists */
-    model->_log_lists = (PyObject**)malloc(sizeof(PyObject*) * model->n_logged_variables);
-    model->_log_vars = (realtype**)malloc(sizeof(realtype*) * model->n_logged_variables);
+    model->_log_lists = (PyObject**)malloc((size_t)model->n_logged_variables * sizeof(PyObject*));
+    model->_log_vars = (realtype**)malloc((size_t)model->n_logged_variables * sizeof(realtype*));
 
     /* Check states */
     i = 0;
@@ -964,24 +1013,24 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     }
 
     /* All done! */
-    model->logging_initialised = 1;
+    model->logging_initialized = 1;
     return Model_OK;
 }
 
 /*
- * De-initialises logging, undoing the effects of Model_InitialiseLogging() and
- * allowing logging to be initialised again.
+ * De-initializes logging, undoing the effects of Model_InitializeLogging() and
+ * allowing logging to be initialized again.
  *
  * Arguments
- *  model : The model whos logging to deinitialise.
+ *  model : The model whos logging to deinitialize.
  *
  * Returns a model flag.
  */
 Model_Flag
-Model_DeInitialiseLogging(Model model)
+Model_DeInitializeLogging(Model model)
 {
     if (model == NULL) return Model_INVALID_MODEL;
-    if (!model->logging_initialised) return Model_LOGGING_NOT_INITIALISED;
+    if (!model->logging_initialized) return Model_LOGGING_NOT_INITIALIZED;
 
     /* Free memory */
     if (model->_log_vars != NULL) {
@@ -994,7 +1043,7 @@ Model_DeInitialiseLogging(Model model)
     }
 
     /* Reset */
-    model->logging_initialised = 0;
+    model->logging_initialized = 0;
     model->n_logged_variables = 0;
     model->logging_states = 0;
     model->logging_derivatives = 0;
@@ -1006,7 +1055,7 @@ Model_DeInitialiseLogging(Model model)
 
 /*
  * Logs the current state of the model to the logging dict passed in to
- * Model_InitialiseLogging.
+ * Model_InitializeLogging.
  *
  * Note: This method does not update the state in any way, e.g. to make sure
  * that what is logged is sensible.
@@ -1023,7 +1072,7 @@ Model_Log(Model model)
     PyObject *val, *ret;
 
     if (model == NULL) return Model_INVALID_MODEL;
-    if (!model->logging_initialised) return Model_LOGGING_NOT_INITIALISED;
+    if (!model->logging_initialized) return Model_LOGGING_NOT_INITIALIZED;
 
     for (i=0; i<model->n_logged_variables; i++) {
         val = PyFloat_FromDouble(*(model->_log_vars[i]));
@@ -1042,8 +1091,8 @@ Model_Log(Model model)
  * Creates a matrix of sensitivities and adds it to a Python sequence.
  *
  * The created matrix is a (Python) tuple of tuples, where the first (outer)
- * indice is for the dependent variable (y in dy/dx) and the second (inner)
- * indice is for the independent variable (x in dy/dx).
+ * index is for the dependent variable (y in dy/dx) and the second (inner)
+ * index is for the independent variable (x in dy/dx).
  *
  * model : The model whose sensitivities to log (must have sensitivity
  *         calculations enabled).
@@ -1055,13 +1104,14 @@ Model_Flag
 Model_LogSensitivityMatrix(Model model, PyObject* list)
 {
     PyObject *l1, *l2;
-    PyObject *val;
     int flag;
+    <?= 'PyObject *val;' if s_dependents else '' ?>
 
     if (model == NULL) return Model_INVALID_MODEL;
 
     /* Create outer tuple */
     l1 = PyTuple_New(model->ns_dependents);
+    l2 = NULL;  /* Removes "may be unitialized" error */
     if (l1 == NULL) goto nomem;
 
     /* Note that PyTuple_SetItem steals a reference */
@@ -1075,7 +1125,7 @@ for i, e1 in enumerate(s_dependents):
         pd = myokit.PartialDerivative(e1, e2)
         print(tab + 'val = PyFloat_FromDouble(' + v(pd) + ');')
         print(tab + 'if (val == NULL) goto nomem;')
-        print(tab + 'PyTuple_SetItem(l2, ' + str(j) + ', val);')
+        print(tab + 'PyTuple_SetItem(l2, ' + str(j) + ', val);')    # Steals reference
     print(tab + 'PyTuple_SetItem(l1, ' + str(i) + ', l2);')
     print(tab + 'l2 = NULL; val = NULL;')
 ?>
@@ -1089,10 +1139,9 @@ for i, e1 in enumerate(s_dependents):
     return Model_OK;
 
 nomem:
-    /* l2 is either NULL or has a single reference to it in l1, so decreffing
-       l1 should be enough. */
     /* Assuming val is NULL or has had its reference stolen. */
     Py_XDECREF(l1);
+    Py_XDECREF(l2);
     return Model_OUT_OF_MEMORY;
 }
 
@@ -1125,24 +1174,28 @@ Model Model_Create(Model_Flag* flagp)
 
     /* States and derivatives */
     model->n_states = <?= model.count_states() ?>;
-    model->states = (realtype*)malloc(model->n_states * sizeof(realtype));
-    model->derivatives = (realtype*)malloc(model->n_states * sizeof(realtype));
+    model->states = (realtype*)malloc((size_t)model->n_states * sizeof(realtype));
+    model->derivatives = (realtype*)malloc((size_t)model->n_states * sizeof(realtype));
 
     /* Intermediary variables */
     model->n_intermediary = <?= model.count_variables(inter=True, deep=True) ?>;
-    model->intermediary = (realtype*)malloc(model->n_intermediary * sizeof(realtype));
+    model->intermediary = (realtype*)malloc((size_t)model->n_intermediary * sizeof(realtype));
 
     /* Parameters */
     model->n_parameters = <?= len(parameters) ?>;
     model->n_parameter_derived = <?= len(parameter_derived) ?>;
-    model->parameters = (realtype*)malloc(model->n_parameters * sizeof(realtype));
-    model->parameter_derived = (realtype*)malloc(model->n_parameter_derived * sizeof(realtype));
+    model->parameters = (realtype*)malloc((size_t)model->n_parameters * sizeof(realtype));
+    model->parameter_derived = (realtype*)malloc((size_t)model->n_parameter_derived * sizeof(realtype));
+
+    /* Pacing */
+    model->n_pace = 0;
+    model->pace_values = NULL;
 
     /* Literals */
     model->n_literals = <?= len(literals) ?>;
     model->n_literal_derived = <?= len(literal_derived) ?>;
-    model->literals = (realtype*)malloc(model->n_literals * sizeof(realtype));
-    model->literal_derived = (realtype*)malloc(model->n_literal_derived * sizeof(realtype));
+    model->literals = (realtype*)malloc((size_t)model->n_literals * sizeof(realtype));
+    model->literal_derived = (realtype*)malloc((size_t)model->n_literal_derived * sizeof(realtype));
 
     /*
      * Sensitivities
@@ -1157,30 +1210,30 @@ Model Model_Create(Model_Flag* flagp)
     /* Pointers to independent variables */
     /* Note that, for sensitivities w.r.t. initial values, the entry in this
        list points to the _current_, not the initial value. */
-    model->s_independents = (realtype**)malloc(model->ns_independents * sizeof(realtype));
+    model->s_independents = (realtype**)malloc((size_t)model->ns_independents * sizeof(realtype));
 <?
 for i, expr in enumerate(s_independents):
     print(tab + 'model->s_independents[' + str(i) + '] = &' + v(expr.var()) + ';')
 ?>
     /* Type of independents (1 for parameter, 0 for initial) */
-    model->s_is_parameter = (int*)malloc(model->ns_independents * sizeof(int));
+    model->s_is_parameter = (int*)malloc((size_t)model->ns_independents * sizeof(int));
 <?
 for i, expr in enumerate(s_independents):
     print(tab + 'model->s_is_parameter[' + str(i) + '] = ' + str(1 if isinstance(expr, myokit.Name) else 0) + ';')
 ?>
     /* Sensitivities of state variables */
-    model->s_states = (realtype*)malloc(model->n_states * model->ns_independents * sizeof(realtype));
+    model->s_states = (realtype*)malloc((size_t)(model->n_states * model->ns_independents) * sizeof(realtype));
 
     /* Sensitivities of intermediary variables needed in calculations */
     model->ns_intermediary = <?= sum(len(x) for x in s_output_equations) ?>;
-    model->s_intermediary = (realtype*)malloc(model->ns_intermediary * sizeof(realtype));
+    model->s_intermediary = (realtype*)malloc((size_t)model->ns_intermediary * sizeof(realtype));
 
     /*
      * Logging
      */
 
     /* Logging configured? */
-    model->logging_initialised = 0;
+    model->logging_initialized = 0;
     model->n_logged_variables = 0;
 
     /* Logged variables and logged types */
@@ -1200,9 +1253,8 @@ for i, expr in enumerate(s_independents):
      * Default values
      */
 
-    /* Bound variables */
+    /* Bound variables (except pacing) */
     model->time = 0;
-    model->pace = 0;
     model->realtime = 0;
     model->evaluations = 0;
 
@@ -1228,10 +1280,10 @@ for eq in parameters.values():
         return NULL;
     }
 
-    /* States */
+    /* State values */
 <?
 for var in model.states():
-    print(tab + v(var) + ' = ' + myokit.float.str(var.state_value()) + ';')
+    print(tab + v(var) + ' = ' + myokit.float.str(var.initial_value(True)) + ';')
 ?>
     /*
      * Caching.
@@ -1244,7 +1296,7 @@ for var in model.states():
     #endif
 
     /*
-     * Finalise
+     * Finalize
      */
 
     /* Set flag to indicate success */

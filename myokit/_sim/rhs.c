@@ -49,9 +49,9 @@ tab = '    '
 
 # Process bindings, remove unsupported bindings, get map of bound variables to
 # internal names
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time' : 'engine_time',
-    })
+})
 
 # Get equations
 equations = model.solvable_order()
@@ -135,15 +135,12 @@ log_extract(PyObject* data, const char* name, const int position, double* var)
     PyObject* key;
     PyObject* list;
     PyObject* item;
-    char errstr[1000];
 
     // Get sequence from dict
     key = PyUnicode_FromString(name);
     if (!PyDict_Contains(data, key)) {
         Py_DECREF(key);
-        // Raise exception
-        sprintf(errstr, "Variable %s not found in log.", name);
-        PyErr_SetString(PyExc_Exception, errstr);
+        PyErr_Format(PyExc_Exception, "Variable %s not found in log.", name);
         return 0;
     }
     list = PyDict_GetItem(data, key); // Borrowed ref, don't decref
@@ -154,9 +151,7 @@ log_extract(PyObject* data, const char* name, const int position, double* var)
     item = PySequence_GetItem(list, position); // New reference, decref
     if (item == NULL) {
         Py_DECREF(key);
-        // Raise exception
-        sprintf(errstr, "No item found at position %i of log for %s.", position, name);
-        PyErr_SetString(PyExc_Exception, errstr);
+        PyErr_Format(PyExc_Exception, "No item found at position %i of log for %s.", position, name);
         return 0;
     }
     Py_DECREF(key);
@@ -164,9 +159,7 @@ log_extract(PyObject* data, const char* name, const int position, double* var)
     // Get double from float
     if (!PyFloat_Check(item)) {
         Py_XDECREF(item);
-        // Raise exception
-        sprintf(errstr, "Log for %s can only contain floats (error at index %i).", name, position);
-        PyErr_SetString(PyExc_Exception, errstr);
+        PyErr_Format(PyExc_Exception, "Log for %s can only contain floats (error at index %i).", name, position);
         return 0;
     }
 
@@ -250,7 +243,7 @@ bench(PyObject* self, PyObject* args, void (*fnc)(void))
         return 0;
     }
     if (start < 0) {
-        PyErr_SetString(PyExc_Exception, "Invalid log position selection: Negative list indice given.");
+        PyErr_SetString(PyExc_Exception, "Invalid log position selection: Negative list index given.");
         return 0;
     }
 

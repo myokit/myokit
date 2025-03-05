@@ -1,9 +1,17 @@
+#
+# SBML API
+#
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
+#
 import collections
+from typing import Dict
 import warnings
 import re
 
 import myokit
 import myokit.units
+from myokit.formats.cellml.v2._api import create_unit_name as cellml_create_unit_name  # noqa: E501
 
 
 # Regex for id checking
@@ -16,7 +24,7 @@ class SBMLError(Exception):
     """Raised if something goes wrong when working with an SBML model."""
 
 
-class Quantity(object):
+class Quantity:
     """
     Base class for anything that has a numerical value in an SBML model, and
     can be set by rules, reactions, or initial assignments.
@@ -52,8 +60,8 @@ class Quantity(object):
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                '<' + str(value) + '> needs to be an instance of '
-                'myokit.Expression.')
+                '<' + str(value) + '> needs to be an instance of'
+                ' myokit.Expression.')
 
         self._initial_value = value
 
@@ -75,8 +83,8 @@ class Quantity(object):
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                '<' + str(value) + '> needs to be an instance of '
-                'myokit.Expression.')
+                '<' + str(value) + '> needs to be an instance of'
+                ' myokit.Expression.')
 
         self._value = value
         self._is_rate = bool(is_rate)
@@ -89,7 +97,7 @@ class Quantity(object):
         return self._value
 
 
-class CSymbolVariable(object):
+class CSymbolVariable:
     """
     Represents a CSymbol that can appear in SBML expressions, but which has a
     predetermind value and/or meaning, e.g. "time".
@@ -122,12 +130,12 @@ class Compartment(Quantity):
 
     """
     def __init__(self, model, sid):
-        super(Compartment, self).__init__()
+        super().__init__()
 
         if not isinstance(model, Model):
             raise SBMLError(
-                '<' + str(model) + '> needs to be an instance of '
-                'myokit.formats.sbml.Model.')
+                '<' + str(model) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Model.')
 
         self._model = model
         self._sid = str(sid)
@@ -150,6 +158,7 @@ class Compartment(Quantity):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._size_units = units
+        self._model.add_unit_if_possible(units)
 
     def sid(self):
         """Returns this compartment's sid."""
@@ -185,7 +194,7 @@ class Compartment(Quantity):
         return '<Compartment ' + self._sid + '>'
 
 
-class Model(object):
+class Model:
     """
     Represents a model in SBML.
 
@@ -241,6 +250,102 @@ class Model(object):
         # CSymbolVariable for time
         self._time = CSymbolVariable(_SBML_TIME)
 
+    @staticmethod
+    def create_unit_name(unit):
+        if unit in Model._base_units_reverse:
+            return Model._base_units_reverse[unit]
+        return cellml_create_unit_name(unit)
+
+    @staticmethod
+    def from_myokit_model(model: myokit.Model) -> 'Model':
+        """
+        Creates an SBML model from a :class:`myokit.Model`.
+        """
+        # Model must be valid
+        # Otherwise could have cycles, invalid references, etc.
+        model.validate()
+
+        # Get name for model
+        name = model.name()
+        if name is None:
+            name = 'unnamed_myokit_model'
+
+        # Create model
+        m = Model(name)
+
+        # Valid model always has a time variable
+        time = model.time()
+
+        # Method to obtain or infer variable unit
+        def variable_unit(variable, time_unit):
+            """Returns variable.unit(), or attempts to infer it if not set."""
+            unit = variable.unit()
+            if unit is not None:
+                return unit
+
+            rhs = variable.rhs()
+            if rhs is not None:
+                try:
+                    # If unit not set try to infer from the rhs.
+                    # Result may be None.
+                    unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
+                except myokit.IncompatibleUnitError:
+                    return None
+                if variable.is_state():
+                    if unit is not None and time_unit is not None:
+                        # RHS is divided by time unit, so multiply
+                        unit *= time_unit
+            return unit
+
+        # Time unit, used to infer units of state variables
+        # (May itself be inferred)
+        time_unit = variable_unit(time, None)
+        if time_unit is not None:
+            m.set_time_units(time_unit)
+
+        # Create unames in model for nested variables
+        model.create_unique_names()
+
+        def add_variable(variable: myokit.Variable):
+            if variable is time:
+                return
+            v = m.add_parameter(
+                variable.uname(),
+                variable.is_constant(),
+            )
+
+            if variable.is_constant():
+                if variable.is_literal():
+                    v.set_value(variable.rhs())
+                else:
+                    v.set_initial_value(variable.rhs())
+            else:
+                if variable.is_state():
+                    v.set_initial_value(variable.initial_value())
+                    v.set_value(variable.rhs(), True)
+                else:
+                    v.set_value(variable.rhs())
+
+            unit = variable_unit(variable, time_unit)
+            if unit is not None:
+                v.set_units(unit)
+
+        # Add variables
+        for component in model:
+            for variable in component:
+                # Get variable unit, or infer from RHS if None
+                unit = variable_unit(variable, time_unit)
+
+                # Add variable
+                add_variable(variable)
+
+                # Add nested variables
+                for nested in variable.variables(deep=True):
+                    add_variable(nested)
+
+        # Return model
+        return m
+
     def add_compartment(self, sid):
         """Adds a :class:`myokit.formats.sbml.Compartment` to this model."""
 
@@ -252,16 +357,20 @@ class Model(object):
         self._assignables[sid] = c
         return c
 
-    def add_parameter(self, sid):
+    def add_parameter(self, sid, is_constant=True):
         """Adds a :class:`myokit.formats.sbml.Parameter` to this model."""
 
         sid = str(sid)
 
         self._register_sid(sid)
-        p = Parameter(self, sid)
+        p = Parameter(self, sid, is_constant)
         self._parameters[sid] = p
         self._assignables[sid] = p
         return p
+
+    def parameters(self):
+        """Returns a list of all parameters in this model."""
+        return list(self._parameters.values())
 
     def add_reaction(self, sid):
         """Adds a :class:`myokit.formats.sbml.Reaction` to this model."""
@@ -280,7 +389,7 @@ class Model(object):
         if not isinstance(compartment, Compartment):
             raise SBMLError(
                 '<' + compartment + '> needs to be instance of'
-                'myokit.formats.sbml.Compartment')
+                ' myokit.formats.sbml.Compartment')
 
         sid = str(sid) if sid else sid
         self._register_sid(sid)
@@ -290,11 +399,24 @@ class Model(object):
 
         return s
 
+    def add_unit_if_possible(self, unit):
+        """
+        Adds a unit to the model if it's not already present or in the set
+        of base units, and returns the unit's name.
+        """
+        unitsid = Model.create_unit_name(unit)
+        if unitsid in self.base_units or unitsid == 'celsius':
+            return
+        if unitsid in self._units:
+            return
+        self.add_unit(unitsid, unit)
+        return unitsid
+
     def add_unit(self, unitsid, unit):
         """Adds a user unit with the given ``unitsid`` and myokit ``unit``."""
         if not _re_id.match(unitsid):
             raise SBMLError('Invalid UnitSId "' + str(unitsid) + '".')
-        if unitsid in self._base_units or unitsid == 'celsius':
+        if unitsid in self.base_units or unitsid == 'celsius':
             raise SBMLError(
                 'User unit overrides built-in unit: "' + str(unitsid) + '".')
         if unitsid in self._units:
@@ -344,7 +466,7 @@ class Model(object):
 
         try:
             # Find and return
-            return self._base_units[unitsid]
+            return self.base_units[unitsid]
         except KeyError:
             raise SBMLError(
                 '<' + unitsid + '> is not an SBML base unit.')
@@ -352,6 +474,10 @@ class Model(object):
     def compartment(self, sid):
         """Returns the compartment with the given sid."""
         return self._compartments[sid]
+
+    def compartments(self):
+        """Returns a list of all compartments in this model."""
+        return list(self._compartments.values())
 
     def conversion_factor(self):
         """
@@ -418,6 +544,7 @@ class Model(object):
         Sets the default compartment size units for 2-dimensional compartments.
         """
         self._area_units = units
+        self.add_unit_if_possible(units)
 
     def set_conversion_factor(self, factor):
         """
@@ -427,7 +554,7 @@ class Model(object):
         if not isinstance(factor, Parameter):
             raise SBMLError(
                 '<' + str(factor) + '> needs to be instance of'
-                'myokit.formats.sbml.Parameter.')
+                ' myokit.formats.sbml.Parameter.')
 
         self._conversion_factor = factor
 
@@ -441,6 +568,7 @@ class Model(object):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._extent_units = units
+        self.add_unit_if_possible(units)
 
     def set_length_units(self, units):
         """
@@ -451,6 +579,7 @@ class Model(object):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._length_units = units
+        self.add_unit_if_possible(units)
 
     def set_notes(self, notes=None):
         """Sets an optional notes string for this model."""
@@ -463,6 +592,7 @@ class Model(object):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._substance_units = units
+        self.add_unit_if_possible(units)
 
     def set_time_units(self, units):
         """Sets the time units used throughout the model."""
@@ -471,6 +601,7 @@ class Model(object):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._time_units = units
+        self.add_unit_if_possible(units)
 
     def set_volume_units(self, units):
         """
@@ -481,6 +612,7 @@ class Model(object):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._volume_units = units
+        self.add_unit_if_possible(units)
 
     def __str__(self):
         if self._name is None:
@@ -490,6 +622,14 @@ class Model(object):
     def species(self, sid):
         """Returns the species with the given id."""
         return self._species[sid]
+
+    def species_list(self):
+        """ returns a list of all species in this model."""
+        return list(self._species.values())
+
+    def reactions(self):
+        """Returns a list of all reactions in this model."""
+        return list(self._reactions.values())
 
     def substance_units(self):
         """
@@ -507,6 +647,14 @@ class Model(object):
     def time_units(self):
         """Returns the default units for time, or dimensionless if not set."""
         return self._time_units
+
+    def units(self) -> Dict[str, myokit.Unit]:
+        """Returns a dict mapping sid to unit for all units in this model."""
+        return dict(self._units)
+
+    def has_units(self) -> bool:
+        """Returns ``True`` if this model has any units defined."""
+        return bool(self._units)
 
     def unit(self, unitsid):
         """Returns a user-defined or predefined unit."""
@@ -528,7 +676,7 @@ class Model(object):
         return self._volume_units
 
     # SBML base units (except Celsius, because it's not defined in myokit)
-    _base_units = {
+    base_units = {
         'ampere': myokit.units.A,
         'avogadro': myokit.parse_unit('1 (6.02214179e23)'),
         'becquerel': myokit.units.Bq,
@@ -566,6 +714,10 @@ class Model(object):
         'weber': myokit.units.Wb,
     }
 
+    _base_units_reverse = {
+        v: k for k, v in base_units.items()
+    }
+
 
 class Parameter(Quantity):
     """
@@ -580,15 +732,16 @@ class Parameter(Quantity):
         This parameter's SId.
 
     """
-    def __init__(self, model, sid):
-        super(Parameter, self).__init__()
+    def __init__(self, model, sid, is_constant=True):
+        super().__init__()
 
         if not isinstance(model, Model):
             raise SBMLError(
-                '<' + str(model) + '> needs to be an instance of '
-                'myokit.formats.sbml.Model.')
+                '<' + str(model) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Model.')
 
         self._model = model
+        self._is_constant = is_constant
         self._sid = str(sid)
         self._units = None
 
@@ -599,6 +752,15 @@ class Parameter(Quantity):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._units = units
+        self._model.add_unit_if_possible(units)
+
+    def is_constant(self):
+        """Returns ``True`` if this parameter is constant, else ``False``."""
+        return self._is_constant
+
+    def is_literal(self):
+        """Returns ``True`` if this parameter is a literal value."""
+        return self.is_constant() and self._value is not None
 
     def sid(self):
         """Returns this parameter's sid."""
@@ -612,7 +774,7 @@ class Parameter(Quantity):
         return self._units
 
 
-class Reaction(object):
+class Reaction:
     """
     Represents an SBML reaction; to create a reaction use
     :meth:`Model.add_reaction()`.
@@ -629,8 +791,8 @@ class Reaction(object):
 
         if not isinstance(model, Model):
             raise SBMLError(
-                '<' + str(model) + '> needs to be an instance of '
-                'myokit.formats.sbml.Model.')
+                '<' + str(model) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Model.')
 
         self._model = model
         self._sid = str(sid)
@@ -650,8 +812,8 @@ class Reaction(object):
         """Adds a modifier to this reaction and returns the created object."""
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + str(species) + '> needs to be an instance of '
-                'myokit.formats.sbml.Species')
+                '<' + str(species) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Species')
 
         sid = str(sid) if sid else sid
         if sid is not None:
@@ -668,8 +830,8 @@ class Reaction(object):
         """
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + str(species) + '> needs to be an instance of '
-                'myokit.formats.sbml.Species')
+                '<' + str(species) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Species')
 
         sid = str(sid) if sid else sid
         if sid is not None:
@@ -685,8 +847,8 @@ class Reaction(object):
         """Adds a reactant to this reaction and returns the created object."""
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + str(species) + '> needs to be an instance of '
-                'myokit.formats.sbml.Species')
+                '<' + str(species) + '> needs to be an instance of'
+                ' myokit.formats.sbml.Species')
 
         sid = str(sid) if sid else sid
         if sid is not None:
@@ -731,8 +893,8 @@ class Reaction(object):
         """
         if not isinstance(expression, myokit.Expression):
             raise SBMLError(
-                '<' + str(expression) + '> needs to be an instance of '
-                'myokit.Expression.')
+                '<' + str(expression) + '> needs to be an instance of'
+                ' myokit.Expression.')
 
         self._kinetic_law = expression
 
@@ -772,12 +934,12 @@ class Species(Quantity):
 
     """
     def __init__(self, compartment, sid, is_amount, is_constant, is_boundary):
-        super(Species, self).__init__()
+        super().__init__()
 
         if not isinstance(compartment, Compartment):
             raise SBMLError(
                 '<' + compartment + '> needs to be instance of'
-                'myokit.formats.sbml.Compartment')
+                ' myokit.formats.sbml.Compartment')
         if not isinstance(is_amount, bool):
             raise SBMLError(
                 'Is_amount <' + str(is_amount) + '> needs to be a boolean.')
@@ -853,7 +1015,7 @@ class Species(Quantity):
         if not isinstance(factor, Parameter):
             raise SBMLError(
                 '<' + str(factor) + '> needs to be instance of'
-                'myokit.formats.sbml.Parameter.')
+                ' myokit.formats.sbml.Parameter.')
 
         self._conversion_factor = factor
 
@@ -867,8 +1029,8 @@ class Species(Quantity):
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                '<' + str(value) + '> needs to be an instance of '
-                'myokit.Expression.')
+                '<' + str(value) + '> needs to be an instance of'
+                ' myokit.Expression.')
         if (in_amount is not None) and (not isinstance(in_amount, bool)):
             raise SBMLError(
                 '<in_amount> needs to be an instance of bool or None.')
@@ -883,6 +1045,7 @@ class Species(Quantity):
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._units = units
+        self._compartment._model.add_unit_if_possible(units)
 
     def sid(self):
         """Returns this species's sid."""
@@ -914,12 +1077,12 @@ class SpeciesReference(Quantity):
     MODIFIER = 2
 
     def __init__(self, species, sid=None):
-        super(SpeciesReference, self).__init__()
+        super().__init__()
 
         if not isinstance(species, Species):
             raise SBMLError(
                 '<' + species + '> needs to be instance of'
-                'myokit.formats.sbml.Species')
+                ' myokit.formats.sbml.Species')
 
         self._species = species
         self._sid = str(sid) if sid else sid
@@ -936,16 +1099,16 @@ class SpeciesReference(Quantity):
         return '<SpeciesReference ' + self._sid + '>'
 
 
-class ModifierSpeciesReference(object):
+class ModifierSpeciesReference:
     """Represents a reference to a modifier species in an SBML reaction."""
 
     def __init__(self, species, sid=None):
-        super(ModifierSpeciesReference, self).__init__()
+        super().__init__()
 
         if not isinstance(species, Species):
             raise SBMLError(
                 '<' + species + '> needs to be instance of'
-                'myokit.formats.sbml.Species')
+                ' myokit.formats.sbml.Species')
 
         self._species = species
         self._sid = str(sid) if sid else sid
@@ -971,7 +1134,7 @@ def convert_name(name):
     return name
 
 
-class _MyokitConverter(object):
+class _MyokitConverter:
     """
     Converts SBML Models to Myokit models.
     """
@@ -1058,7 +1221,7 @@ class _MyokitConverter(object):
 
     @staticmethod
     def add_global_component(
-            myokit_model, component_references, name='myokit'):
+            myokit_model, component_references, name='global'):
         """
         Creates a component used to store global parameters and the time
         variable.
@@ -1298,7 +1461,7 @@ class _MyokitConverter(object):
                         'with an initial value. Default is set to 1.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
@@ -1383,10 +1546,10 @@ class _MyokitConverter(object):
                         'value. Default is set to 0.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
                 var.set_rhs(myokit.Number(0))
 
-            if var.eval():
+            if (not var.rhs().is_literal()) or var.rhs().eval():
                 # Subtract rate contributions
                 # (Reaction removes species from compartment)
                 expr = myokit.Minus(var.rhs(), expr)
@@ -1473,10 +1636,10 @@ class _MyokitConverter(object):
                         'value. Default is set to 0.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
                 var.set_rhs(myokit.Number(0))
 
-            if var.rhs().eval():
+            if (not var.rhs().is_literal()) or var.rhs().eval():
                 # Add rate contributions
                 expr = myokit.Plus(var.rhs(), expr)
 
@@ -1546,7 +1709,7 @@ class _MyokitConverter(object):
                         'value. Default is set to 0.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
 
             # Set RHS (reactions are dealt with elsewhere)
             expr = species.value()
@@ -1607,7 +1770,7 @@ class _MyokitConverter(object):
                         ' initial value. Default is set to 1.')
 
                 # Promote size to state variable
-                var.promote(state_value=state_value)
+                var.promote(state_value)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
@@ -1673,7 +1836,7 @@ class _MyokitConverter(object):
                             ' 1.')
 
                     # Promote size to state variable
-                    var.promote(state_value=state_value)
+                    var.promote(state_value)
 
                 # Set RHS
                 # (assignmentRule overwrites initialAssignment)

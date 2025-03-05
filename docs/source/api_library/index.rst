@@ -12,7 +12,6 @@ submodules detailed in the sections listed below.
 
 ..  toctree::
 
-    common_experiments
     common_plots
     dependency_analysis
     guess

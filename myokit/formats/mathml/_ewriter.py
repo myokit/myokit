@@ -4,18 +4,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 from lxml import etree
 
 import myokit.formats
-
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
 
 
 class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
@@ -25,7 +16,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
     Presentation MathML.
     """
     def __init__(self):
-        super(MathMLExpressionWriter, self).__init__()
+        super().__init__()
 
         # Default mode
         self._pres = False
@@ -33,15 +24,15 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         # Default lhs conversion function
         def flhs(lhs):
             var = lhs.var()
-            if isinstance(var, basestring):
+            if isinstance(var, str):
                 # This can happen with time variable of derivative if the
                 # proper variable isn't set!
                 return var
             return var.qname()
         self._flhs = flhs
 
-        # Default number conversion function
-        self._fnum = lambda x: myokit.float.str(x.eval())
+        # Default number-to-string conversion function (outputs e.g. "1.0")
+        self._fnum = lambda x: myokit.float.str(x.eval()).strip()
 
         # Default time variable
         self._tvar = myokit.Name('time')
@@ -125,9 +116,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             return encoded.decode(enc)
 
     def _ex(self, e, t):
-        """
-        Writes expression ``e`` to element ``t``
-        """
+        """ Writes expression ``e`` to element ``t`` """
         try:
             action = self._op_map[type(e)]
         except KeyError:
@@ -141,11 +130,11 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         bra = e.bracket(e[0])
         if self._pres:
             row = etree.SubElement(t, 'mrow')
+            x = etree.SubElement(row, 'mo')
+            x.text = e.operator_rep()
             if bra:
                 x = etree.SubElement(row, 'mo')
                 x.text = '('
-            x = etree.SubElement(row, 'mo')
-            x.text = e.operator_rep()
             self._ex(e[0], row)
             if bra:
                 x = etree.SubElement(row, 'mo')
@@ -179,9 +168,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             self._ex(e[1], a)
 
     def _ex_function(self, e, t, name):
-        """
-        Exports e as a function called name.
-        """
+        """ Exports ``e`` as a function called ``name``. """
         if self._pres:
             r = etree.SubElement(t, 'mrow')
             x = etree.SubElement(r, 'mi')
@@ -216,10 +203,28 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         x = etree.SubElement(t, 'mn' if self._pres else 'cn')
         x.text = self._fnum(e)
 
+        if not self._pres:
+            try:
+                x.text, exp = x.text.split('e', 1)
+            except ValueError:
+                # Return for overriding
+                return x
+
+            exp = int(exp)
+            if exp != 0:
+                x.attrib['type'] = 'e-notation'
+                s = etree.SubElement(x, 'sep')
+                s.tail = str(int(exp))
+
+        # Return for overriding
+        return x
+
     def _ex_prefix_plus(self, e, t):
+        # Return for overriding
         return self._ex_prefix(e, t, 'plus')
 
     def _ex_prefix_minus(self, e, t):
+        # Return for overriding
         return self._ex_prefix(e, t, 'minus')
 
     def _ex_plus(self, e, t):

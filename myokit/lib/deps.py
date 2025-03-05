@@ -5,12 +5,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-import random
 import collections
+import random
+
 import myokit
+
 # Don't import pyplot yet, this will crash if no window environment is loaded
 
 
@@ -52,7 +51,7 @@ def create_state_dependency_matrix(model, direct=False, knockout=None):
             v = model.get(v, class_filter=myokit.Variable)
             if not v.is_state():
                 raise ValueError('Knockout variables must be states.')
-            iknock.append(v.indice())
+            iknock.append(v.index())
 
     # Create matrix of direct dependencies
     m = []
@@ -61,7 +60,7 @@ def create_state_dependency_matrix(model, direct=False, knockout=None):
         if i not in iknock:
             for dep in deep[var.lhs()]:
                 if dep.var().is_state():
-                    j = dep.var().indice()
+                    j = dep.var().index()
                     if j not in iknock:
                         row[j] = 1
         m.append(row)
@@ -174,7 +173,7 @@ def plot_state_dependency_matrix(
     return a
 
 
-class DiGraph(object):
+class DiGraph:
     """
     A simple directed graph implementation.
 
@@ -182,7 +181,7 @@ class DiGraph(object):
     for example ``matrix=[[0, 1, 1], [0, 1, 0], [0, 0, 0]]``
     """
     def __init__(self, matrix=None):
-        super(DiGraph, self).__init__()
+        super().__init__()
         if isinstance(matrix, DiGraph):
             # Clone
             self.nodes = collections.OrderedDict()
@@ -455,7 +454,7 @@ class DiGraph(object):
         for n_runs in range(max_runs):
             change = False
             for i, layer in enumerate(layers):
-                # Set nodes to median of neighbours
+                # Set nodes to median of neighbors
                 for j, node in enumerate(layer):
                     n = len(node.edgi) + len(node.edgo)
                     if n > 0:
@@ -493,8 +492,8 @@ class DiGraph(object):
                             x2 = None
                             for k in range(j + 1, n):
                                 if abs(layer[k].x - node.x) >= too_close:
-                                    x2 = layer[k].x
-                                    break
+                                    x2 = layer[k].x     # pragma: no cover
+                                    break               # pragma: no cover
                                 eq.append(layer[k])
                             if x2 is None:
                                 x2 = 1.0
@@ -512,7 +511,7 @@ class DiGraph(object):
         """
         node = self.uid_or_node(node)
         node.clear_edges()
-        del(self.nodes[node.uid])
+        del self.nodes[node.uid]
 
     def uid_or_node(self, test):
         """
@@ -522,11 +521,11 @@ class DiGraph(object):
             return self.node(test)
         if test.graph != self:
             raise ValueError('Node from another graph: "' + str(test) + '"')
-        assert(test.uid in self.nodes and self.nodes[test.uid] == test)
+        assert (test.uid in self.nodes and self.nodes[test.uid] == test)
         return test
 
 
-class Node(object):
+class Node:
     """
     Defines a node in a graph
     """
@@ -534,7 +533,7 @@ class Node(object):
         """
         Creates a new, graphless node with the given identifier
         """
-        super(Node, self).__init__()
+        super().__init__()
         self.graph = None
         self.uid = uid
         self.edgo = set()
@@ -738,7 +737,7 @@ def create_variable_dependency_graph(model):
     # Remove unused nodes
     for node in set(g.nodes).difference(used):
         g.remove_node(node)
-    del(used)
+    del used
     # Layout graphs
     g.layout_layered()
     # Return
