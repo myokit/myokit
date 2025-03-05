@@ -6,10 +6,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
+
 from myokit.formats.python import PythonExpressionWriter
 
 
@@ -19,22 +17,8 @@ class StanExpressionWriter(PythonExpressionWriter):
     Myokit:class:`expressions <myokit.Expression>` to a Stan syntax.
     """
     def __init__(self):
-        super(StanExpressionWriter, self).__init__()
+        super().__init__()
         self._function_prefix = ''
-
-        self._fcond = None
-        self.set_condition_function('ifthenelse')
-
-    def set_condition_function(self, func=None):
-        """
-        Sets a function name to use for if statements
-
-        By setting func to None you can revert back to the default behavior
-         (the ternary operator). Any other value will be interpreted as the
-         name of a function taking arguments (condition, value_if_true,
-         value_if_false).
-        """
-        self._fcond = func
 
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
@@ -51,11 +35,22 @@ class StanExpressionWriter(PythonExpressionWriter):
         return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])))
 
     def _ex_remainder(self, e):
-        # fmod uses correct convention
-        return self._ex_function(e, 'fmod')
+        # Extra brackets needed: Minus has lower precedence than division.
+        i = myokit.Minus(e[0], myokit.Multiply(
+            e[1], myokit.Floor(myokit.Divide(e[0], e[1]))))
+        return f'({self.ex(i)})'
 
     def _ex_power(self, e):
-        return self._ex_infix(e, '^')
+        # Like Python (and unlike Myokit), Stan uses a right-associative power
+        # operator.
+        if e.bracket(e[0]) or isinstance(e[0], myokit.Power):
+            out = f'({self.ex(e[0])})'
+        else:
+            out = f'{self.ex(e[0])}'
+        if e.bracket(e[1]) and not isinstance(e[1], myokit.Power):
+            return f'{out}^({self.ex(e[1])})'
+        else:
+            return f'{out}^{self.ex(e[1])}'
 
     #def _ex_sqrt(self, e):
     #def _ex_sin(self, e):
@@ -67,22 +62,16 @@ class StanExpressionWriter(PythonExpressionWriter):
     #def _ex_exp(self, e):
 
     def _ex_log(self, e):
-        if len(e) == 1:
-            return self._ex_function(e, 'log')
-        else:
-            return '(log(' + self.ex(e[0]) + ') / log(' + self.ex(e[1]) + '))'
+        if len(e) == 2:
+            return f'(log({self.ex(e[0])}) / log({self.ex(e[1])}))'
+        return f'log({self.ex(e[0])})'
 
     def _ex_log10(self, e):
-        return 'log10(' + self.ex(e[0]) + ')'
+        return f'log10({self.ex(e[0])})'
 
     #def _ex_floor(self, e):
     #def _ex_ceil(self, e):
-
-    def _ex_abs(self, e):
-        return self._ex_function(e, 'abs')
-
-    def _ex_not(self, e):
-        return '!(' + self.ex(e[0]) + ')'
+    #def _ex_abs(self, e):
 
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
@@ -92,21 +81,22 @@ class StanExpressionWriter(PythonExpressionWriter):
     #def _ex_less_equal(self, e):
 
     def _ex_and(self, e):
-        return self._ex_infix_condition(e, '&&')
+        return self._ex_infix_logical(e, '&&')
 
     def _ex_or(self, e):
-        return self._ex_infix_condition(e, '||')
+        return self._ex_infix_logical(e, '||')
+
+    def _ex_not(self, e):
+        return f'(!{self.ex(e[0])})'
 
     def _ex_if(self, e):
-        return ('(' + self.ex(e._i) + ' ? ' + self.ex(e._t) + ' : ' +
-                self.ex(e._e) + ')')
+        return f'({self.ex(e._i)} ? {self.ex(e._t)} : {self.ex(e._e)})'
 
     def _ex_piecewise(self, e):
         s = []
-        n = len(e._i)
-        for i in range(0, n):
-            s.append('(%s ? %s : ' % (self.ex(e._i[i]), self.ex(e._e[i])))
-        s.append(self.ex(e._e[n]))
-        s.append(')' * n)
+        for _if, _then in zip(e._i, e._e):
+            s.append(f'({self.ex(_if)} ? {self.ex(_then)} : ')
+        s.append(self.ex(e._e[-1]))
+        s.append(')' * len(e._i))
         return ''.join(s)
 

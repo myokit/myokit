@@ -60,8 +60,6 @@ do { \
     } \
 } while(0)
 
-/* Show debug output */
-//#define __MYOKIT_DEBUG
 <?
 print('#define n_state ' + str(model.count_states()))
 print('')
@@ -194,7 +192,7 @@ void set_initial_values(int n_cells, Real* s)
     for(i=0; i<n_cells; i++) {
 <?
 for v in model.states():
-    print(tab*2 + '*s = ' + myokit.float.str(v.state_value()) + '; s++; // ' + str(v.qname()))
+    print(tab*2 + '*s = ' + myokit.float.str(v.initial_value(True)) + '; s++; // ' + str(v.qname()))
 ?>
     }
 }
@@ -234,22 +232,16 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
 
     /* Get device id */
     cl_device_id device_id = get_device_id();
-    #ifdef __MYOKIT_DEBUG
-	{
-	    char buffer[65536];
-        ocl(clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(buffer), buffer, NULL));
-        printf("Using device: %s\n", buffer);
-    }
-    #endif
+    char buffer[65536];
+    ocl(clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(buffer), buffer, NULL));
+    // printf("Using device: %s\n", buffer);
 
     /* Create a context and command queue */
     cl_int err;
     context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &err);
     ocl_check("clCreateContext", err);
     command_queue = clCreateCommandQueue(context, device_id, 0, &err);
-    #ifdef __MYOKIT_DEBUG
-    printf("Created context and command queue.\n");
-    #endif
+    // printf("Created context and command queue.\n");
 
     /* Create state vector */
     int dsize_state = n_cells * n_state * sizeof(Real);
@@ -266,16 +258,12 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     ocl_check("clCreateBuffer mbuf_state", err);
     mbuf_idiff = clCreateBuffer(context, CL_MEM_READ_ONLY, dsize_idiff, NULL, &err);
     ocl_check("clCreateBuffer mbuf_idiff", err);
-    #ifdef __MYOKIT_DEBUG
-    printf("Created buffers.\n");
-    #endif
+    // printf("Created buffers.\n");
 
     /* Copy data into buffers */
     ocl(clEnqueueWriteBuffer(command_queue, mbuf_state, CL_TRUE, 0, dsize_state, state, 0, NULL, NULL));
     ocl(clEnqueueWriteBuffer(command_queue, mbuf_idiff, CL_TRUE, 0, dsize_idiff, idiff, 0, NULL, NULL));
-    #ifdef __MYOKIT_DEBUG
-    printf("Set initial state.\n");
-    #endif
+    // printf("Set initial state.\n");
 
     /* Load and compile the kernel program(s) */
     char* source = read_kernel("kernel.cl");
@@ -297,18 +285,14 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
         abort();
     }
     ocl_check("clBuildProgram", err);
-    #ifdef __MYOKIT_DEBUG
-    printf("Program created and built.\n");
-    #endif
+    // printf("Program created and built.\n");
 
     /* Create the kernels */
     kernel_cell = clCreateKernel(program, "cell_step", &err);
     ocl_check("clCreateKernel", err);
     kernel_diff = clCreateKernel(program, "diff_step", &err);
     ocl_check("clCreateKernel", err);
-    #ifdef __MYOKIT_DEBUG
-    printf("Kernels created.\n");
-    #endif
+    // printf("Kernels created.\n");
 
     /* Pass arguments into kernels */
     ocl(clSetKernelArg(kernel_cell, 0, sizeof(n_cells), &n_cells));
@@ -320,9 +304,7 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     ocl(clSetKernelArg(kernel_diff, 1, sizeof(g), &g));
     ocl(clSetKernelArg(kernel_diff, 2, sizeof(mbuf_state), &mbuf_state));
     ocl(clSetKernelArg(kernel_diff, 3, sizeof(mbuf_idiff), &mbuf_idiff));
-    #ifdef __MYOKIT_DEBUG
-    printf("Arguments passed into kernels.\n");
-    #endif
+    // printf("Arguments passed into kernels.\n");
 
     /* Add log header */
     printf("engine.time");
@@ -360,9 +342,7 @@ for v in model.states():
 
 done:
     /* Tidy up */
-    #ifdef __MYOKIT_DEBUG
-    printf("Tidying up.\n");
-    #endif
+    // printf("Tidying up.\n");
 
     ocl(clFlush(command_queue));
     ocl(clFinish(command_queue));
@@ -376,9 +356,7 @@ done:
     free(state);
     free(idiff);
 
-    #ifdef __MYOKIT_DEBUG
-    printf("Done.\n");
-    #endif
+    // printf("Done.\n");
 }
 
 int main()

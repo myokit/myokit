@@ -6,9 +6,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import io
 import os
 import re
 import shutil
@@ -18,20 +16,15 @@ import tempfile
 import threading
 import timeit
 
-# StringIO in Python 2 and 3
-try:
-    from cStringIO import StringIO
-except ImportError:  # pragma: no python 2 cover
-    from io import StringIO
-
 
 # Natural sort regex
 _natural_sort_regex = re.compile('([0-9]+)')
 
 
-class Benchmarker(object):
+class Benchmarker:
     """
-    Allows benchmarking using the with statement.
+    Provides reasonably precise benchmarking (with times obtained from
+    ``timeit.default_timer()``) and formats times.
 
     Example::
 
@@ -42,11 +35,12 @@ class Benchmarker(object):
         print(b.time())
         b.reset()
         s.run()
-        print(b.time())
+        print(b.format())
 
     """
     def __init__(self):
         self._start = timeit.default_timer()
+        self._last_print = self._start
 
     def format(self, time=None):
         """
@@ -75,20 +69,28 @@ class Benchmarker(object):
         output.append('1 second' if time == 1 else str(time) + ' seconds')
         return ', '.join(output)
 
+    def print(self, message):
+        """
+        Prints a message to stdout, preceded by the benchmarker time in us.
+        """
+        now = timeit.default_timer()
+        tot = int(1e6 * (now - self._start))
+        new = int(1e6 * (now - self._last_print))
+        self._last_print = now
+        print('[{:10d} us ({:5d} us)] '.format(tot, new) + str(message))
+
     def reset(self):
-        """
-        Resets this timer's start time.
-        """
+        """ Resets this timer's start time. """
         self._start = timeit.default_timer()
 
     def time(self):
         """
-        Returns the time since benchmarking started.
+        Returns the time since benchmarking started (as a float, in seconds).
         """
         return timeit.default_timer() - self._start
 
 
-class capture(object):
+class capture:
     """
     Context manager that temporarily redirects the current standard output and
     error streams, and captures anything that's written to them.
@@ -130,6 +132,9 @@ class capture(object):
     catch that output start the capture with the optional argument
     ``fd=True``, which enables a file descriptor duplication method of
     redirection.
+
+    To easily switch capturing on/off, a switch ``enabled=False`` can be passed
+    in to create a context manager that doesn't do anything.
     """
     # Note: It seems we need to capture both streams to make the file
     # descriptor method work, and we want both anyway throughout Myokit, so
@@ -138,7 +143,7 @@ class capture(object):
     # Lock to stop other threads from capturing while this thread is capturing.
     _rlock = threading.RLock()
 
-    def __init__(self, fd=False):
+    def __init__(self, fd=False, enabled=True):
 
         # Are we already capturing? This is needed in case someone enters the
         # same context twice.
@@ -167,8 +172,14 @@ class capture(object):
         self._file_out = None    # Temporary file to write output to
         self._file_err = None    # Temporary file to write errors to
 
+        # Capturing enabled
+        self._enabled = bool(enabled)
+
     def __enter__(self):
         """Called when the context is entered."""
+        if not self._enabled:
+            return self
+
         # Avoid entering the same context object twice
         self._active_count += 1
         if self._active_count == 1:
@@ -184,6 +195,9 @@ class capture(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Called when exiting the context."""
+        if not self._enabled:
+            return
+
         self._active_count -= 1
         if self._active_count == 0:
             self._stop()
@@ -203,8 +217,8 @@ class capture(object):
         # Redirect
         if not self._fd:
             # Create temporary output and error streams
-            self._tmp_out = StringIO()
-            self._tmp_err = StringIO()
+            self._tmp_out = io.StringIO()
+            self._tmp_err = io.StringIO()
 
             # Redirect, attempting to flush first
             try:
@@ -370,10 +384,6 @@ class capture(object):
             return ''
         text = self._txt_err
 
-        # In Python 2, the text needs to be decoded from ascii
-        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
-            text = text.decode('ascii', 'ignore')
-
         return text
 
     def out(self):
@@ -384,10 +394,6 @@ class capture(object):
         if self._txt_out is None:
             return ''
         text = self._txt_out
-
-        # In Python 2, the text needs to be decoded from ascii
-        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
-            text = text.decode('ascii', 'ignore')
 
         return text
 
@@ -466,10 +472,12 @@ def natural_sort_key(s):
         for text in _natural_sort_regex.split(s)]
 
 
-def rmtree(path):
+def rmtree(path, silent=False):
     """
     Version of ``shutil.rmtree`` that handles Windows "access denied" errors
     (when the user is lacking write permissions, but is allowed to set them).
+
+    If ``silent=True`` any other exceptions will be caught and ignored.
     """
     # From https://stackoverflow.com/questions/2656322
     def onerror(function, path, excinfo):   # pragma: no cover
@@ -480,5 +488,11 @@ def rmtree(path):
         else:
             raise
 
-    shutil.rmtree(path, ignore_errors=False, onerror=onerror)
+    if silent:
+        try:
+            shutil.rmtree(path, ignore_errors=False, onerror=onerror)
+        except Exception:
+            pass
+    else:
+        shutil.rmtree(path, ignore_errors=False, onerror=onerror)
 

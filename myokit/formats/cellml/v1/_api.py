@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import collections
 import re
 import warnings
@@ -116,7 +113,7 @@ def create_unit_name(unit):
     return name
 
 
-class AnnotatableElement(object):
+class AnnotatableElement:
     """
     Represents a CellML 1.0 or 1.1 element that can have a cmeta:id.
 
@@ -187,7 +184,7 @@ class UnsupportedBaseUnitsError(UnitsError):
     """
     def __init__(self, units):
         self.units = units
-        super(UnsupportedBaseUnitsError, self).__init__(
+        super().__init__(
             'Unsupported base units "' + units + '".')
 
 
@@ -196,7 +193,7 @@ class UnsupportedUnitOffsetError(UnitsError):
     Raised when units with non-zero offsets are used.
     """
     def __init__(self):
-        super(UnsupportedUnitOffsetError, self).__init__(
+        super().__init__(
             'Units with non-zero offsets are not supported.')
 
 
@@ -206,7 +203,7 @@ class Component(AnnotatableElement):
     :meth:`Model.add_component()`.
     """
     def __init__(self, model, name):
-        super(Component, self).__init__(model)
+        super().__init__(model)
 
         # Store model
         self._model = model
@@ -474,7 +471,7 @@ class Model(AnnotatableElement):
 
     """
     def __init__(self, name, version='1.0'):
-        super(Model, self).__init__(self)
+        super().__init__(self)
 
         # Check and store name
         if not is_valid_identifier(name):
@@ -898,7 +895,7 @@ class Model(AnnotatableElement):
                 # Promote states and set rhs and initial value
                 elif variable.is_state():
                     v.set_is_state(True)
-                    v.set_initial_value(variable.state_value())
+                    v.set_initial_value(variable.initial_value(True))
                     v.set_rhs(rhs)
 
                 # Store literals (single number) in initial value
@@ -1127,7 +1124,7 @@ class Model(AnnotatableElement):
         Should be called whenever a cmeta:id for a CellML element in this model
         (or for this model itself) is unset.
         """
-        del(self._cmeta_ids[cmeta_id])
+        del self._cmeta_ids[cmeta_id]
 
     def validate(self):
         """
@@ -1165,7 +1162,7 @@ class Model(AnnotatableElement):
         return self._version
 
 
-class Units(object):
+class Units:
     """
     Represents a CellML units definition, should not be created directly but
     only via :meth:`Model.add_units()` or :meth:`Component.add_units()`.
@@ -1470,7 +1467,7 @@ class Variable(AnnotatableElement):
     """
     def __init__(self, component, name, units, public_interface='none',
                  private_interface='none'):
-        super(Variable, self).__init__(component.model())
+        super().__init__(component.model())
 
         # Store component
         self._component = component

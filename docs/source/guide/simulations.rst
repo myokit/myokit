@@ -106,7 +106,7 @@ Example::
     s = myokit.Simulation(m, p)
 
     # The simulation time is now zero, the simulation state is the one returned
-    # by m.state()
+    # by m.initial_values(as_floats=True)
 
     log = s.run(1000)
 

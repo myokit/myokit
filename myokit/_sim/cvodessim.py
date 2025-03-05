@@ -5,11 +5,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import platform
+import tempfile
 
 from collections import OrderedDict
 
@@ -84,19 +82,61 @@ class Simulation(myokit.CModule):
         determined using the protocol passed into the Simulation.
     ``evaluations``
         This input provides the number of rhs evaluations used at each point in
-        time and can be used to gain some insight into the solver's behaviour.
+        time and can be used to gain some insight into the solver's behavior.
     ``realtime``
         This input provides the elapsed system time at each logged point.
 
     No variable labels are required for this simulation type.
+
+    **Multiple protocols or no protocol**
+
+    This simulation supports pacing with more than one protocol. To this end,
+    pass in a dictionary mapping pacing labels (bindings) to :class:`Protocol`
+    or :class:`TimeSeriesProtocol` objects, e.g.
+    ``protocol={'pace_1': protocol_1, 'pace_2': protocol_2}``.
+
+    For backwards compatibility, if no protocol is set and ``protocol=None``,
+    then the pacing label ``pace`` is still registered (allowing later calls to
+    add a protocol with ``set_protocol``. Alternatively, if ``protocol={}``
+    then no pacing labels will be registered, and any subsequent calls to
+    ``set_protocol`` will fail.
+
+    **Storing and loading simulation objects**
+
+    There are two ways to store Simulation objects to the file system: 1.
+    using serialisation (the ``pickle`` module), and 2. using the ``path``
+    constructor argument.
+
+    Each time a simulation is created, a C module is compiled, imported, and
+    deleted in the background. This means that part of a ``Simulation`` object
+    is a reference to an imported C extension, and cannot be serialized. When
+    using ``pickle`` to serialize the simulation, this compiled part is not
+    stored. Instead, when the pickled simulation is read from disk the
+    compilation is repeated. Unpickling simulations also restores their state:
+    variables such as model state, simulation time, and tolerance are preserved
+    when pickling.
+
+    As an alternative to serialisation, Simulations can be created with a
+    ``path`` variable that specifies a location where the generated module can
+    be stored. For example, calling ``Simulation(model, path='my-sim.zip')``
+    will create a file called ``my-sim.zip`` in which the C extension is
+    stored. To load, use ``Simulation.from_path('my-sim.zip')``. Unlike
+    pickling, simulations stored and loaded this way do not maintain state:
+    variables such as model state, simulation time, and tolerance are not
+    preserved with this method. Finally, note that (again unlike pickled
+    simulations), the generated zip files are highly platform dependent: a zip
+    file generated on one machine may not work on another.
 
     **Arguments**
 
     ``model``
         The model to simulate
     ``protocol``
-        An optional :class:`myokit.Protocol` to use as input for variables
-        bound to ``pace``.
+        A :class:`myokit.Protocol` or :class:`myokit.TimeSeriesProtocol` to use
+        for the variable with binding ``pace``. Atlernatively, a dictionary
+        mapping binding labels to :class:`myokit.Protocol` objects can be used
+        to run with multiple protocols. Finally, can be ``None`` to run without
+        a protocol.
     ``sensitivities``
         An optional tuple ``(dependents, independents)`` where ``dependents``
         is a list of variables or expressions to take derivatives of (``y`` in
@@ -108,6 +148,9 @@ class Simulation(myokit.CModule):
         Each entry in ``independents`` must be a :class:`myokit.Variable`, a
         :class:`myokit.Name`, a :class:`myokit.InitialValue`, or a string with
         either a fully qualified variable name or an ``init()`` expression.
+    ``path``
+        An optional path used to load or store compiled simulation objects. See
+        "Storing and loading simulation objects", above.
 
     **References**
 
@@ -118,25 +161,46 @@ class Simulation(myokit.CModule):
     """
     _index = 0  # Simulation id
 
-    def __init__(self, model, protocol=None, sensitivities=None):
-        super(Simulation, self).__init__()
+    def __init__(self, model, protocol=None, sensitivities=None, path=None):
+        super().__init__()
 
         # Require a valid model
         if not model.is_valid():
             model.validate()
         self._model = model.clone()
-        del(model)
+        del model
 
         # Set protocol
-        self._protocol = None
-        self._fixed_form_protocol = None
-        self.set_protocol(protocol)
-        del(protocol)
+        self._protocols = []
+        self._pacing_labels = []
+        if isinstance(protocol, (myokit.Protocol, myokit.TimeSeriesProtocol)):
+            protocol = {'pace': protocol}
+        elif protocol is None:
+            # For backwards compatibility, we still register 'pace'. This
+            # means users can call `set_protocol` at a later time to set a
+            # protocol.
+            protocol = {'pace': None}
+        for label, protocol in protocol.items():
+            self._protocols.append(None)
+            self._pacing_labels.append(label)
+            self.set_protocol(protocol, label)
 
         # Generate C Model code, get sensitivity and constants info
-        cmodel = myokit.CModel(self._model, sensitivities)
+        cmodel = myokit.CModel(self._model, self._pacing_labels, sensitivities)
         if cmodel.has_sensitivities:
             self._sensitivities = (cmodel.dependents, cmodel.independents)
+
+            # Check for sensitivities w.r.t. variables used in initial state
+            # expressions. This is not implemented yet.
+            inits = self._model.initial_values()
+            for i in self._sensitivities[1]:  # Expressions
+                if isinstance(i, myokit.Name):
+                    for e in inits:
+                        if e.depends_on(i, deep=True):
+                            raise NotImplementedError(
+                                'Sensitivities with respect to parameters used'
+                                ' in initial conditions is not implemented ('
+                                + e.code() + ' depends on ' + i.code() + ').')
         else:
             self._sensitivities = None
 
@@ -148,29 +212,33 @@ class Simulation(myokit.CModule):
         for var, eq in cmodel.parameters.items():
             self._parameters[var] = eq.rhs.eval()
 
-        # Compile simulation
-        self._create_simulation(cmodel.code)
-        del(cmodel)
+        # Compile or load simulation
+        if type(path) == tuple:
+            path, self._sim = path
+        else:
+            self._create_simulation(cmodel.code, path)
+        del cmodel
 
         # Get state and default state from model
-        self._state = self._model.state()
+        self._state = self._model.initial_values(as_floats=True)
         self._default_state = list(self._state)
 
         # Set state and default state for sensitivities
         self._s_state = self._s_default_state = None
         if self._sensitivities:
-            # Outer indice: number of independent variables
-            # Inner indice: number of states
+            # Outer index: number of independent variables
+            # Inner index: number of states
             self._s_state = []
             for expr in self._sensitivities[1]:
                 row = [0.0] * len(self._state)
                 if isinstance(expr, myokit.InitialValue):
-                    row[expr.var().indice()] = 1.0
+                    row[expr.var().index()] = 1.0
                 self._s_state.append(row)
             self._s_default_state = [list(x) for x in self._s_state]
 
         # Last state reached before error
         self._error_state = None
+        self._error_inputs = None
 
         # Starting time
         self._time = 0
@@ -182,8 +250,13 @@ class Simulation(myokit.CModule):
         self._tolerance = None
         self.set_tolerance()
 
-    def _create_simulation(self, cmodel_code):
-        """ Creates and compiles the C simulation module. """
+    def _create_simulation(self, cmodel_code, path):
+        """
+        Creates and compiles the C simulation module.
+
+        If ``path`` is set, also stores the built extension in a zip file at
+        ``path``, along with a serialisation of the Python Simulation object.
+        """
         # Unique simulation id
         Simulation._index += 1
         module_name = 'myokit_sim_' + str(Simulation._index)
@@ -195,13 +268,6 @@ class Simulation(myokit.CModule):
             'model_code': cmodel_code,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
-
-        # Debug
-        if myokit.DEBUG:
-            print(self._code(
-                fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
 
         # Define libraries
         libs = [
@@ -218,7 +284,131 @@ class Simulation(myokit.CModule):
         incd.append(myokit.DIR_CFUNC)
 
         # Create extension
-        self._sim = self._compile(module_name, fname, args, libs, libd, incd)
+        store = path is not None
+        res = self._compile(
+            module_name, fname, args, libs, libd, incd, store_build=store)
+
+        # Store module and return
+        if store:
+            self._sim, d_build = res
+            self._store_build(path, d_build, module_name)
+        else:
+            self._sim = res
+
+    def _store_build(self, path, d_build, name):
+        """
+        Stores this simulation to ``path``, including all information from the
+        build directory ``d_build`` and the generated backend module's
+        ``name``.
+        """
+        try:
+            import zipfile
+            try:
+                import zlib     # noqa
+            except ImportError:
+                raise Exception('Storing simulations requires the zlib module'
+                                ' to be available.')
+
+            # Sensitivity constructor argument. Don't pass in expressions, as
+            # they will need to pickle the variables as well, which in turn
+            # will need a component, model, etc.
+            sens_arg = None
+            if self._sensitivities:
+                sens_arg = [[x.code() for x in y] for y in self._sensitivities]
+
+            # Store serialized name and constructor args
+            fname = os.path.join(d_build, '_simulation.pickle')
+            import pickle
+            with open(fname, 'wb') as f:
+                pickle.dump(str(name), f)
+                pickle.dump(self._model, f)
+                pickle.dump(self._protocols, f)
+                pickle.dump(self._pacing_labels, f)
+                pickle.dump(sens_arg, f)
+
+            # Zip it all in
+            with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as f:
+                for root, dirs, files in os.walk(d_build):
+                    for fname in files:
+                        org = os.path.join(root, fname)
+                        new = os.path.relpath(org, d_build)
+                        f.write(org, new)
+        finally:
+            myokit.tools.rmtree(d_build, silent=True)
+
+    @staticmethod
+    def from_path(path):
+        """
+        Loads a simulation from the zip file in ``path``.
+
+        The file at ``path`` must have been created by :class:`Simulation` and
+        on the same platform (e.g. the same operating system, processor
+        architecture, Myokit version etc.).
+
+        Note that the simulation state (e.g. time, model state, solver
+        tolerance etc. is not restored).
+
+        Returns a :class:`Simulation` object.
+        """
+        import zipfile
+        try:
+            import zlib     # noqa
+        except ImportError:
+            raise Exception('Loading simulations requires the zlib module to'
+                            ' be available.')
+
+        # Unpack the zipped information
+        d_build = tempfile.mkdtemp('myokit_build')
+        try:
+            with zipfile.ZipFile(path, 'r', zipfile.ZIP_DEFLATED) as f:
+                f.extractall(d_build)
+
+            # Load serialized name and constructor args
+            fname = os.path.join(d_build, '_simulation.pickle')
+            import pickle
+            with open(fname, 'rb') as f:
+                name = pickle.load(f)
+                model = pickle.load(f)
+                protocols = pickle.load(f)
+                pacing_labels = pickle.load(f)
+                sensitivities = pickle.load(f)
+
+            # Load module
+            from myokit._sim import load_module
+            module = load_module(name, d_build)
+
+            # Create and return simulation
+            labeled_protocols = {
+                k: v for k, v in zip(pacing_labels, protocols)
+            }
+            return Simulation(
+                model, labeled_protocols, sensitivities, (path, module)
+            )
+
+        finally:
+            myokit.tools.rmtree(d_build, silent=True)
+
+    def crash_inputs(self):
+        """
+        If the last call to :meth:`Simulation.pre()` or
+        :meth:`Simulation.run()` resulted in an error, this will return the
+        last "inputs" (time, pace, etc) reached during that simulation.
+
+        Will return ``None`` if no simulation was run or the simulation did not
+        result in an error.
+        """
+        return dict(self._error_inputs) if self._error_inputs else None
+
+    def crash_state(self):
+        """
+        If the last call to :meth:`Simulation.pre()` or
+        :meth:`Simulation.run()` resulted in an error, this will return the
+        last state reached during that simulation.
+
+        Will return ``None`` if no simulation was run or the simulation did not
+        result in an error.
+        """
+        return list(self._error_state) if self._error_state else None
 
     def default_state(self):
         """
@@ -235,47 +425,83 @@ class Simulation(myokit.CModule):
             return [list(x) for x in self._s_default_state]
         return None
 
-    def last_state(self):
+    def eval_derivatives(self, y=None, pacing=None):
         """
-        If the last call to :meth:`Simulation.pre()` or
-        :meth:`Simulation.run()` resulted in an error, this will return the
-        last state reached during that simulation.
+        Deprecated alias of :meth:`evaluate_derivatives`.
 
-        Will return ``None`` if no simulation was run or the simulation did not
-        result in an error.
+        Note that while :meth:`eval_derivatives` used the :meth:`state()` as
+        default, the new method uses :meth:`default_state()`.
         """
-        return list(self._error_state) if self._error_state else None
+        # Deprecated on 2024-03-08
+        import warnings
+        warnings.warn(
+            'The method `myokit.Simulation.eval_derivatives` is deprecated,'
+            ' please use `evaluate_derivatives(state=sim.state())` instead.'
+        )
+        if y is None:
+            y = self.state()
+        return self.evaluate_derivatives(y, pacing)
 
-    def eval_derivatives(self, y=None):
+    def evaluate_derivatives(self, state=None, inputs=None):
         """
-        Evaluates and returns the state derivatives.
+        Evaluates and returns the state derivatives for the given ``state`` and
+        ``inputs``.
 
-        The state to evaluate for can be given as ``y``. If no state is given
-        the current simulation state is used.
+        If no ``state`` is given, the value returned by :meth:`default_state()`
+        is used.
+
+        An optional dict ``inputs`` can be passed in to set the values of
+        time and other inputs (e.g. pacing values). If "time" is not set in
+        ``inputs``, the value 0 will be used, regardless of the current
+        simulation. Similarly, if pacing values are not set in ``inputs``, 0
+        will be used regardless of the protocols or the current time.
+
+        If any variables have been changed with `set_constant` their new value
+        will be used.
         """
         # Get state
-        if y is None:
-            y = list(self._state)
+        if state is None:
+            y = list(self._default_state)
         else:
-            y = self._model.map_to_state(y)
+            y = self._model.map_to_state(state)
+
+        # Get inputs
+        time = realtime = evaluations = 0
+        pacing_values = [0.0] * len(self._pacing_labels)
+        if inputs is not None:
+            if 'time' in inputs:
+                time = float(inputs['time'])
+                del inputs['time']
+            if 'realtime' in inputs:  # User really shouldn't, but can do this
+                realtime = float(inputs['realtime'])
+                del inputs['realtime']
+            if 'evaluations' in inputs:
+                evaluations = float(inputs['evaluations'])
+                del inputs['evaluations']
+            for k, v in inputs.items():
+                try:
+                    ki = self._pacing_labels.index(k)
+                except ValueError:
+                    raise ValueError(f'Unknown binding or pacing label `{k}`.')
+                pacing_values[ki] = float(v)
+
+        # Literals and parameters: Can be changed with set_constant
+        literals = list(self._literals.values())
+        parameters = list(self._parameters.values())
 
         # Create space to store derivatives
         dy = list(self._state)
 
         # Evaluate and return
-        self._sim.eval_derivatives(
-            # 0. Time
-            0,
-            # 1. Pace
-            0,
-            # 2. State
-            y,
-            # 3. Space to store the state derivatives
-            dy,
-            # 4. Literal values
-            list(self._literals.values()),
-            # 5. Parameter values
-            list(self._parameters.values()),
+        self._sim.evaluate_derivatives(
+            time,               # 0. Time
+            pacing_values,      # 1. Pacing values
+            realtime,           # 2. Realtime
+            evaluations,        # 3. Evaluations
+            literals,           # 4. Literals
+            parameters,         # 5. Parameters
+            y,                  # 6. State
+            dy,                 # 7. Derivatives (out)
         )
         return dy
 
@@ -292,6 +518,21 @@ class Simulation(myokit.CModule):
         simulation.
         """
         return self._sim.number_of_steps()
+
+    def last_state(self):
+        """
+        If the last call to :meth:`Simulation.pre()` or
+        :meth:`Simulation.run()` resulted in an error, this will return the
+        last state reached during that simulation.
+
+        Will return ``None`` if no simulation was run or the simulation did not
+        result in an error.
+        """
+        # Deprecated on 2024-03-08
+        import warnings
+        warnings.warn('The method `myokit.Simulation.last_state` is'
+                      ' deprecated. Please use `crash_state` instead.')
+        return self.crash_state()
 
     def pre(self, duration, progress=None, msg='Pre-pacing simulation'):
         """
@@ -341,7 +582,7 @@ class Simulation(myokit.CModule):
             for i, expr in enumerate(self._sensitivities[1]):
                 if isinstance(expr, myokit.InitialValue):
                     self._s_state[i] = [0.0] * len(self._state)
-                    self._s_state[i][expr.var().indice()] = 1.0
+                    self._s_state[i][expr.var().index()] = 1.0
             # Update default state
             self._s_default_state = [list(x) for x in self._s_state]
 
@@ -358,16 +599,19 @@ class Simulation(myokit.CModule):
             # etc.
             sens_arg = [[x.code() for x in y] for y in self._sensitivities]
 
+        protocols = {
+            k: p for k, p in zip(self._pacing_labels, self._protocols)
+        }
+
         return (
             self.__class__,
-            (self._model, self._protocol, sens_arg),
+            (self._model, protocols, sens_arg),
             (
                 self._time,
                 self._state,
                 self._default_state,
                 self._s_state,
                 self._s_default_state,
-                self._fixed_form_protocol,  # Can't be set in constructor
                 self._tolerance,
                 self._dtmin,
                 self._dtmax,
@@ -451,9 +695,9 @@ class Simulation(myokit.CModule):
             An optional fixed size log interval. Must be ``None`` if
             ``log_times`` is used. If both are ``None`` every step is logged.
         ``log_times``
-            An optional set of pre-determined logging times. Must be ``None``
-            if ``log_interval`` is used. If both are ``None`` every step is
-            logged.
+            An optional sequence (e.g. a list or a numpy array) of
+            pre-determined logging times. Must be ``None`` if ``log_interval``
+            is used. If both are ``None`` every step is logged.
         ``sensitivities``
             An optional list-of-lists to append the calculated sensitivities
             to.
@@ -475,8 +719,8 @@ class Simulation(myokit.CModule):
 
         However, if sensitivity calculations are enabled a tuple is returned,
         where the first entry is the :class:`myokit.DataLog` and the second
-        entry is a matrix of sensitivities ``dy/dx``, where the first indice
-        specifies the dependent variable ``y``, and the second indice specifies
+        entry is a matrix of sensitivities ``dy/dx``, where the first index
+        specifies the dependent variable ``y``, and the second index specifies
         the independent variable ``x``.
 
         Finally, if APD calculation is enabled, the method returns a tuple
@@ -494,8 +738,20 @@ class Simulation(myokit.CModule):
     def _run(self, duration, log, log_interval, log_times, sensitivities,
              apd_variable, apd_threshold, progress, msg):
 
+        # Create benchmarker for profiling and realtime logging
+        # Note: When adding profiling messages, write them in past tense so
+        # that we can show time elapsed for an operation **that has just
+        # completed**.
+        if myokit.DEBUG_SP or self._model.binding('realtime') is not None:
+            b = myokit.tools.Benchmarker()
+            if myokit.DEBUG_SP:
+                b.print('PP Entered _run method.')
+        else:
+            b = None
+
         # Reset error state
         self._error_state = None
+        self._error_inputs = None
 
         # Simulation times
         if duration < 0:
@@ -503,31 +759,22 @@ class Simulation(myokit.CModule):
         tmin = self._time
         tmax = tmin + duration
 
-        # Parse log argument
-        log = myokit.prepare_log(log, self._model, if_empty=myokit.LOG_ALL)
-
-        # Logging period (None or 0 = disabled)
+        # Logging interval (None or 0 = disabled)
         log_interval = 0 if log_interval is None else float(log_interval)
         if log_interval < 0:
             log_interval = 0
-
-        # Logging points (None or empty list = disabled)
-        if log_times is not None:
-            log_times = [float(x) for x in log_times]
-            if len(log_times) == 0:
-                log_times = None
-            else:
-                # Allow duplicates, but always non-decreasing!
-                import numpy as np
-                x = np.asarray(log_times)
-                if np.any(x[1:] < x[:-1]):
-                    raise ValueError(
-                        'Values in `log_times` must be non-decreasing.')
-                del(x, np)
         if log_times is not None and log_interval > 0:
             raise ValueError(
                 'The arguments `log_times` and `log_interval` cannot be used'
                 ' simultaneously.')
+
+        # Check user-specified logging times.
+        # (An empty list of log points counts as disabled)
+        # Note: Checking of values inside the list (converts to float, is non
+        # decreasing) happens in the C code.
+        if log_times is not None:
+            if len(log_times) == 0:
+                log_times = None
 
         # List of sensitivity matrices
         if self._sensitivities:
@@ -543,7 +790,7 @@ class Simulation(myokit.CModule):
 
         # APD measuring
         root_list = None
-        root_indice = 0
+        root_index = 0
         root_threshold = 0
         if apd_variable is None:
             if apd_threshold is not None:
@@ -560,24 +807,24 @@ class Simulation(myokit.CModule):
 
             # Set up root finding
             root_list = []
-            root_indice = apd_variable.indice()
+            root_index = apd_variable.index()
             root_threshold = float(apd_threshold)
 
         # Get progress indication function (if any)
         if progress is None:
-            progress = myokit._Simulation_progress
+            progress = myokit._simulation_progress
         if progress:
             if not isinstance(progress, myokit.ProgressReporter):
                 raise ValueError(
                     'The argument `progress` must be either a'
                     ' subclass of myokit.ProgressReporter or None.')
+        if myokit.DEBUG_SP:
+            b.print('PP Checked arguments.')
 
-        # Determine benchmarking mode, create time() function if needed
-        if self._model.binding('realtime') is not None:
-            import timeit
-            bench = timeit.default_timer
-        else:
-            bench = None
+        # Parse log argument
+        log = myokit.prepare_log(log, self._model, if_empty=myokit.LOG_ALL)
+        if myokit.DEBUG_SP:
+            b.print('PP Called prepare_log.')
 
         # Run simulation
         # The simulation is run only if (tmin + duration > tmin). This is a
@@ -593,9 +840,11 @@ class Simulation(myokit.CModule):
                 s_state = [list(x) for x in self._s_state]
 
             # List to store final bound variables in (for debugging)
-            bound = [0, 0, 0, 0]
+            bound = [0, 0, 0] + [0] * len(self._pacing_labels)
 
             # Initialize
+            if myokit.DEBUG_SP:
+                b.print('PP Ready to call sim_init.')
             self._sim.sim_init(
                 # 0. Initial time
                 tmin,
@@ -611,30 +860,29 @@ class Simulation(myokit.CModule):
                 list(self._literals.values()),
                 # 6. Parameter values
                 list(self._parameters.values()),
-                # 7. An event-based pacing protocol
-                self._protocol,
-                # 8. A fixed-form protocol
-                self._fixed_form_protocol,
-                # 9. A DataLog
+                # 7. Pacing protocols
+                self._protocols,
+                # 8. A DataLog
                 log,
-                # 10. The log interval, or 0
+                # 9. The log interval, or 0
                 log_interval,
-                # 11. A list of predetermind logging times, or None
+                # 10. A list of predetermind logging times, or None
                 log_times,
-                # 12. A list to store calculated sensitivities in
+                # 11. A list to store calculated sensitivities in
                 sensitivities,
-                # 13. The state variable indice for root finding (only used if
+                # 12. The state variable index for root finding (only used if
                 #     root_list is a list)
-                root_indice,
-                # 14. The threshold for root crossing (can be 0 too, only
-                #     used if root_list is a list).
+                root_index,
+                # 13. The threshold for root crossing (can be 0 too, only used
+                #     if root_list is a list).
                 root_threshold,
-                # 15. A list to store calculated root crossing times and
+                # 14. A list to store calculated root crossing times and
                 #     directions in, or None
                 root_list,
-                # 16. A Python method that returns the system time
-                #     accurately.
-                bench,
+                # 15. A myokit.tools.Benchmarker or None (if not used)
+                b,
+                # 16. Boolean/int: 1 if we are logging realtime
+                int(self._model.binding('realtime') is not None),
             )
             t = tmin
 
@@ -656,33 +904,42 @@ class Simulation(myokit.CModule):
             except ArithmeticError as e:
                 # Some CVODE(S) errors are set to raise an ArithmeticError,
                 # which users may be able to debug.
+                if myokit.DEBUG_SP:
+                    b.print('PP Caught ArithmeticError.')
 
                 # Store error state
                 self._error_state = state
+                self._error_inputs = {'time': bound[0]}
+                for i, label in enumerate(('realtime', 'evaluations')):
+                    if self._model.binding(label) is not None:
+                        self._error_inputs[label] = bound[1 + i]
+                for i, label in enumerate(self._pacing_labels):
+                    self._error_inputs[label] = bound[3 + i]
 
                 # Create long error message
                 txt = ['A numerical error occurred during simulation at'
-                       ' t = ' + str(t) + '.', 'Last reached state: ']
+                       ' t = ' + myokit.float.str(bound[0]) + '.',
+                       'Last reached state: ']
                 txt.extend(['  ' + x for x
                             in self._model.format_state(state).splitlines()])
                 txt.append('Inputs for binding:')
-                txt.append('  time        = ' + myokit.float.str(bound[0]))
-                txt.append('  pace        = ' + myokit.float.str(bound[1]))
-                txt.append('  realtime    = ' + myokit.float.str(bound[2]))
-                txt.append('  evaluations = ' + myokit.float.str(bound[3]))
+                for key, value in self._error_inputs.items():
+                    txt.append(f'  {key} = {myokit.float.str(value)}')
                 txt.append(str(e))
 
                 # Check if state derivatives can be evaluated in Python, if
                 # not, add the error to the error message.
                 try:
-                    self._model.evaluate_derivatives(state)
-                except myokit.NumericalError as en:
+                    self._model.evaluate_derivatives(state, self._error_inputs)
+                except Exception as en:
                     txt.append(str(en))
 
                 # Raise numerical simulation error
                 raise myokit.SimulationError('\n'.join(txt))
 
             except Exception as e:
+                if myokit.DEBUG_SP:
+                    b.print('PP Caught exception.')
 
                 # Store error state
                 self._error_state = state
@@ -702,6 +959,10 @@ class Simulation(myokit.CModule):
             self._state = state
             self._s_state = s_state
 
+        # Simulation complete
+        if myokit.DEBUG_SP:
+            b.print('PP Simulation complete.')
+
         # Calculate apds
         if root_list is not None:
             st = []
@@ -719,8 +980,12 @@ class Simulation(myokit.CModule):
             apds = myokit.DataLog()
             apds['start'] = st
             apds['duration'] = dr
+            if myokit.DEBUG_SP:
+                b.print('PP Root-finding data processed.')
 
         # Return
+        if myokit.DEBUG_SP:
+            b.print('PP Call to _run() complete. Returning.')
         if self._sensitivities is not None:
             if root_list is not None:
                 return log, sensitivities, apds
@@ -760,7 +1025,7 @@ class Simulation(myokit.CModule):
 
     def set_default_state(self, state):
         """
-        Allows you to manually set the default state.
+        Change the default state to ``state``.
         """
         self._default_state = self._model.map_to_state(state)
 
@@ -796,66 +1061,48 @@ class Simulation(myokit.CModule):
 
     def set_fixed_form_protocol(self, times=None, values=None):
         """
-        Configures this simulation to run with a predetermined protocol
-        instead of the usual event-based mechanism.
+        Sets a :class:`TimeSeriesProtocol` specified by ``times`` and
+        ``values`` for the label ``pace``.
 
-        A 1D time-series should be given as input. During the simulation, the
-        value of the pacing variable will be determined by linearly
-        interpolating between the two nearest points in the series. If the
-        simulation time is outside the bounds of the time-series, the first or
-        last value in the series will be used.
-
-        Setting a predetermined protocol clears any previously set (event-based
-        or pre-determined) protocol. To clear all protocols, call this method
-        with `times=None`. When a simulation is run without any protocol, the
-        value of any variables bound to `pace` will be set to 0.
-
-        Arguments:
-
-        ``times``
-            A non-decreasing array of times. If any times appear more than
-            once, only the value at the highest index will be used.
-        ``values``
-            An array of values for the pacing variable. Must have the same size
-            as ``times``.
-
+        This method is provided for backwards compatibility with older
+        versions, please use :meth:`set_protocol` and the
+        :class:`TimeSeriesProtocol` class instead.
         """
-        # Check input
-        if times is None:
-            if values is not None:
-                raise ValueError('Values array given, but no times array.')
-        else:
-            if values is None:
-                raise ValueError('Times array given, but no values array.')
-            if len(times) != len(values):
-                raise ValueError('Times and values array must have same size.')
+        # Deprecated on 2023-06-02
+        import warnings
+        warnings.warn(
+            'The method `myokit.Simulation.set_fixed_form_protocol` is '
+            'deprecated. It will be removed in future versions of Myokit.'
+        )
 
-        # Clear event-based protocol, if set
-        self._protocol = None
+        if times is None and values is None:
+            self.set_protocol(None)
+            return
+        if times is None:
+            raise ValueError('No times given.')
+        if values is None:
+            raise ValueError('No values given.')
+
+        self.set_protocol(myokit.TimeSeriesProtocol(times, values))
+
+    def set_protocol(self, protocol, label='pace'):
+        """
+        Set an event-based pacing :class:`Protocol` or a
+        :class:`TimeSeriesProtocol` for the given ``label``.
+
+        To remove a previously set binding call this method with ``protocol =
+        None``. In this case, the value of any variables bound to ``label``
+        will be set to 0.
+
+        The label must be one of the pacing labels set in the constructor.
+        """
+        try:
+            index = self._pacing_labels.index(label)
+        except ValueError:
+            raise ValueError('Unknown pacing label: ' + str(label))
 
         # Set new protocol
-        if times is None:
-            # Clear predetermined protocol
-            self._fixed_form_protocol = None
-        else:
-            # Copy data and set
-            self._fixed_form_protocol = (list(times), list(values))
-
-    def set_protocol(self, protocol=None):
-        """
-        Sets the pacing :class:`Protocol` used by this simulation.
-
-        To run without pacing call this method with ``protocol = None``. In
-        this case, the value of any variables bound to `pace` will be set to 0.
-        """
-        # Clear predetermined protocol, if set
-        self._fixed_form_protocol = None
-
-        # Set new protocol
-        if protocol is None:
-            self._protocol = None
-        else:
-            self._protocol = protocol.clone()
+        self._protocols[index] = None if protocol is None else protocol.clone()
 
     def __setstate__(self, state):
         """
@@ -869,13 +1116,12 @@ class Simulation(myokit.CModule):
         self._default_state = state[2]
         self._s_state = state[3]
         self._s_default_state = state[4]
-        self._fixed_form_protocol = state[5]
 
         # The following properties need to be set on the internal simulation
         # object
-        self.set_tolerance(*state[6])
-        self.set_min_step_size(state[7])
-        self.set_max_step_size(state[8])
+        self.set_tolerance(*state[5])
+        self.set_min_step_size(state[6])
+        self.set_max_step_size(state[7])
 
     def set_state(self, state):
         """

@@ -5,17 +5,15 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
+
 import numpy as np
 
 import myokit
 
-from shared import OpenCL_FOUND, DIR_DATA, WarningCollector
-from test_simulation_log_interval import PeriodicTest
+from myokit.tests import OpenCL_FOUND, DIR_DATA, WarningCollector
+from myokit.tests.test_simulation_log_interval import PeriodicTest
 
 debug = False
 
@@ -26,6 +24,8 @@ class SimulationOpenCLTest(PeriodicTest):
     Tests myokit.SimulationOpenCL for consistent log entry timing.
     """
     def test_periodic(self):
+        # Test periodic logging.
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.SimulationOpenCL(m, p, ncells=1)
         self.periodic(s)
@@ -37,9 +37,8 @@ class FiberTissueSimulationTest(unittest.TestCase):
     Tests myokit.FiberTissueSimulation for consistent log entry timing.
     """
     def test_periodic(self):
-        """
-        Test periodic logging.
-        """
+        # Test periodic logging.
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         with WarningCollector():
             s = myokit.FiberTissueSimulation(

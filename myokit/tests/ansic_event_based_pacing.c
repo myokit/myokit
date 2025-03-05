@@ -23,6 +23,7 @@ int initialized = 0;
 
 // Input arguments
 PyObject* protocol;
+double initial_time;
 
 // Pacing
 ESys pacing;
@@ -72,7 +73,7 @@ pacing_init(PyObject *self, PyObject *args)
     pacing = NULL;
 
     // Check input arguments
-    if (!PyArg_ParseTuple(args, "O", &protocol)) {
+    if (!PyArg_ParseTuple(args, "Od", &protocol, &initial_time)) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         // Nothing allocated yet, no pyobjects _created_, return directly
         return 0;
@@ -84,7 +85,7 @@ pacing_init(PyObject *self, PyObject *args)
     // From this point on, no more direct returning! Use pacing_clean()
 
     // Set up pacing
-    pacing = ESys_Create(&flag);
+    pacing = ESys_Create(initial_time, &flag);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
     flag = ESys_Populate(pacing, protocol);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }

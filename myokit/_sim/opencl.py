@@ -4,23 +4,13 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import configparser
 import os
+
 import myokit
-
-try:
-    # Python2
-    from ConfigParser import ConfigParser
-except ImportError:
-    # Python 3
-    from configparser import RawConfigParser as ConfigParser
-
 
 # Settings file
 SETTINGS_FILE = os.path.join(myokit.DIR_USER, 'preferred-opencl-device.ini')
-
 
 # Location of C source for OpenCL info module
 SOURCE_FILE = 'opencl.c'
@@ -41,7 +31,7 @@ class OpenCL(myokit.CModule):
     _message = None
 
     def __init__(self):
-        super(OpenCL, self).__init__()
+        super().__init__()
         # Create back-end and cache it
         OpenCL._index += 1
         mname = 'myokit_opencl_info_' + str(OpenCL._index)
@@ -95,10 +85,13 @@ class OpenCL(myokit.CModule):
         at least one platform and device were detected.
         """
         try:
-            OpenCL.current_info()
+            info = OpenCL.info()
         except Exception:   # pragma: no cover
             return False
-        return True
+        for p in info.platforms:
+            for d in p.devices:
+                return True
+        return False    # pragma: no cover
 
     @staticmethod
     def current_info(formatted=False):
@@ -123,8 +116,17 @@ class OpenCL(myokit.CModule):
         If ``formatted=True`` is set, a formatted version of the information is
         returned instead.
         """
+        if not OpenCL.supported():  # pragma: no cover
+            if formatted:
+                return 'No OpenCL support detected.'
+            return OpenCLInfo()
+
         info = OpenCLInfo(OpenCL._get_instance().info())
-        return info.format() if formatted else info
+        if formatted:
+            if len(info.platforms) == 0:  # pragma: no cover
+                return 'OpenCL drivers detected, but no devices found.'
+            return info.format()
+        return info
 
     @staticmethod
     def load_selection():
@@ -153,11 +155,8 @@ class OpenCL(myokit.CModule):
         # Read ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
         if os.path.isfile(inifile):
-            config = ConfigParser()
-            try:
-                config.read(inifile, encoding='ascii')  # Python 3
-            except TypeError:   # pragma: no python 3 cover
-                config.read(inifile)
+            config = configparser.RawConfigParser()
+            config.read(inifile, encoding='ascii')
 
             def get(section, option):
                 x = None
@@ -193,7 +192,7 @@ class OpenCL(myokit.CModule):
             device = device.encode('ascii').decode('ascii')
 
         # Create configuration
-        config = ConfigParser()
+        config = configparser.RawConfigParser()
         config.add_section('selection')
         if platform:
             config.set('selection', 'platform', platform)
@@ -259,7 +258,7 @@ class OpenCL(myokit.CModule):
     '''
 
 
-class OpenCLInfo(object):
+class OpenCLInfo:
     """
     Represents information about the available OpenCL platforms and devices.
 
@@ -268,7 +267,7 @@ class OpenCLInfo(object):
 
     ``OpenCLInfo`` objects are created and returned by :class:`myokit.OpenCL`.
     """
-    def __init__(self, mcl_info):
+    def __init__(self, mcl_info=[]):
         # mcl_info is a python object returned by mcl_device_info (mcl.h)
         self.platforms = tuple([OpenCLPlatformInfo(x) for x in mcl_info])
 
@@ -276,14 +275,18 @@ class OpenCLInfo(object):
         """
         Returns a formatted string version of this object's information.
         """
+        selected_platform, selected_device = myokit.OpenCL.load_selection()
         b = []
         for i, platform in enumerate(self.platforms):
-            b.append('Platform ' + str(i))
-            platform._format(b, pre=' ')
+            pname = 'Platform ' + str(i)
+            if platform.name == selected_platform:  # pragma: no cover
+                pname += '  <-- Selected platform in myokit.ini'
+            b.append(pname)
+            platform._format(b, selected_platform, selected_device, pre=' ')
         return '\n'.join(b)
 
 
-class OpenCLPlatformInfo(object):
+class OpenCLPlatformInfo:
     """
     Represents information about an OpenCL platform.
 
@@ -330,10 +333,10 @@ class OpenCLPlatformInfo(object):
         """
         b = []
         b.append('Platform: ' + self.name)
-        self._format(b, ' ', name=False)
+        self._format(b, pre=' ', name=False)
         return '\n'.join(b)
 
-    def _format(self, b, pre='', name=True):
+    def _format(self, b, p_selected=None, d_selected=None, pre='', name=True):
         """
         Formats the information in this object and adds it to the list ``b``.
         """
@@ -346,7 +349,10 @@ class OpenCLPlatformInfo(object):
         if self.devices is not None:
             b.append(pre + 'Devices:')
             for j, device in enumerate(self.devices):
-                b.append(pre + ' Device ' + str(j))
+                dname = pre + ' Device ' + str(j)
+                if self.name == p_selected and device.name == d_selected:  # pragma: no cover # noqa
+                    dname += '  <-- Selected device in myokit.ini'
+                b.append(dname)
                 device._format(b, pre + '  ')
 
         if self.device is not None:
@@ -357,7 +363,7 @@ class OpenCLPlatformInfo(object):
         return extension in self.extensions
 
 
-class OpenCLDeviceInfo(object):
+class OpenCLDeviceInfo:
     """
     Represents information about an OpenCL device.
 
@@ -464,25 +470,3 @@ class NoOpenCLError(myokit.MyokitError):
     support can be detected.
     """
 
-
-class PreferredOpenCLPlatformNotFoundError(myokit.MyokitError):
-    """
-    Raised when the platform preferred by the user cannot be found.
-    """
-    def __init__(self, platform_name):  # pragma: no cover
-        super(PreferredOpenCLPlatformNotFoundError, self).__init__(
-            'The preferred platform "' + platform_name + '" cannot be found.')
-
-
-class PreferredOpenCLDeviceNotFoundError(myokit.MyokitError):
-    """
-    Raised when the device preferred by the user cannot be found.
-    """
-    def __init__(self, device_name, platform_name=None
-                 ):  # pragma: no cover
-        msg = 'The preferred device "' + device_name + '" cannot be found'
-        if platform_name is None:
-            msg += '.'
-        else:
-            msg += ' on platform "' + platform_name + '".'
-        super(PreferredOpenCLDeviceNotFoundError, self).__init__(msg)

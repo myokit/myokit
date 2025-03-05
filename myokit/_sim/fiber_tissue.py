@@ -4,12 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
-import myokit
 import platform
+
+import myokit
 
 # Location of C and OpenCL sources
 SOURCE_FILE = 'fiber_tissue.c'
@@ -19,9 +17,6 @@ KERNEL_FILE = 'openclsim.cl'
 class FiberTissueSimulation(myokit.CModule):
     """
     Runs a simulation of a fiber leading up to a rectangular piece of tissue.
-
-    Note: This simulation class is deprecated as of version 1.33.0, and will be
-    removed in future versions of Myokit.
 
     Takes the following input arguments:
 
@@ -41,9 +36,6 @@ class FiberTissueSimulation(myokit.CModule):
     ``nx_paced``
         The width (in cells) of the stimulus applied to the fiber. The fiber
         will be stimulated along its full height.
-    ``join``
-        A tuple ``(x,y)`` specifying the top-left coordinate on the tissue that
-        the fiber connects to.
     ``g_fiber``
         The cell to cell conductance in the fiber (a tuple).
     ``g_tissue``
@@ -64,11 +56,12 @@ class FiberTissueSimulation(myokit.CModule):
     ``time`` (global)
         The simulation time
     ``pace`` (per-cell)
-        The pacing level, this is set if a protocol was passed in.
+        The pacing level, this is set if a protocol was passed in. Will be set
+        to 0 if no protocol is provided.
     ``diffusion_current`` (per-cell)
-        The current flowing from the cell to its neighbours. This will be
+        The current flowing from the cell to its neighbors. This will be
         positive when the cell is acting as a source, negative when it is
-        acting as a sink.
+        acting as a sink. Will be set to 0 if no connections are made.
 
     The variable ``time`` is set globally, meaning each cell uses the same
     value. The variables ``pace`` and ``diffusion_current`` have different
@@ -128,13 +121,14 @@ class FiberTissueSimulation(myokit.CModule):
             ncells_fiber=(128, 2), ncells_tissue=(128, 128), nx_paced=5,
             g_fiber=(9, 6), g_tissue=(9, 6), g_fiber_tissue=9,
             dt=0.005, precision=myokit.SINGLE_PRECISION, native_maths=False):
-        super(FiberTissueSimulation, self).__init__()
+        super().__init__()
 
         # Deprecated since 2021-05-28
-        import warnings
-        warnings.warn(
-            'The class `myokit.FiberTissueSimulation` is deprecated, and will'
-            ' be removed in future versions of Myokit.')
+        # Un-deprecated on 2022-04-20, following Adam's request
+        #import warnings
+        #warnings.warn(
+        #    'The class `myokit.FiberTissueSimulation` is deprecated, and will'
+        #    ' be removed in future versions of Myokit.')
 
         # List of globally logged inputs
         self._global = ['time', 'pace']
@@ -145,18 +139,18 @@ class FiberTissueSimulation(myokit.CModule):
 
         # Require independent components
         if fiber_model.has_interdependent_components():
-            cycles = fiber_model.component_cycles()
-            cycles = '\n  '.join([
-                ' > '.join([x.var().qname() for x in c]) for c in cycles])
-            raise Exception(
+            cycles = '\n'.join([
+                '  ' + ' > '.join([x.name() for x in c])
+                for c in fiber_model.component_cycles()])
+            raise ValueError(
                 'This simulation requires models without interdependent'
                 ' components. Please restructure the fiber model and re-run.'
                 ' Cycles:\n' + cycles)
         if tissue_model.has_interdependent_components():
-            cycles = tissue_model.component_cycles()
-            cycles = '\n  '.join([
-                ' > '.join([x.var().qname() for x in c]) for c in cycles])
-            raise Exception(
+            cycles = '\n'.join([
+                '  ' + ' > '.join([x.name() for x in c])
+                for c in tissue_model.component_cycles()])
+            raise ValueError(
                 'This simulation requires models without interdependent'
                 ' components. Please restructure the tissue model and re-run.'
                 ' Cycles:\n' + cycles)
@@ -186,9 +180,9 @@ class FiberTissueSimulation(myokit.CModule):
         self._ncellsf = [int(x) for x in ncells_fiber]
         self._ncellst = [int(x) for x in ncells_tissue]
         if self._ncellsf[0] < 1 or self._ncellsf[1] < 1:
-            raise ValueError('The fiber must be at least (1,1).')
+            raise ValueError('The fiber size must be at least (1, 1).')
         if self._ncellst[0] < 1 or self._ncellst[1] < 1:
-            raise ValueError('The tissue size must be at least (1,1).')
+            raise ValueError('The tissue size must be at least (1, 1).')
         if self._ncellsf[1] > self._ncellst[1]:
             raise ValueError(
                 'The fiber y-dimension cannot exceed that of the tissue.')
@@ -205,12 +199,18 @@ class FiberTissueSimulation(myokit.CModule):
                 self._paced_cells.append(x + y * self._ncellsf[0])
 
         # Check conductivities
-        if len(g_fiber) != 2:
-            raise ValueError(
-                'The fiber conductivity must be a tuple (gx,gy).')
-        if len(g_tissue) != 2:
-            raise ValueError(
-                'The tissue conductivity must be a tuple (gx,gy).')
+        msg = 'The fiber conductivity must be a tuple (gx, gy).'
+        try:
+            if len(g_fiber) != 2:
+                raise ValueError(msg)
+        except TypeError:
+            raise ValueError(msg)
+        msg = 'The tissue conductivity must be a tuple (gx, gy).'
+        try:
+            if len(g_tissue) != 2:
+                raise ValueError(msg)
+        except TypeError:
+            raise ValueError(msg)
         self._gf = [float(x) for x in g_fiber]
         self._gt = [float(x) for x in g_tissue]
         self._gft = float(g_fiber_tissue)
@@ -244,31 +244,31 @@ class FiberTissueSimulation(myokit.CModule):
         # Get membrane potential variables
         self._vmf = self._modelf.label('membrane_potential')
         if self._vmf is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires the membrane potential variable to'
                 ' be labelled as "membrane_potential" in the fiber model.')
         if not self._vmf.is_state():
-            raise Exception(
+            raise ValueError(
                 'The variable labelled as membrane potential in the fiber'
-                ' model must be a state variale.')
+                ' model must be a state variable.')
         self._vmt = self._modelt.label('membrane_potential')
         if self._vmt is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires the membrane potential variable to'
                 ' be labelled as "membrane_potential" in the tissue model.')
         if not self._vmt.is_state():
-            raise Exception(
+            raise ValueError(
                 'The variable labelled as membrane potential in the tissue'
-                ' model must be a state variale.')
+                ' model must be a state variable.')
 
         # Check for binding to diffusion_current
         if self._modelf.binding('diffusion_current') is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires a variable in the fiber model to be'
                 ' bound to "diffusion_current" to pass current from one cell'
                 ' to the next.')
         if self._modelt.binding('diffusion_current') is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires a variable in the tissue model to be'
                 ' bound to "diffusion_current" to pass current from one cell'
                 ' to the next.')
@@ -276,16 +276,14 @@ class FiberTissueSimulation(myokit.CModule):
         # Check if membrane potentials have same unit
         uvf = self._vmf.unit()
         if uvf is None:
-            raise Exception(
-                'The fiber model must specify a unit for the membrane'
-                ' potential.')
+            raise ValueError('The fiber model must specify a unit for the'
+                             ' membrane potential.')
         uvt = self._vmt.unit()
         if uvt is None:
-            raise Exception(
-                'The tissue model must specify a unit for the membrane'
-                ' potential.')
+            raise ValueError('The tissue model must specify a unit for the'
+                             ' membrane potential.')
         if uvf != uvt:
-            raise Exception(
+            raise ValueError(
                 'The membrane potential must have the same unit in the fiber'
                 ' and the tissue model: ' + str(uvf) + ' vs ' + str(uvt) + '.')
 
@@ -293,32 +291,30 @@ class FiberTissueSimulation(myokit.CModule):
         ucf = self._modelf.binding('diffusion_current').unit()
         uct = self._modelt.binding('diffusion_current').unit()
         if ucf is None:
-            raise Exception(
-                'The fiber model must specify a unit for the diffusion'
-                ' current.')
+            raise ValueError('The fiber model must specify a unit for the'
+                             ' diffusion current.')
         if uct is None:
-            raise Exception(
-                'The tissue model must specify a unit for the diffusion'
-                ' current.')
+            raise ValueError('The tissue model must specify a unit for the'
+                             ' diffusion current.')
         if ucf != uct:
-            raise Exception(
+            raise ValueError(
                 'The diffusion current must have the same unit in the fiber'
                 ' and the tissue model: ' + str(ucf) + ' vs ' + str(uct) + '.')
 
         # Set state and default state
-        self._statef = self._modelf.state() * self._ntotalf
-        self._statet = self._modelt.state() * self._ntotalt
+        self._statef = self._modelf.initial_values(True) * self._ntotalf
+        self._statet = self._modelt.initial_values(True) * self._ntotalt
         self._default_statef = list(self._statef)
         self._default_statet = list(self._statet)
 
         # Process bindings, remove unsupported bindings, get map of bound
         # variables to internal names.
-        self._bound_variablesf = self._modelf.prepare_bindings({
+        self._bound_variablesf = myokit._prepare_bindings(self._modelf, {
             'time': 'time',
             'pace': 'pace',
             'diffusion_current': 'idiff',
         })
-        self._bound_variablest = self._modelt.prepare_bindings({
+        self._bound_variablest = myokit._prepare_bindings(self._modelt, {
             'time': 'time',
             'pace': 'pace',
             'diffusion_current': 'idiff',
@@ -354,13 +350,6 @@ class FiberTissueSimulation(myokit.CModule):
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
 
-        # Debug
-        if myokit.DEBUG:
-            print(
-                self._code(fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
-            return
-
         # Define libraries
         libs = []
         flags = []
@@ -378,25 +367,97 @@ class FiberTissueSimulation(myokit.CModule):
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
         self._sim = self._compile(
-            mname, fname, args, libs, libd, incd, larg=flags)
+            mname, fname, args, libs, libd, incd, larg=flags,
+            continue_in_debug_mode=True)
 
-    def fiber_state(self, x=None):
+    def default_fiber_state(self, x=None, y=None):
+        """
+        Returns the current default simulation state for the fiber model as a
+        list of ``len(state) * n_total_cells`` floating point values, where
+        ``n_total_cells`` is the total number of fiber cells.
+
+        If the optional arguments ``x`` and ``y`` specify a valid cell index, a
+        single cell's state is returned.
+
+        The returned list is indexed so that x changes first (the first ``nx``
+        entries have ``y = 0``, the second ``nx`` entries have ``y = 1`` and so
+        on).
+        """
+        if x is None:
+            return list(self._default_statef)
+        elif y is None:
+            raise ValueError('default_fiber_state() must be called with no'
+                             ' arguments or with both an x and y argument.')
+        else:
+            nx, ny = self._ncellsf
+            x = int(x or 0)
+            if x < 0 or x >= nx:
+                raise IndexError('Given x-index out of range.')
+            y = int(y or 0)
+            if y < 0 or y >= ny:
+                raise IndexError('Given y-index out of range.')
+            x += y * nx
+            return self._default_statef[
+                x * self._nstatef:(x + 1) * self._nstatef]
+
+    def default_tissue_state(self, x=None, y=None):
+        """
+        Returns the current default simulation state for the tissue model as a
+        list of ``len(state) * n_total_cells`` floating point values, where
+        ``n_total_cells`` is the total number of tissue cells.
+
+        If the optional arguments ``x`` and ``y`` specify a valid cell index, a
+        single cell's state is returned.
+
+        The returned list is indexed so that x changes first (the first ``nx``
+        entries have ``y = 0``, the second ``nx`` entries have ``y = 1`` and so
+        on).
+        """
+        if x is None:
+            return list(self._default_statet)
+        elif y is None:
+            raise ValueError('default_tissue_state() must be called with no'
+                             ' arguments or with both an x and y argument.')
+        else:
+            nx, ny = self._ncellst
+            x = int(x or 0)
+            if x < 0 or x >= nx:
+                raise IndexError('Given x-index out of range.')
+            y = int(y or 0)
+            if y < 0 or y >= ny:
+                raise IndexError('Given y-index out of range.')
+            x += y * nx
+            return self._default_statet[
+                x * self._nstatet:(x + 1) * self._nstatet]
+
+    def fiber_shape(self):
+        """
+        Returns the shape of this simulation's grid of fiber cells as a tuple
+        ``(ny, nx)``.
+        """
+        # TODO: See https://github.com/myokit/myokit/issues/764
+        return (self._ncellsf[1], self._ncellsf[0])
+
+    def fiber_state(self, x=None, y=None):
         """
         Returns the current simulation state in the fiber as a list of
         ``len(state_fiber) * ncells_fiber`` floating point values.
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index a
-        single cell's state is returned.
+        single fiber cell's state is returned.
         """
         if x is None:
             return list(self._statef)
+        elif y is None:
+            raise ValueError('fiber_state() must be called with no arguments'
+                             ' or with both an x and y argument.')
         else:
             x = int(x)
-            if x < 0 or x > self._ncellsf[0]:
-                raise KeyError('Given x-index out of range.')
+            if x < 0 or x >= self._ncellsf[0]:
+                raise IndexError('Given x-index out of range.')
             y = int(y)
-            if y < 0 or y > self._ncellsf[1]:
-                raise KeyError('Given y-index out of range.')
+            if y < 0 or y >= self._ncellsf[1]:
+                raise IndexError('Given y-index out of range.')
             x += y * self._ncellsf[0]
             return self._statef[x * self._nstatef:(x + 1) * self._nstatef]
 
@@ -453,8 +514,8 @@ class FiberTissueSimulation(myokit.CModule):
                     'Method requires a simulation log from the tissue model'
                     ' containing all states and bound variables. Missing at'
                     ' least variable <' + key + '>.')
-        del(lf)
-        del(lt)
+        del lf
+        del lt
 
         # Error criterium: NaN/inf detection
         def bisect(ar, lo, hi):
@@ -484,7 +545,7 @@ class FiberTissueSimulation(myokit.CModule):
                     # Earlier NaN found
                     kfirst = key
                     ifirst = bisect(ar, 0, ifirst)
-                    if ifirst == 0:
+                    if ifirst == 0:  # pragma: no cover
                         break
             return ifirst, kfirst
 
@@ -498,9 +559,9 @@ class FiberTissueSimulation(myokit.CModule):
             ifirstt, kfirstt = find_error_position(_logt)
             if kfirstf is None and kfirstt is None:
                 raise myokit.FindNanError('Error condition not found in logs.')
-            elif kfirstf is None:
+            elif kfirstf is None:  # pragma: no cover
                 ifirst = ifirstt
-            elif kfirstt is None:
+            elif kfirstt is None:  # pragma: no cover
                 ifirst = ifirstf
             elif ifirstf == 0 or ifirstt == 0:
                 raise myokit.FindNanError(
@@ -510,6 +571,7 @@ class FiberTissueSimulation(myokit.CModule):
                 ifirst = min(ifirstf, ifirstt)
             # Position to start deep search at
             istart = ifirst - 1
+
             # Get last logged states before error
             statef = []
             statet = []
@@ -521,8 +583,10 @@ class FiberTissueSimulation(myokit.CModule):
                 pre = '.'.join([str(x) for x in dims]) + '.'
                 for s in self._modelt.states():
                     statet.append(_logt[pre + s.qname()][istart])
+
             # Get last time before error
             time = _logf[time_varf][istart]
+
             # Save current state & time
             old_statef = self._statef
             old_statet = self._statet
@@ -530,21 +594,28 @@ class FiberTissueSimulation(myokit.CModule):
             self._statef = statef
             self._statet = statet
             self._time = time
+
             # Run until next time point, log every step
             duration = _logf[time_varf][ifirst] - time
             log = myokit.LOG_BOUND + myokit.LOG_STATE
             _logf, _logt = self.run(
                 duration, logf=log, logt=log, log_interval=_dt,
                 report_nan=False)
+
             # Reset simulation to original state
             self._statef = old_statef
             self._statet = old_statet
             self._time = old_time
+
             # Return new logs
             return _logf, _logt
 
         # Get time step
-        dt = logf[time_varf][1] - logf[time_varf][0]
+        try:
+            dt = logf[time_varf][1] - logf[time_varf][0]
+        except IndexError:  # pragma: no cover
+            # Assume huge dt
+            dt = 5
 
         # Search with successively fine log interval
         while dt > 0:
@@ -560,6 +631,9 @@ class FiberTissueSimulation(myokit.CModule):
             part = 'fiber'
             ifirst = ifirstf
             kfirst = kfirstf
+            if ifirst is None:  # pragma: no cover
+                ifirst = 0
+                kfirst = next(iter(log.items()))[0]
             model = self._modelf
             log = logf
         else:
@@ -590,7 +664,7 @@ class FiberTissueSimulation(myokit.CModule):
         bound = []
         max_states = 3
         for k in range(ifirst, ifirst - max_states - 1, -1):
-            if k < 0:
+            if k < 0:  # pragma: no cover
                 break
             s, b = state(k, icell)
             states.append(s)
@@ -600,7 +674,10 @@ class FiberTissueSimulation(myokit.CModule):
         var = model.get('.'.join(kfirst.split('.')[2:]))
 
         # Get value causing error
-        value = states[1][var.indice()]
+        if var.is_state():
+            value = states[1 if ifirst > 0 else 0][var.index()]
+        else:
+            value = bound[1 if ifirst > 0 else 0][var.qname()]
         var = var.qname()
 
         # Get time error occurred
@@ -609,8 +686,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Return part, time, icell, variable, value, states, bound
         return part, time, icell, var, value, states, bound
 
-    def pre(
-            self, duration, report_nan=True, progress=None,
+    def pre(self, duration, report_nan=True, progress=None,
             msg='Pre-pacing FiberTissueSimulation'):
         """
         This method can be used to perform an unlogged simulation, typically to
@@ -630,9 +706,8 @@ class FiberTissueSimulation(myokit.CModule):
         passed in as ``progress``. An optional description of the current
         simulation to use in the ProgressReporter can be passed in as `msg`.
         """
-        self._run(
-            duration, myokit.LOG_NONE, myokit.LOG_NONE, 1, report_nan,
-            progress, msg)
+        self._run(duration, myokit.LOG_NONE, myokit.LOG_NONE, 1, report_nan,
+                  progress, msg)
         self._default_statef = list(self._statef)
         self._default_statet = list(self._statet)
 
@@ -708,12 +783,11 @@ class FiberTissueSimulation(myokit.CModule):
         self._time += duration
         return r
 
-    def _run(
-            self, duration, logf, logt, log_interval, report_nan, progress,
-            msg):
+    def _run(self, duration, logf, logt, log_interval, report_nan, progress,
+             msg):
         # Simulation times
         if duration < 0:
-            raise Exception('Simulation duration can\'t be negative.')
+            raise ValueError('Simulation duration can\'t be negative.')
         tmin = self._time
         tmax = tmin + duration
 
@@ -794,30 +868,15 @@ class FiberTissueSimulation(myokit.CModule):
         args['inter_log'] = inter_logf
         args['paced_cells'] = self._paced_cells
         args['fiber_tissue'] = True
-        if myokit.DEBUG:
-            print('-' * 79)
-            print(
-                self._code(kernel_file, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
-        else:
-            kernelf = self._export(kernel_file, args)
+        kernelf = self._export(kernel_file, args, continue_in_debug_mode=True)
+
         args['model'] = self._modelt
         args['vmvar'] = self._vmt
         args['bound_variables'] = self._bound_variablest
         args['inter_log'] = inter_logt
         args['paced_cells'] = []
         args['fiber_tissue'] = False
-        if myokit.DEBUG:
-            print('-' * 79)
-            print(
-                self._code(kernel_file, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
-            import sys
-            sys.exit(1)
-        else:
-            kernelt = self._export(kernel_file, args)
+        kernelt = self._export(kernel_file, args)
 
         # Logging period (0 = disabled)
         log_interval = 1e-9 if log_interval is None else float(log_interval)
@@ -826,7 +885,7 @@ class FiberTissueSimulation(myokit.CModule):
 
         # Get progress indication function (if any)
         if progress is None:
-            progress = myokit._Simulation_progress
+            progress = myokit._simulation_progress
         if progress:
             if not isinstance(progress, myokit.ProgressReporter):
                 raise ValueError(
@@ -849,8 +908,8 @@ class FiberTissueSimulation(myokit.CModule):
                 self._ncellsf[1],
                 self._ncellst[0],
                 self._ncellst[1],
-                self._vmf.indice(),
-                self._vmt.indice(),
+                self._vmf.index(),
+                self._vmt.index(),
                 self._gf[0],
                 self._gf[1],
                 self._gt[0],
@@ -881,7 +940,7 @@ class FiberTissueSimulation(myokit.CModule):
                         r = 1.0 / duration if duration != 0 else 1
                         while t < tmax:
                             t = self._sim.sim_step()
-                            if t < tmin:
+                            if t < tmin:    # pragma: no cover
                                 # A numerical error has occurred.
                                 break
                             if not progress.update(min((t - tmin) * r, 1)):
@@ -901,34 +960,83 @@ class FiberTissueSimulation(myokit.CModule):
             self._statet = state_outt
 
         # Check for NaN's, print error output
-        if report_nan and (logf.has_nan() or logt.has_nan()):
+        if (report_nan and (logf.has_nan() or logt.has_nan())):
             txt = ['Numerical error found in simulation logs.']
             try:
                 # NaN encountered, show how it happened
-                part, time, icell, var, value, states, bound = self.find_nan(
+                part, time, icell, var, value, states, bounds = self.find_nan(
                     logf, logt)
                 model = self._modelt if part == 'tissue' else self._modelf
                 txt.append(
                     'Encountered numerical error in ' + part
-                    + ' simulation at t=' + str(time) + ' in cell ('
-                    + ','.join([str(x) for x in icell]) + ') when ' + var
-                    + '=' + str(value) + '.')
+                    + ' simulation at t ='
+                    + myokit.float.str(time, precision=self._precision)
+                    + ' in cell (' + ','.join([str(x) for x in icell])
+                    + ') when ' + var + '= '
+                    + myokit.float.str(value, precision=self._precision) + '.')
+
+                # Get names of vars used in bindings
+                vtime = model.time().qname()
+                vdiff = model.binding('diffusion_current').qname()
+                vpace = model.binding('pace')
+                vpace = None if vpace is None else vpace.qname()
+
+                # Show final state and bound variables
+                txt.append('State during:')
+                txt.append(model.format_state(
+                    states[0], precision=self._precision))
+
+                txt.append('Simulation variables during:')
+                txt.append('  Time:' + myokit.float.str(
+                    bounds[0][vtime], precision=self._precision))
+                if vpace is not None:
+                    txt.append('  Pacing variable:' + myokit.float.str(
+                        bounds[0][vpace], precision=self._precision))
+                txt.append('  Diffusion current:' + myokit.float.str(
+                    bounds[0][vdiff], precision=self._precision))
+
+                # Show previous state and derivatives
                 n_states = len(states)
                 txt.append('Obtained ' + str(n_states) + ' previous state(s).')
                 if n_states > 1:
-                    txt.append('State before:')
-                    txt.append(model.format_state(states[1]))
-                txt.append('State during:')
-                txt.append(model.format_state(states[0]))
-                if n_states > 1:
-                    txt.append('Evaluating derivatives at state before...')
+                    # Get state and bounds at previous state
+                    state = states[1]
+                    bound = {
+                        'time': bounds[1][vtime],
+                        'pace': 0 if vpace is None else bounds[1][vpace],
+                        'diffusion_current': bounds[1][vdiff],
+                    }
+
+                    # Evaluate state derivatives
+                    eval_error = None
                     try:
                         derivs = model.evaluate_derivatives(
-                            states[1], precision=self._precision)
-                        txt.append(model.format_state_derivatives(
-                            states[1], derivs))
-                    except myokit.NumericalError as ee:
-                        txt.append(str(ee))
+                            state, bound, self._precision, ignore_errors=False)
+                    except myokit.NumericalError as ee:  # pragma: no cover
+                        derivs = model.evaluate_derivatives(
+                            state, bound, self._precision, ignore_errors=True)
+                        eval_error = str(ee).strip()
+
+                    # Show state and derviatives
+                    txt.append('State before:')
+                    txt.append(model.format_state_derivatives(
+                        states[1], derivs, self._precision))
+
+                    # Show bound variables
+                    txt.append('Simulation variables during:')
+                    txt.append('  Time:' + myokit.float.str(
+                        bounds[1][vtime], precision=self._precision))
+                    if vpace is not None:
+                        txt.append('  Pacing variable:' + myokit.float.str(
+                            bounds[0][vpace], precision=self._precision))
+                    txt.append('  Diffusion current:' + myokit.float.str(
+                        bounds[1][vdiff], precision=self._precision))
+
+                    # Show any error in evaluating derivatives
+                    if eval_error is not None:  # pragma: no cover
+                        txt.append('Error when evaluating derivatives:')
+                        txt.append(eval_error)
+
             except myokit.FindNanError as e:
                 txt.append(
                     'Unable to pinpoint source of NaN, an error occurred:')
@@ -947,18 +1055,21 @@ class FiberTissueSimulation(myokit.CModule):
         if n == self._nstatef * ntotalf:
             return list(state)
         elif n != self._nstatef:
-            raise ValueError(
-                'Given state must have the same size as a'
-                ' single cell state or a full simulation state')
+            raise ValueError('Given state must have the same size as a single'
+                             ' fiber cell state or a full simulation state')
         if x is None:
             return list(state) * ntotalf
+        elif y is None:
+            raise ValueError(
+                'Must provide no coordinates, or both x and y coordinates.')
+
         # Set specific cell state
         x = int(x)
-        if x < 0 or x > self._ncellsf[0]:
-            raise KeyError('Given x-index out of range.')
+        if x < 0 or x >= self._ncellsf[0]:
+            raise IndexError('Given x-index out of range.')
         y = int(y)
-        if y < 0 or y > self._ncellsf[1]:
-            raise KeyError('Given y-index out of range.')
+        if y < 0 or y >= self._ncellsf[1]:
+            raise IndexError('Given y-index out of range.')
         offset = (x + y * self._ncellsf[0]) * self._nstatef
         update[offset:offset + self._nstatef] = state
         return update
@@ -972,18 +1083,21 @@ class FiberTissueSimulation(myokit.CModule):
         if n == self._nstatet * ntotalt:
             return list(state)
         elif n != self._nstatet:
-            raise ValueError(
-                'Given state must have the same size as a single'
-                ' cell state or a full simulation state')
+            raise ValueError('Given state must have the same size as a single'
+                             ' tissue cell state or a full simulation state')
         if x is None:
             return list(state) * ntotalt
+        elif y is None:
+            raise ValueError(
+                'Must provide no coordinates, or both x and y coordinates.')
+
         # Set specific cell state
         x = int(x)
-        if x < 0 or x > self._ncellst[0]:
-            raise KeyError('Given x-index out of range.')
+        if x < 0 or x >= self._ncellst[0]:
+            raise IndexError('Given x-index out of range.')
         y = int(y)
-        if y < 0 or y > self._ncellst[1]:
-            raise KeyError('Given y-index out of range.')
+        if y < 0 or y >= self._ncellst[1]:
+            raise IndexError('Given y-index out of range.')
         offset = (x + y * self._ncellst[0]) * self._nstatet
         update[offset: offset + self._nstatet] = state
         return update
@@ -995,14 +1109,17 @@ class FiberTissueSimulation(myokit.CModule):
         This can be used in three different ways:
 
         1. When called with an argument ``state`` of size ``n_states`` and
-           ``x=y=None`` the given state will be set as the new default state of
+           ``x=None`` the given state will be set as the new default state of
            all fiber cells in the simulation.
-        2. Called with an argument ``state`` of size n_states and
+        2. Called with an argument ``state`` of size ``n_states`` and
            ``x, y`` equal to a valid cell index, this method will update only
            the selected fiber cell's default state.
-        3. Finally, when called with a ``state`` of size ``n_states * n_cells``
-           the method will treat ``state`` as a concatenation of state vectors
-           for each fiber cell.
+        3. Finally, when called with a ``state`` of size
+           ``n_states * n_total_cells``, the method will treat ``state`` as a
+           concatenation of default state vectors for each fiber cell. For 2d
+           simulations, the list should be indexed so that x changes first (the
+           first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+           ``y = 1`` and so on).
 
         """
         self._default_statef = self._set_statef(
@@ -1016,13 +1133,16 @@ class FiberTissueSimulation(myokit.CModule):
 
         1. When called with an argument ``state`` of size ``n_states`` and
            ``x=None`` the given state will be set as the new default state of
-           tissue cells in the simulation.
-        2. Called with an argument ``state`` of size n_states and
+           all tissue cells in the simulation.
+        2. Called with an argument ``state`` of size ``n_states`` and
            ``x, y`` equal to a valid cell index, this method will update only
            the selected tissue cell's default state.
-        3. Finally, when called with a ``state`` of size ``n_states * n_cells``
-           the method will treat ``state`` as a concatenation of state vectors
-           for each tissue cell.
+        3. Finally, when called with a ``state`` of size
+           ``n_states * n_total_cells``, the method will treat ``state`` as a
+           concatenation of default state vectors for each tissue cell. For 2d
+           simulations, the list should be indexed so that x changes first (the
+           first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+           ``y = 1`` and so on).
 
         """
         self._default_statet = self._set_statet(
@@ -1035,14 +1155,17 @@ class FiberTissueSimulation(myokit.CModule):
         This can be used in three different ways:
 
         1. When called with an argument ``state`` of size ``n_states`` and
-           ``x=y=None`` the given state will be set as the new state of all
+           ``x=None`` the given state will be set as the new state of all
            fiber cells in the simulation.
-        2. Called with an argument ``state`` of size n_states and
+        2. Called with an argument ``state`` of size ``n_states`` and
            ``x, y`` equal to a valid cell index, this method will update only
            the selected fiber cell's state.
-        3. Finally, when called with a ``state`` of size ``n_states * n_cells``
-           the method will treat ``state`` as a concatenation of state vectors
-           for each fiber cell.
+        3. Finally, when called with a ``state`` of size
+           ``n_states * n_total_cells``, the method will treat ``state`` as a
+           concatenation of state vectors for each fiber cell. For 2d
+           simulations, the list should be indexed so that x changes first (the
+           first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+           ``y = 1`` and so on).
 
         """
         self._statef = self._set_statef(state, x, y, self._statef)
@@ -1054,43 +1177,56 @@ class FiberTissueSimulation(myokit.CModule):
         This can be used in three different ways:
 
         1. When called with an argument ``state`` of size ``n_states`` and
-           ``x=y=None`` the given state will be set as the new state of all
+           ``x=None`` the given state will be set as the new state of all
            tissue cells in the simulation.
-        2. Called with an argument ``state`` of size n_states and
+        2. Called with an argument ``state`` of size ``n_states`` and
            ``x, y`` equal to a valid cell index, this method will update only
            the selected tissue cell's state.
-        3. Finally, when called with a ``state`` of size ``n_states * n_cells``
-           the method will treat ``state`` as a concatenation of state vectors
-           for each tissue cell.
+        3. Finally, when called with a ``state`` of size
+           ``n_states * n_total_cells``, the method will treat ``state`` as a
+           concatenation of state vectors for each tissue cell. For 2d
+           simulations, the list should be indexed so that x changes first (the
+           first ``nx`` entries have ``y = 0``, the second ``nx`` entries have
+           ``y = 1`` and so on).
 
         """
         self._statet = self._set_statet(state, x, y, self._statet)
 
     def set_step_size(self, step_size=0.005):
-        """
-        Sets the solver step size.
-        """
+        """ Sets the solver step size. """
         step_size = float(step_size)
         if step_size <= 0:
             raise ValueError('Step size must be greater than zero.')
         self._step_size = step_size
 
     def set_protocol(self, protocol=None):
-        """
-        Changes the pacing protocol used by this simulation.
-        """
+        """ Changes the pacing protocol used by this simulation. """
         if protocol is None:
             self._protocol = None
         else:
             self._protocol = protocol.clone()
 
     def set_time(self, time=0):
-        """
-        Sets the current simulation time.
-        """
+        """ Sets the current simulation time. """
         self._time = float(time)
 
-    def tissue_state(self, x=None):
+    def step_size(self, step_size=0.005):
+        """ Returns the solver step size. """
+        return self._step_size
+
+    def time(self):
+        """ Returns the current simulation time """
+        return self._time
+
+    def tissue_shape(self):
+        """
+        Returns the shape of this simulation's grid of tissue cells as a tuple
+        ``(ny, nx)``.
+        """
+        # TODO: See https://github.com/myokit/myokit/issues/764
+        return (self._ncellst[1], self._ncellst[0])
+
+    def tissue_state(self, x=None, y=None):
         """
         Returns the current simulation state in the tissue as a list of
         ``len(state_tissue) * ncells_tissue`` floating point values.
@@ -1100,18 +1236,16 @@ class FiberTissueSimulation(myokit.CModule):
         """
         if x is None:
             return list(self._statet)
+        elif y is None:
+            raise ValueError('tissue_state() must be called with no arguments'
+                             ' or with both an x and y argument.')
         else:
             x = int(x)
-            if x < 0 or x > self._ncellst[0]:
-                raise KeyError('Given x-index out of range.')
+            if x < 0 or x >= self._ncellst[0]:
+                raise IndexError('Given x-index out of range.')
             y = int(y)
-            if y < 0 or y > self._ncellst[1]:
-                raise KeyError('Given y-index out of range.')
+            if y < 0 or y >= self._ncellst[1]:
+                raise IndexError('Given y-index out of range.')
             x += y * self._ncellst[0]
             return self._statet[x * self._nstatet:(x + 1) * self._nstatet]
 
-    def time(self):
-        """
-        Returns the current simulation time.
-        """
-        return self._time

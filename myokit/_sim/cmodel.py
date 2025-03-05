@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import traceback
 
@@ -21,7 +18,7 @@ import myokit.pype
 SOURCE_FILE = 'cmodel.h'
 
 
-class CModel(object):
+class CModel:
     """
     Generates ansi-C code for a model.
 
@@ -35,6 +32,9 @@ class CModel(object):
 
     ``model``
         A :class:`myokit.Model`.
+    ``pacing_labels``
+        A list of ``str`` variable labels, each corresponding to a paced
+        variable.
     ``sensitivities``
         Either ``None`` or a tuple ``(dependents, independents)``. See
         :class:`myokit.Simulation` for details.
@@ -76,7 +76,7 @@ class CModel(object):
         Constants that depend on literals, but not on parameters.
 
     """
-    def __init__(self, model, sensitivities):
+    def __init__(self, model, pacing_labels, sensitivities):
 
         # Parse sensitivity arguments
         has_sensitivities, dependents, independents = \
@@ -86,17 +86,15 @@ class CModel(object):
         # bother with keywords.
         model.create_unique_names()
 
-        # Remove any unused bindings, and get mapping from variables to C
-        # variable names as used in model.h
-        #TODO: Think about best way to do this for model re-use with different
-        # sets of bound variables... Presumably the model would simply support
-        # all bindings used by any of the simulations based on model.h ?
-        bound_variables = model.prepare_bindings({
+        # Get mapping from variables to C variable names as used in model.h
+        labels = {
             'time': 'time',
-            'pace': 'pace',
             'realtime': 'realtime',
             'evaluations': 'evaluations',
-        })
+        }
+        for i, label in enumerate(pacing_labels):
+            labels[label] = 'pace_values[' + str(i) + ']'
+        bound_variables = myokit._prepare_bindings(model, labels)
 
         # Get equations in solvable order (grouped by component)
         equations = model.solvable_order()
@@ -262,7 +260,7 @@ class CModel(object):
         # Now call expressions_for, which will return expressions to evaluate
         # the rhs for each variable (i.e. the dot(x) rhs for states).
         output_equations, _ = model.expressions_for(*output_variables)
-        del(output_variables, _)
+        del output_variables, _
 
         # Gather output expressions for each parameter or initial value we want
         # sensitivities w.r.t.
@@ -401,7 +399,7 @@ class CModel(object):
         """ Generates and returns the model code. """
 
         # Get states whose initial value is used in sensivitity calculations
-        initials = [p.var().indice() for p in independents
+        initials = [p.var().index() for p in independents
                     if isinstance(p, myokit.InitialValue)]
 
         # Arguments

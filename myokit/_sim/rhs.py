@@ -4,20 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
-import timeit
-import myokit
 import platform
+import timeit
 
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
-
+import myokit
 
 # Location of C source file
 SOURCE_FILE = 'rhs.c'
@@ -33,7 +24,7 @@ class RhsBenchmarker(myokit.CModule):
     be selected.
 
     By default, the given list of variables are the only variables included in
-    a partial simulation. This behaviour can be inverted by setting
+    a partial simulation. This behavior can be inverted by setting
     ``exclude_selected=True``. With this setting, all variables except those in
     the given list will be tested.
 
@@ -42,7 +33,7 @@ class RhsBenchmarker(myokit.CModule):
     _index = 0  # Unique id for the generated module
 
     def __init__(self, model, variables=None, exclude_selected=False):
-        super(RhsBenchmarker, self).__init__()
+        super().__init__()
 
         # Require a valid model
         model.validate()
@@ -66,13 +57,6 @@ class RhsBenchmarker(myokit.CModule):
             'exclude_selected': exclude_selected,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
-
-        # Debug
-        if myokit.DEBUG:
-            print(self._code(fname, args,
-                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
 
         # Define libraries
         libs = []
@@ -169,7 +153,7 @@ class RhsBenchmarker(myokit.CModule):
         the given benchmarked times.
         """
         import numpy as np
-        times = np.array(times, copy=False)
+        times = np.asarray(times)
         # Remove outliers twice
         for i in range(0, 2):
             avg = np.mean(times)
@@ -208,7 +192,7 @@ class RhsBenchmarker(myokit.CModule):
         else:
             self._variables = set()
             for var in variables:
-                if isinstance(var, basestring):
+                if isinstance(var, str):
                     # String? Then get variable from model
                     var = self._model.get(var)
                 else:

@@ -16,10 +16,7 @@ Implementation
 
 .. autoclass:: LineNumberArea
 
-Find dialog
------------
-
-.. autoclass:: FindDialog
+.. autoclass:: FindReplaceWidget
 
 Syntax highlighting
 -------------------

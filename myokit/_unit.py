@@ -5,21 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import math
 
 import myokit
 
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
 
-
-class Unit(object):
+class Unit:
     """
     Represents a unit.
 
@@ -225,10 +216,21 @@ class Unit(object):
         so that ``c = 0.001 [km/m]``, and the unit ``[km/m]`` can be written as
         ``[km/m] = [ kilo ] = [1 (1000)]``.
 
-        Conversions between incompatible units can be performed if one or
-        multiple helper :class:`Quantity` objects are passed in.
+        Note that this method uses the :meth:`close()` and
+        :meth:`close_exponent` comparisons to see if units are equal.
 
-        For example::
+        Conversions between *incompatible* units can be performed if one or
+        multiple helper :class:`Quantity` objects are passed in. For example,
+        to convert from ``g`` to ``mol`` a helper with units ``g/mol`` could
+        be passed in. Conversion will be attempted with the helper and the
+        inverse of the helper, and with any (dimensionless) scaling. For
+        example, a ``g`` to ``mol`` conversion can also be facilitated by a
+        helper in ``mol/g`` or ``mol/kg``. If multiple helpers are given each
+        will be tried individually: helpers are not combined. If used, a helper
+        (possibly scaled and/or inverted) will be included in the returned
+        conversion factor ``c``.
+
+        A common example in cell electrophysiology is::
 
             >>> import myokit
             >>> myokit.Unit.conversion_factor(
@@ -238,9 +240,6 @@ class Unit(object):
         Where::
 
             1 [uA/cm^2] = 1 [cm^2/uF] * 1 [uA/uF]
-
-        Note that this method uses the :meth:`close()` and
-        :meth:`close_exponent` comparisons to see if units are equal.
 
         Arguments:
 
@@ -259,7 +258,7 @@ class Unit(object):
 
         Returns a :class:`myokit.Quantity`.
 
-        Raises a :class:`myokit.IncompatibleUnitError` if the units cannot be
+        Raises an :class:`myokit.IncompatibleUnitError` if the units cannot be
         converted.'
         """
         # Check unit1
@@ -283,7 +282,7 @@ class Unit(object):
                 if not isinstance(factor, myokit.Quantity):
                     factor = myokit.Quantity(factor)
                 factors.append(factor)
-        del(helpers)
+        del helpers
 
         # Simplest case: units are (almost) equal
         if Unit.close(unit1, unit2):
@@ -488,62 +487,70 @@ class Unit(object):
         return self.__rtruediv__(other)
 
     @staticmethod
-    def register(name, unit, quantifiable=False, output=False):
+    def register(name, unit, quantifiable=False,
+                 preferred_representation=False):
         """
-        Registers a unit name with the Unit class. Registered units will be
-        recognised by the parse() method.
+        Registers a unit name with the :class:`Unit` class so that it will be
+        recognised when parsing.
 
         Arguments:
 
         ``name``
-            The unit name. A variable will be created using this name.
+            The unit name. This must be a valid myokit name, i.e.
+            ``myokit.check_name(name)`` should not raise any errors.
         ``unit``
             A valid unit object
         ``quantifiable``
             ``True`` if this unit should be registered with the unit class as a
-            quantifiable unit. Typically this should only be done for the
-            unquantified symbol notation of SI or SI derived units. For example
-            m, g, Hz, N but not meter, kg, hertz or forthnight.
-        ``output``
-            ``True`` if this units name should be used to display this unit in.
-            This should be set for all common units (m, kg, nm, Hz) but not for
-            more obscure units (furlong, parsec). Having ``output`` set to
-            ``False`` will cause one-way behaviour: Myokit will recognise the
-            unit name but never use it in output.
-            Setting this to ``True`` will also register the given name as a
-            preferred representation format.
+            _quantifiable_ unit, i.e. a unit that can be preceded by an SI
+            prefix such as "m" or "G". Typically this should only be done
+            for the unquantified symbol notation of SI or SI derived units. For
+            example "m", "g", or "Hz" but not "km", "meter", or "bushel".
+        ``preferred_representation``
+            Set to ``True`` to also register ``name`` as the preferred
+            representation for ``unit``.
 
         """
-        if not isinstance(name, basestring):
-            raise TypeError('Given name must be a string.')
+        name = myokit.check_name(name)
         if not isinstance(unit, Unit):
             raise TypeError('Given unit must be myokit.Unit')
         Unit._units[name] = unit
         if quantifiable:
             # Overwrite existing entries without warning
             Unit._quantifiable.add(name)
-        if output:
+        if preferred_representation:
             # Overwrite existing entries without warning
             Unit._preferred_representations[unit] = name
 
     @staticmethod
     def register_preferred_representation(rep, unit):
         """
-        Registers a preferred representation for the given unit without
-        registering it as a new type. This method can be used to register
-        common representations such as "umol/L" and "km/h".
+        Sets the preferred representation for the a unit, in terms of already
+        defined units.
+
+        This method can be used to register common representations such as
+        "umol/L" and "km/h". The given representation should be parseable by
+        Myokit, with the result equalling ``unit``.
 
         Arguments:
 
         ``rep``
-            A string, containing the preferred name for this unit. This should
-            be something that Myokit can parse.
+            A string containing the preferred representation for this unit.
         ``unit``
             The unit to register a notation for.
 
         Existing entries are overwritten without warning.
         """
         # Overwrite existing entries without warning
+        if not isinstance(unit, myokit.Unit):
+            raise ValueError(
+                'The second argument to register_preferred_representation must'
+                ' be a myokit.Unit')
+        rep = str(rep)
+        if not myokit.parse_unit(rep) == unit:
+            raise ValueError(
+                f'The representation [{rep}] does not equal {unit._str(True)}'
+                ' when parsed.')
         Unit._preferred_representations[unit] = rep
 
     def __repr__(self):
@@ -560,8 +567,8 @@ class Unit(object):
         return Unit(list(self._x), self._m + math.log10(other))
 
     def __rtruediv__(self, other):
-        # Evaluates ``other / self``, where other is not a unit when future
-        # division is active.
+        # Evaluates ``other / self``, where other is not a unit, in Python 3
+        # or when future division is active.
 
         return Unit([-a for a in self._x], math.log10(other) - self._m)
 
@@ -613,7 +620,8 @@ class Unit(object):
 
     def __str__(self):
 
-        # Strategy 1: Try simple look-up (using float.eq comparison)
+        # Strategy 1: Try simple look-up (using hash based on _str() followed
+        # by check of exponents in __eq__ for comparison
         try:
             return '[' + Unit._preferred_representations[self] + ']'
         except KeyError:
@@ -626,8 +634,8 @@ class Unit(object):
                 rep = '[' + test + ']'
                 break
 
-        # Strategy 3: Try finding a representation for the exponent and adding
-        # a multiplier to that.
+        # Strategy 3: Try finding a representation for the exponent (without a
+        # multiplier) and adding a multiplier to that.
         if rep is None:
 
             # Because kilos are defined with a multiplier of 1000, the
@@ -637,17 +645,20 @@ class Unit(object):
             u = Unit(list(self._x), m)
             rep = Unit._preferred_representations.get(u, None)
 
-            # Add multiplier part
+            # Add multiplier part:
             if rep is not None:
-                m = myokit.float.cround(self._m - m)
-                m = 10**m
-                if m >= 1:
-                    m = myokit.float.cround(m)
-                if m < 1e6:
-                    m = str(m)
+                if '(' in rep:
+                    rep = None
                 else:
-                    m = '{:<1.0e}'.format(m)
-                rep = '[' + rep + ' (' + m + ')]'
+                    m = myokit.float.cround(self._m - m)
+                    m = 10**m
+                    if m >= 1:
+                        m = myokit.float.cround(m)
+                    if m < 1e6:
+                        m = str(m)
+                    else:
+                        m = '{:<1.0e}'.format(m)
+                    rep = '[' + rep + ' (' + m + ')]'
 
         # Strategy 4: Build a new representation
         if rep is None:
@@ -667,7 +678,7 @@ class Unit(object):
             self._m - other._m)
 
 
-class Quantity(object):
+class Quantity:
     """
     Represents a quantity with a :class:`unit <myokit.Unit>`. Can be used to
     perform unit-safe arithmetic.
@@ -825,7 +836,7 @@ class Quantity(object):
         return self._value
 
     def __hash__(self):
-        return self._str
+        return hash(self._value) + hash(self._unit)
 
     def __mul__(self, other):
         if not isinstance(other, Quantity):

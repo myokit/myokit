@@ -22,11 +22,11 @@ model.create_unique_names()
 # Define lhs function
 def v(var):
     if isinstance(var, myokit.Derivative):
-        return 'NV_Ith_S(ydot, ' + str(var.var().indice()) + ')'
+        return 'NV_Ith_S(ydot, ' + str(var.var().index()) + ')'
     elif isinstance(var, myokit.Name):
         var = var.var()
     if var.is_state():
-        return 'NV_Ith_S(y, ' + str(var.indice()) + ')'
+        return 'NV_Ith_S(y, ' + str(var.index()) + ')'
     elif var.is_constant():
         return 'AC_' + var.uname()
     else:
@@ -38,10 +38,10 @@ w.set_lhs_function(v)
 
 # Process bindings, remove unsupported bindings, get map of bound variables to
 # internal names
-bound_variables = model.prepare_bindings({
+bound_variables = myokit._prepare_bindings(model, {
     'time' : 't',
     'pace' : 'pace',
-    })
+})
 
 # Tab
 tab = '    '
@@ -131,8 +131,8 @@ static void
 default_initial_values(N_Vector y)
 {
 <?
-for eq in model.inits():
-    print(tab + w.eq(eq) + ';')
+for var, init in zip(model.states(), model.initial_values(True)):
+    print(tab + v(var) + ' = ' + myokit.float.str(init) + ';')
 ?>
 }
 

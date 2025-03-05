@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 from lxml import etree
 
 import myokit
@@ -27,7 +24,7 @@ def write_string(model):
     return CellMLWriter().write_string(model)
 
 
-class CellMLWriter(object):
+class CellMLWriter:
     """
     Writes CellML 2.0 documents.
     """
@@ -282,8 +279,10 @@ class CellMLWriter(object):
 
         # Add initial value
         if variable is variable.initial_value_variable():
-            element.attrib['initial_value'] = myokit.float.str(
-                variable.initial_value()).strip()
+            value = myokit.float.str(variable.initial_value()).strip()
+            if value[-4:] == 'e+00':
+                value = value[:-4]
+            element.attrib['initial_value'] = value
 
     def write(self, model):
         """
@@ -315,7 +314,7 @@ class CellMLWriter(object):
 
         finally:
             # Delete any temporary properties
-            del(self._oxmeta_variables, self._time)
+            del self._oxmeta_variables, self._time
 
     def write_file(self, path, model):
         """

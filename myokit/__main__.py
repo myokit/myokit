@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import warnings
 
 _line_width = 79
@@ -27,6 +24,55 @@ def colored(color, text):
         'underline': '\033[4m',
     }
     return colors[color] + str(text) + colors['normal']
+
+
+def qtforce(pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
+    """ Enforce a chosen Qt version. """
+
+    if pyqt6 or pyqt5 or pyside6 or pyside2:
+        import myokit
+
+        myokit.FORCE_PYQT6 = False
+        myokit.FORCE_PYQT5 = False
+        myokit.FORCE_PYSIDE6 = False
+        myokit.FORCE_PYSIDE2 = False
+
+        if pyqt6:
+            myokit.FORCE_PYQT6 = True
+        elif pyside6:
+            myokit.FORCE_PYSIDE6 = True
+        elif pyqt5:
+            myokit.FORCE_PYQT5 = True
+        elif pyside2:
+            myokit.FORCE_PYSIDE2 = True
+
+        import myokit.gui
+        print('Using backend: ' + myokit.gui.backend)
+
+
+def add_qtforce_arguments(parser):
+    """ Updates a parser with arguments to force a Qt version. """
+
+    parser.add_argument(
+        '--pyqt6',
+        action='store_true',
+        help='Run using the PyQt6 backend.',
+    )
+    parser.add_argument(
+        '--pyqt5',
+        action='store_true',
+        help='Run using the PyQt5 backend.',
+    )
+    parser.add_argument(
+        '--pyside6',
+        action='store_true',
+        help='Run using the PySide6 backend.',
+    )
+    parser.add_argument(
+        '--pyside2',
+        action='store_true',
+        help='Run using the PySide2 backend.',
+    )
 
 
 def main():
@@ -79,7 +125,7 @@ def main():
 
         # Split into function and arguments
         func = args['func']
-        del(args['func'])
+        del args['func']
 
         # Call the selected function with the parsed arguments
         func(**args)
@@ -88,36 +134,13 @@ def main():
 #
 # Data block viewer
 #
-
-def block(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
+def block(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the DataBlock viewer.
     """
-    import myokit
-    if pyqt5:
-        myokit.FORCE_PYQT5 = True
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = False
-    elif pyqt4:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = True
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = False
-    elif pyside:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = True
-        myokit.FORCE_PYSIDE2 = False
-    elif pyside2:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = True
-    import myokit.gui
+    qtforce(pyqt6, pyqt5, pyside6, pyside2)
+
     import myokit.gui.datablock_viewer
-    if pyqt5 or pyqt4 or pyside or pyside2:
-        print('Using backend: ' + myokit.gui.backend)
     myokit.gui.run(myokit.gui.datablock_viewer.DataBlockViewer, filename)
 
 
@@ -137,26 +160,7 @@ def add_block_parser(subparsers):
         metavar='filename',
         help='The DataBlock zip file to open (optional).',
     )
-    parser.add_argument(
-        '--pyqt5',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PyQt5 backend.',
-    )
-    parser.add_argument(
-        '--pyqt4',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PyQt4 backend.',
-    )
-    parser.add_argument(
-        '--pyside',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PySide backend.',
-    )
-    parser.add_argument(
-        '--pyside2',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PySide2 backend.',
-    )
+    add_qtforce_arguments(parser)
     parser.set_defaults(func=block)
 
 
@@ -240,7 +244,7 @@ def add_compiler_parser(subparsers):
 
 def debug(source, variable, deps=False):
     """
-    Shows how a single variable is calculated from the initial conditions.
+    Shows how a single variable is calculated from the initial values.
     """
     import myokit
 
@@ -261,8 +265,8 @@ def add_debug_parser(subparsers):
     parser = subparsers.add_parser(
         'debug',
         description='Shows how a single variable is calculated from the '
-                    'initial conditions. The variable\'s equation and value'
-                    ' are displayed, along with the value and formula of any'
+                    ' initial values. The variable\'s equation and value are'
+                    ' displayed, along with the value and formula of any'
                     ' nested variables and the values of all dependencies.',
         help='Shows how a single variable is calculated.',
     )
@@ -421,10 +425,7 @@ def install():
     if plat == 'Linux':
         yesno = \
             'Install launcher icons and file type associations for Gnome/KDE? '
-        try:
-            yesno = raw_input(yesno)
-        except NameError:   # pragma: no python 2 cover
-            yesno = input(yesno)
+        yesno = input(yesno)
         yesno = (yesno.strip().lower())[:1] == 'y'
 
         if yesno:
@@ -432,10 +433,7 @@ def install():
 
     elif plat == 'Windows':
         yesno = 'Install start menu shortcuts? '
-        try:
-            yesno = raw_input(yesno)
-        except NameError:   # pragma: no python 2 cover
-            yesno = input(yesno)
+        yesno = input(yesno)
         yesno = (yesno.strip().lower())[:1] == 'y'
 
         if yesno:
@@ -444,7 +442,7 @@ def install():
     elif plat == 'Darwin':
         print(
             'Icons for MacOS are not available (yet). See '
-            'https://github.com/MichaelClerx/myokit/issues/38')
+            'https://github.com/myokit/myokit/issues/38')
 
     else:
         print('Unknown platform: ' + plat)
@@ -561,7 +559,7 @@ def install_windows():
         with open(output, 'w') as f:
             p.set_output_stream(f)
             p.process(source, varmap)
-        del(p)
+        del p
 
         # Install
         menuinst.install(output)
@@ -587,38 +585,17 @@ def add_icon_parser(subparsers):
 # IDE
 #
 
-def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
+def ide(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the Myokit IDE.
     """
+    qtforce(pyqt6, pyqt5, pyside6, pyside2)
+
     import os
-    import myokit
-    if pyqt5:
-        myokit.FORCE_PYQT5 = True
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = False
-    elif pyqt4:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = True
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = False
-    elif pyside:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = True
-        myokit.FORCE_PYSIDE2 = False
-    elif pyside2:
-        myokit.FORCE_PYQT5 = False
-        myokit.FORCE_PYQT4 = False
-        myokit.FORCE_PYSIDE = False
-        myokit.FORCE_PYSIDE2 = True
-    import myokit.gui
-    import myokit.gui.ide
-    if pyqt5 or pyqt4 or pyside or pyside2:
-        print('Using backend: ' + myokit.gui.backend)
     if filename is not None:
         filename = os.path.abspath(os.path.expanduser(filename))
+
+    import myokit.gui.ide
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
 
 
@@ -638,26 +615,7 @@ def add_ide_parser(subparsers):
         metavar='filename',
         help='The mmt file to open (optional).',
     )
-    parser.add_argument(
-        '--pyqt5',
-        action='store_true',
-        help='Run the IDE using the PyQt5 backend.',
-    )
-    parser.add_argument(
-        '--pyqt4',
-        action='store_true',
-        help='Run the IDE using the PyQt4 backend.',
-    )
-    parser.add_argument(
-        '--pyside',
-        action='store_true',
-        help='Run the IDE using the PySide backend.',
-    )
-    parser.add_argument(
-        '--pyside2',
-        action='store_true',
-        help='Run the DataBlock Viewer using the PySide2 backend.',
-    )
+    add_qtforce_arguments(parser)
     parser.set_defaults(func=ide)
 
 
@@ -741,11 +699,12 @@ def add_import_parser(subparsers):
 # Log viewer
 #
 
-def log(filenames):
+def log(filenames, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     Runs the DataLog Viewer.
     """
-    import myokit.gui
+    qtforce(pyqt6, pyqt5, pyside6, pyside2)
+
     import myokit.gui.datalog_viewer
     myokit.gui.run(myokit.gui.datalog_viewer.DataLogViewer, *filenames)
 
@@ -761,6 +720,7 @@ def add_log_parser(subparsers):
         description='Runs the DataLog Viewer (PROTOTYPE).',
         help='Runs the DataLog Viewer (PROTOTYPE).',
     )
+    add_qtforce_arguments(parser)
     parser.add_argument(
         'filenames',
         default=None,
@@ -867,10 +827,7 @@ def opencl_select():
     try:
         while True:
             x = 'Select device: '
-            try:
-                x = raw_input(x)
-            except NameError:   # pragma: no python 2 cover
-                x = input(x)    # lgtm [py/use-of-input]
+            x = input(x)
             x = x.strip()
             if x == '':
                 x = None
@@ -932,10 +889,7 @@ def reset(force=False):
         remove = True
     else:
         yesno = 'Remove all Myokit settings files? '
-        try:
-            yesno = raw_input(yesno)
-        except NameError:           # pragma: no python 2 cover
-            yesno = input(yesno)    # lgtm [py/use-of-input]
+        yesno = input(yesno)
         yesno = yesno.strip().lower()
         remove = (yesno[:1] == 'y')
     if remove:
@@ -970,15 +924,24 @@ def add_reset_parser(subparsers):
 # Run
 #
 
-def run(source, debug, debugfile):
-    """
-    Runs an mmt file script.
-    """
+def run(source, debug_sg, debug_wg, debug_sc, debug_sm, debug_sp, debug_ss):
+    """ Runs an mmt file script. """
     import sys
     import myokit
 
-    # Debug?
-    myokit.DEBUG = myokit.DEBUG or debug or debugfile
+    # Debug modes
+    # Show generated code
+    myokit.DEBUG_SG = myokit.DEBUG_SG or debug_sg
+    # Write generated code to file
+    myokit.DEBUG_WG = myokit.DEBUG_WG or debug_wg
+    # Show compiler output
+    myokit.DEBUG_SC = myokit.DEBUG_SC or debug_sc
+    # Show messages when running compiled code
+    myokit.DEBUG_SM = myokit.DEBUG_SM or debug_sm
+    # Show profiling information when running compiled code
+    myokit.DEBUG_SP = myokit.DEBUG_SP or debug_sp
+    # Show CVODES stats
+    myokit.DEBUG_SS = myokit.DEBUG_SS or debug_ss
 
     # Read mmt file
     try:
@@ -1013,37 +976,19 @@ def run(source, debug, debugfile):
     else:
         print('Using embedded script')
 
-    # Run, capture output and write to file
-    if debugfile:
-        debugfile = debugfile[0]
-        with open(debugfile, 'w') as f:
-            stdout = sys.stdout
-            try:
-                sys.stdout = f
-                line_numbers = myokit.DEBUG_LINE_NUMBERS
-                myokit.DEBUG_LINE_NUMBERS = False
-                myokit.run(model, protocol, script)
-            except SystemExit:
-                pass
-            finally:
-                sys.stdout = stdout
-                myokit.DEBUG_LINE_NUMBERS = line_numbers
-            print('Output written to ' + str(debugfile))
+    # Normal run
+    # Show script
+    printline()
+    lines = script.splitlines()
+    template = '{:>3d} {:s}'
+    i = 0
+    for line in lines:
+        i += 1
+        print(template.format(i, line))
+    printline()
 
-    else:
-
-        # Show script
-        printline()
-        lines = script.splitlines()
-        template = '{:>3d} {:s}'
-        i = 0
-        for line in lines:
-            i += 1
-            print(template.format(i, line))
-        printline()
-
-        # Run!
-        myokit.run(model, protocol, script)
+    # Run!
+    myokit.run(model, protocol, script)
 
 
 def add_run_parser(subparsers):
@@ -1063,16 +1008,34 @@ def add_run_parser(subparsers):
         help='The source file to parse.',
     )
     parser.add_argument(
-        '--debug',
+        '--debug-sg',
         action='store_true',
         help='Show the generated code instead of executing it.',
     )
     parser.add_argument(
-        '--debugfile',
-        nargs=1,
-        metavar='debugfile',
-        help='Write the generated code to a file instead of executing it.',
-        default=None,
+        '--debug-wg',
+        action='store_true',
+        help='Write the generated code to file(s) instead of executing it.',
+    )
+    parser.add_argument(
+        '--debug-sc',
+        action='store_true',
+        help='Show compiler output.',
+    )
+    parser.add_argument(
+        '--debug-sm',
+        action='store_true',
+        help='Show debug messages when executing compiled code.',
+    )
+    parser.add_argument(
+        '--debug-sp',
+        action='store_true',
+        help='Show profiling information when executing compiled code.',
+    )
+    parser.add_argument(
+        '--debug-ss',
+        action='store_true',
+        help='Show CVODES stats when running simulations.',
     )
     parser.set_defaults(func=run)
 
@@ -1276,16 +1239,6 @@ def add_test_parser(subparsers):
         help='Test documentation cover, building, and doc tests.')
     doc_parser.set_defaults(testfunc=test_documentation)
 
-    # Example notebooks
-    example_parser = subparsers.add_parser(
-        'examples', help='Test example notebooks.')
-    example_parser.set_defaults(testfunc=test_examples)
-
-    # Publication examples
-    pub_parser = subparsers.add_parser(
-        'pub', help='Run publication examples.')
-    pub_parser.set_defaults(testfunc=test_examples_pub)
-
     # Style tests
     style_parser = subparsers.add_parser('style', help='Run code style tests.')
     style_parser.set_defaults(testfunc=test_style)
@@ -1325,7 +1278,7 @@ def test_coverage(args):
     try:
         print('Gathering coverage data')
         p = subprocess.Popen([
-            'python3',
+            sys.executable,
             '-m',
             'coverage',
             'run',
@@ -1349,7 +1302,7 @@ def test_coverage(args):
 
         print('Generating coverage report.')
         p = subprocess.Popen([
-            'python3',
+            sys.executable,
             '-m',
             'coverage',
             'report',
@@ -1509,11 +1462,15 @@ def test_doc_coverage_get_objects():
     import inspect
     import os
 
-    def find_modules(root, modules=[]):
+    def find_modules(root, modules=[], ignore=[]):
         """ Find all modules in the given directory. """
 
         # Get root as module
         module_root = root.replace('/', '.')
+
+        # Check if this path is on the ignore list
+        if root in ignore:
+            return modules
 
         # Check if this is a module
         if os.path.isfile(os.path.join(root, '__init__.py')):
@@ -1527,7 +1484,7 @@ def test_doc_coverage_get_objects():
                 continue
             path = os.path.join(root, name)
             if os.path.isdir(path):
-                find_modules(path, modules)
+                find_modules(path, modules, ignore)
             else:
                 base, ext = os.path.splitext(name)
                 if ext == '.py':
@@ -1538,7 +1495,7 @@ def test_doc_coverage_get_objects():
 
     # Get modules
     import myokit
-    modules = find_modules('myokit')
+    modules = find_modules('myokit', ignore=['myokit/tests'])
 
     # Import all modules
     for module in modules:
@@ -1681,169 +1638,6 @@ def test_doc_coverage_index(modules, classes, functions):
     return n == 0
 
 
-def test_examples(args):
-    """
-    Tests the example notebooks.
-    """
-    books = test_examples_list('examples')
-    print(books)
-
-    print('Found ' + str(len(books)) + ' notebook(s).')
-    test_examples_index('examples', books)
-    test_examples_all('examples', books)
-
-
-def test_examples_index(root, books):
-    """ Check that every notebook is included in the index. """
-    import os
-    import sys
-
-    print('Checking index...')
-
-    # Index file is in ./examples/README.md
-    index_file = os.path.join(root, 'README.md')
-    with open(index_file, 'r') as f:
-        index_contents = f.read()
-
-    # Find which are not indexed
-    not_indexed = [book for book in books if book not in index_contents]
-
-    # Report any failures
-    if len(not_indexed) > 0:
-        print('FAIL: Unindexed notebooks')
-        for book in sorted(not_indexed):
-            print('  ' + str(book))
-        sys.exit(1)
-    else:
-        print('ok: All (' + str(len(books)) + ') notebooks are indexed.')
-
-
-def test_examples_list(root, recursive=True):
-    """ Returns a list of all notebooks in a directory. """
-    import os
-
-    def scan(root, recursive, notebooks):
-        for filename in os.listdir(root):
-            path = os.path.join(root, filename)
-
-            # Add notebook
-            if os.path.splitext(path)[1] == '.ipynb':
-                notebooks.append(path)
-
-            # Recurse into subdirectories
-            elif recursive and os.path.isdir(path):
-                # Ignore hidden directories
-                if filename[:1] == '.':
-                    continue
-                scan(path, recursive, notebooks)
-        return notebooks
-
-    notebooks = []
-    scan(root, recursive, notebooks)
-    notebooks = [os.path.relpath(book, root) for book in notebooks]
-
-    return notebooks
-
-
-def test_examples_single(root, path):
-    """ Tests a notebook in a subprocess, exists if it doesn't finish. """
-    import myokit
-    import nbconvert
-    import os
-    import subprocess
-    import sys
-
-    b = myokit.tools.Benchmarker()
-    print('Running ' + path + ' ... ', end='')
-    sys.stdout.flush()
-
-    # Load notebook, convert to python
-    e = nbconvert.exporters.PythonExporter()
-    code, _ = e.from_filename(os.path.join(root, path))
-
-    # Remove coding statement, if present
-    code = '\n'.join([x for x in code.splitlines() if x[:9] != '# coding'])
-
-    # Tell matplotlib not to produce any figures
-    env = os.environ.copy()
-    env['MPLBACKEND'] = 'Template'
-
-    # Run in subprocess
-    cmd = [sys.executable, '-c', code]
-    curdir = os.getcwd()
-    try:
-        os.chdir(root)
-        p = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
-        )
-        stdout, stderr = p.communicate()
-        # TODO: Use p.communicate(timeout=3600) if Python3 only
-        if p.returncode != 0:
-            # Show failing code, output and errors before returning
-            print('ERROR')
-            print('-- script ' + '-' * (79 - 10))
-            for i, line in enumerate(code.splitlines()):
-                j = str(1 + i)
-                print(j + ' ' * (5 - len(j)) + line)
-            print('-- stdout ' + '-' * (79 - 10))
-            print(stdout)
-            print('-- stderr ' + '-' * (79 - 10))
-            print(stderr)
-            print('-' * 79)
-            return False
-    except KeyboardInterrupt:
-        p.terminate()
-        print('ABORTED')
-        sys.exit(1)
-    finally:
-        os.chdir(curdir)
-
-    # Successfully run
-    print('ok (' + b.format(b.time()) + ')')
-    return True
-
-
-def test_examples_all(root, books):
-    """ Runs all notebooks, and exits if one fails. """
-    import sys
-
-    # Ignore books with deliberate errors, but check they still exist
-    ignore_list = [
-    ]
-    books = set(books) - set(ignore_list)
-
-    # Scan and run
-    print('Testing notebooks')
-    failed = []
-    for book in books:
-        if not test_examples_single(root, book):
-            failed.append(book)
-    if failed:
-        print('FAIL: Errors encountered in notebooks')
-        for book in failed:
-            print('  ' + str(book))
-        sys.exit(1)
-    else:
-        print('ok: Successfully ran all (' + str(len(books)) + ') notebooks.')
-
-
-def test_examples_pub(args):
-    """
-    Runs all publication examples, exits if one of them fails.
-    """
-    import os
-    import sys
-    import myokit
-
-    # Get publications directory
-    path = os.path.join(myokit.DIR_MYOKIT, 'tests', 'publications')
-
-    # PBMB 2016. Myokit: A simple interface to cardiac cellular
-    # electrophysiology
-    if test_mmt_files(os.path.join(path, 'pbmb-2016')):
-        sys.exit(1)
-
-
 def test_examples_web(args):
     """
     Runs all web examples, exits if one of them fails.
@@ -1920,7 +1714,7 @@ def test_mmt_files(path):
                 except Exception:
                     error = 1
                     print(traceback.format_exc())
-                del(m, p, x)
+                del m, p, x
             except Exception:
                 print('Unable to load.')
                 print(traceback.format_exc())
@@ -2110,7 +1904,7 @@ def video(src, key, dst, fps, grow, colormap):
         print('DataBlock reading failed\n: ' + str(e))
         sys.exit(1)
     finally:
-        del(reporter)
+        del reporter
 
     # Don't load empty files
     if data.len2d() < 1:

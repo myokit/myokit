@@ -15,6 +15,7 @@ myokit.formats
 - :meth:`myokit.formats.register_external_ewriter`
 - :meth:`myokit.formats.register_external_importer`
 - :meth:`myokit.formats.register_external_exporter`
+- :class:`myokit.formats.SweepSource`
 - :class:`myokit.formats.TemplatedRunnableExporter`
 
 myokit.formats.ansic
@@ -23,6 +24,7 @@ myokit.formats.ansic
 - :class:`myokit.formats.ansic.AnsiCCableExporter`
 - :class:`myokit.formats.ansic.AnsiCEulerExporter`
 - :class:`myokit.formats.ansic.AnsiCExpressionWriter`
+- :class:`myokit.formats.ansic.CBasedExpressionWriter`
 - :meth:`myokit.formats.ansic.exporters`
 - :meth:`myokit.formats.ansic.ewriters`
 
@@ -112,12 +114,49 @@ myokit.formats.cuda
 - :meth:`myokit.formats.cuda.exporters`
 - :meth:`myokit.formats.cuda.ewriters`
 
+myokit.formats.diffsl
+---------------------
+- :class:`myokit.formats.diffsl.DiffSLExporter`
+- :class:`myokit.formats.diffsl.DiffSLExpressionWriter`
+- :meth:`myokit.formats.diffsl.exporters`
+- :meth:`myokit.formats.diffsl.ewriters`
+
 myokit.formats.easyml
 ---------------------
 - :class:`myokit.formats.easyml.EasyMLExporter`
 - :class:`myokit.formats.easyml.EasyMLExpressionWriter`
 - :meth:`myokit.formats.easyml.exporters`
 - :meth:`myokit.formats.easyml.ewriters`
+
+myokit.formats.heka
+---------------------
+- :class:`myokit.formats.heka.AmplifierFile`
+- :class:`myokit.formats.heka.AmplifierMode`
+- :class:`myokit.formats.heka.AmplifierSeries`
+- :class:`myokit.formats.heka.AmplifierState`
+- :class:`myokit.formats.heka.AmplifierStateRecord`
+- :class:`myokit.formats.heka.CSlowRange`
+- :class:`myokit.formats.heka.EndianAwareReader`
+- :class:`myokit.formats.heka.Filter1Setting`
+- :class:`myokit.formats.heka.Filter2Type`
+- :class:`myokit.formats.heka.Group`
+- :meth:`myokit.formats.heka.importers`
+- :class:`myokit.formats.heka.NoSupportedDAChannelError`
+- :class:`myokit.formats.heka.PatchMasterFile`
+- :class:`myokit.formats.heka.PatchMasterImporter`
+- :class:`myokit.formats.heka.PulsedFile`
+- :class:`myokit.formats.heka.Segment`
+- :class:`myokit.formats.heka.SegmentClass`
+- :class:`myokit.formats.heka.SegmentIncrement`
+- :class:`myokit.formats.heka.SegmentStorage`
+- :class:`myokit.formats.heka.Series`
+- :class:`myokit.formats.heka.Stimulus`
+- :class:`myokit.formats.heka.StimulusChannel`
+- :class:`myokit.formats.heka.StimulusFile`
+- :class:`myokit.formats.heka.StimulusFilterSetting`
+- :class:`myokit.formats.heka.Sweep`
+- :class:`myokit.formats.heka.Trace`
+- :class:`myokit.formats.heka.TreeNode`
 
 myokit.formats.html
 -------------------
@@ -169,18 +208,23 @@ myokit.formats.sbml
 -------------------
 - :class:`myokit.formats.sbml.Compartment`
 - :class:`myokit.formats.sbml.CSymbolVariable`
+- :meth:`myokit.formats.sbml.exporters`
+- :meth:`myokit.formats.sbml.importers`
 - :class:`myokit.formats.sbml.Model`
 - :class:`myokit.formats.sbml.ModifierSpeciesReference`
-- :meth:`myokit.formats.sbml.importers`
 - :class:`myokit.formats.sbml.Parameter`
 - :class:`myokit.formats.sbml.Quantity`
 - :class:`myokit.formats.sbml.Reaction`
 - :class:`myokit.formats.sbml.SBMLError`
+- :class:`myokit.formats.sbml.SBMLExporter`
 - :class:`myokit.formats.sbml.SBMLImporter`
 - :class:`myokit.formats.sbml.SBMLParser`
 - :class:`myokit.formats.sbml.SBMLParsingError`
+- :class:`myokit.formats.sbml.SBMLWriter`
 - :class:`myokit.formats.sbml.Species`
 - :class:`myokit.formats.sbml.SpeciesReference`
+- :meth:`myokit.formats.sbml.write_file`
+- :meth:`myokit.formats.sbml.write_string`
 
 myokit.formats.stan
 -------------------

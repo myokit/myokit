@@ -5,21 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import unittest
 
 import myokit
 
-from shared import DIR_DATA
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+from myokit.tests import DIR_DATA
 
 
 class JacobianTracerTest(unittest.TestCase):
@@ -56,7 +47,7 @@ class JacobianTracerTest(unittest.TestCase):
 
         # Log missing a state
         d2 = d.clone()
-        del(d2['membrane.V'])
+        del d2['membrane.V']
         self.assertRaisesRegex(ValueError, 'all state', g.jacobians, d2)
 
         # Log entries differ in length
@@ -65,7 +56,7 @@ class JacobianTracerTest(unittest.TestCase):
 
         # Log missing time
         d2['membrane.V'] = d['engine.time']
-        del(d2['engine.time'])
+        del d2['engine.time']
         self.assertRaisesRegex(ValueError, 'bound', g.jacobians, d2)
 
 

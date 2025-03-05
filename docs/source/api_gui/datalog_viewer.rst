@@ -19,6 +19,15 @@ Implementation
 Widgets
 -------
 
+.. autoclass:: TabWidget
+
+.. autoclass:: GraphTabWidget
+
+.. autoclass:: SweepSourceTab
+
+Graphing widgets
+----------------
+
 .. autoclass:: AbfTab
 
 .. autoclass:: AtfTab
@@ -27,6 +36,9 @@ Widgets
 
 .. autoclass:: MatTab
 
+.. autoclass:: PatchMasterTab
+
 .. autoclass:: TxtTab
 
 .. autoclass:: WcpTab
+

@@ -5,14 +5,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 
 import myokit
 
-from shared import DIR_TEST
+from myokit.tests import DIR_TEST
 
 
 # Location of C template
@@ -25,21 +22,17 @@ class AnsicEventBasedPacing(myokit.CModule):
     """
     _index = 0
 
-    def __init__(self, protocol):
-        super(AnsicEventBasedPacing, self).__init__()
+    def __init__(self, protocol, initial_time=0):
+        super().__init__()
+
         # Unique id
         AnsicEventBasedPacing._index += 1
         module_name = 'myokit_ansic_pacing_' \
             + str(AnsicEventBasedPacing._index)
+
         # Arguments
         fname = os.path.join(DIR_TEST, SOURCE_FILE)
-        # Debug
-        if myokit.DEBUG:
-            print(
-                self._code(fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
-            import sys
-            sys.exit(1)
+
         # Create back-end
         args = {'module_name': module_name}
         libs = []
@@ -47,9 +40,10 @@ class AnsicEventBasedPacing(myokit.CModule):
         incd = [DIR_TEST, myokit.DIR_CFUNC]
         self._sys = None
         self._sys = self._compile(module_name, fname, args, libs, libd, incd)
+
         # Initialize
-        self._sys.init(protocol.clone())
-        self.advance(0)
+        self._sys.init(protocol.clone(), initial_time)
+        self.advance(initial_time)
 
     def __del__(self):
         # Free the memory used by the pacing system

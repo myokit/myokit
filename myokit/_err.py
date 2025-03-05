@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -24,20 +22,29 @@ class MyokitError(Exception):
     *Extends:* ``Exception``
     """
     def __init__(self, message):
-        super(MyokitError, self).__init__(message)
+        super().__init__(message)
 
 
 class IntegrityError(MyokitError):
     """
-    Raised if an integrity error is found in a model.
+    Raised if an "integrity" issue is found or created in a model or its
+    components and variables, for example missing parents or children, or
+    invalid references.
 
-    The error message is stored in the property ``message``. An optional parser
-    token may be obtained with :meth:`token()`.
+    Integrity errors are usually raised by the ``validate`` method, but can
+    also arise from certain manipulations, e.g. deleting or moving a variable
+    or component. Integrity errors can also be raised if they are detected
+    during some other operation.
+
+    The error message is stored in the property ``message``.
+
+    Integrity errors detected during parsing may set a token (pointing to the
+    position in the parsed text) retrievable with :meth:`token()`.
 
     *Extends:* :class:`myokit.MyokitError`
     """
     def __init__(self, message, token=None):
-        super(IntegrityError, self).__init__(message)
+        super().__init__(message)
         self._token = token
 
     def token(self):
@@ -77,7 +84,7 @@ class CyclicalDependencyError(IntegrityError):
         # Set token: First item in cycle is model's defining lhs
         tok = cycle[0].var()._token
         # Raise
-        super(CyclicalDependencyError, self).__init__(msg, tok)
+        super().__init__(msg, tok)
 
 
 class DataBlockReadError(MyokitError):
@@ -167,10 +174,21 @@ class IllegalReferenceError(IntegrityError):
     *Extends:* :class:`myokit.IntegrityError`
     """
     def __init__(self, reference, owner):
-        super(IllegalReferenceError, self).__init__(
+        super().__init__(
             'Illegal reference: The referenced variable <' + reference.qname()
-            + '> is outside the scope of <' + owner.qname() + '>.'
-        )
+            + '> is outside the scope of <' + owner.qname() + '>.')
+
+
+class IllegalReferenceInInitialValueError(IllegalReferenceError):
+    """
+    Raised when an illegal reference is made in an initial value.
+
+    The only way this can occur is if the reference is to a nested variable.
+    """
+    def __init__(self, reference, owner):
+        super(IntegrityError, self).__init__(
+            'Illegal reference made in initial value: The referenced variable'
+            ' <' + reference.qname() + '> is nested.')
 
 
 class ImportError(MyokitError):
@@ -192,7 +210,7 @@ class IncompatibleModelError(MyokitError):
         if model_name:
             msg += ' <' + str(model_name) + '>'
         msg += ': ' + str(message)
-        super(IncompatibleModelError, self).__init__(msg)
+        super().__init__(msg)
 
 
 class IncompatibleUnitError(MyokitError):
@@ -202,7 +220,7 @@ class IncompatibleUnitError(MyokitError):
     *Extends:* :class:`myokit.MyokitError`.
     """
     def __init__(self, message, token=None):
-        super(MyokitError, self).__init__(message)
+        super().__init__(message)
         self._token = token
 
     def token(self):
@@ -277,7 +295,7 @@ class MissingRhsError(IntegrityError):
     def __init__(self, var):
         msg = 'No rhs set for <' + var.qname() + '>.'
         tok = var._token
-        super(MissingRhsError, self).__init__(msg, tok)
+        super().__init__(msg, tok)
 
 
 class MissingTimeVariableError(IntegrityError):
@@ -289,15 +307,7 @@ class MissingTimeVariableError(IntegrityError):
     def __init__(self):
         msg = 'No variable bound to time. At least one of the model\'s' \
               ' variables must be bound to "time".'
-        super(MissingTimeVariableError, self).__init__(msg)
-
-
-class NonLiteralValueError(IntegrityError):
-    """
-    Raised when a literal value is required but not given.
-
-    *Extends:* :class:`myokit.IntegrityError`
-    """
+        super().__init__(msg)
 
 
 class NumericalError(MyokitError):
@@ -336,7 +346,7 @@ class ParseError(MyokitError):
         self.desc = str(desc)
         self.value += ': ' + self.desc
         self.cause = cause
-        super(ParseError, self).__init__(self.value)
+        super().__init__(self.value)
 
 
 class ProtocolEventError(MyokitError):
@@ -380,7 +390,7 @@ class SimulationCancelledError(MyokitError):
     *Extends:* :class:`myokit.MyokitError`
     """
     def __init__(self, message='Operation cancelled by user.'):
-        super(SimulationCancelledError, self).__init__(message)
+        super().__init__(message)
 
 
 class SimultaneousProtocolEventError(MyokitError):
@@ -392,6 +402,20 @@ class SimultaneousProtocolEventError(MyokitError):
     """
 
 
+class TypeError(IntegrityError):
+    """
+    Raised by the expression system if expressions of one type are required but
+    others are found.
+
+    For example, when a Derivative is created with an argument that is not a
+    Name, when a condition is given as input to a numerical operator (e.g.
+    ``log(1 == 2)``), or when a conditional operator is applied to a number
+    (e.g. ``and(1, 2)``).
+
+    *Extends:* :class:`myokit.IntegrityError`
+    """
+
+
 class UnresolvedReferenceError(IntegrityError):
     """
     Raised when a reference to a variable cannot be resolved.
@@ -399,7 +423,7 @@ class UnresolvedReferenceError(IntegrityError):
     *Extends:* :class:`myokit.IntegrityError`
     """
     def __init__(self, reference, extra_message=None):
-        super(UnresolvedReferenceError, self).__init__(
+        super().__init__(
             'Unknown variable: <' + reference + '>.'
             + ((' ' + extra_message) if extra_message else '')
         )
@@ -416,7 +440,7 @@ class UnusedVariableError(IntegrityError):
     def __init__(self, var):
         msg = 'Unused variable: <' + var.qname() + '>.'
         tok = var.lhs()._token
-        super(UnusedVariableError, self).__init__(msg, tok)
+        super().__init__(msg, tok)
 
 
 class VariableMappingError(MyokitError):

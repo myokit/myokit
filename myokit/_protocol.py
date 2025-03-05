@@ -1,18 +1,17 @@
 #
-# Defines the python classes that represent a pacing protocol.
+# Defines the python classes that represent pacing protocols.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
 
 import numpy as np
 
+from bisect import bisect_right
 
-class Protocol(object):
+
+class Protocol:
     """
     Represents a pacing protocol as a sequence of :class:`events
     <ProtocolEvent>`.
@@ -41,9 +40,13 @@ class Protocol(object):
     the interval ``[a, b)``. In other words, time ``a`` will be the first time
     it is active and time ``b`` will be the first time after ``a`` at which it
     is not.
+
+    Protocols can be compared with ``==``, which will check if the :meth:`code`
+    for both protocols is the same. Protocols can be serialized with
+    ``pickle``.
     """
     def __init__(self):
-        super(Protocol, self).__init__()
+        super().__init__()
         self._head = None
 
     def add(self, e):
@@ -149,7 +152,7 @@ class Protocol(object):
             '# Level  Start    Length   Period   Multiplier',
         ]
         e = self._head
-        while(e is not None):
+        while e is not None:
             out.append(e.code())
             e = e._next
         return '\n'.join(out)
@@ -530,7 +533,7 @@ class Protocol(object):
         return [p.advance(t) for t in times]
 
 
-class ProtocolEvent(object):
+class ProtocolEvent:
     """
     Describes an event occurring as part of a protocol.
     """
@@ -713,7 +716,7 @@ class ProtocolEvent(object):
         return self.in_words()
 
 
-class PacingSystem(object):
+class PacingSystem:
     """
     This class uses a :class:`myokit.Protocol` to update the value of a
     pacing variable over time.
@@ -743,9 +746,10 @@ class PacingSystem(object):
     >>> pace = np.array([s.advance(t) for t in time])
 
     """
-    def __init__(self, protocol):
-        # The current time and pacing level
-        self._time = 0
+    def __init__(self, protocol, initial_time=0):
+        # The initial and current time and pacing level
+        self._initial_time = initial_time  # Needed if we add a reset()
+        self._time = initial_time
         self._pace = 0
 
         # Currently active event
@@ -755,15 +759,15 @@ class PacingSystem(object):
         self._tdown = None
 
         # The next time the pacing variable changes
-        self._tnext = 0
+        self._tnext = initial_time
 
         # Create a copy of the protocol
         self._protocol = protocol.clone()
         #TODO: For periodic events, set an _t0, and a _i, use them to calculate
         #      the next occurence
 
-        # Advance to time zero
-        self.advance(0)
+        # Advance to initial time
+        self.advance(initial_time)
 
     def advance(self, new_time):
         """
@@ -819,21 +823,15 @@ class PacingSystem(object):
         return self._pace
 
     def next_time(self):
-        """
-        Returns the next time the pacing system will halt at.
-        """
+        """ Returns the next time the pacing system will halt at. """
         return self._tnext
 
     def pace(self):
-        """
-        Returns the current value of the pacing variable.
-        """
+        """ Returns the current value of the pacing variable. """
         return self._pace
 
     def time(self):
-        """
-        Returns the current time in the pacing system.
-        """
+        """ Returns the current time in the pacing system. """
         return self._time
 
 
@@ -846,3 +844,89 @@ class NotAnUnbrokenSequenceError(myokit.MyokitError):
     """ Error raised exclusively by is_unbroken_sequence_exception(). """
     pass
 
+
+class TimeSeriesProtocol:
+    """
+    Represents a pacing protocol as a sequence of time value pairs and an
+    interpolation method (currently only linear interpolation is supported).
+
+    A 1D time-series should be given as input. During the simulation, the value
+    of the pacing variable will be determined by interpolating between the two
+    nearest points in the series. If the simulation time is outside the bounds
+    of the time-series, the first or last value in the series will be used.
+
+    Protocols can be compared with ``==``, which will check if the sequence of
+    time value pairs is the same, and the interpolation method is the same.
+    Protocols can be serialized with ``pickle``.
+
+    **Note**: Time series protocols cannot be used to represent signals
+    containing discontinuities, as these will be smoothed out by the
+    interpolation.
+    """
+
+    def __init__(self, times, values, method=None):
+        super().__init__()
+
+        if len(times) != len(values):
+            raise ValueError('Times and values array must have same size.')
+        times_tpl, values_tpl = zip(*[
+            (float(t), float(v)) for t, v in sorted(zip(times, values))
+        ])
+        self._times = list(times_tpl)
+        self._values = list(values_tpl)
+
+        if method is None:
+            self._method = 'linear'
+        else:
+            self._method = str(method).lower()
+            if self._method not in ('linear', ):
+                raise ValueError(
+                    'Unknown interpolation method: ' + self._method)
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if not isinstance(other, TimeSeriesProtocol):
+            return False
+        return (
+            self._method == other._method
+            and self._values == other._values
+            and self._times == other._times
+        )
+
+    def __getstate__(self):
+        return {
+            'times': self._times,
+            'values': self._values,
+            'method': self._method,
+        }
+
+    def __setstate__(self, values):
+        self._times = values['times']
+        self._values = values['values']
+        self._method = values['method']
+
+    def clone(self):
+        """ Returns a clone of this protocol. """
+        return TimeSeriesProtocol(self._times, self._values, self._method)
+
+    def pace(self, t):
+        """ Returns the value of the pacing variable at time ``t``. """
+        if t < self._times[0]:
+            return self._values[0]
+        if t > self._times[-1]:
+            return self._values[-1]
+        i = bisect_right(self._times, t) - 1
+        if i == len(self._times) - 1:
+            return self._values[i]
+        return self._values[i] + (t - self._times[i]) * (
+            self._values[i + 1] - self._values[i]
+        ) / (self._times[i + 1] - self._times[i])
+
+    def times(self):
+        """ Returns a list of the times in this protocol. """
+        return self._times
+
+    def values(self):
+        """ Returns a list of the values in this protocol. """
+        return self._values

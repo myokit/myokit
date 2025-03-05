@@ -44,8 +44,9 @@ Meta-data can be added to a model using the syntax ``field: value``
 All state variables require an initial value to be specified in the model
 header using the syntax ``component.variable = value``
 
-Initial values can be numbers or expressions, as long as they don't reference
-other variables.
+Initial values can be numbers or expressions. Expressions can make reference
+to variables as long as they not nested (see below) and are constant in time.
+References must be made using the syntax ``component.variable``.
 
 Example::
 
@@ -55,9 +56,13 @@ Example::
           backslash notation.
     author: Identifies the author of the model implementation
     membrane.V = -84
-    na_fast.m  = 0
-    na_fast.h  = 1.0
-    na_fast.j  = 1.0
+    ina.m  = 0
+    ina.h  = 0.9
+    ina.j  = 1 / ina.parameter_1
+
+A model's initial values specify a state that *may* be used as the starting
+point for simulation. No initial time is defined (simulation engines will
+typically use 0 as default).
 
 Component syntax
 ================
@@ -233,6 +238,14 @@ Some examples of valid unit declarations are::
     v_cyt = volume * 0.678
         in [uL]
 
+Types
+=====
+All expressions in Myokit evaluate to either a (floating point) number or a
+condition. Conditions can only appear inside ``if`` or ``piecewise`` statements
+(see below), or as operands to the ``and``, ``or``, or ``not`` operators.
+The value, initial value, and derivative of a variable can never be a
+condition.
+
 Foreign variables
 =================
 Variables from other components can be addressed using the syntax
@@ -360,6 +373,8 @@ In addition, + and - can be used to indicate signs: ``+5+-2=3``
 
 Parts of expressions can be grouped using parentheses ``5 * (4 - 2) = 10``
 
+These expressions all require numbers as input, and return a number.
+
 The following conditional operators are defined:
 
 +--------+-----------------------+
@@ -376,8 +391,12 @@ The following conditional operators are defined:
 | ``<=`` | Less than or equal    |
 +--------+-----------------------+
 
+These conditions all require numbers as input, but return a condition.
+
 Conditions can be strung together using ``and`` and ``or``, or negated with
 ``not``.
+These three operators require a condition as input and return another
+condition.
 
 Pre-defined Functions
 =====================
@@ -416,9 +435,11 @@ The following functions are defined:
 In addition, the expression ``dot(x)`` can be used to reference the time
 derivative of state variable ``x``.
 
-Conditional statements
-======================
-Conditional statements can be made using the ``if`` function::
+These functions all require a number as input.
+
+Conditional statements (if)
+===========================
+Simple conditional statements can be made using the ``if`` function::
 
     x = if(V < -50,
         0.2 * exp((V - 12) / 4.7),
@@ -431,9 +452,11 @@ Which should be read as::
     else
         x = 0.5 * exp((V + 19) / 1.2)
 
+The ``if`` function expects a condition as first argument, and numbers as the
+second and third argument.
 
-Advanced conditional statements
-===============================
+Piecewise conditional statements
+================================
 Conditional statements with more than 1 branch can be made using the
 ``piecewise`` construct::
 
@@ -454,6 +477,10 @@ Which should be read as::
 The final "else" part is not optional. If conditions overlap, only the first
 condition that evaluates to true will be used.
 
+The arguments to a ``piecewise`` condition should be a condition followed by a
+number, followed by any number of condition-number pairs, finishing with a
+number.
+
 .. _syntax/template_functions:
 
 User defined functions
@@ -470,7 +497,7 @@ Interfacing with the outside world
 In many cases, not all variables of interest are contained within the model.
 For example if a simulation engine is used to drive the model this engine may
 provide a variable ``time``. Other examples of external variables include a
-pacing or driving variable or an input current derived from neighbouring cells.
+pacing or driving variable or an input current derived from neighboring cells.
 
 The ``mmt`` syntax allows variables to be *bound* to an external value using
 the ``bind`` keyword::
@@ -497,8 +524,8 @@ Time dependence and pacing
 Explicit time dependence is discouraged, but possible in many simulations using
 the external source ``time``.
 
-In principle, this variable can be used to pace the model, but there are a
-number of problems with this:
+In principle, this variable can be used to "pace" an action potential model,
+but there are two reasons this is discouraged:
 
 1. Conceptually, it makes sense to apply different protocols to the same cell
    model.
@@ -507,16 +534,18 @@ number of problems with this:
    something interesting is about to happen. As a result, the solver may skip
    over the - typically very short - stimuli.
 
-To remedy this, the standard myokit simulation engine has an event-driven
-pacing mechanism that can be accessed through the variable ``pace``::
+Instead, Myokit's simulations provide event-based pacing via "Protocols" (see
+:ref:`syntax/protocol`). The protocol is interpreted by the simulation engine
+and made available to the model through a variable bound to a label such as
+``pace``::
 
     [stimulus]
     level = 0 bind pace
     amplitude = -25
     istim = level * amplitude
 
-For information on defining a pacing protocol, see the section
-:ref:`syntax/protocol`.
+A simulation using the binding ``pace`` will set the value of ``level`` based
+on the provided Protocol.
 
 Labelling special variables
 ---------------------------
@@ -586,7 +615,7 @@ myocyte::
           """
     # Template functions
     sig(V, Vstar, a, b) = exp(a * (Vstar - V)) / (1 + exp(b * (Vstar - V)))
-    # Initial conditions
+    # Initial values
     membrane.V         = -84.4
     na_fast.m          = 0.0017
     na_fast.h          = 0.98

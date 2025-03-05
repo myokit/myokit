@@ -4,13 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-import os
-import sys
-import platform
 import importlib
+import os
+import platform
+import sys
 
 import myokit
 
@@ -28,7 +25,7 @@ def system(live_printing=False):
         out = []
     else:
         # Create fake list interface that just prints
-        class Out(object):
+        class Out:
             def append(self, x):
                 print(x)
 
@@ -46,6 +43,7 @@ def system(live_printing=False):
     out.append(
         'OS: ' + platform.system()
         + ' (' + sys.platform + ', ' + os.name + ')')
+    out.append('    ' + platform.platform())
     out.append('')
 
     # Python requirements
@@ -67,25 +65,22 @@ def system(live_printing=False):
     out.append('== GUI ==')
 
     try:    # pragma: no cover
+        from PyQt6.QtCore import QT_VERSION_STR
+        out.append('PyQt6: ' + QT_VERSION_STR)
+        out.append('  Sip: ' + _module_version('sip'))
+        del QT_VERSION_STR
+    except ImportError:
+        out.append('PyQt6: Not found')
+
+    try:    # pragma: no cover
         from PyQt5.QtCore import QT_VERSION_STR
         out.append('PyQt5: ' + QT_VERSION_STR)
         out.append('  Sip: ' + _module_version('sip'))
-        del(QT_VERSION_STR)
+        del QT_VERSION_STR
     except ImportError:
         out.append('PyQt5: Not found')
 
-    try:    # pragma: no cover
-        from PyQt4.QtCore import QT_VERSION_STR
-        out.append('PyQt4: ' + QT_VERSION_STR)
-        out.append('  Sip: ' + _module_version('sip'))
-        del(QT_VERSION_STR)
-    except ImportError:
-        out.append('PyQt4: Not found')
-    except RuntimeError:    # pragma: no cover
-        # Happens if PyQt5 was also found
-        out.append('PyQt4: OK')
-
-    out.append('PySide: ' + _module_version('PySide'))
+    out.append('PySide6: ' + _module_version('PySide6'))
     out.append('PySide2: ' + _module_version('PySide2'))
     out.append('')
 

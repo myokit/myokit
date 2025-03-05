@@ -25,20 +25,49 @@ import myokit
 #include <Python.h>
 #include <stdio.h>
 
-#include <cvodes/cvodes.h>
-#include <nvector/nvector_serial.h>
-#include <sundials/sundials_types.h>
 #include <sundials/sundials_config.h>
 #ifndef SUNDIALS_VERSION_MAJOR
     #define SUNDIALS_VERSION_MAJOR 2
 #endif
+#include <sundials/sundials_types.h>
+#if SUNDIALS_VERSION_MAJOR >= 7
+    #define realtype sunrealtype
+    #define RCONST SUN_RCONST
+#endif
+#include <nvector/nvector_serial.h>
+#include <cvodes/cvodes.h>
 #if SUNDIALS_VERSION_MAJOR >= 3
     #include <sunmatrix/sunmatrix_dense.h>
     #include <sunlinsol/sunlinsol_dense.h>
-    #include <cvodes/cvodes_direct.h>
 #else
     #include <cvodes/cvodes_dense.h>
 #endif
+#if SUNDIALS_VERSION_MAJOR < 6
+    #include <cvodes/cvodes_direct.h>
+#endif
+
+<?
+if myokit.DEBUG_SM:
+    print('// Show debug output')
+    print('#ifndef MYOKIT_DEBUG_MESSAGES')
+    print('#define MYOKIT_DEBUG_MESSAGES')
+    print('#endif')
+
+# Note: When adding profiling messages, write them in past tense so that we can
+# show time elapsed for an operation **that has just completed**.
+if myokit.DEBUG_SP:
+    print('// Show profiling messages')
+    print('#ifndef MYOKIT_DEBUG_PROFILING')
+    print('#define MYOKIT_DEBUG_PROFILING')
+    print('#endif')
+
+if myokit.DEBUG_SS:
+    print('// Show simulator stats')
+    print('#ifndef MYOKIT_DEBUG_STATS')
+    print('#define MYOKIT_DEBUG_STATS')
+    print('#endif')
+
+?>
 
 #include "pacing.h"
 
@@ -53,130 +82,194 @@ typedef struct {
 } *UserData;
 
 /*
- * Check sundials flags, set python error.
- *  flagvalue : The value to check
- *  funcname : The name of the function that returned the flag
- *  opt : Mode selector
- *         0 : Error if the flag is null
- *         1 : Error if the flag is < 0
- *         2 : Errir
+ * Check flags set by a generic sundials function, set python error.
+ *  sundials_flag: The value to check
+ *  funcname: The name of the function that returned the flag
  */
 int
-check_cvode_flag(void *flagvalue, char *funcname, int opt)
+check_sundials_flag(int flag, const char *funcname)
 {
-    if (opt == 0 && flagvalue == NULL) {
-        /* Check if sundials function returned null pointer */
-        char str[200];
-        sprintf(str, "%s() failed - returned NULL pointer", funcname);
-        PyErr_SetString(PyExc_Exception, str);
+    /* Check if flag < 0 */
+    if (flag < 0) {
+        PyErr_Format(PyExc_Exception, "Function %s failed with flag = %d", funcname, flag);
         return 1;
-    } else if (opt == 1) {
-        /* Check if flag < 0 */
-        int flag = *((int*)flagvalue);
-        if (flag < 0) {
-            if (strcmp(funcname, "CVode") == 0) {
-                switch (flag) {
-                case -1:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -1 CV_TOO_MUCH_WORK: The solver took mxstep internal steps but could not reach tout.");
-                    break;
-                case -2:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -2 CV_TOO_MUCH_ACC: The solver could not satisfy the accuracy demanded by the user for some internal step.");
-                    break;
-                case -3:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -3 CV_ERR_FAILURE: Error test failures occurred too many times during one internal time step or minimum step size was reached.");
-                    break;
-                case -4:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -4 CV_CONV_FAILURE: Convergence test failures occurred too many times during one internal time step or minimum step size was reached.");
-                    break;
-                case -5:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -5 CV_LINIT_FAIL: The linear solver's initialization function failed.");
-                    break;
-                case -6:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -6 CV_LSETUP_FAIL: The linear solver's setup function failed in an unrecoverable manner.");
-                    break;
-                case -7:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -7 CV_LSOLVE_FAIL: The linear solver's solve function failed in an unrecoverable manner.");
-                    break;
-                case -8:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -8 CV_RHSFUNC_FAIL: The right-hand side function failed in an unrecoverable manner.");
-                    break;
-                case -9:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -9 CV_FIRST_RHSFUNC_ERR: The right-hand side function failed at the first call.");
-                    break;
-                case -10:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -10 CV_REPTD_RHSFUNC_ERR: The right-hand side function had repeated recoverable errors.");
-                    break;
-                case -11:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -11 CV_UNREC_RHSFUNC_ERR: The right-hand side function had a recoverable error, but no recovery is possible.");
-                    break;
-                case -12:
-                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -12 CV_RTFUNC_FAIL: The root finding function failed in an unrecoverable manner.");
-                    break;
-                case -20:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -20 CV_MEM_FAIL: A memory allocation failed.");
-                    break;
-                case -21:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -21 CV_MEM_NULL: The cvode mem argument was NULL.");
-                    break;
-                case -22:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -22 CV_ILL_INPUT: One of the function inputs is illegal.");
-                    break;
-                case -23:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -23 CV_NO_MALLOC: The cvode memory block was not allocated by a call to CVodeMalloc.");
-                    break;
-                case -24:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -24 CV_BAD_K: The derivative order k is larger than the order used.");
-                    break;
-                case -25:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -25 CV_BAD_T: The time t is outside the last step taken.");
-                    break;
-                case -26:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -26 CV_BAD_DKY: The output derivative vector is NULL.");
-                    break;
-                case -27:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -27 CV_TOO_CLOSE: The output and initial times are too close to each other.");
-                    break;
-                default: {
-                     /* Note: Brackets are required here, default: should be followed by
-                        a _statement_ and char str[200]; is technically not a statement... */
-                    char str[200];
-                    sprintf(str, "Function CVode() failed with unknown flag = %d", flag);
-                    PyErr_SetString(PyExc_Exception, str);
-                }}
-            } else {
-                char str[200];
-                sprintf(str, "%s() failed with flag = %d", funcname, flag);
-                PyErr_SetString(PyExc_Exception, str);
-            }
-            return 1;
-        }
     }
     return 0;
 }
 
 /*
+ * Check flags set by any cvode-related function except cvode(), set python error.
+ *  sundials_flag: The value to check
+ *  funcname: The name of the function that returned the flag
+ */
+int
+check_cvode_related_flag(int flag, const char *funcname)
+{
+    /* Check if flag < 0 */
+    if (flag < 0) {
+        switch (flag) {
+        case CV_MEM_NULL:
+            PyErr_Format(PyExc_Exception, "Function %s failed with flag CV_MEM_NULL: The cvode memory block was not initialized.", funcname);
+            break;
+        case CV_MEM_FAIL:
+            PyErr_Format(PyExc_Exception, "Function %s failed with flag CV_MEM_FAIL: A memory allocation failed.", funcname);
+            break;
+        case CV_NO_MALLOC:
+            PyErr_Format(PyExc_Exception, "Function %s failed with flag CV_NO_MALLOC: A memory allocation function returned NULL.", funcname);
+            break;
+        case CV_ILL_INPUT:
+            PyErr_Format(PyExc_Exception, "Function %s failed with flag CV_ILL_INPUT: Invalid input arguments.", funcname);
+            break;
+        case CV_NO_SENS:
+            PyErr_Format(PyExc_Exception, "Function %s failed with flag CV_NO_SENS: Forward sensitivity analysis was not initialized.", funcname);
+            break;
+        case CV_BAD_K:
+            PyErr_Format(PyExc_Exception, "Function %s failed with flag CV_BAD_K: Argument k is not in range.", funcname);
+            break;
+        case CV_BAD_T:
+            PyErr_Format(PyExc_Exception, "Function %s failed with flag CV_BAD_T: Argument t is not in range.", funcname);
+            break;
+        case CV_BAD_DKY:
+            PyErr_Format(PyExc_Exception, "Function %s failed with flag CV_BAD_DKY: The argument DKY was NULL.", funcname);
+            break;
+        default:
+            PyErr_Format(PyExc_Exception, "Function %s failed with unhandled flag = %d", funcname, flag);
+        }
+        return 1;
+    }
+    return 0;
+}
+
+/*
+ * Check sundials flags, set python error.
+ *  flag: The value to check
+ *  funcname: The name of the function that returned the flag
+ */
+int
+check_cvode_flag(int flag)
+{
+    /* Check if flag < 0 */
+    if (flag < 0) {
+        switch (flag) {
+        case CV_TOO_MUCH_WORK:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag CV_TOO_MUCH_WORK: The solver took mxstep internal steps but could not reach tout.");
+            break;
+        case CV_TOO_MUCH_ACC:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag CV_TOO_MUCH_ACC: The solver could not satisfy the accuracy demanded by the user for some internal step.");
+            break;
+        case CV_ERR_FAILURE:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag CV_ERR_FAILURE: Error test failures occurred too many times during one internal time step or minimum step size was reached.");
+            break;
+        case CV_CONV_FAILURE:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag CV_CONV_FAILURE: Convergence test failures occurred too many times during one internal time step or minimum step size was reached.");
+            break;
+        case CV_LINIT_FAIL:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag CV_LINIT_FAIL: The linear solver's initialization function failed.");
+            break;
+        case -6:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -6 CV_LSETUP_FAIL: The linear solver's setup function failed in an unrecoverable manner.");
+            break;
+        case -7:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -7 CV_LSOLVE_FAIL: The linear solver's solve function failed in an unrecoverable manner.");
+            break;
+        case -8:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -8 CV_RHSFUNC_FAIL: The right-hand side function failed in an unrecoverable manner.");
+            break;
+        case -9:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -9 CV_FIRST_RHSFUNC_ERR: The right-hand side function failed at the first call.");
+            break;
+        case -10:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -10 CV_REPTD_RHSFUNC_ERR: The right-hand side function had repeated recoverable errors.");
+            break;
+        case -11:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -11 CV_UNREC_RHSFUNC_ERR: The right-hand side function had a recoverable error, but no recovery is possible.");
+            break;
+        case -12:
+            PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -12 CV_RTFUNC_FAIL: The root finding function failed in an unrecoverable manner.");
+            break;
+        case -20:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -20 CV_MEM_FAIL: A memory allocation failed.");
+            break;
+        case -21:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -21 CV_MEM_NULL: The cvode mem argument was NULL.");
+            break;
+        case -22:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -22 CV_ILL_INPUT: One of the function inputs is illegal.");
+            break;
+        case -23:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -23 CV_NO_MALLOC: The cvode memory block was not allocated by a call to CVodeMalloc.");
+            break;
+        case -24:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -24 CV_BAD_K: The derivative order k is larger than the order used.");
+            break;
+        case -25:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -25 CV_BAD_T: The time t is outside the last step taken.");
+            break;
+        case -26:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -26 CV_BAD_DKY: The output derivative vector is NULL.");
+            break;
+        case -27:
+            PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -27 CV_TOO_CLOSE: The output and initial times are too close to each other.");
+            break;
+        default:
+            PyErr_Format(PyExc_Exception, "Function CVode() failed with unhandled flag = %d", flag);
+        }
+        return 1;
+    }
+    return 0;
+}
+
+#if SUNDIALS_VERSION_MAJOR >= 7
+/*
+ * Check sundials error code (Sundials 7 and above)
+ *  sunerr   : The SunErroCode to check
+ *  funcname : The name of the function that returned the flag
+ */
+int
+check_sundials_error(SUNErrCode code, const char *funcname)
+{
+    const char* msg;
+    if (code) {
+        msg = SUNGetErrMsg(code);
+        PyErr_Format(PyExc_Exception, "%s() failed with message = %s", funcname, msg);
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+/*
  * Error and warning message handler for CVODES.
- * Error messages are already set via check_cvode_flag, so this method
+ * Error messages are already set via check_cvode_flag & co, so this method
  * suppresses error messages.
  * Warnings are passed to Python's warning system, where they can be
  * caught or suppressed using the warnings module.
  */
+#if SUNDIALS_VERSION_MAJOR >= 7
+void
+ErrorHandler(int line, const char* function, const char* file, const char* msg,
+             SUNErrCode error_code, void* err_user_data, SUNContext context)
+{
+    if (error_code) {
+        PyErr_WarnFormat(PyExc_RuntimeWarning, 1, "CVODES: %s", msg);
+    }
+}
+#else
 void
 ErrorHandler(int error_code, const char *module, const char *function,
              char *msg, void *eh_data)
 {
-    char errstr[1024];
     if (error_code > 0) {
-        sprintf(errstr, "CVODES: %s", msg);
-        PyErr_WarnEx(PyExc_RuntimeWarning, errstr, 1);
+        PyErr_WarnFormat(PyExc_RuntimeWarning, 1, "CVODES: %s", msg);
     }
 }
+#endif
 
 /*
  * Initialisation status.
  * Proper sequence is init(), repeated step() calls till finished, then clean.
  */
-int initialised = 0; /* Has the simulation been initialised */
+int initialized = 0; /* Has the simulation been initialized */
 
 /*
  * Model
@@ -186,11 +279,11 @@ Model model;        /* A model object */
 /*
  * Pacing
  */
-ESys epacing;           /* Event-based pacing system */
-PyObject* eprotocol;    /* An event-based pacing protocol */
-FSys fpacing;           /* Fixed-form pacing system */
-PyObject* fprotocol;    /* A fixed-form pacing protocol */
-double pace = 0;        /* Pacing value */
+union PSys *pacing_systems;   /* Array of pacing systems (event based or time series) */
+enum PSysType *pacing_types;  /* Array of pacing system types */
+PyObject *protocols;          /* The protocols used to generate the pacing systems */
+double* pacing;               /* Pacing values, same size as pacing_systems and pacing_types */
+int n_pace;                   /* The number of pacing systems: Must be set with every call from Python that uses it */
 
 /*
  * CVODE Memory
@@ -219,7 +312,6 @@ double dt_min = 0;      /* The minimum step size (0.0 for none) */
  * Solver stats
  */
 double realtime = 0;        /* Time since start */
-double realtime_start = 0;  /* Timestamp of sim init */
 long evaluations = 0;       /* Number of evaluations since sim init */
 long steps = 0;             /* Number of steps since sim init */
 
@@ -281,15 +373,50 @@ PyObject* log_times;    /* The point list (or None if disabled) */
 /*
  * Root finding
  */
-int rf_indice;          /* Indice of state variable to use in root finding (ignored if not enabled) */
+int rf_index;          /* Index of state variable to use in root finding (ignored if not enabled) */
 double rf_threshold;    /* Threshold to use for root finding (ignored if not enabled) */
 PyObject* rf_list;      /* List to store found roots in (or None if not enabled) */
 int* rf_direction;      /* Direction of root crossings: 1 for up, -1 for down, 0 for no crossing. */
 
 /*
- * Benchmarking
+ * Logging realtime and profiling
  */
-PyObject* benchtime;    /* Callable time() function or None */
+PyObject* benchmarker;      /* myokit.tools.Benchmarker object */
+PyObject* benchmarker_time_str;
+int log_realtime;           /* 1 iff we're logging real simulation time */
+double realtime_start;      /* time when sim run started */
+
+/*
+ * Returns the current time as given by the benchmarker.
+ */
+double
+benchmarker_realtime(void)
+{
+    double val;
+    PyObject* ret = PyObject_CallMethodObjArgs(benchmarker, benchmarker_time_str, NULL);
+    if (!PyFloat_Check(ret)) {
+        Py_XDECREF(ret);
+        return -1.0;
+    }
+    val = PyFloat_AsDouble(ret);
+    Py_DECREF(ret);
+    return val - realtime_start;
+}
+
+#ifdef MYOKIT_DEBUG_PROFILING
+PyObject* benchmarker_print_str;
+
+/*
+ * Prints a message to screen, preceded by the time in ms as given by the benchmarker.
+ */
+void
+benchmarker_print(char* message)
+{
+    PyObject* pymsg = PyUnicode_FromString(message);
+    PyObject_CallMethodObjArgs(benchmarker, benchmarker_print_str, pymsg, NULL);
+    Py_DECREF(pymsg);
+}
+#endif
 
 /*
  * Right-hand-side function of the model ODE
@@ -303,16 +430,18 @@ PyObject* benchtime;    /* Callable time() function or None */
 int
 rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
 {
-    FSys_Flag flag_fpacing;
+    TSys_Flag flag_fpacing;
     UserData fdata;
     int i;
 
-    /* Fixed-form pacing? Then look-up correct value of pacing variable! */
-    if (fpacing != NULL) {
-        pace = FSys_GetLevel(fpacing, t, &flag_fpacing);
-        if (flag_fpacing != FSys_OK) { /* This should never happen */
-            FSys_SetPyErr(flag_fpacing);
-            return -1;  /* Negative value signals irrecoverable error to CVODE */
+    /* Time-series pacing? Then look-up correct value of pacing variable */
+    for (i=0; i<n_pace; i++) {
+        if (pacing_types[i] == TSys_TYPE) {
+            pacing[i] = TSys_GetLevel(pacing_systems[i].tsys, t, &flag_fpacing);
+            if (flag_fpacing != TSys_OK) { /* This should never happen */
+                TSys_SetPyErr(flag_fpacing);
+                return -1;  /* Negative value signals irrecoverable error to CVODE */
+            }
         }
     }
 
@@ -320,7 +449,7 @@ rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
 
     /* Set time, pace, evaluations and realtime */
     evaluations++;
-    Model_SetBoundVariables(model, t, pace, realtime, evaluations);
+    Model_SetBoundVariables(model, (realtype)t, (realtype*)pacing, (realtype)realtime, (realtype)evaluations);
 
     /* Set sensitivity parameters */
     if (model->has_sensitivities) {
@@ -373,7 +502,7 @@ shs(N_Vector* sy)
 int
 rf_function(realtype t, N_Vector y, realtype *gout, void *user_data)
 {
-    gout[0] = NV_Ith_S(y, rf_indice) - rf_threshold;
+    gout[0] = NV_Ith_S(y, rf_index) - rf_threshold;
     return 0;
 }
 
@@ -381,12 +510,23 @@ rf_function(realtype t, N_Vector y, realtype *gout, void *user_data)
  * Cleans up after a simulation
  */
 PyObject*
-sim_clean()
+sim_clean(void)
 {
-    if (initialised) {
+    int i;
+
+    if (initialized) {
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Entered sim_clean.");
+        #elif defined MYOKIT_DEBUG_MESSAGES
+        printf("CM Cleaning up.\n");
+        #endif
 
         /* CVode arrays */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Sundials vectors.\n");
+        #endif
         if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
+        if (ylast != NULL) { N_VDestroy_Serial(ylast); ylast = NULL; }
         if (sy != NULL) { N_VDestroyVectorArray(sy, model->ns_independents); sy = NULL; }
         if (model != NULL && model->is_ode && !dynamic_logging) {
             if (z != NULL) { N_VDestroy_Serial(z); z = NULL; }
@@ -394,9 +534,15 @@ sim_clean()
         }
 
         /* Root finding results */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Root-finding results.\n");
+        #endif
         free(rf_direction); rf_direction = NULL;
 
         /* Sundials objects */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Sundials objects.\n");
+        #endif
         CVodeFree(&cvode_mem); cvode_mem = NULL;
         #if SUNDIALS_VERSION_MAJOR >= 3
         SUNLinSolFree(sundense_solver); sundense_solver = NULL;
@@ -407,6 +553,9 @@ sim_clean()
         #endif
 
         /* User data and parameter scale array*/
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Sundials user-data.\n");
+        #endif
         free(pbar);
         if (udata != NULL) {
             free(udata->p);
@@ -414,14 +563,36 @@ sim_clean()
         }
 
         /* Pacing systems */
-        ESys_Destroy(epacing); epacing = NULL;
-        FSys_Destroy(fpacing); fpacing = NULL;
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..Pacing systems.\n");
+        #endif
+        for (i=0; i<n_pace; i++) {
+            // Note: Type is ESys, TSys, or not set!
+            if (pacing_types[i] == ESys_TYPE) {
+                ESys_Destroy(pacing_systems[i].esys);
+            } else if (pacing_types[i] == TSys_TYPE) {
+                TSys_Destroy(pacing_systems[i].tsys);
+            }
+        }
+        free(pacing_systems); pacing_systems = NULL;
+        free(pacing_types); pacing_types = NULL;
+        free(pacing); pacing = NULL;
 
         /* CModel */
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM ..CModel.\n");
+        #endif
         Model_Destroy(model); model = NULL;
 
+        /* Benchmarking and profiling */
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Completed sim_clean.");
+        Py_XDECREF(benchmarker_print_str); benchmarker_print_str = NULL;
+        #endif
+        Py_XDECREF(benchmarker_time_str); benchmarker_time_str = NULL;
+
         /* Deinitialisation complete */
-        initialised = 0;
+        initialized = 0;
     }
 
     /* Return 0, allowing the construct
@@ -437,6 +608,10 @@ sim_clean()
 PyObject*
 sim_cleanx(PyObject* ex_type, const char* msg, ...)
 {
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Entering sim_cleanx.\n");
+    #endif
+
     va_list argptr;
     char errstr[1024];
 
@@ -459,17 +634,30 @@ py_sim_clean(PyObject *self, PyObject *args)
 }
 
 /*
- * Initialise a run.
+ * Initialize a run.
  * Called by the Python code's run(), followed by several calls to sim_step().
  */
 PyObject*
 sim_init(PyObject *self, PyObject *args)
 {
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Entering sim_init.\n");
+    #endif
+
     /* Error checking flags */
     int flag_cvode;
     Model_Flag flag_model;
     ESys_Flag flag_epacing;
-    FSys_Flag flag_fpacing;
+    TSys_Flag flag_fpacing;
+    /* Error handling in >=7 */
+    #if SUNDIALS_VERSION_MAJOR >= 7
+    SUNErrCode sunerr;
+    #endif
+
+    /* Pacing systems */
+    ESys epacing;
+    TSys fpacing;
+    const char* protocol_type_name;
 
     /* General purpose ints for iterating */
     int i, j;
@@ -477,14 +665,18 @@ sim_init(PyObject *self, PyObject *args)
     /* Log the first point? Only happens if not continuing from a log */
     int log_first_point;
 
+    /* Proposed next logging or pacing point */
+    double t_proposed;
+
     /* Python objects, and a python list index variable */
     Py_ssize_t pos;
     PyObject *val;
     PyObject *ret;
 
-    /* Check if already initialised */
-    if (initialised) {
-        PyErr_SetString(PyExc_Exception, "Simulation already initialised.");
+
+    /* Check if already initialized */
+    if (initialized) {
+        PyErr_SetString(PyExc_Exception, "Simulation already initialized.");
         return 0;
     }
 
@@ -497,8 +689,9 @@ sim_init(PyObject *self, PyObject *args)
     /* Set all global pointers to null */
     /* Model and pacing */
     model = NULL;
-    epacing = NULL;
-    fpacing = NULL;
+    pacing_types = NULL;
+    pacing_systems = NULL;
+    pacing = NULL;
     /* User data and parameter scaling */
     udata = NULL;
     pbar = NULL;
@@ -510,6 +703,11 @@ sim_init(PyObject *self, PyObject *args)
     ylast = NULL;
     /* Logging */
     log_times = NULL;
+    /* Benchmarking and profiling */
+    benchmarker_time_str = NULL;
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print_str = NULL;
+    #endif
 
     /* CVode objects */
     cvode_mem = NULL;
@@ -521,8 +719,8 @@ sim_init(PyObject *self, PyObject *args)
     sundials_context = NULL;
     #endif
 
-    /* Check input arguments     0123456789012345678 */
-    if (!PyArg_ParseTuple(args, "ddOOOOOOOOdOOidOO",
+    /* Check input arguments     01234567890123456 */
+    if (!PyArg_ParseTuple(args, "ddOOOOOOOdOOidOOi",
             &tmin,              /*  0. Float: initial time */
             &tmax,              /*  1. Float: final time */
             &state_py,          /*  2. List: initial and final state */
@@ -530,23 +728,23 @@ sim_init(PyObject *self, PyObject *args)
             &bound_py,          /*  4. List: store final bound variables here */
             &literals,          /*  5. List: literal constant values */
             &parameters,        /*  6. List: parameter values */
-            &eprotocol,         /*  7. Event-based protocol */
-            &fprotocol,         /*  8. Fixed-form protocol (tuple) */
-            &log_dict,          /*  9. DataLog */
-            &log_interval,      /* 10. Float: log interval, or 0 */
-            &log_times,         /* 11. List of logging times, or None */
-            &sens_list,         /* 12. List to store sensitivities in */
-            &rf_indice,         /* 13. Int: root-finding state variable */
-            &rf_threshold,      /* 14. Float: root-finding threshold */
-            &rf_list,           /* 15. List to store roots in or None */
-            &benchtime          /* 16. Callable to obtain system time */
+            &protocols,         /*  7. Event-based or time series protocols */
+            &log_dict,          /*  8. DataLog */
+            &log_interval,      /*  9. Float: log interval, or 0 */
+            &log_times,         /* 10. List of logging times, or None */
+            &sens_list,         /* 11. List to store sensitivities in */
+            &rf_index,          /* 12. Int: root-finding state variable */
+            &rf_threshold,      /* 13. Float: root-finding threshold */
+            &rf_list,           /* 14. List to store roots in or None */
+            &benchmarker,       /* 15. myokit.tools.Benchmarker object */
+            &log_realtime       /* 16. Int: 1 if logging real time */
     )) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         return 0;
     }
 
-    /* Now officialy initialised */
-    initialised = 1;
+    /* Now officialy initialized */
+    initialized = 1;
 
     /*************************************************************************
     From this point on, no more direct returning! Use sim_clean()
@@ -601,24 +799,47 @@ sim_init(PyObject *self, PyObject *args)
     t = tmin;
 
     /* Reset solver stats */
-    evaluations = 0;
     steps = 0;
     zero_step_count = 0;
+    evaluations = 0;
+    realtime = 0;
+    if (log_realtime) {
+        realtime_start = 0; /* Updated after init, in first call to run */
+        benchmarker_time_str = PyUnicode_FromString("time");
+    }
+
+    /* Set up profiling */
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print_str = PyUnicode_FromString("print");
+    benchmarker_print("CP Initialisation started (entered sim_init()).");
+    #endif
+
+    /* Print info about simulation to undertake */
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Preparing to simulate from %g to %g.\n", tmin, tmax);
+    #endif
 
     /*
      * Create model
      */
     model = Model_Create(&flag_model);
     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Created C model struct.");
+    #endif
 
     /*
      * Create sundials context
      */
-    #if SUNDIALS_VERSION_MAJOR >= 6
+    #if SUNDIALS_VERSION_MAJOR >= 7
+    sunerr = SUNContext_Create(SUN_COMM_NULL, &sundials_context);
+    if (check_sundials_error(sunerr, "SUNContext_Create")) return sim_clean();
+    #elif SUNDIALS_VERSION_MAJOR >= 6
     flag_cvode = SUNContext_Create(NULL, &sundials_context);
-    if (check_cvode_flag(&flag_cvode, "SUNContext_Create", 1)) {
-        return sim_cleanx(PyExc_Exception, "Failed to create Sundials context.");
-    }
+    if (check_sundials_flag(flag_cvode, "SUNContext_Create")) return sim_clean();
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Created sundials context.");
+    #endif
     #endif
 
     /*
@@ -631,9 +852,7 @@ sim_init(PyObject *self, PyObject *args)
     #else
     y = N_VNew_Serial(model->n_states);
     #endif
-    if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
-        return sim_cleanx(PyExc_Exception, "Failed to create state vector.");
-    }
+    if (y == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for state vector.");
 
     /* Create state vector copy for error handling */
     #if SUNDIALS_VERSION_MAJOR >= 6
@@ -641,16 +860,12 @@ sim_init(PyObject *self, PyObject *args)
     #else
     ylast = N_VNew_Serial(model->n_states);
     #endif
-    if (check_cvode_flag((void*)ylast, "N_VNew_Serial", 0)) {
-        return sim_cleanx(PyExc_Exception, "Failed to create last-state vector.");
-    }
+    if (ylast == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for last-state vector.");
 
     /* Create sensitivity vector array */
     if (model->has_sensitivities) {
         sy = N_VCloneVectorArray(model->ns_independents, y);
-        if (check_cvode_flag((void*)sy, "N_VCloneVectorArray", 0)) {
-            return sim_cleanx(PyExc_Exception, "Failed to allocate space to store sensitivities.");
-        }
+        if (sy == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for sensitivity vector array.");
     }
 
     /*
@@ -673,16 +888,16 @@ sim_init(PyObject *self, PyObject *args)
         #else
         z = N_VNew_Serial(model->n_states);
         #endif
-        if (check_cvode_flag((void*)z, "N_VNew_Serial", 0)) {
-            return sim_cleanx(PyExc_Exception, "Failed to create state vector for logging.");
-        }
+        if (z == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for state vector for logging.");
         if (model->has_sensitivities) {
             sz = N_VCloneVectorArray(model->ns_independents, y);
-            if (check_cvode_flag((void*)sz, "N_VCloneVectorArray", 0)) {
-                return sim_cleanx(PyExc_Exception, "Failed to create state sensitivity vector array for logging.");
-            }
+            if (sz == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for sensitivity vector array for logging.");
         }
     }
+
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Created sundials state vectors.");
+    #endif
 
     /*
      * Set initial state in model and vectors
@@ -695,11 +910,19 @@ sim_init(PyObject *self, PyObject *args)
     for (i=0; i<model->n_states; i++) {
         val = PyList_GetItem(state_py, i);    /* Don't decref! */
         if (!PyFloat_Check(val)) {
-            return sim_cleanx(PyExc_TypeError, "Item %d in state vector is not a float.", i);
+            return sim_cleanx(PyExc_ValueError, "Item %d in state vector is not a float.", i);
         }
         model->states[i] = PyFloat_AsDouble(val);
         NV_Ith_S(y, i) = model->states[i];
     }
+
+    /* Print initial state */
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Initial state vector (CVODES):\n");
+    for (i=0; i<model->n_states; i++) {
+        printf("CM   %g\n", NV_Ith_S(y, i));
+    }
+    #endif
 
     /* Set initial sensitivity state values */
     if (model->has_sensitivities) {
@@ -709,18 +932,35 @@ sim_init(PyObject *self, PyObject *args)
         for (i=0; i<model->ns_independents; i++) {
             val = PyList_GetItem(s_state_py, i); /* Don't decref */
             if (!PyList_Check(val)) {
-                return sim_cleanx(PyExc_TypeError, "Item %d in state sensitivity matrix is not a list.", i);
+                return sim_cleanx(PyExc_ValueError, "Item %d in state sensitivity matrix is not a list.", i);
             }
             for (j=0; j<model->n_states; j++) {
                 ret = PyList_GetItem(val, j);    /* Don't decref! */
                 if (!PyFloat_Check(ret)) {
-                    return sim_cleanx(PyExc_TypeError, "Item %d, %d in state sensitivity matrix is not a float.", i, j);
+                    return sim_cleanx(PyExc_ValueError, "Item %d, %d in state sensitivity matrix is not a float.", i, j);
                 }
                 NV_Ith_S(sy[i], j) = PyFloat_AsDouble(ret);
                 model->s_states[i * model->n_states + j] = NV_Ith_S(sy[i], j);
             }
         }
     }
+
+    /* Print initial sensitivities */
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    if (model->has_sensitivities) {
+        printf("CM Initial state sensitivities (CVODES):\n");
+        for (i=0; i<model->ns_independents; i++) {
+            printf("CM   %d.\n", i);
+            for (j=0; j<model->n_states; j++) {
+                printf("CM     %g\n", NV_Ith_S(sy[i], j));
+            }
+        }
+    }
+    #endif
+
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Set initial state.");
+    #endif
 
     /*
      * Set values of constants (literals and parameters)
@@ -731,13 +971,29 @@ sim_init(PyObject *self, PyObject *args)
     for (i=0; i<model->n_literals; i++) {
         val = PyList_GetItem(literals, i);    /* Don't decref */
         if (!PyFloat_Check(val)) {
-            return sim_cleanx(PyExc_TypeError, "Item %d in literal vector is not a float.", i);
+            return sim_cleanx(PyExc_ValueError, "Item %d in literal vector is not a float.", i);
         }
         model->literals[i] = PyFloat_AsDouble(val);
     }
 
+    /* Print initial sensitivities */
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Literals:\n");
+    for (i=0; i<model->n_literals; i++) {
+        printf("CM   %g\n", model->literals[i]);
+    }
+    #endif
+
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Set values of literal variables.");
+    #endif
+
     /* Evaluate calculated constants */
     Model_EvaluateLiteralDerivedVariables(model);
+
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Set values of calculated constants.");
+    #endif
 
     /* Set model parameters */
     if (model->has_sensitivities) {
@@ -747,13 +1003,17 @@ sim_init(PyObject *self, PyObject *args)
         for (i=0; i<model->n_parameters; i++) {
             val = PyList_GetItem(parameters, i);    /* Don't decref */
             if (!PyFloat_Check(val)) {
-                return sim_cleanx(PyExc_TypeError, "Item %d in parameter vector is not a float.", i);
+                return sim_cleanx(PyExc_ValueError, "Item %d in parameter vector is not a float.", i);
             }
             model->parameters[i] = PyFloat_AsDouble(val);
         }
 
         /* Evaluate calculated constants */
         Model_EvaluateParameterDerivedVariables(model);
+
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Setting model sensitivity parameters and calculated derived quantities.");
+        #endif
     }
 
     /* Create UserData with sensitivity vector */
@@ -762,7 +1022,7 @@ sim_init(PyObject *self, PyObject *args)
         if (udata == 0) {
             return sim_cleanx(PyExc_Exception, "Unable to create user data object to store parameter values.");
         }
-        udata->p = (realtype*)malloc(sizeof(realtype) * model->ns_independents);
+        udata->p = (realtype*)malloc((size_t)model->ns_independents * sizeof(realtype));
         if (udata->p == 0) {
             return sim_cleanx(PyExc_Exception, "Unable to allocate space to store parameter values.");
         }
@@ -778,50 +1038,101 @@ sim_init(PyObject *self, PyObject *args)
 
         /* Create parameter scaling vector, for error control */
         /* TODO: Get this from the Python code ? */
-        pbar = (realtype*)malloc(sizeof(realtype) * model->ns_independents);
-        if (pbar == NULL) {
-            return sim_cleanx(PyExc_Exception, "Unable to allocate space to store parameter scales.");
-        }
+        pbar = (realtype*)malloc((size_t)model->ns_independents * sizeof(realtype));
+        if (pbar == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for parameter scale array.");
         for (i=0; i<model->ns_independents; i++) {
             pbar[i] = (udata->p[i] == 0.0 ? 1.0 : fabs(udata->p[i]));
         }
+
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Created UserData for sensitivities.");
+        #endif
     }
 
     /*
-     * Set up pacing system
+     * Set up pacing systems
      */
-
-    /* Set up event-based pacing */
-    if (eprotocol != Py_None) {
-        epacing = ESys_Create(&flag_epacing);
-        if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-        flag_epacing = ESys_Populate(epacing, eprotocol);
-        if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-        flag_epacing = ESys_AdvanceTime(epacing, tmin);
-        if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-        tnext = ESys_GetNextTime(epacing, &flag_epacing);
-        pace = ESys_GetLevel(epacing, &flag_epacing);
-        tnext = (tnext < tmax) ? tnext : tmax;
-    } else {
-        tnext = tmax;
+    n_pace = 0;
+    if (protocols != Py_None) {
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("CM Initialising pacing systems\n");
+        #endif
+        if (!PyList_Check(protocols)) {
+            return sim_cleanx(PyExc_TypeError, "'protocols' must be a list.");
+        }
+        n_pace = (int)PyList_Size(protocols);
     }
+    pacing_systems = (union PSys*)malloc((size_t)n_pace * sizeof(union PSys));
+    if (pacing_systems == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for pacing systems.");
+    pacing_types = (enum PSysType *)malloc((size_t)n_pace * sizeof(enum PSysType));
+    if (pacing_types == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for pacing types.");
+    pacing = (realtype*)malloc((size_t)n_pace * sizeof(realtype));
+    if (pacing == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for pacing values.");
+    Model_SetupPacing(model, n_pace);
 
-    /* Set up fixed-form pacing */
-    if (eprotocol == Py_None && fprotocol != Py_None) {
-        /* Check 'protocol' is tuple (times, values) */
-        if (!PyTuple_Check(fprotocol)) {
-            return sim_cleanx(PyExc_TypeError, "Fixed-form pacing protocol should be tuple or None.");
+    /*
+     *  Unless set by pacing, tnext is set to tmax
+     */
+    tnext = tmax;
+
+    /*
+     * Set up event-based and/or time-series pacing.
+     */
+    if (protocols != Py_None) {
+        for (i=0; i<PyList_Size(protocols); i++) {
+            val = PyList_GetItem(protocols, i);
+            protocol_type_name = Py_TYPE(val)->tp_name;
+            if (strcmp(protocol_type_name, "Protocol") == 0) {
+
+                epacing = ESys_Create(tmin, &flag_epacing);
+                if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+                pacing_systems[i].esys = epacing;
+                pacing_types[i] = ESys_TYPE;
+
+                flag_epacing = ESys_Populate(epacing, val);
+                if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+
+                flag_epacing = ESys_AdvanceTime(epacing, tmin);
+                if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+
+                t_proposed = ESys_GetNextTime(epacing, &flag_epacing);
+                pacing[i] = ESys_GetLevel(epacing, &flag_epacing);
+                tnext = fmin(t_proposed, tnext);
+
+                #if defined(MYOKIT_DEBUG_PROFILING)
+                benchmarker_print("CP Created event-based pacing system.");
+                #elif defined(MYOKIT_DEBUG_MESSAGES)
+                printf("CM Created an event-based pacing system\n");
+                #endif
+
+            } else if (strcmp(protocol_type_name, "TimeSeriesProtocol") == 0) {
+
+                fpacing = TSys_Create(&flag_fpacing);
+                pacing_systems[i].tsys = fpacing;
+                pacing_types[i] = TSys_TYPE;
+
+                if (flag_fpacing != TSys_OK) { TSys_SetPyErr(flag_fpacing); return sim_clean(); }
+                flag_fpacing = TSys_Populate(fpacing, val);
+                if (flag_fpacing != TSys_OK) { TSys_SetPyErr(flag_fpacing); return sim_clean(); }
+                pacing[i] = 0;
+
+                #if defined(MYOKIT_DEBUG_PROFILING)
+                benchmarker_print("CP Created time-series pacing system.");
+                #elif defined(MYOKIT_DEBUG_MESSAGES)
+                printf("CM Added a time-series pacing system\n");
+                #endif
+
+            } else {
+
+                /* Pacing label defined but no protocol set. Usually happens through set_protocol(None). */
+                #if defined(MYOKIT_DEBUG_MESSAGES)
+                printf("CM Unsetting previously set protocol\n");
+                #endif
+
+                pacing_types[i] = PSys_NOT_SET;
+                pacing[i] = 0;  /* See #320 and technical note on pacing */
+            }
         }
-        if (PyTuple_Size(fprotocol) != 2) {
-            return sim_cleanx(PyExc_ValueError, "Fixed-form pacing protocol tuple should have size 2.");
-        }
-        /* Create fixed-form pacing object and populate */
-        fpacing = FSys_Create(&flag_fpacing);
-        if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
-        flag_fpacing = FSys_Populate(fpacing,
-            PyTuple_GetItem(fprotocol, 0),  /* Borrowed, no decref */
-            PyTuple_GetItem(fprotocol, 1));
-        if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
     }
 
     /*
@@ -837,68 +1148,77 @@ sim_init(PyObject *self, PyObject *args)
         #else
         cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
         #endif
-        if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+        if (cvode_mem == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate CVODE memory.");
 
         /* Set error and warning-message handler */
+        #if SUNDIALS_VERSION_MAJOR >= 7
+        sunerr = SUNContext_PushErrHandler(sundials_context, ErrorHandler, NULL);
+        if (check_sundials_error(sunerr, "SUNContext_PushErrHandler")) return sim_clean();
+        #else
         flag_cvode = CVodeSetErrHandlerFn(cvode_mem, ErrorHandler, NULL);
-        if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+        if (check_cvode_related_flag(flag_cvode, "CVodeSetErrHandlerFn")) return sim_clean();
+        #endif
 
-        /* Initialise solver memory, specify the rhs */
+        /* Initialize solver memory, specify the rhs */
         flag_cvode = CVodeInit(cvode_mem, rhs, t, y);
-        if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+        if (check_cvode_related_flag(flag_cvode, "CVodeInit")) return sim_clean();
 
         /* Set absolute and relative tolerances */
         flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
-        if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
+        if (check_cvode_related_flag(flag_cvode, "CVodeSStolerances")) return sim_clean();
 
         /* Set a maximum step size (or 0.0 for none) */
         flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max < 0 ? 0.0 : dt_max);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
+        if (check_cvode_related_flag(flag_cvode, "CVodeSetmaxStep")) return sim_clean();
 
         /* Set a minimum step size (or 0.0 for none) */
         flag_cvode = CVodeSetMinStep(cvode_mem, dt_min < 0 ? 0.0 : dt_min);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
+        if (check_cvode_related_flag(flag_cvode, "CVodeSetminStep")) return sim_clean();
 
         #if SUNDIALS_VERSION_MAJOR >= 6
             /* Create dense matrix for use in linear solves */
             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states, sundials_context);
-            if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+            if (sundense_matrix == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for dense matrix.");
 
             /* Create dense linear solver object with matrix */
             sundense_solver = SUNLinSol_Dense(y, sundense_matrix, sundials_context);
-            if (check_cvode_flag((void *)sundense_solver, "SUNLinSol_Dense", 0)) return sim_clean();
+            if (sundense_solver == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for dense solver.");
 
             /* Attach the matrix and solver to cvode */
             flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
-            if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
+            if (check_sundials_flag(flag_cvode, "CVodeSetLinearSolver")) return sim_clean();
         #elif SUNDIALS_VERSION_MAJOR >= 4
             /* Create dense matrix for use in linear solves */
             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
-            if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+            if (sundense_matrix == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for dense matrix.");
 
             /* Create dense linear solver object with matrix */
             sundense_solver = SUNLinSol_Dense(y, sundense_matrix);
-            if (check_cvode_flag((void *)sundense_solver, "SUNLinSol_Dense", 0)) return sim_clean();
+            if (sundense_solver == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for dense solver.");
 
             /* Attach the matrix and solver to cvode */
             flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
-            if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
+            if (check_sundials_flag(flag_cvode, "CVodeSetLinearSolver")) return sim_clean();
         #elif SUNDIALS_VERSION_MAJOR >= 3
             /* Create dense matrix for use in linear solves */
             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
-            if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+            if (sundense_matrix == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for dense matrix.");
 
             /* Create dense linear solver object with matrix */
             sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
-            if (check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+            if (sundense_solver == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate space for dense solver.");
 
             /* Attach the matrix and solver to cvode */
             flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
-            if (check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
+            if (check_sundials_flag(flag_cvode, "CVDlsSetLinearSolver")) return sim_clean();
         #else
             /* Create dense matrix for use in linear solves */
             flag_cvode = CVDense(cvode_mem, model->n_states);
-            if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+            if (check_sundials_flag(flag_cvode, "CVDense")) return sim_clean();
+        #endif
+
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP CVODES solver initialized.");
         #endif
 
         /* Activate forward sensitivity computations */
@@ -907,19 +1227,23 @@ sim_init(PyObject *self, PyObject *args)
                RHS of the sensitivity ODE */
             /*flag_cvode = CVodeSensInit(cvode_mem, model->ns_independents, CV_SIMULTANEOUS, rhs1, sy);*/
             flag_cvode = CVodeSensInit(cvode_mem, model->ns_independents, CV_SIMULTANEOUS, NULL, sy);
-            if (check_cvode_flag(&flag_cvode, "CVodeSensInit", 1)) return sim_clean();
+            if (check_cvode_related_flag(flag_cvode, "CVodeSensInit")) return sim_clean();
 
             /* Attach user data */
             flag_cvode = CVodeSetUserData(cvode_mem, udata);
-            if (check_cvode_flag(&flag_cvode, "CVodeSetUserData", 1)) return sim_clean();
+            if (check_cvode_related_flag(flag_cvode, "CVodeSetUserData")) return sim_clean();
 
             /* Set parameter scales used in tolerances */
             flag_cvode = CVodeSetSensParams(cvode_mem, udata->p, pbar, NULL);
-            if (check_cvode_flag(&flag_cvode, "CVodeSetSensParams", 1)) return sim_clean();
+            if (check_cvode_related_flag(flag_cvode, "CVodeSetSensParams")) return sim_clean();
 
             /* Set sensitivity tolerances calculating method (using pbar) */
             flag_cvode = CVodeSensEEtolerances(cvode_mem);
-            if (check_cvode_flag(&flag_cvode, "CVodeSensEEtolerances", 1)) return sim_clean();
+            if (check_cvode_related_flag(flag_cvode, "CVodeSensEEtolerances")) return sim_clean();
+
+            #ifdef MYOKIT_DEBUG_PROFILING
+            benchmarker_print("CP CVODES sensitivity methods initialized.");
+            #endif
         }
     }
 
@@ -932,20 +1256,14 @@ sim_init(PyObject *self, PyObject *args)
     if (model->is_ode && PyList_Check(rf_list)) {
         /* Initialize root function with 1 component */
         flag_cvode = CVodeRootInit(cvode_mem, 1, rf_function);
-        if (check_cvode_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
+        if (check_cvode_related_flag(flag_cvode, "CVodeRootInit")) return sim_clean();
 
         /* Direction of root crossings, one entry per root function, but we only use 1. */
-        rf_direction = (int*)malloc(sizeof(int)*1);
-    }
+        rf_direction = (int*)malloc(sizeof(int));
 
-    /*
-     * Benchmarking and solver stats
-     */
-    if (benchtime != Py_None) {
-        /* Store initial time as 0 */
-        realtime = 0.0;
-        /* Tell sim_step to set realtime_start */
-        realtime_start = -1;
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP CVODES root-finding initialized.");
+        #endif
     }
 
     /*
@@ -960,8 +1278,11 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /* Set up logging */
-    flag_model = Model_InitialiseLogging(model, log_dict);
+    flag_model = Model_InitializeLogging(model, log_dict);
     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Logging initialized.");
+    #endif
 
     /* Check logging list for sensitivities */
     if (model->has_sensitivities) {
@@ -969,6 +1290,7 @@ sim_init(PyObject *self, PyObject *args)
             return sim_cleanx(PyExc_TypeError, "'sens_list' must be a list.");
         }
     }
+
     /* Set logging points */
     if (log_interval > 0) {
 
@@ -980,22 +1302,34 @@ sim_init(PyObject *self, PyObject *args)
 
         /* Point-list logging */
 
-        /* Check the log_times list */
-        if (!PyList_Check(log_times)) {
-            return sim_cleanx(PyExc_TypeError, "'log_times' must be a list.");
+        /* Check the log_times sequence */
+        if (!PySequence_Check(log_times)) {
+            return sim_cleanx(PyExc_TypeError, "'log_times' must be a sequence type.");
         }
 
-        /* Read next log point off the list */
+        /* Read next log point off the sequence */
         ilog = 0;
         tlog = t - 1;
-        while(ilog < PyList_Size(log_times) && tlog < t) {
-            val = PyList_GetItem(log_times, ilog); /* Borrowed */
-            if (!PyFloat_Check(val)) {
-                return sim_cleanx(PyExc_TypeError, "Entries in 'log_times' must be floats.");
+        while(ilog < PySequence_Size(log_times) && tlog < t) {
+            val = PySequence_GetItem(log_times, ilog); /* New reference */
+            if (PyFloat_Check(val)) {
+                tlog = PyFloat_AsDouble(val);
+                Py_DECREF(val);
+            } else if (PyNumber_Check(val)) {
+                ret = PyNumber_Float(val); /* New reference */
+                Py_DECREF(val);            /* Done with val */
+                if (ret == NULL) {
+                    return sim_cleanx(PyExc_ValueError, "Unable to cast entry in 'log_times' to float.");
+                } else {
+                    tlog = PyFloat_AsDouble(ret);
+                    Py_DECREF(ret);
+                }
+            } else {
+                Py_DECREF(val);
+                return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
             }
-            tlog = PyFloat_AsDouble(val);
-            ilog++;
             val = NULL;
+            ilog++;
         }
 
         /* No points beyond time? Then don't log any future points. */
@@ -1043,9 +1377,32 @@ sim_init(PyObject *self, PyObject *args)
         }
     }
 
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Logging times and strategy initialized.");
+    #endif
+
+    #ifdef MYOKIT_DEBUG_STATS
+    if (model->is_ode) {
+        printf(" 1. number of steps taken by cvodes.\n");
+        printf(" 2. number of calls to the user's f function.\n");
+        printf(" 3. number of calls made to the linear solver setup function.\n");
+        printf(" 4. number of error test failures.\n");
+        printf(" 5. method order used on the last internal step.\n");
+        printf(" 6. method order to be used on the next internal step.\n");
+        printf(" 7. actual value of initial step size.\n");
+        printf(" 8. step size taken on the last internal step.\n");
+        printf(" 9. step size to be attempted on the next internal step.\n");
+        printf("10. current internal time reached.\n");
+        printf("1\t2\t3\t4\t5\t6\t\t7\t\t8\t\t9\t\t10\n");
+    }
+    #endif
+
     /*
      * Done!
      */
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Initialisation complete (returning from sim_init).");
+    #endif
     Py_RETURN_NONE;
 }
 
@@ -1062,28 +1419,39 @@ sim_step(PyObject *self, PyObject *args)
     int flag_root;          /* Root finding flag */
     int flag_reinit = 0;    /* Set if CVODE needs to be reset during a simulation step */
 
+    /* Pacing */
+    ESys epacing;
+
     /* Multi-purpose ints for iterating */
     int i, j;
 
     /* Number of integration steps taken in this call */
     int steps_taken = 0;
 
-    /* Multi-purpose Python object */
+    /* Proposed next logging or pacing point */
+    double t_proposed;
+
+    /* Multi-purpose Python objects */
     PyObject *val;
+    PyObject* ret;
+
+    #ifdef MYOKIT_DEBUG_STATS
+    /* CVODE stats */
+    long int cv_nsteps, cv_nfevals, cv_nlinsetups, cv_netfails;
+    int cv_qlast, cv_qcur;
+    realtype cv_hinused, cv_hlast, cv_hcur, cv_tcur;
+    #endif
 
     /*
-     * Benchmarking? Then make sure start time is set.
+     * Set start time for logging of realtime.
      * This is handled here instead of in sim_init so it only includes time
      * taken performing steps, not time initialising memory etc.
      */
-    if (benchtime != Py_None && realtime_start < 0) {
-        val = PyObject_CallFunction(benchtime, "");
-        if (!PyFloat_Check(val)) {
-            Py_XDECREF(val); val = NULL;
-            return sim_cleanx(PyExc_TypeError, "Call to benchmark time function didn't return float.");
+    if (log_realtime && realtime_start == 0) {
+        realtime_start = benchmarker_realtime();
+        if (realtime_start <= 0) {
+            return sim_cleanx(PyExc_Exception, "Failed to set realtime_start.");
         }
-        realtime_start = PyFloat_AsDouble(val);
-        Py_DECREF(val); val = NULL;
     }
 
     /* Go! */
@@ -1100,22 +1468,44 @@ sim_step(PyObject *self, PyObject *args)
         if (model->is_ode) {
 
             /* Take a single ODE step */
-            #ifdef MYOKIT_DEBUG
-            printf("\nTaking CVODE step from time %f to %f\n", t, tnext);
+            #ifdef MYOKIT_DEBUG_MESSAGES
+            printf("\nCM Taking CVODE step from time %g to %g", t, tnext);
             #endif
             flag_cvode = CVode(cvode_mem, tnext, y, &t, CV_ONE_STEP);
+            #ifdef MYOKIT_DEBUG_MESSAGES
+            printf(" : flag %d\n", flag_cvode);
+            #endif
+
+            /* Show cvodes stats */
+            #ifdef MYOKIT_DEBUG_STATS
+            CVodeGetIntegratorStats(cvode_mem, &cv_nsteps, &cv_nfevals,
+                                    &cv_nlinsetups, &cv_netfails, &cv_qlast, &cv_qcur,
+                                    &cv_hinused, &cv_hlast, &cv_hcur, &cv_tcur);
+            printf("%ld,\t%ld,\t%ld,\t%ld,\t%d,\t%d,\t%g,\t%g,\t%g,\t%g\n",
+                   cv_nsteps, cv_nfevals, cv_nlinsetups, cv_netfails,
+                   cv_qlast, cv_qcur,
+                   cv_hinused, cv_hlast, cv_hcur, cv_tcur);
+            #endif
 
             /* Check for errors */
-            if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+            if (check_cvode_flag(flag_cvode)) {
+                #ifdef MYOKIT_DEBUG_MESSAGES
+                printf("\nCM CVODE flag %d. Setting error output and returning.\n", flag_cvode);
+                #endif
+
                 /* Something went wrong... Set outputs and return */
                 for (i=0; i<model->n_states; i++) {
                     PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(ylast, i)));
                     /* PyList_SetItem steals a reference: no need to decref the double! */
                 }
                 PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));
-                PyList_SetItem(bound_py, 1, PyFloat_FromDouble(pace));
-                PyList_SetItem(bound_py, 2, PyFloat_FromDouble(realtime));
-                PyList_SetItem(bound_py, 3, PyFloat_FromDouble(evaluations));
+                PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
+                PyList_SetItem(bound_py, 2, PyFloat_FromDouble((double)evaluations));
+                for (i=0; i<n_pace; i++) {
+                    PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
+                }
+
+                /* Error state set by check_cvode_flag, so use ordinary return. */
                 return sim_clean();
             }
 
@@ -1132,7 +1522,18 @@ sim_step(PyObject *self, PyObject *args)
         /* Check if progress is being made */
         if (t == tlast) {
             if (++zero_step_count >= max_zero_step_count) {
-                return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken at t=%f", t);
+                /* Something went wrong: set outputs and return */
+                for (i=0; i<model->n_states; i++) {
+                    PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(ylast, i)));
+                    /* PyList_SetItem steals a reference: no need to decref the double! */
+                }
+                PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));
+                PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
+                PyList_SetItem(bound_py, 2, PyFloat_FromDouble((double)evaluations));
+                for (i=0; i<n_pace; i++) {
+                    PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
+                }
+                return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken.");
             }
         } else {
             /* Only count consecutive zero steps */
@@ -1152,16 +1553,16 @@ sim_step(PyObject *self, PyObject *args)
 
                 /* Next event time exceeded? */
                 if (t > tnext) {
-                    #ifdef MYOKIT_DEBUG
-                    printf("Event time exceeded, rewinding to %f\n", tnext);
+                    #ifdef MYOKIT_DEBUG_MESSAGES
+                    printf("CM Event time exceeded, rewinding to %g.\n", tnext);
                     #endif
 
                     /* Go back to time=tnext */
                     flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                    if (check_cvode_related_flag(flag_cvode, "CVodeGetDky")) return sim_clean();
                     if (model->has_sensitivities) {
                         flag_cvode = CVodeGetSensDky(cvode_mem, tnext, 0, sy);
-                        if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                        if (check_cvode_related_flag(flag_cvode, "CVodeGetSensDky")) return sim_clean();
                     }
                     t = tnext;
                     /* Require reinit (after logging) */
@@ -1172,7 +1573,7 @@ sim_step(PyObject *self, PyObject *args)
                     /* Get current sensitivity vector */
                     if (model->has_sensitivities) {
                         flag_cvode = CVodeGetSens(cvode_mem, &t, sy);
-                        if (check_cvode_flag(&flag_cvode, "CVodeGetSens", 1)) return sim_clean();
+                        if (check_cvode_related_flag(flag_cvode, "CVodeGetSens")) return sim_clean();
                     }
 
                     /* Root found */
@@ -1180,7 +1581,7 @@ sim_step(PyObject *self, PyObject *args)
 
                         /* Get directions of root crossings (1 per root function) */
                         flag_root = CVodeGetRootInfo(cvode_mem, rf_direction);
-                        if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
+                        if (check_cvode_related_flag(flag_root, "CVodeGetRootInfo")) return sim_clean();
                         /* We only have one root function, so we know that rf_direction[0] is non-zero at this point. */
 
                         /* Store tuple (time, direction) for the found root */
@@ -1207,28 +1608,23 @@ sim_step(PyObject *self, PyObject *args)
 
                 /* Log points */
                 while (t > tlog) {
-                    #ifdef MYOKIT_DEBUG
-                    printf("Interpolation-logging for t=%f\n", t);
+                    #ifdef MYOKIT_DEBUG_MESSAGES
+                    printf("CM Interpolation-logging for t=%g.\n", t);
                     #endif
 
                     /* Benchmarking? Then set realtime */
-                    if (benchtime != Py_None) {
-                        val = PyObject_CallFunction(benchtime, "");
-                        if (!PyFloat_Check(val)) {
-                            Py_XDECREF(val);
-                            return sim_cleanx(PyExc_TypeError, "Call to benchmark function did not return float.");
-                        }
-                        realtime = PyFloat_AsDouble(val) - realtime_start;
-                        Py_DECREF(val); val = NULL;
+                    if (log_realtime) {
+                        realtime = benchmarker_realtime();
+                        if (realtime < 0) return sim_cleanx(PyExc_Exception, "Failed to set realtime during interpolation logging.");
                     }
 
                     /* Get interpolated y(tlog) */
                     if (model->is_ode) {
                         flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, z);
-                        if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                        if (check_cvode_related_flag(flag_cvode, "CVodeGetDky")) return sim_clean();
                         if (model->has_sensitivities) {
                             flag_cvode = CVodeGetSensDky(cvode_mem, tlog, 0, sz);
-                            if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                            if (check_cvode_related_flag(flag_cvode, "CVodeGetSensDky")) return sim_clean();
                         }
                     }
                     /* If cvode-free mode, the states can't change so we don't
@@ -1261,13 +1657,29 @@ sim_step(PyObject *self, PyObject *args)
                         }
                     } else {
                         /* Point-list logging */
-                        /* Read next log point off the list */
-                        if (ilog < PyList_Size(log_times)) {
-                            val = PyList_GetItem(log_times, ilog); /* Borrowed */
-                            if (!PyFloat_Check(val)) {
+                        /* Read next log point off the sequence */
+                        if (ilog < PySequence_Size(log_times)) {
+                            val = PySequence_GetItem(log_times, ilog); /* New reference */
+                            if (PyFloat_Check(val)) {
+                                t_proposed = PyFloat_AsDouble(val);
+                                Py_DECREF(val);
+                            } else if (PyNumber_Check(val)) {
+                                ret = PyNumber_Float(val);  /* New reference */
+                                Py_DECREF(val);
+                                if (ret == NULL) {
+                                    return sim_cleanx(PyExc_ValueError, "Unable to cast entry in 'log_times' to float.");
+                                } else {
+                                    t_proposed = PyFloat_AsDouble(ret);
+                                    Py_DECREF(ret);
+                                }
+                            } else {
+                                Py_DECREF(val);
                                 return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
                             }
-                            tlog = PyFloat_AsDouble(val);
+                            if (t_proposed < tlog) {
+                                return sim_cleanx(PyExc_ValueError, "Values in log_times must be non-decreasing.");
+                            }
+                            tlog = t_proposed;
                             ilog++;
                             val = NULL;
                         } else {
@@ -1283,28 +1695,25 @@ sim_step(PyObject *self, PyObject *args)
              * At this point we have logged everything _before_ time t, so it
              * is safe to update the pacing mechanism to time t.
              */
-            if (epacing != NULL) {
-                flag_epacing = ESys_AdvanceTime(epacing, t);
-                if (flag_epacing != ESys_OK) {
-                    ESys_SetPyErr(flag_epacing); return sim_clean();
+            tnext = tmax;
+            for (i=0; i<n_pace; i++) {
+                if (pacing_types[i] == ESys_TYPE) {
+                    epacing = pacing_systems[i].esys;
+                    flag_epacing = ESys_AdvanceTime(epacing, t);
+                    if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+                    t_proposed = ESys_GetNextTime(epacing, NULL);
+                    tnext = fmin(tnext, t_proposed);
+                    pacing[i] = ESys_GetLevel(epacing, NULL);
                 }
-                tnext = ESys_GetNextTime(epacing, NULL);
-                tnext = (tnext < tmax) ? tnext : tmax;
-                pace = ESys_GetLevel(epacing, NULL);
             }
 
             /* Dynamic logging: Log every visited point */
             if (dynamic_logging) {
 
                 /* Benchmarking? Then set realtime */
-                if (benchtime != Py_None) {
-                    val = PyObject_CallFunction(benchtime, "");
-                    if (!PyFloat_Check(val)) {
-                        Py_XDECREF(val);
-                        return sim_cleanx(PyExc_TypeError, "Call to benchmark time function did not return float.");
-                    }
-                    realtime = PyFloat_AsDouble(val) - realtime_start;
-                    Py_DECREF(val); val = NULL;
+                if (log_realtime) {
+                    realtime = benchmarker_realtime();
+                    if (realtime < 0) return sim_cleanx(PyExc_Exception, "Failed to set realtime during dynamic logging.");
                 }
 
                 /* Ensure the logged values are correct for the new time t */
@@ -1312,16 +1721,14 @@ sim_step(PyObject *self, PyObject *args)
                     /* If logging derivatives or intermediaries, calculate the
                        values for the current time. Similarly, if calculating
                        sensitivities this is needed. */
-                    #ifdef MYOKIT_DEBUG
-                    printf("Calling RHS to log derivs/inter/sens at time %f\n", t);
+                    #ifdef MYOKIT_DEBUG_MESSAGES
+                    printf("CM Calling RHS to log derivs/inter/sens at time %g.\n", t);
                     #endif
                     rhs(t, y, NULL, udata);
                 } else if (model->logging_bound) {
                     /* Logging bounds but not derivs or inters: No need to run
                        full rhs, just update bound variables */
-                    Model_SetBoundVariables(
-                        model, t, pace,
-                        realtime, evaluations);
+                    Model_SetBoundVariables(model, (realtype)t, (realtype*)pacing, (realtype)realtime, (realtype)evaluations);
                 }
 
                 /* Write to log */
@@ -1343,10 +1750,10 @@ sim_step(PyObject *self, PyObject *args)
              */
             if (model->is_ode && flag_reinit) {
                 flag_cvode = CVodeReInit(cvode_mem, t, y);
-                if (check_cvode_flag(&flag_cvode, "CVodeReInit", 1)) return sim_clean();
+                if (check_cvode_related_flag(flag_cvode, "CVodeReInit")) return sim_clean();
                 if (model->has_sensitivities) {
                     flag_cvode = CVodeSensReInit(cvode_mem, CV_SIMULTANEOUS, sy);
-                    if (check_cvode_flag(&flag_cvode, "CVodeSensReInit", 1)) return sim_clean();
+                    if (check_cvode_related_flag(flag_cvode, "CVodeSensReInit")) return sim_clean();
                 }
                 flag_reinit = 0;
             }
@@ -1372,9 +1779,16 @@ sim_step(PyObject *self, PyObject *args)
          */
         steps_taken++;
         if (steps_taken >= 100) {
+            #ifdef MYOKIT_DEBUG_PROFILING
+            benchmarker_print("CP Completed 100 steps, passing control back to Python.");
+            #endif
+            // Return new reference
             return PyFloat_FromDouble(t);
         }
     }
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Completed remaining simulation steps.");
+    #endif
 
     /*
      * Finished! Set final state
@@ -1398,59 +1812,65 @@ sim_step(PyObject *self, PyObject *args)
 
     /* Set bound variable values */
     PyList_SetItem(bound_py, 0, PyFloat_FromDouble(t));
-    PyList_SetItem(bound_py, 1, PyFloat_FromDouble(pace));
-    PyList_SetItem(bound_py, 2, PyFloat_FromDouble(realtime));
-    PyList_SetItem(bound_py, 3, PyFloat_FromDouble(evaluations));
+    PyList_SetItem(bound_py, 1, PyFloat_FromDouble(realtime));
+    PyList_SetItem(bound_py, 2, PyFloat_FromDouble((double)evaluations));
+    for (i=0; i<n_pace; i++) {
+        PyList_SetItem(bound_py, 3 + i, PyFloat_FromDouble(pacing[i]));
+    }
+
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Set final state and bound variable values.");
+    #endif
 
     sim_clean();    /* Ignore return value */
-    return PyFloat_FromDouble(t);
+    return PyFloat_FromDouble(t);  // Return new reference
 }
 
 /*
  * Evaluates the state derivatives at the given state
  */
 PyObject*
-sim_eval_derivatives(PyObject *self, PyObject *args)
+sim_evaluate_derivatives(PyObject *self, PyObject *args)
 {
     /* Declare variables here for C89 compatibility */
     int i;
     int success;
     double time_in;
-    double pace_in;
-    Model model;
-    Model_Flag flag_model;
-    PyObject *state;
-    PyObject *deriv;
+    double realtime_in;
+    double evaluations_in;
+    PyObject *pace_in;
+    double *pacing_values;
     PyObject *literals;
     PyObject *parameters;
+    PyObject *state;
+    PyObject *deriv;
     PyObject *val;
-    char errstr[200];
+    Model model;
+    Model_Flag flag_model;
 
     /* Start */
     success = 0;
 
     /* Check input arguments */
     /* Check input arguments     0123456789ABCDEF*/
-    if (!PyArg_ParseTuple(args, "ddOOOO",
+    if (!PyArg_ParseTuple(args, "dOddOOOO",
             &time_in,           /* 0. Float: time */
-            &pace_in,           /* 1. Float: pace */
-            &state,             /* 2. List: state */
-            &deriv,             /* 3. List: store derivatives here */
+            &pace_in,           /* 1. List: pacing values */
+            &realtime_in,       /* 2. Float: realtime */
+            &evaluations_in,    /* 3. Float: evaluations */
             &literals,          /* 4. List: literal constant values */
-            &parameters         /* 5. List: parameter values */
-            )) {
-        PyErr_SetString(PyExc_Exception, "Incorrect input arguments in sim_eval_derivatives.");
+            &parameters,        /* 5. List: parameter values */
+            &state,             /* 6. List: state */
+            &deriv              /* 7. List: store derivatives here */
+    )) {
+        PyErr_SetString(PyExc_Exception, "Incorrect input arguments in sim_evaluate_derivatives.");
         /* Nothing allocated yet, no pyobjects _created_, return directly */
         return 0;
     }
 
     /* Check lists are sequences */
-    if (!PyList_Check(state)) {
-        PyErr_SetString(PyExc_Exception, "State argument must be a list.");
-        return 0;
-    }
-    if (!PyList_Check(deriv)) {
-        PyErr_SetString(PyExc_Exception, "Derivatives argument must be a list.");
+    if (!PyList_Check(pace_in)) {
+        PyErr_SetString(PyExc_Exception, "Pace argument must be a list.");
         return 0;
     }
     if (!PyList_Check(literals)) {
@@ -1459,6 +1879,14 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     }
     if (!PyList_Check(parameters)) {
         PyErr_SetString(PyExc_Exception, "Parameters argument must be a list.");
+        return 0;
+    }
+    if (!PyList_Check(state)) {
+        PyErr_SetString(PyExc_Exception, "State argument must be a list.");
+        return 0;
+    }
+    if (!PyList_Check(deriv)) {
+        PyErr_SetString(PyExc_Exception, "Derivatives argument must be a list.");
         return 0;
     }
 
@@ -1476,15 +1904,38 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
         goto error;
     }
 
+    /* Set up pacing (but without protocols) */
+    n_pace = (int)PyList_Size(pace_in);
+    flag_model = Model_SetupPacing(model, n_pace);
+    if (flag_model != Model_OK) {
+        Model_SetPyErr(flag_model);
+        goto error;
+    }
+
+    /* Set pacing values */
+    pacing_values = (double*)malloc((size_t)n_pace * sizeof(double));
+    for (i=0; i<n_pace; i++) {
+        val = PyList_GetItem(pace_in, i); /* Don't decref */
+        if (!PyFloat_Check(val)) {
+            PyErr_Format(PyExc_Exception, "Item %d in pace vector is not a float.", i);
+            goto error;
+        }
+        pacing_values[i] = PyFloat_AsDouble(val);
+    }
+
     /* Set bound variables */
-    Model_SetBoundVariables(model, time_in, pace_in, 0, 0);
+    Model_SetBoundVariables(
+        model,
+        (realtype)time_in,
+        (realtype*)pacing_values,
+        (realtype)realtime_in,
+        (realtype)evaluations_in);
 
     /* Set literal values */
     for (i=0; i<model->n_literals; i++) {
         val = PyList_GetItem(literals, i);    /* Don't decref */
         if (!PyFloat_Check(val)) {
-            sprintf(errstr, "Item %d in literal vector is not a float.", i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in literal vector is not a float.", i);
             goto error;
         }
         model->literals[i] = PyFloat_AsDouble(val);
@@ -1497,8 +1948,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     for (i=0; i<model->n_parameters; i++) {
         val = PyList_GetItem(parameters, i);    /* Don't decref */
         if (!PyFloat_Check(val)) {
-            sprintf(errstr, "Item %d in parameter vector is not a float.", i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in parameter vector is not a float.", i);
             goto error;
         }
         model->parameters[i] = PyFloat_AsDouble(val);
@@ -1511,8 +1961,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     for (i=0; i < model->n_states; i++) {
         val = PyList_GetItem(state, i); /* Don't decref */
         if (!PyFloat_Check(val)) {
-            sprintf(errstr, "Item %d in state vector is not a float.", i);
-            PyErr_SetString(PyExc_Exception, errstr);
+            PyErr_Format(PyExc_Exception, "Item %d in state vector is not a float.", i);
             goto error;
         }
         model->states[i] = PyFloat_AsDouble(val);
@@ -1620,7 +2069,7 @@ PyMethodDef SimMethods[] = {
     {"sim_init", sim_init, METH_VARARGS, "Initialize the simulation."},
     {"sim_step", sim_step, METH_VARARGS, "Perform the next step in the simulation."},
     {"sim_clean", py_sim_clean, METH_VARARGS, "Clean up after an aborted simulation."},
-    {"eval_derivatives", sim_eval_derivatives, METH_VARARGS, "Evaluate the state derivatives."},
+    {"evaluate_derivatives", sim_evaluate_derivatives, METH_VARARGS, "Evaluate the state derivatives."},
     {"set_tolerance", sim_set_tolerance, METH_VARARGS, "Set the absolute and relative solver tolerance."},
     {"set_max_step_size", sim_set_max_step_size, METH_VARARGS, "Set the maximum solver step size (0 for none)."},
     {"set_min_step_size", sim_set_min_step_size, METH_VARARGS, "Set the minimum solver step size (0 for none)."},

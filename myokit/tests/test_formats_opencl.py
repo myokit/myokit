@@ -5,405 +5,192 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
-import myokit.formats
 import myokit.formats.opencl
 
+from myokit import (
+    Number, PrefixPlus, PrefixMinus, Plus, Minus,
+    Multiply, Divide, Quotient, Remainder, Power, Sqrt,
+    Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
+    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
+    If, Piecewise,
+)
 
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:  # pragma: no python 3 cover
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+import myokit.tests
 
 
-class OpenCLExpressionWriterTest(unittest.TestCase):
-    """ Test the OpenCL ewriter class. """
+class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
+    """
+    Test conversion to Ansi C, as used by the Simulation.
+    Numerical tests are provided by composing and evaluating a single RHS.
+    """
+    _name = 'opencl'
+    _target = myokit.formats.opencl.OpenCLExpressionWriter
 
-    def test_basic(self):
+    def test_number(self):
+        self.eq(Number(1), '1.0f')
+        self.eq(Number(-2), '-2.0f')
+        self.eq(Number(13, 'mV'), '13.0f')
 
-        # Single and double precision and native maths
-        ws = myokit.formats.opencl.OpenCLExpressionWriter()
-        wd = myokit.formats.opencl.OpenCLExpressionWriter(
-            myokit.DOUBLE_PRECISION)
-        wn = myokit.formats.opencl.OpenCLExpressionWriter(native_math=False)
+    def test_number_double(self):
+        w = self._target(precision=myokit.DOUBLE_PRECISION)
+        self.assertEqual(w.ex(Number(1)), '1.0')
+        self.assertEqual(w.ex(Number(-2)), '-2.0')
+        self.assertEqual(w.ex(Number(13, 'mV')), '13.0')
 
-        a = myokit.Name(myokit.Model().add_component('c').add_variable('a'))
-        b = myokit.Number('12', 'pF')
+    def test_name(self):
+        self.eq(self.a, 'a')
+        w = self._target()
+        w.set_lhs_function(lambda v: v.var().qname().upper())
+        self.assertEqual(w.ex(self.a), 'COMP.A')
 
-        # Name
-        self.assertEqual(ws.ex(a), 'c.a')
-        self.assertEqual(wd.ex(a), 'c.a')
-        self.assertEqual(wn.ex(a), 'c.a')
+    def test_derivative(self):
+        self.eq(myokit.Derivative(self.a), 'dot(a)')
 
-        # Number with unit
-        self.assertEqual(ws.ex(b), '12.0f')
-        self.assertEqual(wd.ex(b), '12.0')
-        self.assertEqual(wn.ex(b), '12.0f')
+    def test_partial_derivative(self):
+        self.assertRaisesRegex(
+            NotImplementedError, 'Partial',
+            self.w.ex, myokit.PartialDerivative(self.a, self.b))
 
-        # Prefix plus
-        x = myokit.PrefixPlus(b)
-        self.assertEqual(ws.ex(x), '12.0f')
-        self.assertEqual(wd.ex(x), '12.0')
-        self.assertEqual(wn.ex(x), '12.0f')
-        # Prefix minus
-        x = myokit.PrefixMinus(b)
-        self.assertEqual(ws.ex(x), '(-12.0f)')
-        self.assertEqual(wd.ex(x), '(-12.0)')
-        self.assertEqual(wn.ex(x), '(-12.0f)')
+    def test_initial_value(self):
+        self.assertRaisesRegex(
+            NotImplementedError, 'Initial',
+            self.w.ex, myokit.InitialValue(self.a))
 
-        # Plus
-        x = myokit.Plus(a, b)
-        self.assertEqual(ws.ex(x), 'c.a + 12.0f')
-        self.assertEqual(wd.ex(x), 'c.a + 12.0')
-        self.assertEqual(wn.ex(x), 'c.a + 12.0f')
-        # Minus
-        x = myokit.Minus(a, b)
-        self.assertEqual(ws.ex(x), 'c.a - 12.0f')
-        self.assertEqual(wd.ex(x), 'c.a - 12.0')
-        self.assertEqual(wn.ex(x), 'c.a - 12.0f')
-        # Multiply
-        x = myokit.Multiply(a, b)
-        self.assertEqual(ws.ex(x), 'c.a * 12.0f')
-        self.assertEqual(wd.ex(x), 'c.a * 12.0')
-        self.assertEqual(wn.ex(x), 'c.a * 12.0f')
-        # Divide
-        x = myokit.Divide(a, b)
-        self.assertEqual(ws.ex(x), 'c.a / 12.0f')
-        self.assertEqual(wd.ex(x), 'c.a / 12.0')
-        self.assertEqual(wn.ex(x), 'c.a / 12.0f')
+    def test_prefix_plus_minus(self):
+        # Inherited from c-based
 
-        # Quotient
-        x = myokit.Quotient(a, b)
-        self.assertEqual(ws.ex(x), 'floor(c.a / 12.0f)')
-        self.assertEqual(wd.ex(x), 'floor(c.a / 12.0)')
-        self.assertEqual(wn.ex(x), 'floor(c.a / 12.0f)')
-        # Remainder
-        x = myokit.Remainder(a, b)
-        self.assertEqual(ws.ex(x), 'c.a - 12.0f * (floor(c.a / 12.0f))')
-        self.assertEqual(wd.ex(x), 'c.a - 12.0 * (floor(c.a / 12.0))')
-        self.assertEqual(wn.ex(x), 'c.a - 12.0f * (floor(c.a / 12.0f))')
+        p = Number(11, 'kV')
+        self.eq(PrefixPlus(p), '+11.0f')
+        self.eq(PrefixPlus(PrefixPlus(p)), '+(+11.0f)')
+        self.eq(PrefixPlus(PrefixPlus(PrefixPlus(p))), '+(+(+11.0f))')
+        self.eq(PrefixPlus(Number('+1')), '+1.0f')
+        self.eq(PrefixMinus(p), '-11.0f')
+        self.eq(PrefixMinus(PrefixMinus(p)), '-(-11.0f)')
+        self.eq(PrefixMinus(Number(-1)), '-(-1.0f)')
+        self.eq(PrefixMinus(PrefixMinus(Number(-2))), '-(-(-2.0f))')
+
+        # Test with operators of precedence SUM, PRODUCT
+        a, b, c = self.abc
+        self.eq(PrefixPlus(Plus(a, b)), '+(a + b)')
+        self.eq(Divide(PrefixPlus(Plus(a, b)), c), '+(a + b) / c')
+        self.eq(PrefixPlus(Divide(b, a)), '+(b / a)')
+        self.eq(PrefixMinus(Minus(a, b)), '-(a - b)')
+        self.eq(Multiply(PrefixMinus(Plus(b, a)), c), '-(b + a) * c')
+        self.eq(PrefixMinus(Divide(b, a)), '-(b / a)')
+
+    def test_prefix_plus_minus_double(self):
+
+        w = self._target(precision=myokit.DOUBLE_PRECISION)
+        p = Number(3, 'mA')
+        self.assertEqual(w.ex(PrefixPlus(p)), '+3.0')
+        self.assertEqual(w.ex(PrefixPlus(PrefixPlus(p))), '+(+3.0)')
+        self.assertEqual(
+            w.ex(PrefixPlus(PrefixPlus(PrefixPlus(p)))), '+(+(+3.0))')
+        self.assertEqual(w.ex(PrefixPlus(Number('+1'))), '+1.0')
+        self.assertEqual(w.ex(PrefixMinus(p)), '-3.0')
+        self.assertEqual(w.ex(PrefixMinus(PrefixMinus(p))), '-(-3.0)')
+        self.assertEqual(w.ex(PrefixMinus(Number(-1))), '-(-1.0)')
+        self.assertEqual(
+            w.ex(PrefixMinus(PrefixMinus(Number(-2)))), '-(-(-2.0))')
+
+    def test_arithmetic(self):
+        # Inherited from c-based
+
+        a, b, c = self.abc
+        self.eq(Minus(Plus(a, b), c), 'a + b - c')
+        self.eq(Minus(a, Plus(b, c)), 'a - (b + c)')
+        self.eq(Multiply(Minus(a, b), c), '(a - b) * c')
+        self.eq(Multiply(a, Plus(b, c)), 'a * (b + c)')
+        self.eq(Minus(Multiply(a, b), c), 'a * b - c')
+        self.eq(Divide(a, Minus(b, c)), 'a / (b - c)')
+        self.eq(Plus(Divide(a, b), c), 'a / b + c')
+        self.eq(Divide(Divide(a, b), c), 'a / b / c')
+
+    def test_quotient_remainder(self):
+        # Inherited from c-based
+
+        a, b, c = self.abc
+        self.eq(Quotient(a, Divide(b, c)), 'floor(a / (b / c))')
+        self.eq(Remainder(Plus(a, c), b), '(a + c - b * floor((a + c) / b))')
+        self.eq(Divide(c, Remainder(b, a)), 'c / ((b - a * floor(b / a)))')
+
+    def test_power(self):
+        a, b, c = self.abc
+        self.eq(Power(a, b), 'pow(a, b)')
+        self.eq(Power(Power(a, b), c), 'pow(pow(a, b), c)')
+        self.eq(Power(a, Power(b, c)), 'pow(a, pow(b, c))')
+
+        self.eq(Power(Plus(a, b), c), 'pow(a + b, c)')
+        self.eq(Power(a, Minus(b, c)), 'pow(a, b - c)')
+        self.eq(Power(Multiply(a, b), c), 'pow(a * b, c)')
+        self.eq(Power(a, Divide(b, c)), 'pow(a, b / c)')
+
+    def test_log(self):
+        a, b = self.ab
+        self.eq(Log(a), 'native_log(a)')
+        self.eq(Log10(a), 'native_log10(a)')
+        self.eq(Log(a, b), '(native_log(a) / native_log(b))')
+
+    def test_log_no_native(self):
+        w = self._target(native_math=False)
+        a, b = self.ab
+        self.assertEqual(w.ex(Log(a)), 'log(comp.a)')
+        self.assertEqual(w.ex(Log10(b)), 'log10(comp.b)')
+        self.assertEqual(w.ex(Log(b, a)), '(log(comp.b) / log(comp.a))')
 
     def test_functions(self):
+        a = self.a
+        self.eq(Sqrt(self.a), 'native_sqrt(a)')
+        self.eq(Exp(self.a), 'native_exp(a)')
+        self.eq(Sin(self.a), 'native_sin(a)')
+        self.eq(Cos(self.a), 'native_cos(a)')
+        self.eq(Tan(self.a), 'native_tan(a)')
+        self.eq(ASin(self.a), 'asin(a)')
+        self.eq(ACos(self.a), 'acos(a)')
+        self.eq(ATan(self.a), 'atan(a)')
+        self.eq(Floor(self.a), 'floor(a)')
+        self.eq(Ceil(self.a), 'ceil(a)')
+        self.eq(Abs(self.a), 'fabs(a)')
 
-        # Single and double precision and native maths
-        ws = myokit.formats.opencl.OpenCLExpressionWriter()
-        wd = myokit.formats.opencl.OpenCLExpressionWriter(
-            myokit.DOUBLE_PRECISION)
-        wn = myokit.formats.opencl.OpenCLExpressionWriter(native_math=False)
+    def test_functions_no_native(self):
+        w = self._target(native_math=False)
+        self.assertEqual(w.ex(Sqrt(self.a)), 'sqrt(comp.a)')
+        self.assertEqual(w.ex(Exp(self.a)), 'exp(comp.a)')
+        self.assertEqual(w.ex(Sin(self.a)), 'sin(comp.a)')
+        self.assertEqual(w.ex(Cos(self.a)), 'cos(comp.a)')
+        self.assertEqual(w.ex(Tan(self.a)), 'tan(comp.a)')
+        self.assertEqual(w.ex(ASin(self.a)), 'asin(comp.a)')
+        self.assertEqual(w.ex(ACos(self.a)), 'acos(comp.a)')
+        self.assertEqual(w.ex(ATan(self.a)), 'atan(comp.a)')
+        self.assertEqual(w.ex(Floor(self.a)), 'floor(comp.a)')
+        self.assertEqual(w.ex(Ceil(self.a)), 'ceil(comp.a)')
+        self.assertEqual(w.ex(Abs(self.a)), 'fabs(comp.a)')
 
-        a = myokit.Name(myokit.Model().add_component('c').add_variable('a'))
-        b = myokit.Number('12', 'pF')
+    def test_conditions(self):
+        a, b, c, d = self.abcd
 
-        # Power
-        x = myokit.Power(a, b)
-        self.assertEqual(ws.ex(x), 'pow(c.a, 12.0f)')
-        self.assertEqual(wd.ex(x), 'pow(c.a, 12.0)')
-        self.assertEqual(wn.ex(x), 'pow(c.a, 12.0f)')
-        # Square
-        x = myokit.Power(a, myokit.Number(2))
-        self.assertEqual(ws.ex(x), '(c.a * c.a)')
-        self.assertEqual(wd.ex(x), '(c.a * c.a)')
-        self.assertEqual(wn.ex(x), '(c.a * c.a)')
-        # Square with brackets
-        x = myokit.Power(myokit.Plus(a, b), myokit.Number(2))
-        self.assertEqual(ws.ex(x), '((c.a + 12.0f) * (c.a + 12.0f))')
-        self.assertEqual(wd.ex(x), '((c.a + 12.0) * (c.a + 12.0))')
-        self.assertEqual(wn.ex(x), '((c.a + 12.0f) * (c.a + 12.0f))')
-        # Sqrt
-        x = myokit.Sqrt(b)
-        self.assertEqual(ws.ex(x), 'native_sqrt(12.0f)')
-        self.assertEqual(wd.ex(x), 'native_sqrt(12.0)')
-        self.assertEqual(wn.ex(x), 'sqrt(12.0f)')
-        # Exp
-        x = myokit.Exp(a)
-        self.assertEqual(ws.ex(x), 'native_exp(c.a)')
-        self.assertEqual(wd.ex(x), 'native_exp(c.a)')
-        self.assertEqual(wn.ex(x), 'exp(c.a)')
-        # Log(a)
-        x = myokit.Log(b)
-        self.assertEqual(ws.ex(x), 'native_log(12.0f)')
-        self.assertEqual(wd.ex(x), 'native_log(12.0)')
-        self.assertEqual(wn.ex(x), 'log(12.0f)')
-        # Log(a, b)
-        x = myokit.Log(a, b)
-        self.assertEqual(ws.ex(x), '(native_log(c.a) / native_log(12.0f))')
-        self.assertEqual(wd.ex(x), '(native_log(c.a) / native_log(12.0))')
-        self.assertEqual(wn.ex(x), '(log(c.a) / log(12.0f))')
-        # Log10
-        x = myokit.Log10(b)
-        self.assertEqual(ws.ex(x), 'native_log10(12.0f)')
-        self.assertEqual(wd.ex(x), 'native_log10(12.0)')
-        self.assertEqual(wn.ex(x), 'log10(12.0f)')
+        self.eq(Equal(a, b), '(a == b)')
+        self.eq(NotEqual(a, b), '(a != b)')
+        self.eq(More(b, a), '(b > a)')
+        self.eq(Less(d, c), '(d < c)')
+        self.eq(MoreEqual(c, a), '(c >= a)')
+        self.eq(LessEqual(b, d), '(b <= d)')
 
-        # Sin
-        x = myokit.Sin(b)
-        self.assertEqual(ws.ex(x), 'native_sin(12.0f)')
-        self.assertEqual(wd.ex(x), 'native_sin(12.0)')
-        self.assertEqual(wn.ex(x), 'sin(12.0f)')
-        # Cos
-        x = myokit.Cos(b)
-        self.assertEqual(ws.ex(x), 'native_cos(12.0f)')
-        self.assertEqual(wd.ex(x), 'native_cos(12.0)')
-        self.assertEqual(wn.ex(x), 'cos(12.0f)')
-        # Tan
-        x = myokit.Tan(b)
-        self.assertEqual(ws.ex(x), 'native_tan(12.0f)')
-        self.assertEqual(wd.ex(x), 'native_tan(12.0)')
-        self.assertEqual(wn.ex(x), 'tan(12.0f)')
-        # ASin
-        x = myokit.ASin(b)
-        self.assertEqual(ws.ex(x), 'asin(12.0f)')
-        self.assertEqual(wd.ex(x), 'asin(12.0)')
-        self.assertEqual(wn.ex(x), 'asin(12.0f)')
-        # ACos
-        x = myokit.ACos(b)
-        self.assertEqual(ws.ex(x), 'acos(12.0f)')
-        self.assertEqual(wd.ex(x), 'acos(12.0)')
-        self.assertEqual(wn.ex(x), 'acos(12.0f)')
-        # ATan
-        x = myokit.ATan(b)
-        self.assertEqual(ws.ex(x), 'atan(12.0f)')
-        self.assertEqual(wd.ex(x), 'atan(12.0)')
-        self.assertEqual(wn.ex(x), 'atan(12.0f)')
+        self.eq(And(Equal(a, b), NotEqual(c, d)), '((a == b) && (c != d))')
+        self.eq(Or(More(d, c), Less(b, a)), '((d > c) || (b < a))')
+        self.eq(Not(Less(Number(1), Number(2))), '(!(1.0f < 2.0f))')
 
-        # Floor
-        x = myokit.Floor(b)
-        self.assertEqual(ws.ex(x), 'floor(12.0f)')
-        self.assertEqual(wd.ex(x), 'floor(12.0)')
-        self.assertEqual(wn.ex(x), 'floor(12.0f)')
-        # Ceil
-        x = myokit.Ceil(b)
-        self.assertEqual(ws.ex(x), 'ceil(12.0f)')
-        self.assertEqual(wd.ex(x), 'ceil(12.0)')
-        self.assertEqual(wn.ex(x), 'ceil(12.0f)')
-        # Abs
-        x = myokit.Abs(b)
-        self.assertEqual(ws.ex(x), 'fabs(12.0f)')
-        self.assertEqual(wd.ex(x), 'fabs(12.0)')
-        self.assertEqual(wn.ex(x), 'fabs(12.0f)')
+    def test_conditionals(self):
+        # Inherited from c-based
 
-    def test_conditional(self):
-
-        # Single and double precision and native maths
-        ws = myokit.formats.opencl.OpenCLExpressionWriter()
-        wd = myokit.formats.opencl.OpenCLExpressionWriter(
-            myokit.DOUBLE_PRECISION)
-        wn = myokit.formats.opencl.OpenCLExpressionWriter(native_math=False)
-
-        a = myokit.Name(myokit.Model().add_component('c').add_variable('a'))
-        b = myokit.Number('12', 'pF')
-        cond1 = myokit.parse_expression('5 > 3')
-        cond2 = myokit.parse_expression('2 < 1')
-
-        # Equal
-        x = myokit.Equal(a, b)
-        self.assertEqual(ws.ex(x), '(c.a == 12.0f)')
-        self.assertEqual(wd.ex(x), '(c.a == 12.0)')
-        self.assertEqual(wn.ex(x), '(c.a == 12.0f)')
-        x = myokit.Equal(cond1, cond2)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) == (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) == (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) == (2.0f < 1.0f))')
-        x = myokit.Equal(cond1, b)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) == (12.0f != 0.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) == (12.0 != 0.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) == (12.0f != 0.0f))')
-        x = myokit.Equal(a, cond2)
-        self.assertEqual(ws.ex(x), '((c.a != 0.0f) == (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((c.a != 0.0) == (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((c.a != 0.0f) == (2.0f < 1.0f))')
-
-        # NotEqual
-        x = myokit.NotEqual(a, b)
-        self.assertEqual(ws.ex(x), '(c.a != 12.0f)')
-        self.assertEqual(wd.ex(x), '(c.a != 12.0)')
-        self.assertEqual(wn.ex(x), '(c.a != 12.0f)')
-        x = myokit.NotEqual(cond1, cond2)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) != (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) != (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) != (2.0f < 1.0f))')
-        x = myokit.NotEqual(cond1, b)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) != (12.0f != 0.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) != (12.0 != 0.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) != (12.0f != 0.0f))')
-        x = myokit.NotEqual(a, cond2)
-        self.assertEqual(ws.ex(x), '((c.a != 0.0f) != (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((c.a != 0.0) != (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((c.a != 0.0f) != (2.0f < 1.0f))')
-
-        # More
-        x = myokit.More(a, b)
-        self.assertEqual(ws.ex(x), '(c.a > 12.0f)')
-        self.assertEqual(wd.ex(x), '(c.a > 12.0)')
-        self.assertEqual(wn.ex(x), '(c.a > 12.0f)')
-        x = myokit.More(cond1, cond2)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) > (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) > (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) > (2.0f < 1.0f))')
-        x = myokit.More(cond1, b)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) > (12.0f != 0.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) > (12.0 != 0.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) > (12.0f != 0.0f))')
-        x = myokit.More(a, cond2)
-        self.assertEqual(ws.ex(x), '((c.a != 0.0f) > (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((c.a != 0.0) > (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((c.a != 0.0f) > (2.0f < 1.0f))')
-
-        # Less
-        x = myokit.Less(a, b)
-        self.assertEqual(ws.ex(x), '(c.a < 12.0f)')
-        self.assertEqual(wd.ex(x), '(c.a < 12.0)')
-        self.assertEqual(wn.ex(x), '(c.a < 12.0f)')
-        x = myokit.Less(cond1, cond2)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) < (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) < (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) < (2.0f < 1.0f))')
-        x = myokit.Less(cond1, b)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) < (12.0f != 0.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) < (12.0 != 0.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) < (12.0f != 0.0f))')
-        x = myokit.Less(a, cond2)
-        self.assertEqual(ws.ex(x), '((c.a != 0.0f) < (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((c.a != 0.0) < (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((c.a != 0.0f) < (2.0f < 1.0f))')
-
-        # MoreEqual
-        x = myokit.MoreEqual(a, b)
-        self.assertEqual(ws.ex(x), '(c.a >= 12.0f)')
-        self.assertEqual(wd.ex(x), '(c.a >= 12.0)')
-        self.assertEqual(wn.ex(x), '(c.a >= 12.0f)')
-        x = myokit.MoreEqual(cond1, cond2)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) >= (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) >= (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) >= (2.0f < 1.0f))')
-        x = myokit.MoreEqual(cond1, b)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) >= (12.0f != 0.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) >= (12.0 != 0.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) >= (12.0f != 0.0f))')
-        x = myokit.MoreEqual(a, cond2)
-        self.assertEqual(ws.ex(x), '((c.a != 0.0f) >= (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((c.a != 0.0) >= (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((c.a != 0.0f) >= (2.0f < 1.0f))')
-
-        # LessEqual
-        x = myokit.LessEqual(a, b)
-        self.assertEqual(ws.ex(x), '(c.a <= 12.0f)')
-        self.assertEqual(wd.ex(x), '(c.a <= 12.0)')
-        self.assertEqual(wn.ex(x), '(c.a <= 12.0f)')
-        x = myokit.LessEqual(cond1, cond2)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) <= (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) <= (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) <= (2.0f < 1.0f))')
-        x = myokit.LessEqual(cond1, b)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) <= (12.0f != 0.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) <= (12.0 != 0.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) <= (12.0f != 0.0f))')
-        x = myokit.LessEqual(a, cond2)
-        self.assertEqual(ws.ex(x), '((c.a != 0.0f) <= (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((c.a != 0.0) <= (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((c.a != 0.0f) <= (2.0f < 1.0f))')
-
-    def test_logical(self):
-
-        # Single and double precision and native maths
-        ws = myokit.formats.opencl.OpenCLExpressionWriter()
-        wd = myokit.formats.opencl.OpenCLExpressionWriter(
-            myokit.DOUBLE_PRECISION)
-        wn = myokit.formats.opencl.OpenCLExpressionWriter(native_math=False)
-
-        a = myokit.Name(myokit.Model().add_component('c').add_variable('a'))
-        b = myokit.Number('12', 'pF')
-        cond1 = myokit.parse_expression('5 > 3')
-        cond2 = myokit.parse_expression('2 < 1')
-        condx = myokit.Number(1.2)
-
-        # Not
-        x = myokit.Not(cond1)
-        self.assertEqual(ws.ex(x), '!((5.0f > 3.0f))')
-        self.assertEqual(wd.ex(x), '!((5.0 > 3.0))')
-        self.assertEqual(wn.ex(x), '!((5.0f > 3.0f))')
-        x = myokit.Not(condx)
-        self.assertEqual(ws.ex(x), '!((1.2f != 0.0f))')
-        self.assertEqual(wd.ex(x), '!((1.2 != 0.0))')
-        self.assertEqual(wn.ex(x), '!((1.2f != 0.0f))')
-
-        # And
-        x = myokit.And(cond1, cond2)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) && (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) && (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) && (2.0f < 1.0f))')
-        x = myokit.And(condx, cond2)
-        self.assertEqual(ws.ex(x), '((1.2f != 0.0f) && (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((1.2 != 0.0) && (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((1.2f != 0.0f) && (2.0f < 1.0f))')
-        x = myokit.And(cond1, condx)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) && (1.2f != 0.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) && (1.2 != 0.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) && (1.2f != 0.0f))')
-
-        # Or
-        x = myokit.Or(cond1, cond2)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) || (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) || (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) || (2.0f < 1.0f))')
-        x = myokit.Or(condx, cond2)
-        self.assertEqual(ws.ex(x), '((1.2f != 0.0f) || (2.0f < 1.0f))')
-        self.assertEqual(wd.ex(x), '((1.2 != 0.0) || (2.0 < 1.0))')
-        self.assertEqual(wn.ex(x), '((1.2f != 0.0f) || (2.0f < 1.0f))')
-        x = myokit.Or(cond1, condx)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) || (1.2f != 0.0f))')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) || (1.2 != 0.0))')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) || (1.2f != 0.0f))')
-
-        # If
-        x = myokit.If(cond1, a, b)
-        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) ? c.a : 12.0f)')
-        self.assertEqual(wd.ex(x), '((5.0 > 3.0) ? c.a : 12.0)')
-        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) ? c.a : 12.0f)')
-        x = myokit.If(condx, a, b)
-        self.assertEqual(ws.ex(x), '((1.2f != 0.0f) ? c.a : 12.0f)')
-        self.assertEqual(wd.ex(x), '((1.2 != 0.0) ? c.a : 12.0)')
-        self.assertEqual(wn.ex(x), '((1.2f != 0.0f) ? c.a : 12.0f)')
-
-        # Piecewise
-        c = myokit.Number(1)
-        x = myokit.Piecewise(cond1, a, cond2, b, c)
-        self.assertEqual(
-            ws.ex(x),
-            '((5.0f > 3.0f) ? c.a : ((2.0f < 1.0f) ? 12.0f : 1.0f))')
-        self.assertEqual(
-            wd.ex(x),
-            '((5.0 > 3.0) ? c.a : ((2.0 < 1.0) ? 12.0 : 1.0))')
-        self.assertEqual(
-            wn.ex(x),
-            '((5.0f > 3.0f) ? c.a : ((2.0f < 1.0f) ? 12.0f : 1.0f))')
-        x = myokit.Piecewise(condx, a, condx, b, c)
-        self.assertEqual(
-            ws.ex(x),
-            '((1.2f != 0.0f) ? c.a : ((1.2f != 0.0f) ? 12.0f : 1.0f))')
-        self.assertEqual(
-            wd.ex(x),
-            '((1.2 != 0.0) ? c.a : ((1.2 != 0.0) ? 12.0 : 1.0))')
-        self.assertEqual(
-            wn.ex(x),
-            '((1.2f != 0.0f) ? c.a : ((1.2f != 0.0f) ? 12.0f : 1.0f))')
-
-    def test_fetching(self):
-        # Test fetching using ewriter method
-        w = myokit.formats.ewriter('opencl')
-        self.assertIsInstance(w, myokit.formats.opencl.OpenCLExpressionWriter)
-
-    def test_bad_operand(self):
-        # Test without a Myokit expression
-        w = myokit.formats.opencl.OpenCLExpressionWriter()
-        self.assertRaisesRegex(
-            ValueError, 'Unknown expression type', w.ex, 7)
+        a, b, c, d = self.abcd
+        self.eq(If(Equal(a, b), d, c), '((a == b) ? d : c)')
+        self.eq(Piecewise(NotEqual(d, c), b, a), '((d != c) ? b : a)')
+        self.eq(Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
+                '((a == b) ? c : ((a == d) ? 3.0f : 4.0f))')
 
 
 if __name__ == '__main__':

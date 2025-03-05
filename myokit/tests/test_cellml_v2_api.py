@@ -5,27 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
 import myokit.formats.cellml.v2 as cellml
 
-from shared import WarningCollector
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-# Strings in Python2 and Python3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
+from myokit.tests import WarningCollector
 
 
 class TestCellML2AnnotatableElement(unittest.TestCase):
@@ -909,8 +894,8 @@ class TestCellML2ModelConversion(unittest.TestCase):
         # Recreate myokit model and test states
         mm = cm.myokit_model()
         mm.validate()
-        state_1 = m.state()
-        state_2 = mm.state()
+        state_1 = m.initial_values(True)
+        state_2 = mm.initial_values(True)
         states_1 = [x.name() for x in m.states()]
         states_2 = [x.name() for x in mm.states()]
         state_2 = [state_2[states_2.index(x)] for x in states_1]
@@ -1013,7 +998,7 @@ class TestCellML2ModelConversion(unittest.TestCase):
 
         # Check state
         self.assertTrue(mx.is_state())
-        self.assertEqual(mx.state_value(), 0.123)
+        self.assertEqual(mx.initial_value(True), 0.123)
 
         # Check binding
         self.assertEqual(mt.binding(), 'time')
@@ -1810,7 +1795,7 @@ class TestCellML2Units(unittest.TestCase):
         names = [x for x in cellml.Units.si_unit_names()]
         self.assertTrue(len(names) > 10)
         for name in names:
-            self.assertTrue(isinstance(name, basestring))
+            self.assertTrue(isinstance(name, str))
             self.assertTrue(
                 isinstance(cellml.Units.find_units(name), cellml.Units))
 

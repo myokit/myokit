@@ -5,18 +5,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 import myokit
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
 
 # Further testing in test_model.py
 
@@ -52,7 +42,7 @@ class UserFunctionTest(unittest.TestCase):
         self.assertEqual(f.convert(args), myokit.parse_expression('3 + 4'))
 
         # Call with wrong arguments
-        del(args[myokit.Name('a')])
+        del args[myokit.Name('a')]
         self.assertRaisesRegex(
             ValueError, 'Wrong number', f.convert, args)
         args[myokit.Name('c')] = myokit.Number(100)

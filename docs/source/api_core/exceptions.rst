@@ -43,6 +43,8 @@ Inheriting classes
 
 .. autoclass:: IllegalReferenceError
 
+.. autoclass:: IllegalReferenceInInitialValueError
+
 .. autoclass:: ImportError
 
 .. autoclass:: IncompatibleModelError
@@ -65,8 +67,6 @@ Inheriting classes
 
 .. autoclass:: MissingTimeVariableError
 
-.. autoclass:: NonLiteralValueError
-
 .. autoclass:: NumericalError
 
 .. autoclass:: ParseError
@@ -82,6 +82,8 @@ Inheriting classes
 .. autoclass:: SimulationCancelledError
 
 .. autoclass:: SimultaneousProtocolEventError
+
+.. autoclass:: TypeError
 
 .. autoclass:: UnresolvedReferenceError
 

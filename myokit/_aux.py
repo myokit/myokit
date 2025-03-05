@@ -6,9 +6,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import myokit
 
 import sys
@@ -29,7 +26,7 @@ class Benchmarker(myokit.tools.Benchmarker):
         warnings.warn(
             'The class `myokit.Benchmarker` is deprecated.'
             ' Please use `myokit.tools.Benchmarker` instead.')
-        super(Benchmarker, self).__init__()
+        super().__init__()
 
 
 def date():
@@ -150,7 +147,7 @@ def format_path(path, root='.'):
     return myokit.tools.format_path(path, root)
 
 
-class ModelComparison(object):
+class ModelComparison:
     """
     Compares two models.
 
@@ -215,7 +212,7 @@ class ModelComparison(object):
         """
         Compares the contents of two components with the same name.
         """
-        assert(c1.qname() == c2.qname())
+        assert c1.qname() == c2.qname()
         # Meta information
         self._meta(c1, c2)
         # Test variables
@@ -256,7 +253,7 @@ class ModelComparison(object):
         """
         Compares two objects' meta properties.
         """
-        assert(type(x1) == type(x2))
+        assert type(x1) == type(x2)
         if isinstance(x1, myokit.Model):
             name = ' in model'
         else:
@@ -281,12 +278,12 @@ class ModelComparison(object):
 
     def _state(self, m1, m2):
         """
-        Compares two models' states.
+        Compares two models' states and initial values.
         """
         s1 = iter([v.qname() for v in m1.states()])
         s2 = iter([v.qname() for v in m2.states()])
-        c1 = m1.state()
-        c2 = m2.state()
+        c1 = m1.initial_values()
+        c2 = m2.initial_values()
         for k, v1 in enumerate(s1):
             try:
                 v2 = next(s2)
@@ -298,7 +295,7 @@ class ModelComparison(object):
                     '[x] Mismatched State at position ' + str(k) + ': [1]<'
                     + v1 + '> [2]<' + v2 + '>')
                 continue
-            if c1[k] != c2[k]:
+            if c1[k].code() != c2[k].code():
                 self._write('[x] Mismatched Initial value for <' + v1 + '>')
         n = m2.count_states()
         for k, v2 in enumerate(s2):
@@ -351,7 +348,7 @@ class ModelComparison(object):
         Compares two variables with the same name.
         """
         name = v1.qname()
-        assert(v2.qname() == name)
+        assert v2.qname() == name
         # Left-hand side expression
         c1, c2 = v1.lhs().code(), v2.lhs().code()
         if c1 != c2:
@@ -434,6 +431,50 @@ def python_writer():
     return _pywriter_
 
 
+def _prepare_bindings(model, labels):
+    """
+    Takes a mapping of binding labels to internal references and returns a map
+    from variable instances to the same internal references.
+
+    This method also modifies ``model``: All bindings that are not mapped to
+    an internal reference will be removed.
+
+    The argument ``mapping`` should take the form::
+
+        labels = {
+            binding_label_1 : internal_name_1,
+            binding_label_2 : internal_name_2,
+            ...
+            }
+
+    The returned dictionary will have the form::
+
+        variables = {
+            variable_x : internal_name_1,
+            variable_y : internal_name_2,
+            ...
+            }
+
+    Unsupported bindings (i.e. bindings not appearing in ``labels``) will
+    be ignored.
+    """
+    unused = []
+    variables = {}
+    for label, var in model.bindings():
+        try:
+            variables[var] = labels[label]
+        except KeyError:
+            unused.append(var)
+            continue
+        # TODO: Remove this line; https://github.com/myokit/myokit/issues/320
+        var.set_rhs(0)
+
+    for var in unused:
+        var.set_binding(None)
+
+    return variables
+
+
 def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     """
     Runs a python ``script`` using the given ``model`` and ``protocol``.
@@ -476,9 +517,9 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     script = '\n' + script
 
     # Class to run scripts
-    class Runner(object):
+    class Runner:
         def __init__(self, model, protocol, script, stdout, stderr, progress):
-            super(Runner, self).__init__()
+            super().__init__()
             self.model = model
             self.protocol = protocol
             self.script = script
@@ -498,8 +539,8 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
 
             # Re-route standard outputs, execute code
             oldstdout = oldstderr = None
-            oldprogress = myokit._Simulation_progress
-            myokit._Simulation_progress = self.progress
+            oldprogress = myokit._simulation_progress
+            myokit._simulation_progress = self.progress
             try:
                 if self.stdout is not None:
                     oldstdout = sys.stdout
@@ -511,19 +552,19 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
                     'get_model': get_model,
                     'get_protocol': get_protocol,
                 }
-                myokit._exec(self.script, environment)
+                exec(self.script, environment)
             finally:
                 if oldstdout is not None:
                     sys.stdout = oldstdout
                 if oldstderr is not None:
                     sys.stderr = oldstderr
-                myokit._Simulation_progress = oldprogress
+                myokit._simulation_progress = oldprogress
 
     r = Runner(model, protocol, script, stdout, stderr, progress)
     r.run()
 
     # Free some space
-    del(r)
+    del r
     import gc
     gc.collect()
 
@@ -549,7 +590,11 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     """
     # Get initial state
     if initial is None:
-        initial = model.state()
+        initial = model.initial_values(as_floats=True)
+    else:
+        # Convert initial values etc to floats. Will also be performed by
+        # evaluate_derivatives, but done here for the printing code below.
+        initial = model.map_to_state(initial)
 
     # Get evaluation at initial state
     values = model.evaluate_derivatives(
@@ -620,8 +665,13 @@ def step(model, initial=None, reference=None, ignore_errors=False):
             # Large error, small error, or no error
             else:
                 mark_error = False
-                threshold = 13
-                if xx[:threshold] != yy[:threshold]:
+                abs_err = abs(x - y)
+                if abs_err:
+                    rel_err = abs(x - y) / max(abs(x), abs(y))
+                    n_eps = rel_err / sys.float_info.epsilon
+                else:
+                    n_eps = rel_err = 0
+                if n_eps > 1e6:
                     # "Large" error
                     errors += 1
                     line += ' X'
@@ -664,7 +714,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
         if warnings > 0:
             log.append('Found (' + str(warnings) + ') small mismatches.')
 
-    # Finalise and return
+    # Finalize and return
     log.append('-' * line_width)
     return '\n'.join(log)
 

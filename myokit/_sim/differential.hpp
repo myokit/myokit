@@ -18,8 +18,8 @@
  *
  *   // Create a and b as differentials. Both have derivative 1 with respect to
  *   // themselves. This can be indicated explicitly or, as in this example,
- *   // using the constructor arguments (value, indice) where indice is the
- *   // indice of this variable in the list of derivatives.
+ *   // using the constructor arguments (value, index) where index is the
+ *   // index of this variable in the list of derivatives.
  *   Diff a = Diff(2, 0);
  *   Diff b = Diff(3, 1);
  *   Diff x = 5 * a + pow(b, 2);
@@ -67,8 +67,8 @@
     static const unsigned long __nan[2] = {0xffffffff, 0x7fffffff};
     #define NAN (*(const float *) __nan)
 #endif
- 
- 
+
+
 /*
  * Covector. A tiny, fixed size array class that allows addition and scalar
  * multiplication.

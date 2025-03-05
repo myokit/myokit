@@ -4,11 +4,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 from ._exporter import AnsiCExporter, AnsiCCableExporter, AnsiCEulerExporter
-from ._ewriter import AnsiCExpressionWriter
+from ._ewriter import AnsiCExpressionWriter, CBasedExpressionWriter  # noqa
 
 
 # Importers
@@ -31,6 +28,7 @@ def exporters():
 # Expression writers
 _ewriters = {
     'ansic': AnsiCExpressionWriter,
+    # c-based is intended as base class only
 }
 
 

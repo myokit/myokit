@@ -140,7 +140,7 @@ for group in equations.values():
 print('')
 print('/* Aliases of state variables. */')
 for var in model.states():
-    print('#define ' + var.uname() + ' state[offset + ' + str(var.indice()) + ']')
+    print('#define ' + var.uname() + ' state[offset + ' + str(var.index()) + ']')
 
 print('')
 for comp, ilist in comp_in.items():

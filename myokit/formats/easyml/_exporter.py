@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import collections
 import os
 import warnings
@@ -320,7 +317,7 @@ class EasyMLExporter(myokit.formats.Exporter):
                 name_to_var[name] = var
 
         # Remove reverse mappings
-        del(name_to_var, needs_renaming)
+        del name_to_var, needs_renaming
 
         # Create names for HH variables
         for var, state in alphas.items():
@@ -372,8 +369,8 @@ class EasyMLExporter(myokit.formats.Exporter):
 
             # Write initial conditions
             for v in model.states():
-                f.write(lhs(v) + '_init = ' + myokit.float.str(v.state_value())
-                        + eos)
+                f.write(lhs(v) + '_init = '
+                        + myokit.float.str(v.initial_value(True)) + eos)
             f.write(eol)
 
             # Write remaining variables

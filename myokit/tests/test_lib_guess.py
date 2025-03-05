@@ -5,19 +5,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
 import myokit.lib.guess as guess
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class LibGuessTest(unittest.TestCase):
@@ -477,7 +468,7 @@ class LibGuessTest(unittest.TestCase):
         # Alternatively, use oxmeta annotation
         x.meta['oxmeta'] = 'membrane_voltage'
         self.assertEqual(guess.membrane_potential(m), x)
-        del(x.meta['oxmeta'])
+        del x.meta['oxmeta']
         self.assertNotEqual(guess.membrane_potential(m), x)
 
     def test_membrane_potential_2(self):
@@ -737,7 +728,7 @@ class LibGuessTest(unittest.TestCase):
         # Alternatively, use oxmeta annotation
         x.meta['oxmeta'] = 'membrane_stimulus_current'
         self.assertEqual(guess.stimulus_current(m), x)
-        del(x.meta['oxmeta'])
+        del x.meta['oxmeta']
         self.assertNotEqual(guess.stimulus_current(m), x)
 
     def test_stimulus_current_2(self):
@@ -902,7 +893,7 @@ class LibGuessTest(unittest.TestCase):
         self.assertEqual(i['period'], m.get('c.a'))
         self.assertEqual(i['offset'], m.get('c.b'))
         self.assertIsNone(i['amplitude_expression'])
-        del(m.get('c.t').meta['oxmeta'])
+        del m.get('c.t').meta['oxmeta']
         i = guess.stimulus_current_info(m)
         self.assertEqual(i['current'], m.get('c.t'))
         self.assertEqual(i['amplitude'], m.get('c.v'))

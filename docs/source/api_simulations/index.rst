@@ -21,7 +21,7 @@ specialized dict type can be stored to disk using
 or two-dimensional logs often take the shape of a rectangular grid. While the
 :class:`DataLog` class is built for maximum flexibility and allows irregular
 shapes, it can often be useful to exploit the rectangular grid shape of the
-data. For these cases, the data logs can be converted to specialised structures
+data. For these cases, the data logs can be converted to specialized structures
 called :class:`DataBlock1d` and :class:`DataBlock2d`.
 
 A few specialized classes are included in the simulations package. The
@@ -30,10 +30,7 @@ model's equations which can be useful to optimise model running times. The
 :class:`JacobianCalculator` can be used to calculate a single Jacobian matrix,
 while the :class:`JacobianTracer` can be run after a single cell simulation to
 calculate the Jacobian matrix and (dominant) eigenvalues at every visited point
-of the state space. The :class:`ICSimulation` goes a step further and runs a
-full simulation where the jacobian is integrated along with the state
-derivatives to calculate the partial derivatives of the state with respect to
-the initial state values.
+of the state space.
 
 
 ..  toctree::
@@ -46,8 +43,6 @@ the initial state values.
     DataLog
     DataBlock
     Jacobians
-    ICSimulation
-    PSimulation
     RhsBenchmarker
     SimulationErrors
     LongSimulations

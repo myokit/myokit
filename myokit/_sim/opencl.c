@@ -20,6 +20,15 @@ tab = '    '
 #include <Python.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+<?
+if myokit.DEBUG_SM:
+    print('// Show debug output')
+    print('#ifndef MYOKIT_DEBUG_MESSAGES')
+    print('#define MYOKIT_DEBUG_MESSAGES')
+    print('#endif')
+?>
+
 #include "mcl.h"
 
 /*

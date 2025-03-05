@@ -4,14 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
-import myokit
 import os
 import sys
 import traceback
 import warnings
+
+import myokit
 
 # Constants
 DIR_FORMATS = os.path.join(myokit.DIR_MYOKIT, 'formats')
@@ -23,12 +21,15 @@ _EWRITERS = None
 
 
 # Classes & methods
-class Exporter(object):
+class Exporter:
     """
     Abstract base class for exporters.
+
+    An exporter is a class that can produce model code or runnable code from a
+    Myokit model or a model & protocol combination (runnable).
     """
     def __init__(self):
-        super(Exporter, self).__init__()
+        super().__init__()
 
     def post_export_info(self):
         """
@@ -106,17 +107,40 @@ def exporters():
     return sorted(_EXPORTERS.keys())
 
 
-class ExpressionWriter(object):
+class ExpressionWriter:
     """
-    Base class for expression writers, that take myokit expressions as input
-    and convert them to text or other formats.
+    Base class for expression writers.
+
+    Expression writers take :class:`myokit.Expression` objects and produce code
+    in some language other than Myokit.
+
+    When implementing an expression writer, there are a few important edge
+    cases to consider:
+
+    1. Simplifications must not be made at this stage. For example, if the user
+       writes "+1" instead of "1", the code should output "+1". If
+       simplifications are desired, these should be made at an earlier stage,
+       when everything is still in symbolic form.
+
+    2. Powers (exponentiation) can be left or right-associative. In Myokit and,
+       for example, in Matlab, the expression ``a^b^c`` is interpreted as
+       ``(a^b)^c``. By in Python (and e.g. in many spreadsheet applications)
+       ``a**b**c`` is interpreted as ``a**(b**c)``, necessitating a different
+       bracket-adding logic than used in Myokit.
+
+    3. Myokit does not have increment or decrement operators ``--`` and ``++``,
+       so the expression ``--x`` is interpreted as ``-(-x)``. This is the same
+       in Python. But in C-based languages, this is interpreted as a decrement
+       operator so care must be taken to add extra brackets.
+
     """
     def __init__(self):
         self._op_map = self._build_op_map()
 
     def _build_op_map(self):
         """
-        Returns a mapping from myokit operators to lambda functions on expr.
+        Returns a mapping from Myokit operators to lambda functions on
+        expressions.
         """
         return {
             myokit.Name: self._ex_name,
@@ -160,15 +184,11 @@ class ExpressionWriter(object):
         }
 
     def eq(self, q):
-        """
-        Converts an equation to a string
-        """
+        """ Converts a :class:`myokit.Equation` to a string. """
         return self.ex(q.lhs) + ' = ' + self.ex(q.rhs)
 
     def ex(self, e):
-        """
-        Converts an Expression to a string.
-        """
+        """ Converts a :class:`myokit.Expression` to a string. """
         t = type(e)
         if t not in self._op_map:   # pragma: no cover
             raise ValueError('Unknown expression type: ' + str(t))
@@ -190,9 +210,17 @@ class ExpressionWriter(object):
         raise NotImplementedError
 
     def _ex_prefix_plus(self, e):
+        #
+        # Note: Spaces or brackets should be used in languages where ++ is an
+        #       operator
+        #
         raise NotImplementedError
 
     def _ex_prefix_minus(self, e):
+        #
+        # Note: Spaces or brackets should be used in languages where -- is an
+        #       operator
+        #
         raise NotImplementedError
 
     def _ex_plus(self, e):
@@ -214,6 +242,10 @@ class ExpressionWriter(object):
         raise NotImplementedError
 
     def _ex_power(self, e):
+        #
+        # Note: Most languages agree that -a**b means -(a**b)
+        #       https://codeplea.com/exponentiation-associativity-options
+        #
         raise NotImplementedError
 
     def _ex_sqrt(self, e):
@@ -241,6 +273,11 @@ class ExpressionWriter(object):
         raise NotImplementedError
 
     def _ex_log(self, e):
+        #
+        # Log can have 1 or 2 arguments. If the language does not support
+        # 2-argument log, use (log(a) / log(b)), including the outer
+        # brackets (because a function is expected, which is never bracketed).
+        #
         raise NotImplementedError
 
     def _ex_log10(self, e):
@@ -255,10 +292,11 @@ class ExpressionWriter(object):
     def _ex_abs(self, e):
         raise NotImplementedError
 
-    def _ex_not(self, e):
-        raise NotImplementedError
-
     def _ex_equal(self, e):
+        #
+        # To obtain the desired `(0 == 0) == 0` behaviour, this and other
+        # conditions are best rendered with brackets.
+        #
         raise NotImplementedError
 
     def _ex_not_equal(self, e):
@@ -280,6 +318,9 @@ class ExpressionWriter(object):
         raise NotImplementedError
 
     def _ex_or(self, e):
+        raise NotImplementedError
+
+    def _ex_not(self, e):
         raise NotImplementedError
 
     def _ex_if(self, e):
@@ -322,12 +363,12 @@ def ewriters():
     return sorted(_EWRITERS.keys())
 
 
-class Importer(object):
+class Importer:
     """
     Abstract base class for importers.
     """
     def __init__(self):
-        super(Importer, self).__init__()
+        super().__init__()
 
     def component(self, path, model):
         """
@@ -411,7 +452,7 @@ class TemplatedRunnableExporter(Exporter):
     protocol) into a runnable chunk of code.
     """
     def __init__(self):
-        super(TemplatedRunnableExporter, self).__init__()
+        super().__init__()
 
     def runnable(self, path, model, protocol=None, *args):
         """
@@ -616,7 +657,7 @@ def register_external_importer(name, importer_class):
     """
     if importer_class is None:
         if _IMPORTERS is not None and name in _IMPORTERS:
-            del(_IMPORTERS[name])
+            del _IMPORTERS[name]
     else:
         if _IMPORTERS is None:  # pragma: no cover
             _scan_for_internal_formats()
@@ -638,7 +679,7 @@ def register_external_exporter(name, exporter_class):
     """
     if exporter_class is None:
         if _EXPORTERS is not None and name in _EXPORTERS:
-            del(_EXPORTERS[name])
+            del _EXPORTERS[name]
     else:
         if _EXPORTERS is None:  # pragma: no cover
             _scan_for_internal_formats()
@@ -660,9 +701,190 @@ def register_external_ewriter(name, ewriter_class):
     """
     if ewriter_class is None:
         if _EWRITERS is not None and name in _EWRITERS:
-            del(_EWRITERS[name])
+            del _EWRITERS[name]
     else:
         if _EWRITERS is None:  # pragma: no cover
             _scan_for_internal_formats()
         _EWRITERS[name] = ewriter_class
+
+
+class SweepSource:
+    """
+    Interface for classes that provide time-series data organised into *sweeps*
+    (or *records* or *episodes*) and *channels* (or *traces*).
+
+    The :class:`SweepSource` interface defines methods to get the number of
+    sweeps and channels, the names and units of the channels, and the data
+    stored in channels either as numpy arrays or in a :class:`myokit.DataLog`.
+
+    Each sweep contains the same number of channels, and each channel is
+    represented as a 1d array. In most cases these arrays have the same length
+    for every sweep, but whether this is the case for the current source can be
+    tested with :meth:`equal_length_sweeps`.
+
+    Data can be retrieved sweep by sweep::
+
+        (time[0], sweep[0]),        n_t data points, n_c channels of n_t points
+        (time[1], sweep[1]),
+        (time[2], sweep[2]),
+        ...
+        (time[n_s], sweep[n_s])
+
+    This allows plotting in the common "overlaid" fashion, i.e. plotting every
+    ``sweep[i] against ``time[0]``.
+
+    For other types of analysis (e.g. parameter estimation) the data can also
+    be returned as single time series::
+
+        time                            sum(n_t[i]) data points
+        sweep[0] + sweep[1] + ...       n_c channels, with sum(n_t[i]) points
+
+    Some formats can also contain information from which D/A output signals can
+    be reconstructed. These can be accessed using the :meth:`da`.
+
+    """
+    def channel(self, channel_id, join_sweeps=False):
+        """
+        Returns the data for a single channel, identified by integer or string
+        ``channel_id``.
+
+        With ``join_sweeps=False``, the data is returned as a tuple
+        ``(times, sweeps)`` where ``times`` and ``sweeps`` are 2d numpy arrays
+        indexed so that ``times[i][j]`` is the ``j``-th time point for sweep
+        ``i``.
+
+        If ``join_sweeps=True`` the sweeps are joined together, and a tuple
+        ``(times, values)`` is returned ``times`` and ``values`` are 1d arrays.
+        """
+        raise NotImplementedError
+
+    def channel_count(self):
+        """ Returns the number of channels. """
+        raise NotImplementedError
+
+    def channel_names(self, index=None):
+        """
+        Returns the names of all channels or the name of a specific channel
+        ``index``.
+        """
+        raise NotImplementedError
+
+    def channel_units(self, index=None):
+        """
+        Returns the units (as :class:`myokit.Unit`) of all channels or the
+        units of a specific channel ``index``.
+        """
+        raise NotImplementedError
+
+    def da(self, output_id, join_sweeps=False):
+        """ Like :meth:`channel`, but returns reconstructed D/A signals. """
+        raise NotImplementedError
+
+    def da_count(self):
+        """
+        Returns the available number of reconstructed D/A output channels.
+
+        This should return 0 if D/A channels are not supported.
+        """
+        raise NotImplementedError
+
+    def da_names(self, index=None):
+        """
+        Returns the names of all reconstructed D/A output channels or the name
+        of a specific output channel ``index``.
+
+        This will raise a ``NotImplementedError`` if D/A channels are not
+        supported.
+        """
+        raise NotImplementedError
+
+    def da_protocol(self, output_id=None, tu='ms', vu='mV', cu='pA',
+                    n_digits=9):
+        """
+        Returns a :class:`myokit.Protocol` representation of the D/A output
+        channel specified by name or integer ``output_id``.
+
+        If no explicit output channel is set, a guess will be made.
+
+        Time units will be converted to ``tu``, voltage units to ``vu``, and
+        current units to ``cu``. Other unit types will be left unchanged. Units
+        may be specified as :class:`myokit.Unit` objects or strings.
+
+        By default, floating point numbers in the protocol will be rounded to
+        9 digits after the decimal point. This can be customised using the
+        argument ``n_digits``.
+
+        If a D/A output cannot be converted to a :class:`myokit.Protocol`, a
+        ``ValueError`` is raised. A ``NotImplementedError`` is raised if D/A
+        channels are not supported at all.
+        """
+        raise NotImplementedError
+
+    def da_units(self, index=None):
+        """
+        Returns the units (as :class:`myokit.Unit`) of all reconstructed D/A
+        output channels or the units of a specific output channel ``index``.
+
+        This will raise a ``NotImplementedError`` if D/A channels are not
+        supported.
+        """
+        raise NotImplementedError
+
+    def equal_length_sweeps(self):
+        """
+        Returns ``True`` only if each sweep in this source has the same length.
+        """
+        raise NotImplementedError
+
+    def log(self, join_sweeps=False, use_names=False, include_da=True):
+        """
+        Returns a :class:`myokit.DataLog` containing the data from all
+        channels.
+
+        The log will have a single entry ``time`` corresponding to the time of
+        the first sweep if ``join_sweeps`` is ``False``, or the time of all
+        points when ``join_sweeps`` is ``True``.
+
+        Names will have a systematic form ``i_sweep.i_channel.label``, for
+        example ``0.1.channel`` for sweep 0 of recorded channel 1, or
+        ``3.0.da`` for sweep 3 of reconstructed D/A output 0. These can also be
+        accessed using the syntax ``log['channel', 1, 0]`` and
+        ``log['da', 0, 3]``.
+
+        To obtain a log with the user-specified names from the source instead,
+        set ``use_names`` to ``True``. This will result in names such as
+        ``0.IN 1`` or ``3.Cmd 0``.
+
+        To exclude D/A signal reconstructions, set ``include_da`` to ``False``.
+
+        A call with ``join_sweeps=False`` on a source where
+        :meth:`equal_length_sweeps()` returns ``False`` will raise a
+        ``ValueError``.
+        """
+        raise NotImplementedError
+
+    def meta_str(self, verbose=False):
+        """
+        Optional method that returns a multi-line string with unstructured meta
+        data about the source and its contents.
+
+        Will return ``None`` if no such string is available.
+        """
+        return None  # pragma: no cover
+
+    def sweep_count(self):
+        """
+        Returns the number of sweeps.
+
+        Note that a source with zero recorded channels may still report a
+        non-zero number of sweeps if it can provide D/A outputs.
+
+        Similarly, formats like WCP can report zero sweeps but have a non-zero
+        channel count (if no data was recorded).
+        """
+        raise NotImplementedError
+
+    def time_unit(self):
+        """ Returns the time unit used in this source. """
+        raise NotImplementedError
 

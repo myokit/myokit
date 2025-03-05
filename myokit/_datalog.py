@@ -4,22 +4,17 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import array
+import json
 import os
 import re
 import sys
-import array
-import numpy as np
-from collections import OrderedDict
-import myokit
 
-# Strings in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
+import numpy as np
+
+from collections import OrderedDict
+
+import myokit
 
 
 # Function to split keys into dimension-key,qname-key pairs
@@ -88,6 +83,18 @@ class DataLog(OrderedDict):
         # Create a DataLog based on a dictionary
         d = myokit.DataLog({'time':[1, 2, 3], 'data':[2, 4, 5]}, time='time')
 
+    A DataLog can contain meta data, consisting of key-value pairs where
+    ``key`` must be a valid myokit name, and ``value`` can be any string. Meta
+    data for the log as a whole is stored in the property ``meta``, which is a
+    :class:`myokit.MetaDataContainer`. Meta data specific to columns in stored
+    in the property ``cmeta``, which is a :class:`ColumnMetaData` object with
+    an entry for every column::
+
+        d = myokit.DataLog()
+        d.meta['datetime'] = '2023-07-21 15:57'
+        d['data'] = [1, 2, 3]
+        d.cmeta['data']['units'] = 'pA'
+
     Arguments:
 
     ``other``
@@ -95,22 +102,30 @@ class DataLog(OrderedDict):
     ``time``
         The log key to use for the time variable. When cloning a log, adding
         the ``time`` argument will overwrite the cloned value.
+
     """
+
     def __init__(self, other=None, time=None):
-        """
-        Creates a new DataLog.
-        """
         if other is None:
-            # Create new
-            super(DataLog, self).__init__()
+            super().__init__()
             self._time = None
+            self.meta = myokit.MetaDataContainer()
+            self.cmeta = ColumnMetaData()
+        elif isinstance(other, DataLog):
+            super().__init__()
+            for k, v in other.items():
+                # Don't use the overwritten setitem, which calls _add
+                super().__setitem__(k, v)
+            self._time = other._time
+            self.meta = myokit.MetaDataContainer(other.meta)
+            self.cmeta = ColumnMetaData(other.cmeta)
         else:
-            # Clone
-            super(DataLog, self).__init__(other)
-            try:
-                self._time = str(other._time)
-            except Exception:
-                self._time = None
+            self._time = None
+            self.meta = myokit.MetaDataContainer()
+            self.cmeta = ColumnMetaData()
+            super().__init__(other)  # Let dict do the conversion
+
+        # Set time key, allow overruling when cloning
         if time is not None:
             self.set_time_key(time)
 
@@ -119,7 +134,7 @@ class DataLog(OrderedDict):
         Calculates one or more Action Potential Durations (APDs) in a single
         cell's membrane potential.
 
-        *Note 1: More accuracte apd measurements can be created using the*
+        *Note 1: More accuracte APD measurements can be obtained using the*
         :class:`Simulation` *object's APD tracking functionality. See*
         :meth:`Simulation.run()` *for details.*
 
@@ -129,10 +144,6 @@ class DataLog(OrderedDict):
 
         The membrane potential data should be listed in the log under the key
         given by ``v``.
-
-        The APD is measured as the time that the membrane potential exceeds a
-        certain, fixed, threshold. It does *not* calculate dynamic thresholds
-        like "90% of max(V) - min(V)".
 
         The returned value is a list of tuples (AP_start, APD).
         """
@@ -204,27 +215,39 @@ class DataLog(OrderedDict):
         """
         Returns a deep clone of this log.
 
-        All lists in the log will be duplicated, but the list contents are
+        All arrays in the log will be copied, but the array contents are
         assumed to be numerical (and thereby immutable) and won't be cloned.
 
-        A log with numpy arrays instead of lists can be created by setting
+        A log with numpy arrays instead of arrays can be created by setting
         ``numpy=True``.
         """
+        # Copy data
         log = DataLog()
-        log._time = self._time
         if numpy:
             for k, v in self.items():
                 log[str(k)] = np.array(v, copy=True, dtype=float)
         else:
+            typecode = 'd'
+            for v in self.values():
+                if isinstance(v, array.array):
+                    typecode = v.typecode
+                break
             for k, v in self.items():
-                log[str(k)] = list(v)
+                log[str(k)] = array.array(typecode, v)
+
+        # Copy meta data
+        log._time = self._time
+        log.meta = myokit.MetaDataContainer(self.meta)
+        log.cmeta = ColumnMetaData(self.cmeta)
         return log
 
     def __contains__(self, key):
-        return super(DataLog, self).__contains__(self._parse_key(key))
+        return super().__contains__(self._parse_key(key))
 
     def __delitem__(self, key):
-        return super(DataLog, self).__delitem__(self._parse_key(key))
+        key = self._parse_key(key)
+        super().__delitem__(key)
+        self.cmeta._remove(key)
 
     def extend(self, other):
         """
@@ -240,9 +263,11 @@ class DataLog(OrderedDict):
                 'Cannot extend DataLog with data from an earlier time.')
         if set(self.keys()) != set(other.keys()):
             raise ValueError('Both logs must have the same keys.')
+
         # Create new log
         log = DataLog()
         log._time = self._time
+
         # Add data
         for k, v1 in self.items():
             v2 = other[k]
@@ -252,6 +277,7 @@ class DataLog(OrderedDict):
             else:
                 log[k] = list(v1)   # Copies v1 data
                 log[k].extend(v2)   # Copies v2 data
+
         # Return
         return log
 
@@ -269,7 +295,7 @@ class DataLog(OrderedDict):
 
     def find_after(self, time):
         """
-        Returns the lowest indice ``i`` such that
+        Returns the lowest index ``i`` such that
 
             times[i] >= time
 
@@ -288,7 +314,7 @@ class DataLog(OrderedDict):
 
         # Find t
         def find(lo, hi):
-            # lo = first indice, hi = last indice + 1
+            # lo = first index, hi = last index + 1
             if (lo + 1 == hi):
                 return lo + 1
             m = int((lo + hi) / 2)
@@ -301,24 +327,29 @@ class DataLog(OrderedDict):
 
     def fold(self, period, discard_remainder=True):
         """
-        Creates a copy of the log, split with the given period. Split signals
-        are given indexes so that "current" becomes "0.current", "1.current"
-        "2.current", etc.
+        Creates a copy of the log, split with the given ``period``.
 
-        If the logs entries do not divide well by 'period', the remainder will
-        be ignored. This happens commonly due to rounding point errors (in
+        Split signals are given indexes so that ``current`` becomes
+        ``0.current``, ``1.current``, ``2.current``, etc.
+
+        If the logs entries do not divide well by ``period``, the remainder
+        will be ignored. This happens commonly due to rounding point errors (in
         which case the remainder is a single entry). To disable this behavior,
         set ``discard_remainder=False``.
+
+        To split a log into a list of logs, use :meth:`DataLog.split_periodic`.
         """
         # Note: Using closed intervals can lead to logs of unequal length, so
         # it should be disabled here to ensure a valid log
         logs = self.split_periodic(period, adjust=True, closed_intervals=False)
+
         # Discard remainder if present
         if discard_remainder:
             if len(logs) > 1:
                 n = logs[0].length()
                 if logs[-1].length() < n:
                     logs = logs[:-1]
+
         # Create new log with folded data
         out = myokit.DataLog()
         out._time = self._time
@@ -330,7 +361,7 @@ class DataLog(OrderedDict):
         return out
 
     def __getitem__(self, key):
-        return super(DataLog, self).__getitem__(self._parse_key(key))
+        return super().__getitem__(self._parse_key(key))
 
     def has_nan(self):
         """
@@ -442,7 +473,7 @@ class DataLog(OrderedDict):
 
     def itrim_left(self, i):
         """
-        Returns a copy of this log, with all entries before indice ``i``
+        Returns a copy of this log, with all entries before index ``i``
         removed (similar to performing ``x = x[i:]`` on a list).
         """
         log = DataLog()
@@ -456,7 +487,7 @@ class DataLog(OrderedDict):
 
     def itrim_right(self, i):
         """
-        Returns a copy of this log, with all entries starting from indice ``i``
+        Returns a copy of this log, with all entries starting from index ``i``
         removed (similar to performing ``x = x[:i]`` on a list).
         """
         log = DataLog()
@@ -513,23 +544,16 @@ class DataLog(OrderedDict):
         try:
             # Ensure zlib is available
             import zlib
-            del(zlib)
+            del zlib
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
 
         # Get size of single and double types on this machine
-        try:
-            dsize = {
-                'd': len(array.array('d', [1]).tobytes()),
-                'f': len(array.array('f', [1]).tobytes()),
-            }
-        except (AttributeError, TypeError):  # pragma: no python 3 cover
-            # List dtype as str for Python 2.7.10 (see #225)
-            dsize = {
-                b'd': len(array.array(b'd', [1]).tostring()),
-                b'f': len(array.array(b'f', [1]).tostring()),
-            }
+        dsize = {
+            'd': len(array.array('d', [1]).tobytes()),
+            'f': len(array.array('f', [1]).tobytes()),
+        }
 
         # Read data
         try:
@@ -544,9 +568,19 @@ class DataLog(OrderedDict):
                 head = f.getinfo('structure.txt')
             except KeyError:
                 raise myokit.DataLogReadError('Invalid log file format.')
+
             # Read file contents
             head = f.read(head).decode(ENC)
             body = f.read(body)
+
+            # Read meta data
+            try:
+                meta = f.getinfo('data.bin-metadata.json')
+            except KeyError:
+                meta = None
+            if meta is not None:
+                meta = f.read(meta)
+
         except zipfile.BadZipfile:
             raise myokit.DataLogReadError('Unable to read log: bad zip file.')
         except zipfile.LargeZipFile:    # pragma: no cover
@@ -565,7 +599,7 @@ class DataLog(OrderedDict):
         head = iter(head.splitlines())
         n = int(next(head))
         data_size = int(next(head))
-        data_type = str(next(head))  # Cast to str for Python 2.7.10 (see #225)
+        data_type = next(head)
         time = next(head)
         if time:
             # Note, this field doesn't have to be present in the log!
@@ -574,6 +608,22 @@ class DataLog(OrderedDict):
         if len(fields) != n:
             raise myokit.DataLogReadError(
                 'Invalid number of fields specified.')
+
+        # Read meta data, if any
+        # Do this before big data conversion operation below, so that we can
+        # fail early.
+        if meta:
+            # Add temporary entries for every field
+            for field in fields:
+                log[field] = tuple()
+
+            # Read meta data
+            try:
+                meta = json.loads(meta)
+            except json.JSONDecodeError as e:   # pragma: no cover
+                raise myokit.DataLogReadError(
+                    'Invalid meta data JSON file: {e}.')
+            DataLog._load_meta_json(meta, log)
 
         # Get size of each entry on disk
         if data_size < 0:
@@ -586,7 +636,7 @@ class DataLog(OrderedDict):
                 'Invalid data type: "' + data_type + '".')
 
         # Parse read data
-        fraction = 1.0 / len(fields)
+        fraction = 1 / len(fields)
         start, end = 0, 0
         nbody = len(body)
         try:
@@ -606,10 +656,7 @@ class DataLog(OrderedDict):
 
                 # Read data
                 ar = array.array(data_type)
-                try:
-                    ar.frombytes(body[start:end])
-                except AttributeError:  # pragma: no python 3 cover
-                    ar.fromstring(body[start:end])
+                ar.frombytes(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     ar.byteswap()
                 log[field] = ar
@@ -623,9 +670,11 @@ class DataLog(OrderedDict):
         """
         Loads a CSV file from disk and returns it as a :class:`DataLog`.
 
-        The CSV file must start with a header line indicating the variable
-        names, separated by commas. Each subsequent row should contain the
-        values at a single point in time for all logged variables.
+        The CSV file must start with a header line indicating the column names,
+        separated by commas. Each subsequent row should contain the values at a
+        single point in time for all logged variables. Duplicate column names
+        will be given a suffix "-i", where "i" is an integer chosen to create
+        a unique name.
 
         The ``DataLog`` is created using the data type specified by the
         argument ``precision``, regardless of the data type of the stored data.
@@ -640,8 +689,7 @@ class DataLog(OrderedDict):
         filename = os.path.expanduser(filename)
 
         # Typecode dependent on precision
-        # Typecode must be str for Python 2.7.10 (see #225)
-        typecode = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
+        typecode = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
 
         # Error raising function
         def e(line, char, msg):
@@ -649,16 +697,18 @@ class DataLog(OrderedDict):
                 'Syntax error on line ' + str(line) + ', character '
                 + str(1 + char) + ': ' + msg)
 
-        def uopen(filename):
-            # Open a filename in 'universal newline' mode, python 2 and 3
-            try:
-                return open(filename, 'r', newline=None)
-            except TypeError:   # pragma: no python 3 cover
-                return open(filename, 'U')
+        # Detect Microsoft's annyoing utf-8-sig encoding
+        # Note: We have to perform the first read in utf-8 mode, because the
+        # default encoding on windows will turn the BOM into a different set of
+        # characters, so that f.read(1) won't actually equal \ufeff
+        encoding = None
+        with open(filename, 'r', encoding='utf-8') as f:
+            if f.read(1) == '\ufeff':
+                encoding = 'utf-8-sig'
 
         quote = '"'
         delim = ','
-        with uopen(filename) as f:
+        with open(filename, 'r', newline=None, encoding=encoding) as f:
             # Read header
             keys = []   # The log keys, in order of appearance
 
@@ -749,8 +799,32 @@ class DataLog(OrderedDict):
             if c == delim:
                 e(1, i, 'Empty field in header.')
 
-            # Create data structure
+            # Handle duplicate keys by adding "-i" to all keys that appear
+            # more than once. If an entry key-i already exists, i is
+            # incremented.
             m = len(keys)
+            if len(set(keys)) != m:
+                first_seen = {}  # key: index first seen at
+                duplicates = {}  # key: list of indices of duplicates
+                for i, key in enumerate(keys):
+                    if key in first_seen:
+                        try:
+                            duplicates[key].append(i)
+                        except KeyError:
+                            duplicates[key] = [first_seen[key], i]
+                    else:
+                        first_seen[key] = i
+                for key, indices in duplicates.items():
+                    j = 1
+                    for i in indices:
+                        k = key
+                        while k in first_seen:
+                            k = f'{key}-{j}'
+                            j += 1
+                        keys[i] = k
+                        first_seen[k] = i
+
+            # Create data structure
             lists = []
             for key in keys:
                 x = array.array(typecode)
@@ -794,7 +868,7 @@ class DataLog(OrderedDict):
 
             # Guess time variable
             for key in keys:
-                x = np.array(log[key], copy=False)
+                x = np.asarray(log[key])
                 y = x[1:] - x[:-1]
                 if np.all(y > 0):
                     log.set_time_key(key)
@@ -803,14 +877,82 @@ class DataLog(OrderedDict):
             # Return log
             return log
 
+    @staticmethod
+    def _load_meta_json(meta, log):
+        """
+        Takes a JSON object, attempts to obtain meta data from it and adds it
+        to the given ``log``.
+        """
+        # Check context
+        context = meta.get('@context', None)
+        if context != 'http://www.w3.org/ns/csvw':
+            raise myokit.DataLogReadError(
+                f'Invalid meta data file context: "{context}"')
+
+        # TODO: Check URL? Allow multiple schemas? Alternative syntax?
+
+        # Easier errors
+        def read(parent, key, value_type, parent_str=None):
+            try:
+                value = parent[key]
+            except KeyError:
+                p = '' if parent_str is None else f' inside "{parent_str}"'
+                raise myokit.DataLogReadError(
+                    f'Invalid meta data file: missing "{key}"{p}.')
+            if type(value) != value_type:
+                raise myokit.DataLogReadError(
+                    f'Invalid meta data file: expecting {key} of type'
+                    f' {value_type}, found {type(value)}.')
+            return value
+
+        # Search for Myokit key value pairs
+        def myokit_pairs(parent, container):
+            for key, value in parent.items():
+                if key.startswith('myokit:'):
+                    if type(value) is not str:
+                        raise myokit.DataLogReadError(
+                            'Invalid meta data file: All fields starting with'
+                            ' "myokit:" must have string values, found'
+                            f' {type(value)} for "{key}".')
+                    container[key[7:]] = value
+
+        # Get table schema, read column meta data
+        schema = read(meta, 'tableSchema', dict)
+        columns = read(schema, 'columns', list, 'tableSchema')
+        names = []
+        for column in columns:
+            # Check column exists, get cmeta
+            name = read(column, 'titles', str, 'column')
+            names.append(name)
+            try:
+                cmeta = log.cmeta[name]
+            except KeyError:
+                raise myokit.DataLogReadError(
+                    f'Invalid meta data file: unknown column: "{name}"')
+
+            # Read column meta data
+            myokit_pairs(column, cmeta)
+
+        # Check all columns were listed
+        if len(names) < len(log):
+            raise myokit.DataLogReadError(
+                'Incomplete meta data file: expected table schema with'
+                f' {len(log)} columns, but found {len(names)}.')
+
+        # Read global meta data
+        myokit_pairs(meta, log.meta)
+
     def npview(self):
         """
         Returns a ``DataLog`` with numpy array views of this log's data.
         """
+        # Create log, copy time key
         log = DataLog()
-        log._time = self._time
         for k, v in self.items():
             log[k] = np.asarray(v)
+        log._time = self._time
+        log.meta = myokit.MetaDataContainer(self.meta)
+        log.cmeta = ColumnMetaData(self.cmeta)
         return log
 
     def _parse_key(self, key):
@@ -828,10 +970,15 @@ class DataLog(OrderedDict):
             key = '.'.join(parts)
         return str(key)
 
-    def regularize(self, dt, tmin=None, tmax=None):
+    def regularize(self, dt, tmin=None, tmax=None):  # pragma: no cover
         """
         Returns a copy of this DataLog with data points at regularly spaced
         times.
+
+        This method is deprecated and will be removed in future versions of
+        Myokit.
+
+        This method requires ``SciPy`` to be installed.
 
         *Note: While regularize() can be used post-simulation to create fixed
         time-step data from variable time-step data, it is usually better to
@@ -854,17 +1001,23 @@ class DataLog(OrderedDict):
              two values after ``tmax`` in the data respectively).
           3. Evaluating the interpolant at the regularly spaced points.
 
-        As a result of the (first-order) spline interpolation, the function may
-        perform poorly on large data sets.
+        As a result of the cubic spline interpolation, the function may perform
+        poorly on large data sets.
         """
-        self.validate()
+        # Deprecated since 2023-06-06
+        import warnings
+        warnings.warn(
+            'The method `regularize` is deprecated and will be removed in'
+            ' future versions of Myokit.')
+
         from scipy.interpolate import UnivariateSpline as Spline
+        self.validate()
 
         # Check time variable
         time = self.time()
         n = len(time)
 
-        # Get left indice for splines
+        # Get left index for splines
         imin = 0
         if tmin is None:
             tmin = time[0]
@@ -873,7 +1026,7 @@ class DataLog(OrderedDict):
             # left so that the spline has 4 points
             imin = max(0, np.searchsorted(time, tmin) - 2)
 
-        # Get right indice for splines
+        # Get right index for splines
         imax = n
         if tmax is None:
             tmax = time[-1]
@@ -921,14 +1074,13 @@ class DataLog(OrderedDict):
         try:
             # Make sure zlib is available
             import zlib
-            del(zlib)
+            del zlib
         except ImportError:
             raise Exception(
                 'This method requires the `zlib` module to be installed.')
 
         # Data type
-        # dtype must be str for Python 2.7.10 (see #225)
-        dtype = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
+        dtype = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
 
         # Create data strings
         head_str = []
@@ -950,33 +1102,35 @@ class DataLog(OrderedDict):
             ar = array.array(dtype, v)
             if sys.byteorder == 'big':  # pragma: no cover
                 ar.byteswap()
-            try:
-                body_str.append(ar.tobytes())
-            except AttributeError:   # pragma: no python 3 cover
-                body_str.append(ar.tostring())
+            body_str.append(ar.tobytes())
         head_str = '\n'.join(head_str)
         body_str = b''.join(body_str)
 
-        # 2018-07-15: Wondering why I chose body-head-readme ordering now...
+        # Get meta data json, or None
+        meta_json = self._save_meta_json('data.bin')
 
         # Write
         head = zipfile.ZipInfo('structure.txt')
         head.compress_type = zipfile.ZIP_DEFLATED
         body = zipfile.ZipInfo('data.bin')
         body.compress_type = zipfile.ZIP_DEFLATED
-        read = zipfile.ZipInfo('readme.txt')
-        read.compress_type = zipfile.ZIP_DEFLATED
+        readme = zipfile.ZipInfo('readme.txt')
+        readme.compress_type = zipfile.ZIP_DEFLATED
+        meta = zipfile.ZipInfo('data.bin-metadata.json')
+        meta.compress_type = zipfile.ZIP_DEFLATED
         with zipfile.ZipFile(filename, 'w') as f:
             f.writestr(body, body_str)
             f.writestr(head, head_str.encode(enc))
-            f.writestr(read, README_SAVE_BIN.encode(enc))
+            f.writestr(readme, README_SAVE_BIN.encode(enc))
+            if meta_json is not None:
+                f.writestr(meta, json.dumps(meta_json, indent=2).encode(enc))
 
     def save_csv(
             self, filename, precision=myokit.DOUBLE_PRECISION, order=None,
-            delimiter=',', header=True):
+            delimiter=',', header=True, meta=False):
         """
         Writes this ``DataLog`` to a CSV file, following the syntax
-        outlined in RFC 4180 and with a header indicating the field names.
+        outlined in RFC 4180, and with a header indicating the field names.
 
         The resulting file will consist of:
 
@@ -997,7 +1151,7 @@ class DataLog(OrderedDict):
             If a precision argument (for example ``myokit.DOUBLE_PRECISION``)
             is given, the output will be stored in such a way that this amount
             of precision is guaranteed to be present in the string. If the
-            precision argument is set to ``None`` python's default formatting
+            precision argument is set to ``None`` Python's default formatting
             is used, which may lead to smaller files.
         ``order``
             To specify the ordering of the log's arguments, pass in a sequence
@@ -1011,6 +1165,9 @@ class DataLog(OrderedDict):
             Set this to ``False`` to avoid adding a header to the file. Note
             that Myokit will no longer be able to read the written csv file
             without this header.
+        ``meta``
+            Set this to ``True`` to store any meta data in a csv-on-the-web
+            JSON file named ``filename + '-metadata.json'``.
 
         *A note about locale settings*: On Windows systems with a locale
         setting that uses the comma as a decimal separator, importing CSV files
@@ -1067,11 +1224,6 @@ class DataLog(OrderedDict):
                         keys.append(key)
                         data.append(dat)
 
-            # Number of entries
-            m = len(keys)
-            if m == 0:
-                return
-
             # Get length of entries
             n = self.length()
 
@@ -1091,6 +1243,44 @@ class DataLog(OrderedDict):
                     line.append(fmat(next(d)))
                 f.write((delimiter.join(line) + eol).encode('ascii'))
 
+        # Write meta data file
+        if meta:
+            meta_json = self._save_meta_json(filename)
+            if meta_json:
+                with open(f'{filename}-metadata.json', 'w') as f:
+                    json.dump(meta_json, f, indent=2)
+
+    def _save_meta_json(self, data_file_path):
+        """
+        Creates an object that can be passed to ``json.dump``, containing the
+        meta data for this DataLog and referencing the data file
+        ``data_file_path``.
+
+        If there is no meta data in the log, ``None`` is returned.
+        """
+        if len(self.meta) == 0:
+            if (len(x) == 0 for x in self.cmeta.values()):
+                return None
+
+        meta = {}
+        meta['@context'] = 'http://www.w3.org/ns/csvw'
+        meta['url'] = os.path.basename(data_file_path)
+
+        # Add table schema and column meta data
+        columns = []
+        for key, cmeta in self.cmeta.items():
+            column = {'titles': key, 'datatype': 'double'}
+            for k, v in cmeta.items():
+                column[f'myokit:{k}'] = v
+            columns.append(column)
+        meta['tableSchema'] = {'columns': columns}
+
+        # Add data log meta data
+        for k, v in self.meta.items():
+            meta[f'myokit:{k}'] = v
+
+        return meta
+
     def set_time_key(self, key):
         """
         Sets the key under which the time data is stored.
@@ -1098,8 +1288,11 @@ class DataLog(OrderedDict):
         self._time = None if key is None else str(key)
 
     def __setitem__(self, key, value):
-        return super(DataLog, self).__setitem__(
-            self._parse_key(key), value)
+        n = len(self)
+        key = self._parse_key(key)
+        super().__setitem__(key, value)
+        if len(self) > n:
+            self.cmeta._add(key)
 
     def split(self, value):
         """
@@ -1116,10 +1309,12 @@ class DataLog(OrderedDict):
 
     def split_periodic(self, period, adjust=False, closed_intervals=True):
         """
-        Splits this log into multiple logs, each covering an equal period of
-        time. For example a log covering the time span ``[0, 10000]`` can be
-        split with period ``1000`` to obtain ten logs covering ``[0, 1000]``,
-        ``[1000, 2000]`` etc.
+        Splits this log into multiple logs, returning a list of
+        :class:`DataLog` objects.
+
+        Each returned log covers an equal ``period`` of time. For example a log
+        covering the time span ``[0, 10000]`` split with period ``1000`` will
+        result in a list of ten logs ``[0, 1000]``, ``[1000, 2000]`` etc.
 
         The split log files can be returned as-is, or with the time variable's
         value adjusted so that all logs appear to cover the same span. To
@@ -1127,9 +1322,12 @@ class DataLog(OrderedDict):
 
         By default, the returned intervals are *closed*, so both the left and
         right endpoint are included (if present in the data). This may involve
-        the duplication of some data points. To disable this behaviour and
+        the duplication of some data points. To disable this behavior and
         return half-closed endpoints (containing only the left point), set
         ``closed_intervals`` to ``False``.
+
+        To return a single log with entries ``x`` split as ``x.0``, ``x.1``,
+        etc., use :meth:`DataLog.fold`.
         """
         # Validate log before starting
         self.validate()
@@ -1151,7 +1349,7 @@ class DataLog(OrderedDict):
 
         # No splitting needed? Return clone!
         if nlogs < 2:
-            return self.clone()
+            return [self.clone()]
 
         # Find split points
         tstarts = tmin + np.arange(nlogs) * period
@@ -1413,7 +1611,7 @@ class DataLog(OrderedDict):
         return infos
 
 
-class LoggedVariableInfo(object):
+class LoggedVariableInfo:
     """
     Contains information about the log entries for each variable. These objects
     should only be created by :meth:`DataLog.variable_info()`.
@@ -1549,6 +1747,39 @@ class LoggedVariableInfo(object):
         return '\n'.join(out)
 
 
+class ColumnMetaData(dict):
+    """
+    Contains meta data for each column in a :class:`DataLog`.
+
+    This class is managed by a :class:`DataLog`, which will ensure that it
+    contains a :class:`MetaDataContainer` for each column in the data log.
+    """
+    def __init__(self, other=None):
+        super().__init__()
+
+        if isinstance(other, ColumnMetaData):
+            s = super()
+            for key, value in other.items():
+                s.__setitem__(key, myokit.MetaDataContainer(value))
+        elif other is not None:
+            raise ValueError(
+                'Argument `other` must be a ColumnMetaData or None.')
+
+    def __delitem__(self, key):
+        raise ValueError(
+            'Entries in column meta data should be managed by a DataLog')
+
+    def __setitem__(self, key, value):
+        raise ValueError(
+            'Entries in column meta data should be managed by a DataLog')
+
+    def _add(self, key):
+        super().__setitem__(key, myokit.MetaDataContainer())
+
+    def _remove(self, key):
+        super().__delitem__(key)
+
+
 def prepare_log(
         log, model, dims=None, global_vars=None, if_empty=myokit.LOG_NONE,
         allowed_classes=myokit.LOG_ALL, precision=myokit.DOUBLE_PRECISION):
@@ -1620,9 +1851,7 @@ def prepare_log(
     be specified using the ``precision`` argument.
     """
     # Typecode dependent on precision
-    # Note: Cast to str() here makes it work with older versions of 2.7.x,
-    # where unicode isn't accepted (Python 3 of course doesn't accept bytes)
-    typecode = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
+    typecode = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
 
     # Get all options for dimensionality
     if dims is None:
@@ -1642,8 +1871,7 @@ def prepare_log(
                 v = model.get(var)
             except KeyError:
                 raise ValueError(
-                    'Unknown variable specified in global_vars <'
-                    + str(var) + '>.')
+                    f'Unknown variable specified in global_vars <{var}>.')
             if v.is_state():
                 raise ValueError('State cannot be global variable.')
 
@@ -1651,22 +1879,27 @@ def prepare_log(
     def check_if_allowed_class(var):
         if var.is_constant():
             raise ValueError(
-                'This log does not support constants, got <'
-                + str(var) + '>.')
+                f'This log does not support constants, got <{var}>.')
         elif var.is_state():
             if not myokit.LOG_STATE & allowed_classes:
                 raise ValueError(
-                    'This log does not support state variables, got <'
-                    + str(var) + '>.')
+                    f'This log does not support state variables, got <{var}>.')
         elif var.is_bound():
             if not myokit.LOG_BOUND & allowed_classes:
                 raise ValueError(
-                    'This log does not support bound variables, got <'
-                    + str(var) + '>.')
+                    f'This log does not support bound variables, got <{var}>.')
         elif not myokit.LOG_INTER & allowed_classes:
-            raise ValueError(
-                'This log does not support intermediary variables, got <'
-                + str(var) + '>.')
+            raise ValueError('This log does not support intermediary'
+                             f' variables, got <{var}>.')
+
+    # Function to add meta data about variables
+    def add_meta(log, key, var, time_unit=None):
+        m = log.cmeta[key]
+        u = var.unit()
+        if u is not None:
+            if time_unit is not None:
+                u = u / time_unit
+            m['unit'] = str(u)
 
     #
     # First option, no log argument given, use the "if_empty" option
@@ -1695,6 +1928,10 @@ def prepare_log(
         if flag == myokit.LOG_ALL:
             flag = allowed_classes
 
+        # Time variable and unit
+        time = model.time()
+        time_unit = time.unit()
+
         if myokit.LOG_STATE & flag:
 
             # Check if allowed
@@ -1705,7 +1942,9 @@ def prepare_log(
             for s in model.states():
                 name = s.qname()
                 for c in dcombos:
-                    log[c + name] = array.array(typecode)
+                    key = c + name
+                    log[key] = array.array(typecode)
+                    add_meta(log, key, s)
             flag -= myokit.LOG_STATE
 
         if myokit.LOG_BOUND & flag:
@@ -1719,9 +1958,12 @@ def prepare_log(
                 name = var.qname()
                 if name in global_vars:
                     log[name] = array.array(typecode)
+                    add_meta(log, name, var)
                 else:
                     for c in dcombos:
-                        log[c + name] = array.array(typecode)
+                        key = c + name
+                        log[key] = array.array(typecode)
+                        add_meta(log, key, var)
             flag -= myokit.LOG_BOUND
 
         if myokit.LOG_INTER & flag:
@@ -1736,9 +1978,12 @@ def prepare_log(
                 name = var.qname()
                 if name in global_vars:
                     log[name] = array.array(typecode)
+                    add_meta(log, name, var)
                 else:
                     for c in dcombos:
-                        log[c + name] = array.array(typecode)
+                        key = c + name
+                        log[key] = array.array(typecode)
+                        add_meta(log, key, var)
             flag -= myokit.LOG_INTER
 
         if myokit.LOG_DERIV & flag:
@@ -1751,16 +1996,17 @@ def prepare_log(
             for var in model.states():
                 name = var.qname()
                 for c in dcombos:
-                    log['dot(' + c + name + ')'] = array.array(typecode)
+                    key = f'dot({c}{name})'
+                    log[key] = array.array(typecode)
+                    add_meta(log, key, var, time_unit)
             flag -= myokit.LOG_DERIV
 
         if flag != 0:
             raise ValueError('One or more unknown flags given as log.')
 
         # Set time variable
-        time = model.time().qname()
-        if time in log:
-            log.set_time_key(time)
+        if time.qname() in log:
+            log.set_time_key(time.qname())
 
         # Return
         return log
@@ -1802,19 +2048,16 @@ def prepare_log(
             try:
                 var = model.get(kname)
             except KeyError:
-                raise ValueError(
-                    'Unknown variable <' + str(kname) + '> in log.')
+                raise ValueError(f'Unknown variable <{kname}> in log.')
 
             # Check if in class of allowed variables
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
                     raise ValueError(
-                        'This log does not support derivatives, got <'
-                        + key + '>.')
+                        f'This log does not support derivatives, got <{key}>.')
                 if not var.is_state():
-                    raise ValueError(
-                        'Cannot log time derivative of non-state <'
-                        + var.qname() + '>.')
+                    raise ValueError('Cannot log time derivative of non-state'
+                                     f' <{var.qname()}>.')
             else:
                 check_if_allowed_class(var)
 
@@ -1823,30 +2066,26 @@ def prepare_log(
 
                 # Raise error if global
                 if kname in global_vars:
-                    raise ValueError(
-                        'Cannot specify a cell index for global logging'
-                        ' variable <' + str(kname) + '>.')
+                    raise ValueError('Cannot specify a cell index for global'
+                                     f' logging variable <{kname}>.')
 
                 # Test dim key
                 if kdims not in dcombos:
-                    raise ValueError(
-                        'Invalid index <' + str(kdims) + '> in log.')
+                    raise ValueError(f'Invalid index <{kdims}> in log.')
 
             elif dims:
 
                 # Raise error if non-global variable is used in multi-cell log
                 if kname not in global_vars:
-                    raise ValueError(
-                        'DataLog contains non-indexed entry for'
-                        ' cell-specific variable <' + str(kname) + '>.')
+                    raise ValueError('DataLog contains non-indexed entry for'
+                                     f' cell-specific variable <{kname}>.')
 
         # Check dict values can be appended to
         m = 'append'
         for v in log.values():
             if not (hasattr(v, m) and callable(getattr(v, m))):
-                raise ValueError(
-                    'Logging dict must map qnames to objects'
-                    ' that support the append() method.')
+                raise ValueError('Logging dict must map qnames to objects'
+                                 ' that support the append() method.')
 
         # Return
         return log
@@ -1861,19 +2100,21 @@ def prepare_log(
         if len(log) > 0:
             log[0]
     except Exception:
-        raise ValueError(
-            'Argument `log` has unexpected type. Expecting None, integer flag,'
-            ' sequence of names, dict or DataLog.')
+        raise ValueError('Argument `log` has unexpected type. Expecting None,'
+                         ' integer flag, sequence of names, dict or DataLog.')
 
-    if isinstance(log, basestring):
-        raise ValueError(
-            'String passed in as `log` argument, should be list'
-            ' or other sequence containing strings.')
+    if isinstance(log, str):
+        raise ValueError('String passed in as `log` argument, should be list'
+                         ' or other sequence containing strings.')
+
+    # Time variable and unit
+    time = model.time()
+    time_unit = time.unit()
 
     # Parse log argument as list
     lst = log
     log = myokit.DataLog()
-    checked_knames = set()
+    checked_knames = {}
     for key in lst:
 
         # Allow variable objects and LhsExpressions
@@ -1891,59 +2132,59 @@ def prepare_log(
         kdims, kname = split_key(key)
 
         # Don't re-test multi-dim vars
-        if kname not in checked_knames:
+        try:
+            var = checked_knames[kname]
+        except KeyError:
 
             # Test if name key points to valid variable
             try:
                 var = model.get(kname)
             except KeyError:
-                raise ValueError(
-                    'Unknown variable <' + str(kname) + '> in list.')
+                raise ValueError(f'Unknown variable <{kname}> in list.')
 
             # Check if in class of allowed variables
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
                     raise ValueError(
-                        'This log does not support derivatives, got <'
-                        + key + '>.')
+                        f'This log does not support derivatives, got <{key}>.')
 
                 if not var.is_state():
-                    raise ValueError(
-                        'Cannot log time derivative of non-state <'
-                        + var.qname() + '>.')
+                    raise ValueError('Cannot log time derivative of non-state'
+                                     f' <{var.qname()}>.')
             else:
                 check_if_allowed_class(var)
-            checked_knames.add(kname)
+            checked_knames[kname] = var
 
         # Add key to log
         if kdims:
 
             # Raise error if global
             if kname in global_vars:
-                raise ValueError(
-                    'Cannot specify a cell index for global logging variable'
-                    ' <' + str(kname) + '>.')
+                raise ValueError('Cannot specify a cell index for global'
+                                 f' logging variable <{kname}>.')
 
             # Test dim key
             if kdims not in dcombos:
-                raise ValueError(
-                    'Invalid index <' + str(kdims) + '> in list.')
+                raise ValueError(f'Invalid index <{kdims}> in list.')
 
-            key = kdims + kname if not deriv else 'dot(' + kdims + kname + ')'
+            key = kdims + kname if not deriv else f'dot({kdims}{kname})'
             log[key] = array.array(typecode)
+            add_meta(log, key, var, time_unit if deriv else None)
 
         else:
 
             if kname in global_vars:
-                key = kname if not deriv else 'dot(' + kname + ')'
+                key = kname if not deriv else f'dot({kname})'
                 log[key] = array.array(typecode)
+                add_meta(log, key, var, time_unit if deriv else None)
             else:
                 for c in dcombos:
-                    key = c + kname if not deriv else 'dot(' + c + kname + ')'
+                    key = c + kname if not deriv else f'dot({c}{kname})'
                     log[key] = array.array(typecode)
+                    add_meta(log, key, var, time_unit if deriv else None)
 
     # Set time variable
-    time = model.time().qname()
+    time = time.qname()
     if time in log:
         log.set_time_key(time)
 
@@ -2000,3 +2241,4 @@ def split_key(key):
         return key[:m.end()], key[m.end():]
     else:
         return '', key
+

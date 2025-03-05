@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
@@ -47,7 +44,7 @@ class MetaTest(unittest.TestCase):
         self.assertEqual(m.meta['bert'], 'verrekijker')
 
         # Test deletion
-        del(m.meta['bert'])
+        del m.meta['bert']
         self.assertRaises(KeyError, lambda: m.meta['bert'])
 
     def test_parser(self):

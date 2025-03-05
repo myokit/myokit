@@ -5,19 +5,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
+
 import numpy as np
 
 import myokit
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class RhsBenchmarkerTest(unittest.TestCase):
@@ -25,7 +17,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
     Tests :class:`RhsBenchmarker`.
     """
     def test_simple(self):
-        """ Test basic functionality. """
+        # Test basic functionality.
 
         # Create test model
         m = myokit.Model('test')
@@ -60,7 +52,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
         mean, std = b.mean_std(t)
 
     def test_bad_log(self):
-        """ Test error handling when unsuitable log is used. """
+        # Test error handling when unsuitable log is used.
 
         # Create test model
         m = myokit.Model('test')
@@ -98,7 +90,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
             ValueError, 'same length', b.bench_full, d, 1)
 
     def test_creation(self):
-        """ Test Benchmarker creation. """
+        # Test Benchmarker creation.
         # Create test model
         m = myokit.Model('test')
         c = m.add_component('c')

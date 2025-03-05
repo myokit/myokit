@@ -18,17 +18,14 @@
 #include <string.h>
 #include <ctype.h>
 
-// Load the opencl libraries.
+/* Load the opencl libraries. */
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
 #else
 #include <CL/cl.h>
 #endif
 
-// Show debug output
-//#define MYOKIT_DEBUG
-
-// Maximum number of platforms/devices to check for.
+/* Maximum number of platforms/devices to check for. */
 #define MCL_MAX_PLATFORMS 255
 #define MCL_MAX_DEVICES 255
 
@@ -70,7 +67,6 @@ static int
 mcl_flag2(const char* msg, const cl_int flag)
 {
     char sub[1024];
-    char err[2048];
 
     if(flag == CL_SUCCESS) {
         return 0;
@@ -85,164 +81,163 @@ mcl_flag2(const char* msg, const cl_int flag)
     switch(flag) {
         // OpenCL 1.0 Errors
         case CL_DEVICE_NOT_FOUND:
-            sprintf(err, "OpenCL error%s: CL_DEVICE_NOT_FOUND", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_DEVICE_NOT_FOUND", sub);
             break;
         case CL_DEVICE_NOT_AVAILABLE:
-            sprintf(err, "OpenCL error%s: CL_DEVICE_NOT_AVAILABLE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_DEVICE_NOT_AVAILABLE", sub);
             break;
         case CL_COMPILER_NOT_AVAILABLE:
-            sprintf(err, "OpenCL error%s: CL_COMPILER_NOT_AVAILABLE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_COMPILER_NOT_AVAILABLE", sub);
             break;
         case CL_MEM_OBJECT_ALLOCATION_FAILURE:
-            sprintf(err, "OpenCL error%s: CL_MEM_OBJECT_ALLOCATION_FAILURE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_MEM_OBJECT_ALLOCATION_FAILURE", sub);
             break;
         case CL_OUT_OF_RESOURCES:
-            sprintf(err, "OpenCL error%s: CL_OUT_OF_RESOURCES", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_OUT_OF_RESOURCES", sub);
             break;
         case CL_OUT_OF_HOST_MEMORY:
-            sprintf(err, "OpenCL error%s: CL_OUT_OF_HOST_MEMORY", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_OUT_OF_HOST_MEMORY", sub);
             break;
         case CL_PROFILING_INFO_NOT_AVAILABLE:
-            sprintf(err, "OpenCL error%s: CL_PROFILING_INFO_NOT_AVAILABLE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_PROFILING_INFO_NOT_AVAILABLE", sub);
             break;
         case CL_MEM_COPY_OVERLAP:
-            sprintf(err, "OpenCL error%s: CL_MEM_COPY_OVERLAP", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_MEM_COPY_OVERLAP", sub);
             break;
         case CL_IMAGE_FORMAT_MISMATCH:
-            sprintf(err, "OpenCL error%s: CL_IMAGE_FORMAT_MISMATCH", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_IMAGE_FORMAT_MISMATCH", sub);
             break;
         case CL_IMAGE_FORMAT_NOT_SUPPORTED:
-            sprintf(err, "OpenCL error%s: CL_IMAGE_FORMAT_NOT_SUPPORTED", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_IMAGE_FORMAT_NOT_SUPPORTED", sub);
             break;
         case CL_BUILD_PROGRAM_FAILURE:
-            sprintf(err, "OpenCL error%s: CL_BUILD_PROGRAM_FAILURE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_BUILD_PROGRAM_FAILURE", sub);
             break;
         case CL_MAP_FAILURE:
-            sprintf(err, "OpenCL error%s: CL_MAP_FAILURE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_MAP_FAILURE", sub);
             break;
         case CL_MISALIGNED_SUB_BUFFER_OFFSET:
-            sprintf(err, "OpenCL error%s: CL_MISALIGNED_SUB_BUFFER_OFFSET", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_MISALIGNED_SUB_BUFFER_OFFSET", sub);
             break;
         case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:
-            sprintf(err, "OpenCL error%s: CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST", sub);
             break;
         case CL_INVALID_VALUE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_VALUE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_VALUE", sub);
             break;
         case CL_INVALID_DEVICE_TYPE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_DEVICE_TYPE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_DEVICE_TYPE", sub);
             break;
         case CL_INVALID_PLATFORM:
-            sprintf(err, "OpenCL error%s: CL_INVALID_PLATFORM", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_PLATFORM", sub);
             break;
         case CL_INVALID_DEVICE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_DEVICE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_DEVICE", sub);
             break;
         case CL_INVALID_CONTEXT:
-            sprintf(err, "OpenCL error%s: CL_INVALID_CONTEXT", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_CONTEXT", sub);
             break;
         case CL_INVALID_QUEUE_PROPERTIES:
-            sprintf(err, "OpenCL error%s: CL_INVALID_QUEUE_PROPERTIES", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_QUEUE_PROPERTIES", sub);
             break;
         case CL_INVALID_COMMAND_QUEUE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_COMMAND_QUEUE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_COMMAND_QUEUE", sub);
             break;
         case CL_INVALID_HOST_PTR:
-            sprintf(err, "OpenCL error%s: CL_INVALID_HOST_PTR", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_HOST_PTR", sub);
             break;
         case CL_INVALID_MEM_OBJECT:
-            sprintf(err, "OpenCL error%s: CL_INVALID_MEM_OBJECT", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_MEM_OBJECT", sub);
             break;
         case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:
-            sprintf(err, "OpenCL error%s: CL_INVALID_IMAGE_FORMAT_DESCRIPTOR", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_IMAGE_FORMAT_DESCRIPTOR", sub);
             break;
         case CL_INVALID_IMAGE_SIZE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_IMAGE_SIZE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_IMAGE_SIZE", sub);
             break;
         case CL_INVALID_SAMPLER:
-            sprintf(err, "OpenCL error%s: CL_INVALID_SAMPLER", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_SAMPLER", sub);
             break;
         case CL_INVALID_BINARY:
-            sprintf(err, "OpenCL error%s: CL_INVALID_BINARY", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_BINARY", sub);
             break;
         case CL_INVALID_BUILD_OPTIONS:
-            sprintf(err, "OpenCL error%s: CL_INVALID_BUILD_OPTIONS", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_BUILD_OPTIONS", sub);
             break;
         case CL_INVALID_PROGRAM:
-            sprintf(err, "OpenCL error%s: CL_INVALID_PROGRAM", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_PROGRAM", sub);
             break;
         case CL_INVALID_PROGRAM_EXECUTABLE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_PROGRAM_EXECUTABLE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_PROGRAM_EXECUTABLE", sub);
             break;
         case CL_INVALID_KERNEL_NAME:
-            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL_NAME", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_KERNEL_NAME", sub);
             break;
         case CL_INVALID_KERNEL_DEFINITION:
-            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL_DEFINITION", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_KERNEL_DEFINITION", sub);
             break;
         case CL_INVALID_KERNEL:
-            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_KERNEL", sub);
             break;
         case CL_INVALID_ARG_INDEX:
-            sprintf(err, "OpenCL error%s: CL_INVALID_ARG_INDEX", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_ARG_INDEX", sub);
             break;
         case CL_INVALID_ARG_VALUE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_ARG_VALUE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_ARG_VALUE", sub);
             break;
         case CL_INVALID_ARG_SIZE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_ARG_SIZE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_ARG_SIZE", sub);
             break;
         case CL_INVALID_KERNEL_ARGS:
-            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL_ARGS", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_KERNEL_ARGS", sub);
             break;
         case CL_INVALID_WORK_DIMENSION:
-            sprintf(err, "OpenCL error%s: CL_INVALID_WORK_DIMENSION", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_WORK_DIMENSION", sub);
             break;
         case CL_INVALID_WORK_GROUP_SIZE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_WORK_GROUP_SIZE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_WORK_GROUP_SIZE", sub);
             break;
         case CL_INVALID_WORK_ITEM_SIZE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_WORK_ITEM_SIZE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_WORK_ITEM_SIZE", sub);
             break;
         case CL_INVALID_GLOBAL_OFFSET:
-            sprintf(err, "OpenCL error%s: CL_INVALID_GLOBAL_OFFSET", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_GLOBAL_OFFSET", sub);
             break;
         case CL_INVALID_EVENT_WAIT_LIST:
-            sprintf(err, "OpenCL error%s: CL_INVALID_EVENT_WAIT_LIST", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_EVENT_WAIT_LIST", sub);
             break;
         case CL_INVALID_EVENT:
-            sprintf(err, "OpenCL error%s: CL_INVALID_EVENT", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_EVENT", sub);
             break;
         case CL_INVALID_OPERATION:
-            sprintf(err, "OpenCL error%s: CL_INVALID_OPERATION", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_OPERATION", sub);
             break;
         case CL_INVALID_GL_OBJECT:
-            sprintf(err, "OpenCL error%s: CL_INVALID_GL_OBJECT", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_GL_OBJECT", sub);
             break;
         case CL_INVALID_BUFFER_SIZE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_BUFFER_SIZE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_BUFFER_SIZE", sub);
             break;
         case CL_INVALID_MIP_LEVEL:
-            sprintf(err, "OpenCL error%s: CL_INVALID_MIP_LEVEL", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_MIP_LEVEL", sub);
             break;
         case CL_INVALID_GLOBAL_WORK_SIZE:
-            sprintf(err, "OpenCL error%s: CL_INVALID_GLOBAL_WORK_SIZE", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_GLOBAL_WORK_SIZE", sub);
             break;
         case CL_INVALID_PROPERTY:
-            sprintf(err, "OpenCL error%s: CL_INVALID_PROPERTY", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_INVALID_PROPERTY", sub);
             break;
         // OpenCL 1.1 etc. codes can not be assumed to be defined
         // Might be good to have ifdefs or something
         // OpenCL extensions
         case -1001:     // CL_PLATFORM_NOT_FOUND_KHR
-            sprintf(err, "OpenCL error%s: CL_PLATFORM_NOT_FOUND_KHR", sub);
+            PyErr_Format(PyExc_Exception, "OpenCL error%s: CL_PLATFORM_NOT_FOUND_KHR", sub);
             break;
         // Unknown error
         default:
-            sprintf(err, "Unknown OpenCL error%s: %i", sub, (int)flag);
+            PyErr_Format(PyExc_Exception, "Unknown OpenCL error%s: %i", sub, (int)flag);
             break;
     };
-    PyErr_SetString(PyExc_Exception, err);
     return 1;
 }
 
@@ -275,6 +270,8 @@ int mcl_select_device(
 {
     // String containing name of platform/device
     char name[65536];
+    const char* pname;
+    const char* dname;
 
     // Array of platform ids
     cl_uint n_platforms;
@@ -289,14 +286,13 @@ int mcl_select_device(
 
     // OpenCL ints for iterating
     cl_uint i, j;
+    int found;
 
     // By default, don't recommend a platform or device
     *pid = NULL;
     *did = NULL;
 
     // Check input
-    const char* pname;
-    const char* dname;
     if (platform != Py_None) {
         if (!PyBytes_Check(platform)) {
             PyErr_SetString(PyExc_Exception, "MCL_SELECT_DEVICE: 'platform' must be bytes or None.");
@@ -316,7 +312,7 @@ int mcl_select_device(
         dname = "";
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Attempting to find platform and device.\n");
     if (platform == Py_None) {
         printf("No platform specified.\n");
@@ -331,9 +327,12 @@ int mcl_select_device(
     #endif
 
     // Get array of platform ids
+    // This can raisee an error CL_PLATFORM_NOT_FOUND_KHR (code -1001) if no
+    // platforms are found and the cl_khr_icd extension is enabled:
+    // https://www.khronos.org/registry/OpenCL/sdk/2.0/docs/man/xhtml/clGetPlatformIDs.html
     n_platforms = 0;
     flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
-    if(mcl_flag(flag)) return 1;
+    if ((flag != -1001) && mcl_flag(flag)) return 1;
     if (n_platforms == 0) {
         PyErr_SetString(PyExc_Exception, "No OpenCL platforms found.");
         return 1;
@@ -407,8 +406,7 @@ int mcl_select_device(
     } else {
 
         // Find platform id
-        cl_uint i;
-        int found = 0;
+        found = 0;
         for (i=0; i<n_platforms; i++) {
             flag = clGetPlatformInfo(platform_ids[i], CL_PLATFORM_NAME, sizeof(name), name, NULL);
             if(mcl_flag(flag)) return 1;
@@ -429,8 +427,6 @@ int mcl_select_device(
         if (device == Py_None) {
 
             // Find any device on specified platform, prefer GPU
-            cl_device_id device_ids[1];
-            cl_uint n_devices = 0;
             flag = clGetDeviceIDs(*pid, CL_DEVICE_TYPE_GPU, 1, device_ids, &n_devices);
             if(flag == CL_SUCCESS) {
                 // Set selected device and return.
@@ -458,9 +454,6 @@ int mcl_select_device(
         } else {
 
             // Find specified platform/device combo
-            cl_device_id device_ids[MCL_MAX_DEVICES];
-            cl_uint n_devices = 0;
-            cl_uint j;
             flag = clGetDeviceIDs(*pid, CL_DEVICE_TYPE_ALL, MCL_MAX_DEVICES, device_ids, &n_devices);
             if(flag == CL_SUCCESS) {
                 for (j=0; j<n_devices; j++) {
@@ -513,7 +506,7 @@ int mcl_platform_supports_extension(cl_platform_id platform_id, const char* exte
     char buffer[65536];
 
     // Extensions
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Querying extensions\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, sizeof(buffer), buffer, NULL);
@@ -527,7 +520,7 @@ int mcl_platform_supports_extension(cl_platform_id platform_id, const char* exte
  *
  * Arguments:
  *  cl_platform_id platform_id  The id of the platform to query
- *  char* buffer                An initialised string buffer, that can be used
+ *  char* buffer                An initialized string buffer, that can be used
  *                              to read and write string information.
  *
  * Returns NULL and sets an error message if any exception occurs.
@@ -543,7 +536,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     // Value to insert into the dict (decref immediatly after)
     PyObject* val;
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Creating platform info dict\n");
     #endif
 
@@ -555,7 +548,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     }
 
     // Add profile
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying profile\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, bufsize, buffer, NULL);
@@ -565,7 +558,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     Py_CLEAR(val);
 
     // Version
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying version\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, bufsize, buffer, NULL);
@@ -575,7 +568,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     Py_CLEAR(val);
 
     // Name
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying name\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, bufsize, buffer, NULL);
@@ -585,7 +578,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     Py_CLEAR(val);
 
     // Vendor
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying vendor\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, bufsize, buffer, NULL);
@@ -595,7 +588,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     Py_CLEAR(val);
 
     // Extensions
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying extensions\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, bufsize, buffer, NULL);
@@ -616,7 +609,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
  * Arguments:
  *  cl_device_id device_id  The id of the device to query.
  *  size_t bufsize          Size of the string `buffer`.
- *  char* buffer            An initialised string buffer, that can be used to
+ *  char* buffer            An initialized string buffer, that can be used to
  *                          read and write string information.
  *
  * Returns NULL and sets an error message if any exception occurs.
@@ -644,9 +637,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     PyObject* items_sizes_tuple;
 
     // Iteration
-    size_t i;
+    Py_ssize_t i;
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Creating device info dict\n");
     #endif
 
@@ -658,6 +651,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     }
 
     // Name
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying name\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_NAME, bufsize, buffer, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyUnicode_FromString(buffer);
@@ -665,6 +661,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Vendor
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying vendor\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_VENDOR, bufsize, buffer, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyUnicode_FromString(buffer);
@@ -672,6 +671,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Device version
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying device version\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_VERSION, bufsize, buffer, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyUnicode_FromString(buffer);
@@ -679,6 +681,9 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Driver version
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying driver version\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DRIVER_VERSION, bufsize, buffer, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
     val = PyUnicode_FromString(buffer);
@@ -686,51 +691,72 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     Py_CLEAR(val);
 
     // Clock speed (MHz)
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying clock speed\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_uint);
+    val = PyLong_FromUnsignedLong(buf_uint);
     PyDict_SetItemString(device, "clock", val);
     Py_CLEAR(val);
 
     // Global memory (bytes)
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying global memory size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_ulong);
+    val = PyLong_FromUnsignedLongLong(buf_ulong);
     PyDict_SetItemString(device, "global", val);
     Py_CLEAR(val);
 
     // Local memory (bytes)
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying local memory size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_ulong);
+    val = PyLong_FromUnsignedLongLong(buf_ulong);
     PyDict_SetItemString(device, "local", val);
     Py_CLEAR(val);
 
     // Const memory (bytes)
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying max buffer size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_ulong);
+    val = PyLong_FromUnsignedLongLong(buf_ulong);
     PyDict_SetItemString(device, "const", val);
     Py_CLEAR(val);
 
     // Computing units
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying max computing units\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_uint);
+    val = PyLong_FromUnsignedLong(buf_uint);
     PyDict_SetItemString(device, "units", val);
     Py_CLEAR(val);
 
     // Max workgroup size
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying max work group size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(buf_size_t), &buf_size_t, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_size_t);
+    val = PyLong_FromSize_t(buf_size_t);
     PyDict_SetItemString(device, "groups", val);
     Py_CLEAR(val);
 
     // Max workitem sizes
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying max work item sizes\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(buf_uint), &buf_uint, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_uint);
+    val = PyLong_FromUnsignedLong(buf_uint);
     PyDict_SetItemString(device, "dimensions", val);
     Py_CLEAR(val);
 
@@ -739,16 +765,19 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     if(mcl_flag(flag)) { free(work_item_sizes); Py_DECREF(device); return NULL; }
     items_sizes_tuple = PyTuple_New((size_t)buf_uint);
     for (i=0; i<buf_uint; i++) {
-        PyTuple_SetItem(items_sizes_tuple, i, PyLong_FromLong(work_item_sizes[i]));
+        PyTuple_SetItem(items_sizes_tuple, i, PyLong_FromSize_t(work_item_sizes[i]));
     }
     free(work_item_sizes); work_item_sizes = NULL;
     PyDict_SetItemString(device, "items", items_sizes_tuple);
     Py_CLEAR(items_sizes_tuple);
 
     // Maximum size of a kernel parameter
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("  Querying maximum kernel parameter size\n");
+    #endif
     flag = clGetDeviceInfo(device_id, CL_DEVICE_MAX_PARAMETER_SIZE, sizeof(buf_size_t), &buf_size_t, NULL);
     if(mcl_flag(flag)) { Py_DECREF(device); return NULL; }
-    val = PyLong_FromLong(buf_size_t);
+    val = PyLong_FromSize_t(buf_size_t);
     PyDict_SetItemString(device, "param", val);
     Py_CLEAR(val);
 
@@ -791,7 +820,7 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
  *     )
  */
 PyObject*
-mcl_info()
+mcl_info(void)
 {
     // Return from OpenCL
     cl_int flag;
@@ -816,12 +845,19 @@ mcl_info()
     PyObject* devices;       // Temporary tuple of devices
     PyObject* device;        // Temporary device dict
 
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("Querying OpenCL driver\n");
+    #endif
+
     // Get platforms
+    // This can raisee an error CL_PLATFORM_NOT_FOUND_KHR (code -1001) if no
+    // platforms are found and the cl_khr_icd extension is enabled:
+    // https://www.khronos.org/registry/OpenCL/sdk/2.0/docs/man/xhtml/clGetPlatformIDs.html
     n_platforms = 0;
     flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
-    if(mcl_flag(flag)) return NULL;
-    #ifdef MYOKIT_DEBUG
-    printf("Found %d platforms\n", n_platforms);
+    if ((flag != -1001) && mcl_flag(flag)) return NULL;
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("Found %u platforms\n", (unsigned int)n_platforms);
     #endif
 
     // Create platforms tuple, must decref on exception
@@ -834,29 +870,47 @@ mcl_info()
 
     // Check all platforms
     for (i=0; i<n_platforms; i++) {
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("Checking platform %u\n", (unsigned int)i);
+        #endif
 
         // Create platform dict
         platform = mcl_info_platform_dict(platform_ids[i], sizeof(buffer), buffer);
         if (platform == NULL) { Py_DECREF(platforms); return NULL; }
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("  Obtained platform info dict.\n");
+        #endif
 
         // Count devices
         flag = clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_ALL, MCL_MAX_DEVICES, device_ids, &n_devices);
         if (flag == CL_DEVICE_NOT_FOUND) {
             n_devices = 0;
-        } else if(mcl_flag(flag)) {
+        } else if (flag == CL_INVALID_VALUE) {
+            // This seems to happen on Mac OS 14.4.1
+            n_devices = 0;
+        } else if (mcl_flag(flag)) {
             Py_DECREF(platforms);
             return NULL;
         }
+        #ifdef MYOKIT_DEBUG_MESSAGES
+        printf("  Found %u devices.\n", (unsigned int)n_devices);
+        #endif
 
         // Create devices tuple, must decref on exception
         devices = PyTuple_New((size_t)n_devices);
 
         // Add devices
         for (j=0; j<n_devices; j++) {
+            #ifdef MYOKIT_DEBUG_MESSAGES
+            printf("    Checking device %u\n", (unsigned int)j);
+            #endif
 
             // Create device dict, must decref on exception
             device = mcl_info_device_dict(device_ids[j], sizeof(buffer), buffer);
             if (device == NULL) { Py_DECREF(platforms); Py_DECREF(devices); return NULL; }
+            #ifdef MYOKIT_DEBUG_MESSAGES
+            printf("    Obtained device info dict.\n");
+            #endif
 
             // Add device to devices tuple (steals reference)
             PyTuple_SetItem(devices, j, device);
@@ -907,11 +961,6 @@ mcl_info_current(
     if (mcl_select_device(platform_name, device_name, &platform_id, &device_id)) {
         return NULL;
     }
-
-    #ifdef MYOKIT_DEBUG
-    printf("Found platform %d\n", platform_id);
-    printf("Found device %d\n", device_id);
-    #endif
 
     // Create platform dict
     platform = mcl_info_platform_dict(platform_id, sizeof(buffer), buffer);

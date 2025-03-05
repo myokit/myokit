@@ -5,18 +5,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 
 import myokit
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class MyokitUnitTest(unittest.TestCase):
@@ -79,7 +70,7 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertFalse(myokit.Unit.close(not_pF2, pF2))
         self.assertFalse(myokit.Unit.close(pF2, not_pF2))
 
-        # The next test is not a requirement, but tests the current behaviour:
+        # The next test is not a requirement, but tests the current behavior:
         u = myokit.units.m * 1.000000001
         self.assertTrue(myokit.Unit.close(u, myokit.units.m))
 
@@ -305,9 +296,39 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertEqual(x.exponents(), [0, 2, 1.5, 0, 0, 0, -1.23])
 
     def test_register_errors(self):
-        # Test errors for Unit.register (rest is already used a lot).
-        self.assertRaises(TypeError, myokit.Unit.register, 4, myokit.Unit())
+        # Test errors for Unit.register (rest of the method is already used
+        # throughout other tests).
+        self.assertRaises(myokit.InvalidNameError, myokit.Unit.register, 4,
+                          myokit.Unit())
         self.assertRaises(TypeError, myokit.Unit.register, 'hi', 4)
+
+    def test_register_preferred_representation(self):
+        # Test new representations can be registered
+
+        u = myokit.units.K / myokit.units.A
+        try:
+            # Register valid unit
+            self.assertEqual(str(u), '[K/A]')  # also auto registers!
+            myokit.Unit.register_preferred_representation('mK/mA', u)
+            self.assertEqual(str(u), '[mK/mA]')
+
+            # Attempt registering something that isn't a unit
+            self.assertRaisesRegex(
+                ValueError, 'must be a myokit.Unit',
+                myokit.Unit.register_preferred_representation, 'x', 123)
+
+            # Attempt registering a representation that doesn't match the unit
+            self.assertRaisesRegex(
+                ValueError, r'does not equal \[K/A] when parsed',
+                myokit.Unit.register_preferred_representation, 'm', u)
+            self.assertRaisesRegex(
+                ValueError, r'does not equal \[K/A \(2\)] when parsed',
+                myokit.Unit.register_preferred_representation, 'K/A', u * 2)
+
+        finally:
+            # Bypassing the public API, this is bad test design!
+            if u in myokit.Unit._preferred_representations:
+                del myokit.Unit._preferred_representations[u]
 
     def test_str(self):
         # Test :meth:`Unit.str()`
@@ -354,6 +375,16 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertTrue(myokit.Unit.close(c, d))
         self.assertEqual(str(c), '[V]')
         self.assertEqual(str(d), '[V]')
+
+        # 1115: Test str() doesn't create representations with more than one
+        # multiplier.
+        unit1 = myokit.units.mol / (1e3 * myokit.units.g)
+        unit2 = 1e-12 * myokit.units.mol / (1e3 * myokit.units.g)
+        unit3 = 1e-6 * unit2
+        self.assertEqual(str(unit1), '[mol/g (0.001)]')
+        self.assertEqual(str(unit2), '[mol/g (1e-15)]')
+        # Before fixing 1115, this returned [mol/g (0.001) (1e-12)]
+        self.assertEqual(str(unit3), '[mol/g (1e-21)]')
 
     def test_repr(self):
         # Test :meth:`Unit.repr()`.

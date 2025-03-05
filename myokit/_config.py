@@ -5,26 +5,17 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
+import configparser
+import os
+import platform
+import sys
+import warnings
 
 # Load Myokit, at least, the bit that's been setup so far. This just means
 # this method will add a link to the myokit module already being loaded
 # into this method's namespace. This allows us to use the constants defined
 # before this method was called.
 import myokit
-
-# Load libraries
-import os
-import sys
-import logging
-import platform
-
-# ConfigParser in Python 2 and 3
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import RawConfigParser as ConfigParser
 
 
 def _create(path):
@@ -36,7 +27,7 @@ def _create(path):
     system = platform.system()
 
     # Create config parser
-    config = ConfigParser(allow_no_value=True)
+    config = configparser.RawConfigParser(allow_no_value=True)
 
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str
@@ -48,35 +39,40 @@ def _create(path):
         '# This file can be used to set global configuration options for'
         ' Myokit.')
 
+    # Compatibility settings
+    config.add_section('compatibility')
+    config.set(
+        'compatibility',
+        '# Optional settings to make Myokit work on tricky systems.')
+    config.set('compatibility', '# Don\'t capture compiler output.')
+    config.set('compatibility', '#no_capture = True')
+    config.set('compatibility', '# Don\'t use the file-descriptor method.')
+    config.set('compatibility', '#no_fd_capture = True')
+
     # Date format
     config.add_section('time')
     config.set('time', '# Date format used throughout Myokit')
-    config.set('time', '# Format should be acceptable for time.strftime')
+    config.set('time', '# The format should be acceptable for time.strftime')
     config.set('time', 'date_format', myokit.DATE_FORMAT)
     config.set('time', '# Time format used throughout Myokit')
-    config.set('time', '# Format should be acceptable for time.strftime')
-    config.set('time', '# Format should be acceptable for time.strftime')
+    config.set('time', '# The format should be acceptable for time.strftime')
     config.set('time', 'time_format', myokit.TIME_FORMAT)
-
-    # Add line numbers to debug output of simulations
-    config.add_section('debug')
-    config.set('debug', '# Add line numbers to debug output of simulations')
-    config.set('debug', 'line_numbers', myokit.DEBUG_LINE_NUMBERS)
 
     # GUI Backend
     config.add_section('gui')
     config.set('gui', '# Backend to use for graphical user interface.')
-    config.set('gui', '# Valid options are "pyqt5", "pyqt4" or "pyside".')
+    config.set('gui', '# Valid options are pyqt6, pyqt5, pyside6 and pyside2.')
     config.set('gui', '# Leave unset for automatic selection.')
+    config.set('gui', '#backend = pyqt6')
     config.set('gui', '#backend = pyqt5')
-    config.set('gui', '#backend = pyqt4')
-    config.set('gui', '#backend = pyside')
+    config.set('gui', '#backend = pyside6')
+    config.set('gui', '#backend = pyside2')
 
     # Locations of sundials library
     config.add_section('sundials')
     config.set(
         'sundials', '# Location of sundials shared libary files'
-        ' (.so or .dll).')
+        ' (.so, .dll, or .dylib).')
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
@@ -85,18 +81,28 @@ def _create(path):
             'C:\\Program Files\\sundials\\lib',
             'C:\\Program Files (x86)\\sundials\\lib',
         ]))
-    else:
-        # Linux and MacOS
-        # Standard linux and MacOS install: /usr/local/lib
-        # Macports MacOS install: /opt/local/lib ??
+    elif system == 'Darwin':    # pragma: no linux cover
+        # Apple
+        # Standard: /usr/local/lib
+        # Macports: /opt/local/lib
+        # Homebrew: /opt/homebrew
         config.set('sundials', 'lib', ';'.join([
             '/usr/local/lib',
             '/usr/local/lib64',
             '/opt/local/lib',
             '/opt/local/lib64',
+            '/opt/homebrew/lib',
+            '/opt/homebrew/lib64',
+        ]))
+    else:
+        # Linux
+        config.set('sundials', 'lib', ';'.join([
+            '/usr/local/lib',
+            '/usr/local/lib64',
         ]))
 
-    config.set('sundials', '# Location of sundials header files (.h).')
+    config.set('sundials',
+               '# Location of sundials header files (.h).')
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
@@ -105,19 +111,26 @@ def _create(path):
             'C:\\Program Files\\sundials\\include',
             'C:\\Program Files (x86)\\sundials\\include',
         ]))
-    else:
-        # Linux and MacOS
-        # Standard linux and MacOS install: /usr/local/include
-        # Macports MacOS install: /opt/local/include
+    elif system == 'Darwin':    # pragma: no linux cover
+        # Apple
+        # Standard: /usr/local/include
+        # Macports: /opt/local/include
+        # Homebrew: /opt/homebrew/include
         config.set('sundials', 'inc', ';'.join([
             '/usr/local/include',
             '/opt/local/include',
+            '/opt/homebrew/include',
+        ]))
+    else:
+        # Linux
+        config.set('sundials', 'inc', ';'.join([
+            '/usr/local/include',
         ]))
 
     # Locations of OpenCL libraries
     config.add_section('opencl')
-    config.set(
-        'opencl', '# Location of opencl shared libary files (.so or .dll).')
+    config.set('opencl',
+               '# Location of opencl shared libary files (.so, .dll, .dylib).')
     config.set('opencl', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
@@ -126,7 +139,7 @@ def _create(path):
         config.set('opencl', 'lib', ';'.join([
             c64 + 'Intel\\OpenCL SDK\\6.3\\lib\\x64',
             c64 + 'AMD APP SDK\\2.9\\bin\\x64',
-            c64 + 'NVIDIA GPU Computing Toolkit\CUDA\\v10.1\\lib\\x64',
+            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v11.8\\lib\\x64',
         ]))
     else:
         # Linux and mac
@@ -148,7 +161,7 @@ def _create(path):
         config.set('opencl', 'inc', ';'.join([
             c64 + 'Intel\\OpenCL SDK\\6.3\\include',
             c64 + 'AMD APP SDK\\2.9\\include',
-            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\include',
+            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v11.8\\include',
         ]))
     else:
         # Linux and mac
@@ -165,8 +178,7 @@ def _create(path):
         with open(path, 'w') as configfile:
             config.write(configfile)
     except IOError:     # pragma: no cover
-        logger = logging.getLogger('myokit')
-        logger.warning('Warning: Unable to write settings to ' + str(path))
+        warnings.warn('Warning: Unable to write settings to ' + str(path))
 
 
 def _load():
@@ -187,7 +199,7 @@ def _load():
             lines = f.readlines()
 
         import re
-        inline_comment = re.compile('[\w]+[\s]*=[\s]*.+?\s+(;)')
+        inline_comment = re.compile(r'[\w]+[\s]*=[\s]*.+?\s+(;)')
         for i, line in enumerate(lines):
             m = inline_comment.match(line)
             if m is not None:
@@ -197,16 +209,40 @@ def _load():
                     + str(1 + i) + ', character ' + str(x) + ', semicolons (;)'
                     + ' must not be preceded by whitespace: ```'
                     + line.strip() + '```.')
-        del(lines, inline_comment)
+        del lines, inline_comment
 
     # Create the config parser (no value allows comments)
-    config = ConfigParser(allow_no_value=True)
+    config = configparser.RawConfigParser(allow_no_value=True)
 
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str
 
     # Parse the config file
     config.read(path)
+
+    # Compatibility options
+    if config.has_option('compatibility', 'no_capture'):
+        x = config.get('compatibility', 'no_capture').strip().lower()
+        if x == 'true':
+            myokit.COMPAT_NO_CAPTURE = True
+        elif x == 'false':
+            myokit.COMPAT_NO_CAPTURE = False
+        elif x != '':
+            warnings.warn(
+                'Invalid setting in myokit.ini. Expected values for no_capture'
+                ' are true, false, or not set (empty), but got: ' + x)
+
+    if config.has_option('compatibility', 'no_fd_capture'):
+        x = config.get('compatibility', 'no_fd_capture').strip().lower()
+        if x == 'true':
+            myokit.COMPAT_NO_FD_CAPTURE = True
+        elif x == 'false':
+            myokit.COMPAT_NO_FD_CAPTURE = False
+        elif x != '':
+            warnings.warn(
+                'Invalid setting in myokit.ini. Expected values for'
+                ' no_fd_capture are true, false, or not set (empty), but got: '
+                + x)
 
     # Date format
     if config.has_option('time', 'date_format'):
@@ -220,39 +256,33 @@ def _load():
         if x:
             myokit.TIME_FORMAT = str(x)
 
-    # Add line numbers to debug output of simulations
-    if config.has_option('debug', 'line_numbers'):
-        try:
-            myokit.DEBUG_LINE_NUMBERS = config.getboolean(
-                'debug', 'line_numbers')
-        except ValueError:  # pragma: no cover
-            pass
-
     # GUI Backend
     if config.has_option('gui', 'backend'):
         x = config.get('gui', 'backend').strip().lower()
-        if x == 'pyqt' or x == 'pyqt4':
-            myokit.FORCE_PYQT4 = True
+        if x == 'pyqt6':
+            myokit.FORCE_PYQT6 = True
             myokit.FORCE_PYQT5 = False
-            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE6 = False
             myokit.FORCE_PYSIDE2 = False
         elif x == 'pyqt5':
-            myokit.FORCE_PYQT4 = False
+            myokit.FORCE_PYQT6 = False
             myokit.FORCE_PYQT5 = True
-            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE6 = False
             myokit.FORCE_PYSIDE2 = False
-        elif x == 'pyside':
-            myokit.FORCE_PYQT4 = False
+        elif x == 'pyside6':
+            myokit.FORCE_PYQT6 = False
             myokit.FORCE_PYQT5 = False
-            myokit.FORCE_PYSIDE = True
+            myokit.FORCE_PYSIDE6 = True
             myokit.FORCE_PYSIDE2 = False
         elif x == 'pyside2':
-            myokit.FORCE_PYQT4 = False
+            myokit.FORCE_PYQT6 = False
             myokit.FORCE_PYQT5 = False
-            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE6 = False
             myokit.FORCE_PYSIDE2 = True
-        #else:
-        # If empty or invalid, don't adjust the settings!
+        elif x != '':
+            warnings.warn(
+                'Invalid setting in myokit.ini. Expected values for backend'
+                ' are pyqt6, pyqt5, pyside6, or pyside2. Got: ' + x)
 
     # Sundials libraries, header files, and version
     if config.has_option('sundials', 'lib'):

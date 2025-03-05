@@ -5,10 +5,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import numpy as np
+
 # Don't import pyplot yet, this will cause a crash if no window environment
 # is loaded.
 
@@ -64,28 +62,28 @@ def simulation_times(
     def stair(ax, time, realtime, evaluations):
         if time is None:
             raise ValueError('This plotting mode requires "time" to be set.')
-        time = np.array(time, copy=False)
+        time = np.asarray(time)
         step = np.arange(0, len(time))
         ax.step(time, step, label=label)
 
     def stair_inverse(ax, time, realtime, evaluations):
         if time is None:
             raise ValueError('This plotting mode requires "time" to be set.')
-        time = np.array(time, copy=False)
+        time = np.asarray(time)
         step = np.arange(0, len(time))
         ax.step(step, time, label=label)
 
     def load(ax, time, realtime, evaluations):
         if time is None:
             raise ValueError('This plotting mode requires "time" to be set.')
-        time = np.array(time, copy=False)
+        time = np.asarray(time)
         size = np.log(1 / (time[1:] - time[:-1]))
         ax.step(time[1:], size, label=label)
 
     def histo(ax, time, realtime, evaluations):
         if time is None:
             raise ValueError('This plotting mode requires "time" to be set.')
-        time = np.array(time, copy=False)
+        time = np.asarray(time)
         zero = float(time[0])
         bucket_w = (time[-1] - zero) / nbuckets
         bucket_x = np.zeros(nbuckets)
@@ -265,7 +263,8 @@ def current_arrows(log, voltage, currents, axes=None):
 
 def cumulative_current(
         log, currents, axes=None, labels=None, colors=None, integrate=False,
-        normalise=False, max_currents=None):
+        normalize=False, max_currents=None, line_args={}, fill_args={},
+        normalise=None):
     """
     Plots a number of currents, one on top of the other, with the positive and
     negative parts of the current plotted separately.
@@ -291,12 +290,17 @@ def cumulative_current(
         current.
     ``integrate``
         Set this to ``True`` to plot total carried charge instead of currents.
-    ``normalise``
-        Set this to ``True`` to normalise the graph at every point, so that the
+    ``normalize``
+        Set this to ``True`` to normalize the graph at every point, so that the
         relative contribution of each current is shown.
     ``max_currents``
         Set this to any integer n to display only the first n currents, and
         group the rest together in a remainder current.
+    ``line_args``
+        An optional dict with keyword arguments to pass in when drawing lines.
+    ``fill_args``
+        An optional dict with keyword arguments to pass in when drawing shaded
+        areas.
 
     The best results are obtained if relatively constant currents are specified
     early. Another rule of thumb is to specify the currents roughly in the
@@ -304,6 +308,15 @@ def cumulative_current(
     """
     import matplotlib
     import matplotlib.pyplot as plt
+
+    # Deprecated on 2023-10-12
+    if normalise is not None:
+        import warnings
+        warnings.warn(
+            'The keyword argument `normalise` is deprecated. Please use'
+            ' `normalize` instead.')
+        normalize = normalise
+    del normalise
 
     # Get axes
     if axes is None:
@@ -325,8 +338,8 @@ def cumulative_current(
     neg = np.minimum(pos, 0)
     pos = np.maximum(pos, 0)
 
-    # Normalise
-    if normalise:
+    # Normalize
+    if normalize:
         pos /= np.maximum(np.sum(pos, axis=0), 1e-99)
         neg /= -np.minimum(np.sum(neg, axis=0), -1e-99)
 
@@ -345,8 +358,17 @@ def cumulative_current(
             colors.extend(colors)
     else:
         # Colormap
-        cmap = matplotlib.cm.get_cmap(name='tab20')
+        try:
+            cmap = matplotlib.colormaps['tab20']
+        except AttributeError:  # pragma: no cover
+            cmap = matplotlib.cm.get_cmap(name='tab20')
         colors = [cmap(i) for i in range(nc)]
+
+    # Line drawing keyword arguments
+    if 'color' not in line_args:
+        line_args['color'] = 'k'
+    if 'lw' not in line_args:
+        line_args['lw'] = 1
 
     # Plot
     op = on = 0
@@ -378,10 +400,9 @@ def cumulative_current(
             p, n = op + pos[k], on + neg[k]
 
         # Plot!
-        axes.fill_between(t, p, op, facecolor=color)
-        axes.fill_between(t, n, on, facecolor=color)
-        axes.plot(t, p, color=color, label=label)
-        axes.plot(t, p, color='k', lw=1)
-        axes.plot(t, n, color='k', lw=1)
+        axes.fill_between(t, p, op, facecolor=color, label=label, **fill_args)
+        axes.fill_between(t, n, on, facecolor=color, **fill_args)
+        axes.plot(t, p, **line_args)
+        axes.plot(t, n, **line_args)
         on = n
         op = p

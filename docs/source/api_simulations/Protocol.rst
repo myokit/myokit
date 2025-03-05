@@ -12,6 +12,9 @@ Pacing protocols
 
 .. autoclass:: PacingSystem
 
+.. _api/myokit.TimeSeriesProtocol:
+.. autoclass:: TimeSeriesProtocol
+
 Protocol factory
 ================
 

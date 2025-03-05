@@ -4,15 +4,13 @@ omit =
     myokit/gui/*
     myokit/tests/*
     myokit/__main__.py
-    myokit/_exec_old.py
     myokit/lib/common.py
-    myokit/_sim/fiber_tissue.py
+    myokit/formats/heka/*
 
 [report]
 exclude_lines =
     pragma: no cover
     pragma: no linux cover
-    pragma: no python 3 cover
     def __repr__
     raise AssertionError
     raise NotImplementedError
@@ -20,4 +18,8 @@ exclude_lines =
     except ImportError:
     if False:
     if __name__ == .__main__.:
-    if myokit.DEBUG:
+    if myokit.DEBUG_SG:
+    if myokit.DEBUG_WG:
+    if myokit.DEBUG_SC:
+    if myokit.DEBUG_SM:
+    if myokit.DEBUG_SP:

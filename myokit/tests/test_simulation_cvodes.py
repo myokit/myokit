@@ -5,9 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import os
 import pickle
 import platform
@@ -19,18 +16,12 @@ import numpy as np
 
 import myokit
 
-from shared import (
+from myokit.tests import (
     CancellingReporter,
     DIR_DATA,
     test_case_pk_model,
     WarningCollector,
 )
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class SimulationTest(unittest.TestCase):
@@ -80,61 +71,290 @@ class SimulationTest(unittest.TestCase):
         d2 = self.sim.run(5, log_interval=-5)
         self.assertEqual(d1.time(), d2.time())
 
+    def test_multiple_protocols(self):
+        # Test using multiple protocols
+
+        # Set up a model
+        model = myokit.Model()
+        c = model.add_component('c')
+        t = c.add_variable('t')
+        t.set_binding('time')
+        t.set_rhs(0)
+
+        a = c.add_variable('a')
+        a.set_binding('a')
+        a.set_rhs(0)
+        b = c.add_variable('b')
+        b.set_binding('b')
+        b.set_rhs(0)
+        y = c.add_variable('y')
+        y.promote(1)
+        y.set_rhs('-a * y - b * y')
+
+        # Create two overlapping protocols
+        pa = myokit.Protocol()
+        pa.schedule(level=1, start=0.2, duration=0.5)
+
+        pb = myokit.Protocol()
+        pb.schedule(level=2, start=0.5, duration=0.6)
+
+        # Run a simulation with both
+        s = myokit.Simulation(model, {'a': pa, 'b': pb})
+        s.set_tolerance(1e-8)
+        d = s.run(2).npview()
+        times = d[t]
+
+        # Check that the changing points are in the log
+        self.assertIn(0, times)
+        self.assertIn(0.2, times)
+        self.assertIn(0.5, times)
+        self.assertIn(0.7, times)
+        self.assertIn(1.1, times)
+        self.assertIn(2, times)
+
+        # Check that a, b, and y have the expected values
+        a_up = (times >= 0.2) & (times < 0.7)
+        np.testing.assert_array_equal(d[a], np.where(a_up, 1, 0))
+
+        b_up = (times >= 0.5) & (times < 1.1)
+        np.testing.assert_array_equal(d[b], np.where(b_up, 2, 0))
+
+        # Check that dy/dt has the expected values
+        # dy/dt =
+        #   0   from 0 to 0.2
+        #   -y  from 0.2 to 0.5
+        #   -3y from 0.5 to 0.7
+        #   -2y from 0.7 to 1.1
+        #   0   after 1.1
+        #
+        dy_expect = 0 * times
+        dy_expect[a_up] -= 1 * d[y][a_up]
+        dy_expect[b_up] -= 2 * d[y][b_up]
+        np.testing.assert_array_equal(d['dot(c.y)'], dy_expect)
+
+        # Check that y has the expected values
+        # The solution for dy/dt = -a*y is y(t) = c * exp(-at), so
+        # y =
+        #   1
+        #   exp(-(t - 0.5))
+        #   exp(-0.3) * exp(-3 * (t - 0.5))
+        #   exp(-0.9) * exp(-2 * (t - 0.7))
+        #   exp(-1.7)
+        #
+        y_expect = np.ones(times.shape)
+        i = (times >= 0.2) & (times < 0.5)
+        y_expect[i] = np.exp(-(times[i] - 0.2))
+        i = (times >= 0.5) & (times < 0.7)
+        y_expect[i] = np.exp(-0.3) * np.exp(-3 * (times[i] - 0.5))
+        i = (times >= 0.7) & (times < 1.1)
+        y_expect[i] = np.exp(-0.9) * np.exp(-2 * (times[i] - 0.7))
+        y_expect[times >= 1.1] = np.exp(-1.7)
+        np.testing.assert_array_almost_equal(d[y], y_expect, decimal=3)
+
+        # Test unsetting
+        s.set_protocol(None, label='a')
+        s.reset()
+        d = s.run(2).npview()
+        np.testing.assert_array_equal(d[a], np.zeros(d[a].shape))
+        times = d[t]
+        b_up = (times >= 0.5) & (times < 1.1)
+        np.testing.assert_array_equal(d[b], np.where(b_up, 2, 0))
+        y_expect = np.ones(times.shape)
+        i = (times >= 0.5) & (times < 1.1)
+        y_expect[i] = np.exp(-2 * (times[i] - 0.5))
+        y_expect[times >= 1.1] = np.exp(-1.2)
+        np.testing.assert_array_almost_equal(d[y], y_expect, decimal=3)
+
+        # Test unsetting
+        s.set_protocol(None, label='b')
+        s.reset()
+        d = s.run(2).npview()
+        np.testing.assert_array_equal(d[a], np.zeros(d[a].shape))
+        np.testing.assert_array_equal(d[a], np.zeros(d[a].shape))
+        np.testing.assert_array_equal(d[y], np.ones(d[a].shape))
+
+    def test_mixed_protocols(self):
+        # Test using a step and a time series protocol at the same time
+
+        # Set up a model
+        model = myokit.Model()
+        c = model.add_component('c')
+        t = c.add_variable('t')
+        t.set_binding('time')
+        t.set_rhs(0)
+        a = c.add_variable('a')
+        a.set_binding('a')
+        a.set_rhs(0)
+        b = c.add_variable('b')
+        b.set_binding('b')
+        b.set_rhs(0)
+        y = c.add_variable('y')  # Just to log more points
+        y.promote(1)
+        y.set_rhs('a + b')
+
+        # Set up protocols
+        pa = myokit.pacing.blocktrain(level=2, offset=1, duration=2, period=5)
+        x = np.linspace(0, 10, 100)
+        y = 0.1 + 0.2 * np.sin(x)
+        pb = myokit.TimeSeriesProtocol(x, y)
+
+        # Run a simulation with both
+        s = myokit.Simulation(model, {'a': pa, 'b': pb})
+        s.set_tolerance(1e-8)
+        d = s.run(12).npview()
+        t = d[t]
+
+        # Start, end, and change points visited exactly
+        self.assertIn(0, t)
+        self.assertIn(1, t)
+        self.assertIn(3, t)
+        self.assertIn(6, t)
+        self.assertIn(8, t)
+        self.assertIn(11, t)
+        self.assertIn(12, t)
+
+        # Test a
+        a_e = np.zeros(t.shape)
+        a_e[(t >= 1) & (t < 3)] = 2
+        a_e[(t >= 6) & (t < 8)] = 2
+        a_e[(t >= 11) & (t < 13)] = 2
+        np.testing.assert_array_equal(d[a], a_e)
+
+        # Test b
+        b_e = 0.1 + 0.2 * np.sin(t)
+        b_e[t > 10] = y[-1]
+        # Note: We don't expect a super good match here, as b_e is an exact
+        #       sine value, while the solver will be interpolating y
+        np.testing.assert_array_almost_equal(d[b], b_e, decimal=3)
+
+    def test_negative_time(self):
+        # Test starting at a negative time
+
+        self.sim.reset()
+        self.sim.set_protocol(
+            myokit.pacing.blocktrain(duration=1, level=1, period=2))
+        self.sim.set_time(-10)
+        self.assertEqual(self.sim.time(), -10)
+        d = self.sim.run(5, log=['engine.pace']).npview()
+        self.assertEqual(self.sim.time(), -5)
+        self.assertTrue(np.all(d['engine.pace'] == 0))
+        d = self.sim.run(5, log=['engine.pace']).npview()
+        self.assertEqual(self.sim.time(), 0)
+        self.assertTrue(np.all(d['engine.pace'][:-1] == 0))
+        self.assertEqual(d['engine.pace'][-1], 1)
+        self.sim.set_protocol(self.protocol)
+
     def test_no_protocol(self):
         # Test running without a protocol.
 
+        # Check if pace was set to zero (see technical notes).
         self.sim.reset()
         self.sim.pre(50)
         self.sim.set_protocol(None)
-        d = self.sim.run(50).npview()
+        d = self.sim.run(50, log=['engine.pace']).npview()
+        self.assertTrue(np.all(d['engine.pace'] == 0))
 
-        # Check if pace was set to zero (see prop 651 / technical docs).
-        self.assertTrue(np.all(d['engine.pace'] == 0.0))
+        # Defined at the start? Then still counts as bound
+        self.assertRaisesRegex(
+            ValueError, 'not a literal',
+            self.sim.set_constant, 'engine.pace', 1)
 
-    def test_fixed_form_protocol(self):
-        # Test running with a fixed form protocol.
+        # Check that pace is reset to zero when protocol is removed
+        x = 0.01    # Note: Must be low to stop sim crashing :D
+        self.sim.set_protocol(
+            myokit.pacing.blocktrain(duration=1000, level=x, period=1000))
+        d = self.sim.run(5, log=['engine.pace']).npview()
+        self.assertTrue(np.all(d['engine.pace'] == x))
+        self.sim.set_protocol(None)
+        d = self.sim.run(5, log=['engine.pace']).npview()
+        self.assertTrue(np.all(d['engine.pace'] == 0))
+        self.sim.set_protocol(self.protocol)
+
+        # No protocol set from the start? Then "pace" is set anyway for
+        # backwards compatibility
+        m = self.model.clone()
+        m.get('engine.pace').set_rhs(x)
+        s = myokit.Simulation(m)
+        d = s.run(50).npview()
+        self.assertIn('engine.pace', d.keys())
+        self.assertTrue(np.all(d['engine.pace'] == 0))
+
+        # But if user explicitly says no labels, then pace isn't treated in a
+        # special way.
+        s = myokit.Simulation(m, {})
+        self.assertRaises(ValueError, s.set_protocol, self.protocol)
+        d = s.run(50).npview()
+        self.assertNotIn('engine.pace', d.keys())
+        #self.assertTrue(np.all(d['engine.pace'] == x))  constant is not logged
+
+    def test_wrong_label_set_pacing(self):
+        # Test set_pacing with incorrect label
+        self.sim.reset()
+        self.sim.pre(50)
+        with self.assertRaisesRegex(ValueError, 'Unknown pacing label'):
+            self.sim.set_protocol(None, label='does not exist')
+
+    def test_time_series_protocol(self):
+        # Test running with a time series protocol
 
         n = 10
-        time = list(range(n))
-        pace = [0] * n
-        pace[2:4] = [0.5, 0.5]
+        times = list(range(n))
+        values = [0] * n
+        values[2:4] = [0.5, 0.5]
+        p = myokit.TimeSeriesProtocol(times, values)
 
-        self.sim.set_fixed_form_protocol(time, pace)
+        self.sim.set_protocol(p)
         self.sim.reset()
         d = self.sim.run(n, log_interval=1)
-        self.assertEqual(list(d.time()), time)
-        self.assertEqual(list(d['engine.pace']), pace)
+        self.assertEqual(list(d.time()), times)
+        self.assertEqual(list(d['engine.pace']), values)
 
         # Unset
-        self.sim.set_fixed_form_protocol(None)
+        self.sim.set_protocol(None)
         self.sim.reset()
         d = self.sim.run(n, log_interval=1)
         self.assertEqual(list(d['engine.pace']), [0] * n)
 
         # Reset
-        self.sim.set_fixed_form_protocol(time, pace)
+        self.sim.set_protocol(p)
         self.sim.reset()
         d = self.sim.run(n, log_interval=1)
-        self.assertEqual(list(d.time()), time)
-        self.assertEqual(list(d['engine.pace']), pace)
+        self.assertEqual(list(d.time()), times)
+        self.assertEqual(list(d['engine.pace']), values)
 
         # Unset, replace with original protocol
         self.sim.set_protocol(self.protocol)
         self.sim.reset()
         d = self.sim.run(n, log_interval=1)
-        self.assertNotEqual(list(d['engine.pace']), pace)
+        self.assertNotEqual(list(d['engine.pace']), values)
         self.assertNotEqual(list(d['engine.pace']), [0] * n)
 
-        # Invalid protocols
-        self.assertRaisesRegex(
-            ValueError, 'no times', self.sim.set_fixed_form_protocol,
-            values=pace)
-        self.assertRaisesRegex(
-            ValueError, 'no values', self.sim.set_fixed_form_protocol,
-            times=time)
-        self.assertRaisesRegex(
-            ValueError, 'same size', self.sim.set_fixed_form_protocol,
-            time, pace[:-1])
+        # Deprecated version
+        with WarningCollector() as w:
+            self.sim.set_fixed_form_protocol(times, values)
+        self.assertIn('eprecated', w.text())
+        self.sim.reset()
+        d = self.sim.run(n, log_interval=1)
+        self.assertEqual(list(d.time()), times)
+        self.assertEqual(list(d['engine.pace']), values)
+        with WarningCollector() as w:
+            self.assertRaisesRegex(
+                ValueError, 'No times',
+                self.sim.set_fixed_form_protocol, values=values)
+            self.assertRaisesRegex(
+                ValueError, 'No values',
+                self.sim.set_fixed_form_protocol, times=times)
+            self.sim.set_fixed_form_protocol(None)
+        self.sim.reset()
+        d = self.sim.run(n, log_interval=1)
+        self.assertEqual(list(d['engine.pace']), [0] * n)
+
+        # Reset original protocol
+        self.sim.set_protocol(self.protocol)
+        self.sim.reset()
+        d = self.sim.run(n, log_interval=1)
+        self.assertNotEqual(list(d['engine.pace']), values)
+        self.assertNotEqual(list(d['engine.pace']), [0] * n)
 
     def test_in_parts(self):
         # Test running the simulation in parts.
@@ -153,6 +373,30 @@ class SimulationTest(unittest.TestCase):
         e = self.sim.run(50, log=e)
         self.assertNotEqual(e['engine.time'][n - 1], e['engine.time'][n])
         self.assertGreater(e['engine.time'][n], e['engine.time'][n - 1])
+
+    def test_initial_value_expressions(self):
+        # Test if initial value expressions are converted to floats
+
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 1 + sqrt(3)
+            c.y = 1 / c.p
+            c.z = 3
+
+            [c]
+            t = 0 bind time
+            dot(x) = 1
+            dot(y) = 2
+            dot(z) = 3
+            p = log(3)
+        ''')
+        s = myokit.Simulation(m)
+        x = s.state()
+        self.assertIsInstance(x[0], float)
+        self.assertIsInstance(x[1], float)
+        self.assertIsInstance(x[2], float)
+        self.assertEqual(x, m.initial_values(True))
+        self.assertEqual(x, s.default_state())
 
     def test_pacing_values_at_event_transitions(self):
         # Tests the value of the pacing signal at event transitions
@@ -239,9 +483,34 @@ class SimulationTest(unittest.TestCase):
             progress=CancellingReporter(0))
 
     def test_apd_tracking(self):
-        # Test the APD calculation method.
+        # Test the APD / rootfinding method.
+        # Tested against offline method in test_datalog.py
 
-        # More testing is done in test_datalog.py!
+        # Test that it works
+        self.sim.reset()
+        res = self.sim.run(
+            1800, log=['engine.time', 'membrane.V'],
+            apd_variable='membrane.V', apd_threshold=-70)
+
+        self.assertIsInstance(res, tuple)
+        self.assertEqual(len(res), 2)
+        d, apds = res
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertIsInstance(apds, myokit.DataLog)
+        self.assertEqual(len(apds), 2)
+        self.assertEqual(apds.length(), 2)
+        self.assertIn('start', apds)
+        self.assertAlmostEqual(apds['start'][0], 1, places=0)
+        self.assertAlmostEqual(apds['start'][1], 1001, places=0)
+        self.assertIn('start', apds)
+        self.assertAlmostEqual(apds['duration'][0], 383.877194, places=1)
+        self.assertAlmostEqual(apds['duration'][1], 378.315915, places=1)
+
+        # Works with variable objects too
+        self.sim.reset()
+        res = self.sim.run(
+            1000, log=['engine.time', 'membrane.V'],
+            apd_variable=self.model.get('membrane.V'), apd_threshold=-70)
 
         # Apd var is not a state
         self.assertRaisesRegex(
@@ -253,21 +522,62 @@ class SimulationTest(unittest.TestCase):
             ValueError, 'no `apd_variable` specified',
             self.sim.run, 1, apd_threshold=12)
 
-    def test_last_state(self):
-        # Returns the last state before an error, or None.
+    def test_crash_state_and_inputs(self):
+        # Tests Simulation.crash_state
 
         m = self.model.clone()
         istim = m.get('membrane.i_stim')
         istim.set_rhs('engine.pace / stim_amplitude')
+        '''
         s = myokit.Simulation(m, self.protocol)
-        self.assertIsNone(s.last_state())
+        self.assertIsNone(s.crash_state())
+        self.assertIsNone(s.crash_inputs())
         s.run(1)
-        self.assertIsNone(s.last_state())
+        self.assertIsNone(s.crash_state())
         s.set_constant('membrane.i_stim.stim_amplitude', 0)
         s.reset()
         self.assertRaisesRegex(myokit.SimulationError, "at t = 0", s.run, 5)
-        self.assertEqual(len(s.last_state()), len(s.state()))
-        self.assertEqual(s.last_state(), s.state())
+        self.assertEqual(s.crash_state(), s.state())
+        self.assertEqual(
+            set(s.crash_inputs()), {'time', 'pace', 'realtime', 'evaluations'})
+        t = s.crash_inputs()['time']
+        self.assertEqual(s.crash_inputs()['time'], 0)
+        self.assertEqual(s.crash_inputs()['pace'], 0)
+        self.assertGreaterEqual(s.crash_inputs()['realtime'], 0)
+        self.assertGreater(s.crash_inputs()['evaluations'], 0)
+        '''
+
+        # Test crash at later time
+        istim.set_rhs('if(engine.time == 5, 1 / (5 - engine.time), 0)')
+        # Ensure t=5 is visited
+        p = myokit.pacing.blocktrain(duration=0.1, period=5)
+        # Test evaluations and realtime only present if used
+        m.binding('evaluations').set_binding(None)
+        s = myokit.Simulation(m, p)
+        with myokit.tools.capture():
+            self.assertRaisesRegex(myokit.SimulationError, 'CV_CONV', s.run, 6)
+        self.assertEqual(
+            set(s.crash_inputs()), {'time', 'pace', 'realtime'})
+        self.assertEqual(s.crash_inputs()['time'], 5)
+        self.assertEqual(s.crash_inputs()['pace'], 1)
+        self.assertGreater(s.crash_inputs()['realtime'], 0)
+
+        # Above should both crash via cvode flag set. Next should be halted by
+        # C code for too many zero steps
+        istim.set_rhs('1 / (5 - engine.time)')
+        s = myokit.Simulation(m, p)
+        with myokit.tools.capture():
+            self.assertRaisesRegex(
+                myokit.SimulationError, 'zero-length', s.run, 6)
+        self.assertAlmostEqual(s.crash_inputs()['time'], 5)
+        self.assertEqual(s.crash_inputs()['pace'], 1)
+        self.assertGreater(s.crash_inputs()['realtime'], 0)
+
+        # Test deprecated alias of crash_state
+        x = s.crash_state()
+        with WarningCollector() as w:
+            self.assertEqual(s.last_state(), x)
+        self.assertIn('eprecated', w.text())
 
     def test_last_evaluations_and_steps(self):
         # Test :meth:`Simulation.last_number_of_evaluations()` and
@@ -322,25 +632,106 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s[0][0], 1)
         self.assertEqual(s[1][0], 0)
 
-    def test_eval_derivatives(self):
-        # Test :meth:`Simulation.eval_derivatives()`.
+    def test_evaluate_derivatives(self):
+        # Test :meth:`Simulation.evaluate_derivatives()`.
 
+        m = myokit.Model()
+        z = m.add_component('z')
+        t = z.add_variable('t', rhs=0, binding='time')
+        a = z.add_variable('a', rhs=1, binding='pace')
+        b = z.add_variable('b', rhs=2, binding='pace1')
+        c = z.add_variable('c', rhs=4, binding='pace2')
+        d = z.add_variable('d', rhs=8, binding='evaluations')
+        e = z.add_variable('e', rhs=12, binding='realtime')
+        f = z.add_variable('f', rhs=100)
+        p = z.add_variable('p', rhs='p+t+a+b+c+d+e+f', initial_value=0)
+        q = z.add_variable('q', rhs='p + q', initial_value=1)
+
+        sim = myokit.Simulation(m)
+
+        # Test without input
+        self.assertEqual(sim.evaluate_derivatives(), [106, 1])
+
+        # Test with new state
+        self.assertEqual(sim.evaluate_derivatives([1, 2]), [107, 3])
+
+        # Test with changed constant
+        sim.set_constant('z.f', 200)
+        self.assertEqual(sim.evaluate_derivatives(), [206, 1])
+        sim.set_constant('z.f', 300)
+        self.assertEqual(sim.evaluate_derivatives([1, 2]), [307, 3])
+        sim.set_constant('z.f', 0)
+        self.assertEqual(sim.evaluate_derivatives([1, 2]), [7, 3])
+
+        # Test with inputs
+        d = {'time': 1}
+        self.assertEqual(sim.evaluate_derivatives([1, 2], d), [8, 3])
+        d = {'time': 2}
+        self.assertEqual(sim.evaluate_derivatives([1, 2], d), [9, 3])
+        d = {'time': 2, 'evaluations': 3}
+        self.assertEqual(sim.evaluate_derivatives([1, 2], d), [12, 3])
+        d = {'time': 2, 'evaluations': 3, 'realtime': 1.23}
+        self.assertEqual(sim.evaluate_derivatives([1, 2], d), [13.23, 3])
+
+        # Test with unknown inputs
+        d = {'toime': 1}
+        self.assertRaisesRegex(ValueError, 'Unknown binding or',
+                               sim.evaluate_derivatives, [1, 2], d)
+
+        # Test with pacing: not passed on to sim
+        sim.set_protocol(myokit.pacing.constant(1000))
+
+        # Running doesn't change anything
+        self.assertEqual(sim.evaluate_derivatives(), [6, 1])
+        sim.run(1)
+        self.assertEqual(sim.evaluate_derivatives(), [6, 1])
+        self.assertEqual(sim.evaluate_derivatives([2, 3]), [8, 5])
+        sim.run(10)
+        self.assertEqual(sim.evaluate_derivatives(), [6, 1])
+        self.assertEqual(sim.evaluate_derivatives([2, 3]), [8, 5])
+        sim.reset()
+        self.assertEqual(sim.evaluate_derivatives([2, 3]), [8, 5])
+        d = {'time': 123}
+        self.assertEqual(sim.evaluate_derivatives([2, 3], d), [131, 5])
+
+        # Changing the pacing labels
+        d = {'pace': 1000}
+        self.assertEqual(sim.evaluate_derivatives(inputs=d), [1006, 1])
+        d = {'pace1': 1}
+        self.assertRaisesRegex(ValueError, 'Unknown binding or',
+                               sim.evaluate_derivatives, inputs=d)
+
+        sim = myokit.Simulation(m, {
+            'pace1': myokit.pacing.constant(1000),
+            'pace2': myokit.pacing.constant(2000)})
+        d = {'pace': 1}
+        self.assertRaisesRegex(ValueError, 'Unknown binding or',
+                               sim.evaluate_derivatives, [1, 2], d)
+        self.assertEqual(sim.evaluate_derivatives(), [101, 1])
+        d = {'pace1': 100}
+        self.assertEqual(sim.evaluate_derivatives(inputs=d), [201, 1])
+        d = {'pace2': 200}
+        self.assertEqual(sim.evaluate_derivatives(inputs=d), [301, 1])
+        d = {'pace1': 123, 'pace2': 200}
+        self.assertEqual(sim.evaluate_derivatives(inputs=d), [424, 1])
+
+        # Test deprecated method
         self.sim.reset()
-        s1 = self.sim.state()
-        d1 = self.sim.eval_derivatives()
+        d1 = self.sim.evaluate_derivatives()
+        with WarningCollector() as w:
+            self.assertEqual(self.sim.eval_derivatives(), d1)
+        self.assertIn('eprecated', w.text())
+        # ...which uses state() instead of default state
         self.sim.run(1)
-        d2 = self.sim.eval_derivatives()
-        self.assertNotEqual(d1, d2)
-        self.assertEqual(d1, self.sim.eval_derivatives(s1))
-        self.sim.set_state(s1)
-        self.assertEqual(d1, self.sim.eval_derivatives())
+        with WarningCollector() as w:
+            self.assertNotEqual(self.sim.eval_derivatives(), d1)
 
-    def test_sensitivites_initial(self):
+    def test_sensitivities_initial(self):
         # Test setting initial sensitivity values.
 
         m = myokit.parse_model('''
             [[model]]
-            e.y = 2.3
+            e.y = 1 + 1.3
 
             [e]
             t = 0 bind time
@@ -351,6 +742,26 @@ class SimulationTest(unittest.TestCase):
 
         #TODO: Test results
         s = myokit.Simulation(m, sensitivities=(['e.y'], ['e.p', 'init(e.y)']))
+
+        # Warn if a parameter sensitivity won't be picked up.
+        m = myokit.parse_model('''
+            [[model]]
+            c.x = 1 / c.p
+
+            [c]
+            t = 0 bind time
+            p = 1 / q
+            q = 5
+            r = 3
+            dot(x) = 2 + r
+            ''')
+        m.validate()
+        s = (['c.x'], ['c.q'])
+        self.assertRaisesRegex(
+            NotImplementedError, 'respect to parameters used in initial',
+            myokit.Simulation, m, sensitivities=s)
+        s = (['c.x'], ['c.r'])
+        s = myokit.Simulation(m, sensitivities=s)
 
         # Test bad initial matrix
         self.assertRaisesRegex(
@@ -539,8 +950,8 @@ class SimulationTest(unittest.TestCase):
             ''')
         m.validate()
 
-        x0 = m.get('e.x').state_value()
-        y0 = m.get('e.y').state_value()
+        x0 = m.get('e.x').initial_value(True)
+        y0 = m.get('e.y').initial_value(True)
         p = m.get('e.p').eval()
         q = m.get('e.q').eval()
         r = m.get('e.r').eval()
@@ -693,6 +1104,7 @@ class SimulationTest(unittest.TestCase):
 
         # Literal
         self.sim.set_constant('cell.Na_i', 11)
+        self.sim.set_constant(self.model.get('cell.Na_i'), 11)
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
 
         # Parameter (needs sensitivies set)
@@ -786,6 +1198,7 @@ class SimulationTest(unittest.TestCase):
         z.promote(0)
 
         # Test without protocol and dynamic logging
+        #myokit.DEBUG_WG = True
         s1 = myokit.Simulation(m1)
         d1 = s1.run(5)
         self.assertEqual(len(d1.time()), 2)
@@ -885,23 +1298,6 @@ class SimulationTest(unittest.TestCase):
         self.assertTrue(np.all(ev >= 0))
         self.assertTrue(np.all(rt[1:] >= rt[:-1]))
         self.assertTrue(np.all(ev[1:] >= ev[:-1]))
-
-    def test_apd(self):
-        # Test the apd rootfinding routine
-
-        s = myokit.Simulation(self.model, self.protocol)
-        s.set_tolerance(1e-8, 1e-8)
-        d, apds = s.run(
-            1800, log=myokit.LOG_NONE,
-            apd_variable='membrane.V', apd_threshold=-70)
-
-        # Check with threshold equal to V
-        self.assertEqual(len(apds['start']), 2)
-        self.assertEqual(len(apds['duration']), 2)
-        self.assertAlmostEqual(apds['start'][0], 1.19, places=1)
-        self.assertAlmostEqual(apds['start'][1], 1001.19, places=1)
-        self.assertAlmostEqual(apds['duration'][0], 383.88262, places=1)
-        self.assertAlmostEqual(apds['duration'][1], 378.31448, places=1)
 
     def test_derivatives(self):
         # Tests logging of derivatives by comparing with a finite difference

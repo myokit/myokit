@@ -5,9 +5,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 import collections
+
 import myokit
 
 
@@ -35,7 +34,7 @@ def _deep_deps(variable):
             if v not in distances:
                 distances[v] = dist
                 queue.append(v)
-    del(distances[variable])
+    del distances[variable]
 
     return distances
 
@@ -66,7 +65,7 @@ def _distance_to_bound(variable):
                 if v.is_constant() and v not in distances:
                     distances[v] = dist
                     queue.append(v)
-        del(distances[variable])
+        del distances[variable]
     finally:
         # Reinstate binding
         variable.set_binding(binding)
@@ -154,7 +153,7 @@ def add_embedded_protocol(model, protocol, add_oxmeta_annotations=True):
     # Don't add a stimulus if there's already periodic stimulus variables about
     if v_offset is not None or v_period is not None or v_duration is not None:
         return False
-    del(v_offset, v_period, v_duration)
+    del v_offset, v_period, v_duration
 
     # Determine variable to update: pace or i_stim
     if v_current is None or (v_amplitude is None and e_amplitude is None):
@@ -328,7 +327,7 @@ def membrane_currents(model):
         e_currents = i_ion.rhs()
     else:
         e_currents = vm.rhs()
-    del(i_ion)
+    del i_ion
 
     # Assume that e_currents is an expression such as:
     #  INa + ICaL + IKr + ...
@@ -392,7 +391,7 @@ def membrane_potential(model):
     # Common units for the membrane potential
     common_units = [myokit.units.V]
 
-    # Non-dimensionalised (e.g. Mitchell-Schaeffer) use [1]
+    # Non-dimensionalized (e.g. Mitchell-Schaeffer) use [1]
     # But this causes too many false positives
     # common_units.append(myokit.units.dimensionless)
 
@@ -581,7 +580,7 @@ def stimulus_current(model):
         myokit.units.A / myokit.units.m**2,
     ]
 
-    # Non-dimensionalised (e.g. Mitchell-Schaeffer) use [mS/uF]
+    # Non-dimensionalized (e.g. Mitchell-Schaeffer) use [mS/uF]
     # But this causes too many false positives
     # common_units.append(myokit.units.S / myokit.units.F)
 
@@ -617,7 +616,7 @@ def stimulus_current(model):
             else:
                 incompatible.append(v)
     for v in incompatible:
-        del(candidates[v])
+        del candidates[v]
 
     # Add points for name (2 points if name matches common name)
     for v in candidates:
@@ -790,7 +789,7 @@ def stimulus_current_info(model):
 
     # Search remaining candidates for amplitude
     for v in used:
-        del(candidates[v])
+        del candidates[v]
 
     # Filter out incompatible units, award points for compatible ones
     rejected = set()
@@ -802,7 +801,7 @@ def stimulus_current_info(model):
             else:
                 rejected.add(v)
     for v in rejected:
-        del(candidates[v])
+        del candidates[v]
 
     # Award points for names
     for v in candidates:

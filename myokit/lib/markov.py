@@ -4,16 +4,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import collections
+
 import numpy as np
 
 import myokit
 
 
-class LinearModel(object):
+class LinearModel:
     """
     Represents a linear Markov model of an ion channel extracted from a
     :class:`myokit.Model`.
@@ -37,7 +35,8 @@ class LinearModel(object):
     The model variables to treat as parameter are specified by the user when
     the model is created. Any other variables, for example state variables such
     as intercellular calcium or constants such as temperature, are fixed when
-    the markov model is created and can no longer be changed.
+    the markov model is created and can no longer be changed. Initial values
+    written as expressions are evaluated when the model is made.
 
     To create a :class:`Markov`, pass in a :class:`myokit.Model` and select a
     list of states. All other states will be fixed at their current value and
@@ -119,12 +118,12 @@ class LinearModel(object):
     # for its default values or newly passed in values, but it never updates
     # its internal state in any way!
     def __init__(self, model, states, parameters=None, current=None, vm=None):
-        super(LinearModel, self).__init__()
+        super().__init__()
 
         # Get a clone of the model, with all markov models written in full ODE
         # form.
         self._model = convert_markov_models_to_full_ode_form(model)
-        del(model)
+        del model
 
         #
         # Check input
@@ -146,7 +145,7 @@ class LinearModel(object):
                 raise LinearModelError(
                     'State <' + state.qname() + '> was added twice.')
             self._states.append(state)
-        del(states)
+        del states
 
         # Check and collect parameter variables
         unique = set()
@@ -169,8 +168,8 @@ class LinearModel(object):
                     'Parameter listed twice: <' + str(parameter) + '>.')
             unique.add(parameter)
             self._parameters.append(parameter)
-        del(unique)
-        del(parameters)
+        del unique
+        del parameters
 
         # Check current variable
         if current is not None:
@@ -180,7 +179,7 @@ class LinearModel(object):
             if current.is_state():
                 raise LinearModelError('Current variable can not be a state.')
         self._current = current
-        del(current)
+        del current
 
         # Check membrane potential variable
         if vm is None:
@@ -203,22 +202,24 @@ class LinearModel(object):
         if self._membrane_potential == self._current:
             raise LinearModelError(
                 'The membrane potential should not be the current variable.')
-        del(vm)
+        del vm
+
+        # Get values of all states
+        # Note: Do this _before_ changing the model!
+        s = self._model.initial_values(True)
+        self._default_state = np.array(
+            [v.initial_value(True) for v in self._states])
 
         #
         # Demote unnecessary states, remove bindings and validate model.
         #
-        # Get values of all states
-        # Note: Do this _before_ changing the model!
-        self._default_state = np.array([v.state_value() for v in self._states])
 
         # Freeze remaining, non-markov-model states
-        s = self._model.state()   # Get state values before changing anything!
         for k, state in enumerate(self._model.states()):
             if state not in self._states:
                 state.demote()
                 state.set_rhs(s[k])
-        del(s)
+        del s
 
         # Unbind everything except time
         for label, var in self._model.bindings():
@@ -359,7 +360,7 @@ class LinearModel(object):
             for j in range(len(A)):
                 if (i, j) in T:
                     R.append((i, j, A[j][i]))   # A is mirrored
-        del(T)
+        del T
 
         #
         # Create function to create parametrisable matrices
@@ -386,7 +387,7 @@ class LinearModel(object):
         globl = {'numpy': np, 'n': n}
         local = {}
 
-        myokit._exec(code, globl, local)
+        exec(code, globl, local)
         self._matrix_function = local['matrix_function']
 
         #
@@ -405,7 +406,7 @@ class LinearModel(object):
         code = head + '\n' + '\n'.join(['    ' + line for line in body])
         globl = {'numpy': np}
         local = {}
-        myokit._exec(code, globl, local)
+        exec(code, globl, local)
         self._rate_list_function = local['rate_list_function']
 
     def current(self):
@@ -460,8 +461,8 @@ class LinearModel(object):
             # Get state variables
             states = [x for x in component.variables(state=True)]
 
-            # Sort by state indice
-            states.sort(key=lambda x: x.indice())
+            # Sort by state index
+            states.sort(key=lambda x: x.index())
 
         else:
 
@@ -632,7 +633,7 @@ class LinearModel(object):
         return x
 
 
-class AnalyticalSimulation(object):
+class AnalyticalSimulation:
     """
     Analytically evaluates a :class:`LinearModel`'s state over a given set of
     points in time.
@@ -686,7 +687,7 @@ class AnalyticalSimulation(object):
 
     """
     def __init__(self, model, protocol=None):
-        super(AnalyticalSimulation, self).__init__()
+        super().__init__()
         # Check model
         if not isinstance(model, LinearModel):
             raise ValueError('First parameter must be a `LinearModel`.')
@@ -974,6 +975,10 @@ class AnalyticalSimulation(object):
         """
         self._parameters[self._parameter_map[variable]] = float(value)
 
+        # Invalidate cache
+        self._cached_matrices = {}
+        self._cached_solution = {}
+
     def set_default_state(self, state):
         """
         Changes this simulation's default state.
@@ -1072,7 +1077,7 @@ class AnalyticalSimulation(object):
         y0 = PI.dot(self._state.reshape((n, 1)))
 
         # Reshape times array
-        times = np.array(times, copy=False).reshape((len(times),))
+        times = np.asarray(times).reshape((len(times),))
 
         # Calculate state
         x = P.dot(y0 * np.exp(times * E))
@@ -1090,7 +1095,7 @@ class AnalyticalSimulation(object):
         return list(self._state)
 
 
-class DiscreteSimulation(object):
+class DiscreteSimulation:
     """
     Performs stochastic simulations of a :class:`LinearModel`'s behavior for a
     finite number of channels.
@@ -1218,14 +1223,14 @@ class DiscreteSimulation(object):
 
         Returns a discretized state ``y`` where ``sum(y) = nchannels``.
         """
-        x = np.array(x, copy=False, dtype=float)
+        x = np.asarray(x, dtype=float)
         if (np.abs(1 - np.sum(x))) > 1e-6:
             raise ValueError(
                 'The sum of fractions in the state to be discretized must'
                 ' equal 1.')
         y = np.round(x * self._nchannels)
         # To make sure it always sums to 1, correct the value found at the
-        # indice with the biggest rounding error.
+        # index with the biggest rounding error.
         i = np.argmax(np.abs(x - y))
         y[i] = 0
         y[i] = self._nchannels - np.sum(y)
@@ -1491,6 +1496,8 @@ class DiscreteSimulation(object):
         Updates a single parameter to a new value.
         """
         self._parameters[self._parameter_map[variable]] = float(value)
+        self._cached_rates = None
+        self._cached_matrix = None
 
     def set_default_state(self, state):
         """
@@ -1560,7 +1567,7 @@ class DiscreteSimulation(object):
         return list(self._state)
 
 
-class MarkovModel(object):
+class MarkovModel:
     """
     **Deprecated**: This class has been replaced by the classes
     :class:`LinearModel` and :class:`AnalyticalSimulation`. Please update your
@@ -1701,7 +1708,7 @@ def _split_factor(term, variables):
                 'Non-linear function of ' + str(name) + ' found in '
                 + str(term) + '.')
 
-    # Finalise multiplier
+    # Finalize multiplier
     if m is None:
         m = myokit.Number(1)
     if not positive:
@@ -1815,7 +1822,7 @@ def find_markov_models(model):
                     break
             if i_one is None:
                 continue
-            del(terms[i_one])
+            del terms[i_one]
 
             # Remaining terms must be linear combination of the states in
             # group...
@@ -1835,7 +1842,7 @@ def find_markov_models(model):
 
             # Passed all tests!
             extra.add(candidate)
-        del(candidates)
+        del candidates
 
         # At this point `extra` should be empty or a single variable, if not,
         # it's not a (normal) Markov model

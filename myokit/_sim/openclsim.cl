@@ -152,8 +152,8 @@ if precision == myokit.DOUBLE_PRECISION:
 
 <?
 if diffusion:
-    print('/* Indice of membrane potential in state vector */')
-    print('#define i_vm ' + str(model.label('membrane_potential').indice()))
+    print('/* Index of membrane potential in state vector */')
+    print('#define i_vm ' + str(model.label('membrane_potential').index()))
 
 if precision == myokit.SINGLE_PRECISION:
     print('/* Using single precision floats */')
@@ -188,7 +188,7 @@ for group in equations.values():
 print('')
 print('/* Aliases of state variables. */')
 for var in model.states():
-    print('#define ' + v(var) + ' state[of1 + ' + str(var.indice()) + ']')
+    print('#define ' + v(var) + ' state[of1 + ' + str(var.index()) + ']')
 
 print('')
 print('/* Aliases of logged intermediary variables. */')

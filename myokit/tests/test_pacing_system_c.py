@@ -5,22 +5,13 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
 import unittest
 import numpy as np
 
 import myokit
 
-from ansic_event_based_pacing import AnsicEventBasedPacing
-from ansic_fixed_form_pacing import AnsicFixedFormPacing
-
-# Unit testing in Python 2 and 3
-try:
-    unittest.TestCase.assertRaisesRegex
-except AttributeError:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+from myokit.tests.ansic_event_based_pacing import AnsicEventBasedPacing
+from myokit.tests.ansic_time_series_pacing import AnsicTimeSeriesPacing
 
 
 class EventBasedPacingAnsicTest(unittest.TestCase):
@@ -105,12 +96,30 @@ class EventBasedPacingAnsicTest(unittest.TestCase):
         s = myokit.Simulation(m, p)
         self.assertRaises(myokit.SimultaneousProtocolEventError, s.run, 40)
 
+    def test_negative_time(self):
+        # Test starting from a negative time
 
-class FixedFormPacingAnsicTest(unittest.TestCase):
+        p = myokit.pacing.blocktrain(level=1, duration=1, period=2)
+        s = AnsicEventBasedPacing(p, initial_time=-100)
+        self.assertEqual(s.time(), -100)
+        self.assertEqual(s.next_time(), 0)
+        self.assertEqual(s.pace(), 0)
+
+        p = myokit.pacing.blocktrain(level=1, duration=1, period=2, offset=1)
+        s = AnsicEventBasedPacing(p, initial_time=-100)
+        self.assertEqual(s.time(), -100)
+        self.assertEqual(s.next_time(), 1)
+        self.assertEqual(s.pace(), 0)
+        s.advance(s.next_time())
+        self.assertEqual(s.time(), 1)
+        self.assertEqual(s.pace(), 1)
+
+
+class TimeSeriesPacingAnsicTest(unittest.TestCase):
     """
-    Test the Ansi-C fixed-form pacing system (aka point-list, aka data-clamp).
+    Test the Ansi-C time-series pacing system (aka point-list, aka data-clamp).
     """
-    def test_fixed_form_pacing_ansic(self):
+    def test_time_series_pacing_ansic(self):
         # Tests if the basics work
 
         if False:
@@ -131,7 +140,7 @@ class FixedFormPacingAnsicTest(unittest.TestCase):
             t3 = t[:-1] + 0.5 * (t[1:] - t[:-1])
             t4 = t[:-1] + 0.75 * (t[1:] - t[:-1])
             t2 = np.concatenate((t2, t3, t4))
-            del(t3, t4)
+            del t3, t4
             # Get the pacing value at the points, measure how long it takes
             pacing = AnsicFixedFormPacing(list(t), list(v))
             b = myokit.tools.Benchmarker()
@@ -144,41 +153,38 @@ class FixedFormPacingAnsicTest(unittest.TestCase):
             import sys
             sys.exit(1)
 
-        # Test input checking
-        times = 1
-        values = [1, 2]
-        self.assertRaises(Exception, AnsicFixedFormPacing)
-        self.assertRaises(Exception, AnsicFixedFormPacing, 1)
-        self.assertRaises(Exception, AnsicFixedFormPacing, 1, 2)
-        self.assertRaises(Exception, AnsicFixedFormPacing, [1], [2])
-        self.assertRaises(
-            Exception, AnsicFixedFormPacing, [1, 2], [2])
-        self.assertRaises(
-            Exception, AnsicFixedFormPacing, [2, 1], [2, 2])
-        AnsicFixedFormPacing([1, 2], [1, 2])
-
         # Test with small lists
-        values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         times = [0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 5, 7]
         values = list(range(len(times)))
-        pacing = AnsicFixedFormPacing(times, values)
+        pacing = AnsicTimeSeriesPacing(
+            myokit.TimeSeriesProtocol(times, values))
 
-        def test(value, index):
-            self.assertEqual(pacing.pace(value), index)
+        self.assertEqual(pacing.pace(-1), 0)
+        self.assertEqual(pacing.pace(0), 1)
+        self.assertEqual(pacing.pace(1), 2)
+        self.assertEqual(pacing.pace(2), 5)
+        self.assertEqual(pacing.pace(3), 8)
+        self.assertEqual(pacing.pace(4), 9)
+        self.assertEqual(pacing.pace(5), 10)
+        self.assertEqual(pacing.pace(7), 11)
+        self.assertEqual(pacing.pace(8), 11)
+        self.assertEqual(pacing.pace(1.5), 4.5)
+        self.assertEqual(pacing.pace(1.75), 4.75)
+        self.assertEqual(pacing.pace(6), 10.5)
+        self.assertEqual(pacing.pace(5.5), 10.25)
 
-        test(-1, 0)
-        test(0, 1)
-        test(1, 2)
-        test(2, 5)
-        test(3, 8)
-        test(4, 9)
-        test(5, 10)
-        test(7, 11)
-        test(8, 11)
-        test(1.5, 4.5)
-        test(1.75, 4.75)
-        test(6, 10.5)
-        test(5.5, 10.25)
+        # Test not starting at 0
+        times = [1, 2]
+        values = [10, 20]
+        pacing = AnsicTimeSeriesPacing(
+            myokit.TimeSeriesProtocol(times, values))
+
+        self.assertEqual(pacing.pace(-1), 10)
+        self.assertEqual(pacing.pace(0), 10)
+        self.assertEqual(pacing.pace(1), 10)
+        self.assertEqual(pacing.pace(2), 20)
+        self.assertEqual(pacing.pace(3), 20)
+        self.assertEqual(pacing.pace(1.5), 15)
 
 
 if __name__ == '__main__':

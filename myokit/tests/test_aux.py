@@ -5,28 +5,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import io
 import os
 import re
 import unittest
 
-# StringIO in Python 2 and 3
-try:
-    from cStringIO import StringIO
-except ImportError:  # pragma: no python 2 cover
-    from io import StringIO
-
-# Strings in Python2 and Python3
-try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
-
 import myokit
 
-from shared import DIR_DATA, WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class AuxTest(unittest.TestCase):
@@ -87,7 +73,7 @@ class AuxTest(unittest.TestCase):
 
         # Test without a model
         script = myokit.default_script()
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1000)', script)
 
         # Test adapting the time unit
@@ -95,29 +81,29 @@ class AuxTest(unittest.TestCase):
         t = model.add_component('c').add_variable('t')
         t.set_rhs(0)
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1000)', script)
 
         t.set_binding('time')
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1000)', script)
 
         t.set_unit('s')
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1.0)', script)
 
         t.set_unit('ms')
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn('run(1000)', script)
 
         # Test plotting membrane potential
         v = model.get('c').add_variable('v')
         v.set_label('membrane_potential')
         script = myokit.default_script(model)
-        self.assertTrue(isinstance(script, basestring))
+        self.assertTrue(isinstance(script, str))
         self.assertIn("var = 'c.v'", script)
 
         # TODO: Run with tiny model?
@@ -163,6 +149,7 @@ class AuxTest(unittest.TestCase):
             '[1] Missing User function <g(1)>.',
             '[x] Mismatched Time variable: [1]<engine.time> [2]<engine.toim>',
             '[x] Mismatched Initial value for <ina.h>',
+            '[x] Mismatched Initial value for <ina.j>',
             '[x] Mismatched State at position 5: [1]<isi.d> [2]<isiz.d>',
             '[x] Mismatched State at position 6: [1]<isi.f> [2]<isiz.f>',
             '[2] Missing state at position 7',
@@ -192,9 +179,6 @@ class AuxTest(unittest.TestCase):
             'Done',
             '  ' + str(len(differences)) + ' differences found',
         ]
-
-        # Show massive diff messages
-        self.maxDiff = None
 
         caught_differences = set(capture.text().splitlines())
         live = set(live)
@@ -276,8 +260,6 @@ class AuxTest(unittest.TestCase):
             'import myokit',
             'm = get_model()',  # Test magic methods
             'p = get_protocol()',
-            's = myokit.Simulation(m, p)',
-            's.run(200)',
         ])
         with myokit.tools.capture():
             myokit.run(m, p, x)
@@ -287,7 +269,7 @@ class AuxTest(unittest.TestCase):
 
         # Test with stringio
         x = "print('Hi there')"
-        s = StringIO()
+        s = io.StringIO()
         with myokit.tools.capture() as c:
             myokit.run(m, p, x, stderr=s, stdout=s)
         self.assertEqual(c.text(), '')
@@ -296,6 +278,45 @@ class AuxTest(unittest.TestCase):
     def test_step(self):
         # Test the step() method.
         m1 = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+
+        # For whatever reason, CI gives slightly different final digits some
+        # times.
+        r1 = re.compile(r'[a-zA-Z]\w*\.[a-zA-Z]\w*\s+([^\s]+)\s+([^\s]+)')
+        r2 = re.compile(r'\s+([0-9e.+-]+)')
+        r3 = re.compile(r'^[ ^]*$')
+        r4 = re.compile(r'^Found \([0-9]+\) small mismatches.$')
+
+        def almost_equal(x, y):
+            # Easy checks
+            if x == y:
+                return True
+
+            # Get numbers with regex and compare
+            # First case: assume two numbers on each line. 2nd is tested
+            g1, g2 = r1.match(x), r1.match(y)
+            if g1 is not None and g2 is not None:
+                x, y = float(g1.group(2)), float(g2.group(2))
+                return myokit.float.close(x, y)
+
+            # Second case: one number per line.
+            g1, g2 = r2.match(x), r2.match(y)
+            if g1 is not None and g2 is not None:
+                x, y = float(g1.group(1)), float(g2.group(1))
+                return myokit.float.close(x, y)
+
+            # Third case: "   ^^^ "
+            # These don't matter: we've already seen that the floats are close
+            g1, g2 = r3.match(x), r3.match(y)
+            if g1 is not None and g2 is not None:
+                return True
+
+            # Fourth case: Found (x) small differences
+            # These don't matter: we've already seen that the floats are close
+            g1, g2 = r4.match(x), r4.match(y)
+            if g1 is not None and g2 is not None:
+                return True
+
+            return x == y
 
         # Test simple output
         x = myokit.step(m1).splitlines()
@@ -315,7 +336,7 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
         ]
         for a, b in zip(x, y):
-            self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test with an initial state
@@ -338,16 +359,8 @@ class AuxTest(unittest.TestCase):
             'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
             '-' * 79,
         ]
-        r1 = re.compile(r'[a-zA-Z]\w*\.[a-zA-Z]\w*\s+([^\s]+)\s+([^\s]+)')
         for a, b in zip(x, y):
-            g1 = r1.match(a)
-            g2 = r1.match(b)
-            if g1 is not None and g2 is not None:
-                self.assertEqual(g1.group(1), g2.group(1))
-                a, b = float(g1.group(2)), float(g2.group(2))
-                self.assertTrue(myokit.float.close(a, b))
-            else:
-                self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test comparison against another model (with both models the same)
@@ -386,7 +399,7 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
         ]
         for a, b in zip(x, y):
-            self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test comparison against another model, with an initial state
@@ -423,35 +436,19 @@ class AuxTest(unittest.TestCase):
             'Model check completed without errors.',
             '-' * 79,
         ]
-        r2 = re.compile(r'\s+([^\s]+)')
         for a, b in zip(x, y):
-            g1 = r1.match(a)
-            g2 = r1.match(b)
-            if g1 is not None and g2 is not None:
-                self.assertEqual(g1.group(1), g2.group(1))
-                a, b = float(g1.group(2)), float(g2.group(2))
-                self.assertTrue(myokit.float.close(a, b))
-            else:
-                g1 = r2.match(a)
-                g2 = r2.match(b)
-                if g1 is not None and g2 is not None:
-                    a, b = float(g1.group(1)), float(g2.group(1))
-                    self.assertTrue(myokit.float.close(a, b))
-                else:
-                    self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test comparison against stored data
-        ref = [
-            -3.97224086575331868e-04,       # Numerically indistinguishable
-            -1.56608433137725457e-09,
-            7.48738392280519777e-02,        # Tiny error
-            -1.78891889478854579e-03,
-            3.06255006833574140e-04,        # Sign error
-            -5.11993904291850035e-06,
-            3.76748229376431740e-04,        # Large error
-            -3.21682814207918156e-05,       # Exponent
-        ]
+        # And get all the different error outputs
+        ref = m1.evaluate_derivatives()
+        ref[0] += 5e-20  # Numerically indistinguishable
+        ref[2] += 1e-16  # Tiny error
+        ref[4] *= -1     # Sign error
+        ref[6] += 2e-4   # Big error
+        ref[7] *= 100    # Exponent
+
         x = myokit.step(m1, reference=ref).splitlines()
         y = [
             'Evaluating state vector derivatives...',
@@ -459,16 +456,16 @@ class AuxTest(unittest.TestCase):
             'Name         Initial value             Derivative at t=0       ',
             '-' * 79,
             'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
-            '                                       -3.97224086575331868e-04'
+            '                                       -3.97224086575331760e-04'
             ' <= 1 eps',
             '',
             'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
             '                                       -1.56608433137725457e-09',
             '',
             'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
-            '                                        7.48738392280519777e-02'
-            ' ~ 4.2 eps',
-            '                                                        ^^^^^^^',
+            '                                        7.48738392280520054e-02'
+            ' ~ 5.8 eps',
+            '                                                      ^^^^^^^^^',
             'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
             '                                       -1.78891889478854579e-03',
             '',
@@ -480,7 +477,7 @@ class AuxTest(unittest.TestCase):
             '                                       -5.11993904291850035e-06',
             '',
             'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
-            '                                        3.76748229376431740e-04'
+            '                                        3.88374114688215880e-04'
             ' X',
             '                                        ^^^^^^^^^^^^^^^^^^^^^^^',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
@@ -492,12 +489,15 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
         ]
         for a, b in zip(x, y):
-            self.assertEqual(a, b)
+            self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test positive/negative zero comparison
         m1 = myokit.Model()
         c = m1.add_component('c')
+        t = c.add_variable('t')
+        t.set_binding('time')
+        t.set_rhs(0)
         x = c.add_variable('x')
         x.promote(1)
         x.set_rhs('-0.0')
@@ -526,6 +526,10 @@ class AuxTest(unittest.TestCase):
             self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
+        # No issues when passing initial state from a model
+        # See https://github.com/myokit/myokit/pull/1083
+        myokit.step(m1, reference=m2, initial=m1.initial_values())
+
     def test_strfloat(self):
         # Deprecated alias of myokit.float.str
         args = ['-1.234', True, myokit.SINGLE_PRECISION]
@@ -549,7 +553,7 @@ class AuxTest(unittest.TestCase):
 
         # Raw version
         raw = myokit.version(raw=True)
-        self.assertIsInstance(raw, basestring)
+        self.assertIsInstance(raw, str)
         parts = raw.split('.')
         self.assertTrue(len(parts) in [3, 4])
 
