@@ -1,0 +1,69 @@
+[[model]]
+ina.m = 0
+ina.h = 1
+ina.j = 1
+
+[engine]
+time = 0 bind time
+
+[membrane]
+V = -80 bind pace
+
+[ina]
+use membrane.V
+ENa = 50 [mV]
+gNa = 14.838 [mS/uF]
+INa = gNa * m ^ 3 * h * j * (V - ENa)
+    in [A/F]
+dot(m) = (inf - m) / tau
+    inf = 1 / (1 + exp((-56.86 - V) / 9.03)) ^ 2
+    tau = alpha * beta
+    alpha = 1 / (1 + exp((-60 - V) / 5))
+    beta = 0.1 / (1 + exp((V + 35) / 5)) + 0.1 / (1 + exp((V - 50) / 200))
+dot(h) = (inf - h) / tau
+    inf = 1 / (1 + exp((V + 71.55) / 7.43)) ^ 2
+    tau = 1 / (alpha + beta)
+    alpha = if(V < -40, 0.057 * exp(-(V + 80) / 6.8), 0)
+    beta = if(V < -40,
+        2.7 * exp(0.079 * V) + 310000 * exp(0.3485 * V),
+        0.77 / (0.13 * (1 + exp((V + 10.66) / -11.1))))
+dot(j) = (inf - j) / tau
+    inf = 1 / (1 + exp((V + 71.55) / 7.43)) ^ 2
+    tau = 1 / (alpha + beta)
+    alpha = if(V < -40,
+        (-25428 * exp(0.2444 * V) - 6.948e-6 * exp(-0.04391 * V)) * (V + 37.78) / 1 / (1 + exp(0.311 * (V + 79.23))),
+        0)
+    beta = if(V < -40,
+        0.02424 * exp(-0.01052 * V) / (1 + exp(-0.1378 * (V + 40.14))),
+        0.6 * exp(0.057 * V) / (1 + exp(-0.1 * (V + 32))))
+
+[[script]]
+import myokit
+import matplotlib.pyplot as pl
+
+m = get_model()
+
+p = myokit.Protocol()
+p.add_step(-120, 1000)
+p.add_step(-20, 5)
+
+s = myokit.Simulation(m, p)
+
+d = s.run(p.characteristic_time())
+
+pl.figure()
+pl.plot(d.time(), d['ina.INa'])
+pl.show()
+
+
+d.trim_left(500, adjust=True)
+
+#BUG!
+# Presumably there's no data point after 500 and before 1000
+# Even if cutting this way were fine, the adjustment is wrong
+
+
+pl.figure()
+pl.plot(d.time(), d['ina.INa'])
+pl.show()
+
