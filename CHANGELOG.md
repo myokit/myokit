@@ -2,15 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.37.4] - 2025-06-30
 - Added
   - [#1118](https://github.com/myokit/myokit/pull/1118) @kwabenantim Added a minimal `pyproject.toml` specifying the build system.
   - [#1120](https://github.com/myokit/myokit/pull/1120) Added "close" and "close all" menu items in the data log viewer.
   - [#1122](https://github.com/myokit/myokit/pull/1122) The Patchmaster file reader now documents the lack of "prediction" setting availability. Added detailed C-fast information to meta data exported to DataLog.
 - Changed
   - [#1121](https://github.com/myokit/myokit/pull/1121) The filter 2 frequency in Patchmaster files is now returned in kHz instead of Hz. Added a method to get the filter 1 frequency. Both frequencies are added to the meta data when creating a DataLog.
-- Deprecated
-- Removed
 - Fixed
   - [#1117](https://github.com/myokit/myokit/pull/1117) @martinjrobins Fixed a bug in SBML export of non-constant, non-state variables.
   - [#1134](https://github.com/myokit/myokit/pull/1134) Added missing `__len__` method to `PatchMasterFile`.
