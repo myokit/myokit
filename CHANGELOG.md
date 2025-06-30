@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.37.4] - 2025-06-30
 - Added
   - [#1118](https://github.com/myokit/myokit/pull/1118) @kwabenantim Added a minimal `pyproject.toml` specifying the build system.
