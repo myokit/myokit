@@ -13,6 +13,7 @@ This page lists the main changes made to Myokit in each release.
 - Removed
 - Fixed
   - [#1117](https://github.com/myokit/myokit/pull/1117) @martinjrobins Fixed a bug in SBML export of non-constant, non-state variables.
+  - [#1134](https://github.com/myokit/myokit/pull/1134) Added missing `__len__` method to `PatchMasterFile`.
 
 ## [1.37.3] - 2025-01-09
 - Changed

@@ -236,6 +236,9 @@ class PatchMasterFile:
     def __iter__(self):
         return iter(self._pulsed_tree)
 
+    def __len__(self):
+        return len(self._pulsed_tree)
+
     def amplifier_tree(self):
         """
         Returns this file's amplifier tree (an :class:`AmplifierFile` object),
@@ -626,7 +629,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         1. In the individual :class:`Trace` objects. This is somewhat
            counter-intuitive as some of these properties (e.g.
            :meth:Trace.r_pipette()`) were set before a series was
-           acquired and do no change between channels or sweeps.
+           acquired and do not change between channels or sweeps.
         2. In the series' :class:`AmplifierState`, which can be accessed via
            the :meth:`amplifier_state()` method.
 
