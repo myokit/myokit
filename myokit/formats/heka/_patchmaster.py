@@ -78,7 +78,8 @@ class PatchMasterFile:
     represent a single cell, and each "series" will be a protocol (called a
     "stimulus") run on that cell. Groups are named by the user. Series are
     named after the "stimulus" they run. Sweeps are usually unnamed (although
-    they do have a ``label`` property), and channels are named by the user.
+    they do have a ``label`` property), and traces (channels) are named by the
+    user.
 
     To access groups, index them by integer, or use the :meth:`group` method to
     find the first group with a given label::
@@ -294,8 +295,6 @@ class EndianAwareReader:
 
     def read(self, form):
         """ Read and unpack using the struct format ``form``. """
-        #if offset is not None:
-        #    f.seek(offset)
         return struct.unpack(
             self._e + form, self._f.read(struct.calcsize(form)))
 
@@ -1209,7 +1208,6 @@ class Sweep(TreeNode):
         # Seconds since first sweep, based on self._time, set by parent series
         self._time_since_first = None
 
-        #self._data_offset = None
         self._stimulus_id = None
 
     def _read_properties(self, handle, reader):
@@ -1217,7 +1215,6 @@ class Sweep(TreeNode):
         i = handle.tell()
         handle.seek(i + 4)  # SwLabel = 4; (* String32Type *)
         self._label = reader.str(32)
-        #self._data_offset = reader.read1('i')
         handle.seek(i + 40)     # SwStimCount = 40; (* INT32 *)
         self._stimulus_id = reader.read1('i') - 1
         handle.seek(i + 48)     # SwTime = 48; (* LONGREAL *)
@@ -1364,6 +1361,7 @@ class Trace(TreeNode):
         handle.seek(i + 40)     # TrData
         self._data_pos = reader.read1('i')
         self._n = reader.read1('i')
+        handle.seek(i + 70)     # TrDataFormat
         dtype = int(reader.read1('b'))
         self._data_type = _data_types[dtype]
         self._data_size = _data_sizes[dtype]
