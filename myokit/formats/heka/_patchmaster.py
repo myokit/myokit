@@ -23,8 +23,9 @@
 #    numbers of steps are given; the manual mentions two types of log
 #    interpretation but there is no obvious field to select one; a "toggle"
 #    mode is mentioned in the manual but again is not easy to find in the file.
-#  - Series resistance prediction percentage is not stored in the Patchmaster
-#    file.
+#  - Series resistance prediction percentage is not stored separately in the
+#    Patchmaster file. In addition, the value stored seems to be either
+#    percentage compensation or prediction, without much consistency.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -78,7 +79,8 @@ class PatchMasterFile:
     represent a single cell, and each "series" will be a protocol (called a
     "stimulus") run on that cell. Groups are named by the user. Series are
     named after the "stimulus" they run. Sweeps are usually unnamed (although
-    they do have a ``label`` property), and channels are named by the user.
+    they do have a ``label`` property), and traces (channels) are named by the
+    user.
 
     To access groups, index them by integer, or use the :meth:`group` method to
     find the first group with a given label::
@@ -294,8 +296,6 @@ class EndianAwareReader:
 
     def read(self, form):
         """ Read and unpack using the struct format ``form``. """
-        #if offset is not None:
-        #    f.seek(offset)
         return struct.unpack(
             self._e + form, self._f.read(struct.calcsize(form)))
 
@@ -1209,7 +1209,6 @@ class Sweep(TreeNode):
         # Seconds since first sweep, based on self._time, set by parent series
         self._time_since_first = None
 
-        #self._data_offset = None
         self._stimulus_id = None
 
     def _read_properties(self, handle, reader):
@@ -1217,7 +1216,6 @@ class Sweep(TreeNode):
         i = handle.tell()
         handle.seek(i + 4)  # SwLabel = 4; (* String32Type *)
         self._label = reader.str(32)
-        #self._data_offset = reader.read1('i')
         handle.seek(i + 40)     # SwStimCount = 40; (* INT32 *)
         self._stimulus_id = reader.read1('i') - 1
         handle.seek(i + 48)     # SwTime = 48; (* LONGREAL *)
@@ -1364,6 +1362,7 @@ class Trace(TreeNode):
         handle.seek(i + 40)     # TrData
         self._data_pos = reader.read1('i')
         self._n = reader.read1('i')
+        handle.seek(i + 70)     # TrDataFormat
         dtype = int(reader.read1('b'))
         self._data_type = _data_types[dtype]
         self._data_size = _data_sizes[dtype]
@@ -1649,15 +1648,18 @@ class AmplifierState:
     Describes the state of an amplifier used by PatchMaster.
 
     This "state" contains lots of valuable meta data about the fast and slow
-    capacitance correction, the series resistance compensation (but not
-    prediction! see below), the filtering, the gain, and voltage offset
+    capacitance correction, the series resistance compensation (and/or
+    prediction, but see below!), the filtering, the gain, and voltage offset
     corrections (zeroing and online LJP).
 
-    A notable omission is information about the series compensation
-    _prediction_ feature. This should have an on/off statement, and a
-    percentage (which can be set separately from the _correction_ percentage in
-    Patchmaster). Unfortunately this is not stored in the format yet (20 feb
-    2025).
+    A notable issue is information omission is information about the series
+    compensation _prediction_ feature. By default, the level of prediction is
+    the same as the level of correction. A checkbox in the software (which the
+    manual erroneously described as an on/off switch) can be used to set both
+    values independently. If this is done, it becomes unclear what the value in
+    the file represents, as only one value is stored. For this reason, if
+    prediction is set seperately from correction, both values must be noted
+    down by the experimenter and the value from the file should be ignored.
     """
     def __init__(self, handle, reader):
 
@@ -1685,10 +1687,6 @@ class AmplifierState:
         self._rs_enabled = bool(reader.read1('b'))
         handle.seek(i + 304)  # sRsTau = 304; (* LONGREAL *)
         self._rs_tau = reader.read1('d')
-
-        # Prediction is not recorded!
-        self._rs_prediction = PredictionSetting.UNKNOWN if self._rs_enabled \
-            else PredictionSetting.OFF
 
         # Fast capacitance correction
         handle.seek(i + 56)    # sCFastAmp1 = 56; (* LONGREAL *)
@@ -1921,19 +1919,6 @@ class AmplifierState:
         """
         return self._rs_tau * 1e6 if self._rs_enabled else 0
 
-    def r_series_prediction(self):
-        """
-        The percentage "prediction" is not recorded in the file: this method
-        returns ``PredictionSetting.OFF`` if compensation (and therefore
-        prediction) was disabled, and ``UNKNOWN`` if compensation was enabled
-        (so prediction may have been active).
-
-        This serves as a placeholder in case future changes to the format
-        incorporate it, and as a place to document that this feature is missing
-        by design.
-        """
-        return self._rs_prediction
-
     def stimulus_filter(self):
         """
         Returns a :class:`StimulusFilterSetting` descibing the stimulus filter
@@ -2074,24 +2059,6 @@ class StimulusFilterSetting(enum.Enum):
             return 'Bessel 2 us (off)'
         else:
             return 'Bessel 20 us (on)'
-
-
-class PredictionSetting(enum.Enum):
-    """
-    Very limited information about the series resistance compensation
-    prediction.
-
-    Series resistance compensation includes a "prediction" pathway,
-    configurable via a percentage prediction in Patchmaster. Unfortunately this
-    is not stored in the file format, so that knowledge of this parameters is
-    limited to "off" (when series resistance compensation is disabled) or
-    "unknown" (when series resistance compensation is enabled).
-    """
-    OFF = 0
-    UNKNOWN = 1
-
-    def __str__(self):
-        return 'Off' if self is PredictionSetting.OFF else 'Unknown'
 
 
 #
