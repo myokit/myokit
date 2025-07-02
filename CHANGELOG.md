@@ -5,10 +5,11 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#X](https://github.com/myokit/myokit/pull/X) Updated documentation of 'prediction' in PatchMasterFile.
 - Deprecated
 - Removed
 - Fixed
-  - [#X](https://github.com/myokit/myokit/pull/X) Fixed bug in PatchMasterFile reader where data types other than int 16 were not detected.
+  - [#X](https://github.com/myokit/myokit/pull/X) Fixed bug in PatchMasterFile where data types other than int 16 were not detected.
 
 ## [1.37.4] - 2025-06-30
 - Added
