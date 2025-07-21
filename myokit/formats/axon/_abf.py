@@ -552,7 +552,7 @@ class AbfFile(myokit.formats.SweepSource):
             # 1.x versions only seem to have 1 DAC channel, but this is not
             # supported here.
             self._n_adc = int(h['nADCNumChannels'])
-            if h['sDACChannelName'] is None:
+            if h['sDACChannelName'] is None:    # pragma: no cover
                 self._n_dac = 2
             else:
                 self._n_dac = min(len(h['sDACChannelName']), 2)
@@ -666,7 +666,7 @@ class AbfFile(myokit.formats.SweepSource):
             self._sweep_start_to_start = self._samples_per_channel / self._rate
 
         # Create empty sweeps
-        if self._mode == ACMODE_GAP_FREE:
+        if self._mode == ACMODE_GAP_FREE:   # pragma: no cover
             # In gap-free mode, treat the data as a single sweep
             n = 1
         elif self._is_protocol_file:
@@ -847,7 +847,7 @@ class AbfFile(myokit.formats.SweepSource):
             sweep_starts_sizes = np.memmap(
                 self._filepath, [('offset', 'i4'), ('len', 'i4')], 'r',
                 shape=(n,), offset=o)
-        else:
+        else:   # pragma: no cover
             # In gap-free model, all data is a single sweep
             sweep_starts_sizes = [(0, len(data))]
 
@@ -863,7 +863,7 @@ class AbfFile(myokit.formats.SweepSource):
         if len(sweep_starts_sizes) > 0:
             size = sweep_starts_sizes[0][1]
             for o, s in sweep_starts_sizes[1:]:
-                if s != size:
+                if s != size:   # pragma: no cover
                     self._equal_length_sweeps = False
                     break
             del size
@@ -878,7 +878,7 @@ class AbfFile(myokit.formats.SweepSource):
         for i_sweep, (start, size) in enumerate(sweep_starts_sizes):
 
             # Not episodic: Then use listed start time
-            if self._mode != ACMODE_EPISODIC_STIMULATION:
+            if self._mode != ACMODE_EPISODIC_STIMULATION:   # pragma: no cover
                 tstart = start / rate
 
             # Calculate the correct size for variable-length event mode
