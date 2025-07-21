@@ -208,6 +208,8 @@ class AbfTest(unittest.TestCase):
         self.assertIn('version 1.65', abf.meta_str())
         self.maxDiff = None
         self.assertEqual(abf.meta_str(), V1_INFO)
+        self.assertEqual(abf.acquisition_mode_str(),
+                         'Episodic stimulation mode')
 
         # Test getting full header runs without crashing
         abf.meta_str(True)
@@ -445,6 +447,8 @@ class AbfTest(unittest.TestCase):
         self.assertIn('version 2.0', abf.meta_str())
         self.maxDiff = None
         self.assertEqual(abf.meta_str(), V2_INFO)
+        self.assertEqual(abf.acquisition_mode_str(),
+                         'Episodic stimulation mode')
 
         # Test getting full header runs without crashing
         abf.meta_str(True)

@@ -4,8 +4,9 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1136](https://github.com/myokit/myokit/pull/1136) Added limited support for ABF reading in modes other than "episodic acquisition".
 - Changed
-  - [#1135](https://github.com/myokit/myokit/pull/1135) Updated documentation of 'prediction' in PatchMasterFile.
+  - [#1135](https://github.com/myokit/myokit/pull/1135) Updated documentation of "prediction" in PatchMasterFile.
 - Deprecated
 - Removed
 - Fixed
