@@ -2169,8 +2169,7 @@ class ColorMapViridis(ColorMap):
     https://github.com/BIDS/colormap/blob/master/colormaps.py
     and were distributed under a CC0 license.
 
-    Viridis was designed by Eric Firing, Nathaniel J. Smith, and Stefan van der
-    Walt.
+    Viridis was designed by Nathaniel J. Smith and Stefan van der Walt.
     """
     _VALUES = np.array((
         (68, 1, 84),
@@ -2456,14 +2455,13 @@ class ColorMapViridis(ColorMap):
 
 class ColorMapInferno(ColorMap):
     """
-    A colormap using "Viridis".
+    A colormap using "Inferno".
 
-    The values used by this color map are taken from
+    The values used by this color map are adapted from
     https://github.com/BIDS/colormap/blob/master/colormaps.py
     and were distributed under a CC0 license.
 
-    Viridis was designed by Eric Firing, Nathaniel J. Smith, and Stefan van der
-    Walt.
+    Inferno was designed by Nathaniel J. Smith and Stefan van der Walt.
     """
     _VALUES = np.array((
         (0, 0, 4),
