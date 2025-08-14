@@ -2,14 +2,12 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.38.0] - 2025-08-14
 - Added
   - [#1136](https://github.com/myokit/myokit/pull/1136) Added limited support for ABF reading in modes other than "episodic acquisition".
 - Changed
   - [#1135](https://github.com/myokit/myokit/pull/1135) Updated documentation of "prediction" in PatchMasterFile.
   - [#1139](https://github.com/myokit/myokit/pull/1139) Protocol start times set using the ``next`` keyword are now rounded to 9 digits precision. This helps avoid unexpected results in very long protocols, where floating point errors can accumulate. Start times set explicitly are not rounded.
-- Deprecated
-- Removed
 - Fixed
   - [#1135](https://github.com/myokit/myokit/pull/1135) Fixed bug in PatchMasterFile where data types other than int 16 were not detected.
   - [#1137](https://github.com/myokit/myokit/pull/1137) Fixed error in colormap attribution.
