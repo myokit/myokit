@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.38.0] - 2025-08-14
 - Added
   - [#1136](https://github.com/myokit/myokit/pull/1136) Added limited support for ABF reading in modes other than "episodic acquisition".
