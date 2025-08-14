@@ -31,16 +31,18 @@ whitespace):
 2. The time at which this stimulus occurs
 3. The duration of this stimulus
 4. For periodic stimuli, the fourth column specifies the stimulus period.
-   Non-periodic stimuli can be created by entering "0" here.
+   Non-periodic stimuli can be created by entering ``0`` here.
 5. The number of times a periodic stimulus is given can be specified in the
    final column, stimuli that are non-periodic or recur indefinetely can use
-   the value "0" here.
+   the value ``0`` here.
 
 Comments may be added by starting lines with ``#``.
 
-When specifying the time an event starts, the keyword "next" may be used to
+When specifying the time an event starts, the keyword ``next`` may be used to
 denote the time at which the previous event ends. This can only be used at the
-very start of a protocol or directly after a non-periodic event.
+very start of a protocol or directly after a non-periodic event. To avoid
+unexpected results from summing floating point numbers, times specified using
+``next`` will be rounded to 9 digits.
 
 Examples
 ========
@@ -50,7 +52,7 @@ A typical example for 0.5ms stimuli occurring every 1000ms (at 1bpm) is::
     #level  start   length  period  multiplier
     1.0     10      0.5     1000    0
 
-Here, a stimulus of level "1.0" is applied from t=10ms till t=12ms and then
+Here, a stimulus of level ``1.0`` is applied from t=10ms till t=12ms and then
 again from t=1010ms to t=1012ms continuing indefinitely.
 
 In the following example the stimulus only occurs 3 times::
@@ -72,7 +74,7 @@ voltage is set to -80mV. After 500ms, it changes abrubtly to +40, where it
 stays for another 500ms. Finally, at t=1000ms it drops down to -80mV again
 where it stays indefinitely.
 
-This example can be written using the "next" keyword::
+This example can also be written using ``next``::
 
     [[protocol]]
     #level  start   length  period  multiplier

@@ -186,7 +186,7 @@ class Unit:
         ``unit2``.
 
         Exponents are stored internally as floating point numbers, and the
-        check for closeness if made with a relative tolerance of ``reltol`` and
+        check for closeness is made with a relative tolerance of ``reltol`` and
         absolute tolerance of ``abstol``, using::
 
             abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
