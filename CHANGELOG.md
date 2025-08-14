@@ -11,6 +11,8 @@ This page lists the main changes made to Myokit in each release.
 - Removed
 - Fixed
   - [#1135](https://github.com/myokit/myokit/pull/1135) Fixed bug in PatchMasterFile where data types other than int 16 were not detected.
+  - [#1136](https://github.com/myokit/myokit/pull/1136) Fixed error in colormap attribution.
+  - [#1137](https://github.com/myokit/myokit/pull/1137) Fixed bug in FiberTissueSimulation and Simulation1d that was causing compilation errors.
 
 ## [1.37.4] - 2025-06-30
 - Added
