@@ -512,6 +512,26 @@ class DataLog(OrderedDict):
         keys.sort()
         return keys
 
+    def labeled(self, label_or_binding, *index):
+        """
+        Returns a variable annotated with the given label or binding.
+
+        For multi-cellular simulations, any remaining arguments will be
+        interpreted as the cell index.
+
+        For example:
+
+            log.labeled('membrane_potential')
+
+        will return the entry for the column labelled `membrane_potential` (if
+        found), while in a multi-cell context
+
+            log.labeled('membrane_potential', 2, 3)
+
+        will return that variable for cell ``(2, 3)``.
+        """
+        # TODO
+
     def length(self):
         """
         Returns the length of the entries in this log. If the log is empty,
@@ -1900,6 +1920,7 @@ def prepare_log(
             if time_unit is not None:
                 u = u / time_unit
             m['unit'] = str(u)
+        #TODO: Store binding and label
 
     #
     # First option, no log argument given, use the "if_empty" option
@@ -2140,6 +2161,7 @@ def prepare_log(
             try:
                 var = model.get(kname)
             except KeyError:
+                #TODO Get from binding or label (update kname too)
                 raise ValueError(f'Unknown variable <{kname}> in list.')
 
             # Check if in class of allowed variables
