@@ -223,9 +223,13 @@ class AbfFile(myokit.formats.SweepSource):
         D/A "protocol" information will be read. If left at its default value
         of ``None`` files with the extension ``.pro`` will be recognized as
         protocol files.
+    ``convert_ramps``
+        If set to ``True``, a protocol with ramps will be read, with ramps
+        replaced by steps. If left at the default ``False``, the protocol will
+        not be read.
 
     """
-    def __init__(self, filepath, is_protocol_file=None):
+    def __init__(self, filepath, is_protocol_file=None, convert_ramps=False):
         # The path to the file and its basename
         filepath = str(filepath)
         self._filepath = os.path.abspath(filepath)
@@ -281,6 +285,7 @@ class AbfFile(myokit.formats.SweepSource):
         # will have A/D but no (or no supported) D/A. Conversely protocol files
         # will have D/A only. So all in one sweep is easiest.
         self._sweeps = None
+        self._convert_ramps = bool(convert_ramps)
         self._read_3_protocol_information()
 
         # Read and calculate conversion factors for integer data in ADC
@@ -560,7 +565,6 @@ class AbfFile(myokit.formats.SweepSource):
             self._mode = h['nOperationMode']
         else:
             # In version 2, there are up to 8 "waveform" D/A channels
-
             self._n_adc = int(h['sections']['ADC']['length'])
             self._n_dac = int(h['sections']['DAC']['length'])
             self._rate = 1e6 / h['protocol']['fADCSequenceInterval']
@@ -696,7 +700,6 @@ class AbfFile(myokit.formats.SweepSource):
             return
 
         # Get indices of enabled and supported DAC reconstructions
-        supported = {EPOCH_DISABLED, EPOCH_STEPPED}
         for i_dac in range(self._n_dac):
             if einfo_exists(i_dac):
                 i = einfo(i_dac)
@@ -715,6 +718,12 @@ class AbfFile(myokit.formats.SweepSource):
                         t = e['type']
                         if t == EPOCH_STEPPED:
                             use = True
+                        elif t == EPOCH_RAMPED and self._convert_ramps:
+                            # Read ramp as step
+                            use = True
+                            warnings.warn(
+                                f'Unsupported epoch type: {epoch_types[t]}:'
+                                ' converting to step')
                         elif t != EPOCH_DISABLED:  # pragma: no cover
                             use = False
                             warnings.warn(
@@ -980,8 +989,7 @@ class AbfFile(myokit.formats.SweepSource):
         user lists.
 
         The resulting analog signal has the same size as the recorded
-        signals, so not always the full length of the protocol!
-
+        signals, so not always the full length of the protocol.
         """
         dinfo, einfo_exists, einfo = self._epoch_functions
 
@@ -1104,8 +1112,9 @@ class AbfFile(myokit.formats.SweepSource):
         else:
             int_id = int(output_id)  # Propagate TypeError
             if int_id < 0 or int_id >= self._n_dac:
-                raise IndexError(f'output_id out of range: {output_id}')
-
+                raise IndexError(
+                    f'output_id out of range: {output_id} ({self._n_dac}'
+                    ' channel(s) available)')
         return int_id
 
     def da(self, output_id, join_sweeps=False):
@@ -1199,10 +1208,35 @@ class AbfFile(myokit.formats.SweepSource):
                     e_level = round(df * level, n_digits)
                     e_start = round(tf * start, n_digits)
                     e_length = round(tf * duration, n_digits)
-                    p.schedule(e_level, e_start, e_length)
-
+                    if e_length > 0:
+                        p.schedule(e_level, e_start, e_length)
+                    else:
+                        warnings.warn(f'Skipping {e_length}{tu} protocol step'
+                                      f' at t={start}{tu}.')
                     start += duration
-                # Note: Only other type can be EPOCH_DISABLED at this point
+
+                elif e['type'] == EPOCH_RAMPED:  # pragma: no cover
+                    assert self._convert_ramps
+                    dur = e['init_duration'] / self._rate
+                    inc = e['duration_inc'] / self._rate
+                    duration = dur + i_sweep * inc
+                    # The "init_level" field in a ramp indicates the _final_
+                    # value. The initial values seems to be the value from the
+                    # previous step.
+                    level = e['init_level'] + e['level_inc'] * i_sweep
+
+                    e_level = round(df * level, n_digits)
+                    e_start = round(tf * start, n_digits)
+                    e_length = round(tf * duration, n_digits)
+                    if e_length > 0:
+                        p.schedule(e_level, e_start, e_length)
+                    else:
+                        warnings.warn(f'Skipping {e_length}{tu} protocol step'
+                                      f' at t={start}{tu}.')
+                    start += duration
+
+                else:
+                    assert e['type'] == EPOCH_DISABLED
 
             # End of sweep: event at holding potential
             e_start = round(tf * start, n_digits)
