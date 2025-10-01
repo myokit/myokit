@@ -718,7 +718,7 @@ class AbfFile(myokit.formats.SweepSource):
                         t = e['type']
                         if t == EPOCH_STEPPED:
                             use = True
-                        elif t == EPOCH_RAMPED and self._convert_ramps:
+                        elif t == EPOCH_RAMPED and self._convert_ramps:  # pragma: no cover  # noqa
                             # Read ramp as step
                             use = True
                             warnings.warn(
@@ -1210,7 +1210,7 @@ class AbfFile(myokit.formats.SweepSource):
                     e_length = round(tf * duration, n_digits)
                     if e_length > 0:
                         p.schedule(e_level, e_start, e_length)
-                    else:
+                    else:  # pragma: no cover
                         warnings.warn(f'Skipping {e_length}{tu} protocol step'
                                       f' at t={start}{tu}.')
                     start += duration
