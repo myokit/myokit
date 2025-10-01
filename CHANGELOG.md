@@ -4,6 +4,7 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1143](https://github.com/myokit/myokit/pull/1143) Added `convert_ramps` argument AbfFile which, if set, will allow reading ramps as steps (instead of refusing to import the protocol entirely).
 - Changed
 - Deprecated
 - Removed
