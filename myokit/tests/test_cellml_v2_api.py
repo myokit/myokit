@@ -952,7 +952,7 @@ class TestCellML2ModelConversion(unittest.TestCase):
         self.assertEqual(mm.name(), 'm')
 
         # Check meta data is added
-        self.assertIn('author', mm.meta)
+        self.assertIn('mmt-author', mm.meta)
 
         # Check meta data is passed on
         self.assertIn('documentation', mm.meta)
