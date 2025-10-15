@@ -6,6 +6,7 @@ This page lists the main changes made to Myokit in each release.
 - Added
   - [#1143](https://github.com/myokit/myokit/pull/1143) Added `convert_ramps` argument AbfFile which, if set, will allow reading ramps as steps (instead of refusing to import the protocol entirely).
 - Changed
+  - [#1147](https://github.com/myokit/myokit/pull/1147) CellML imported files now have an `mmt-author` in their description, rather than `author`, indicating the mmt file rather than the model author.
 - Deprecated
 - Removed
 - Fixed
