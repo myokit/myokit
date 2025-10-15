@@ -927,7 +927,7 @@ class Model(AnnotatableElement):
 
         # Create model
         m = myokit.Model(self.name())
-        m.meta['author'] = 'Myokit CellML 1 API'
+        m.meta['mmt_author'] = 'Myokit CellML 1 API'
 
         # Copy meta data
         for key, value in self.meta.items():

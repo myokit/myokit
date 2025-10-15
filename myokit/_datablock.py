@@ -331,17 +331,18 @@ class DataBlock1d:
 
     def get0d(self, name):
         """
-        Returns the 0d time-series identified by ``name``. The data is returned
-        directly, no copy is made.
+        Returns the 0d time-series identified by ``name``.
+
+        The data is returned directly, no copy is made.
         """
         return self._0d[name]
 
     def get1d(self, name):
         """
-        Returns the 1d time-series identified by ``name``. The data is returned
-        directly, no copy is made.
+        Returns the 1d time-series identified by ``name``.
 
-        The returned data is a 2d array of the shape given by :meth:`shape`.
+        The returned data is a 2d array of the shape given by :meth:`shape`. It
+        is returned directly, no copy is made.
         """
         return self._1d[name]
 

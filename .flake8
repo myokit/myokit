@@ -25,7 +25,7 @@ ignore=
     E731,
 
     # Ambiguous variable names
-    # It's absolutely fine to have i and I
+    # It's absolutely fine to have variables named I, l, and O
     E741,
 
     # List comprehension redefines variable
