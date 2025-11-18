@@ -522,16 +522,17 @@ class SimulationTest(unittest.TestCase):
             ValueError, 'no `apd_variable` specified',
             self.sim.run, 1, apd_threshold=12)
 
-    def test_crash_state_and_inputs(self):
-        # Tests Simulation.crash_state
+    def test_crash_state_inputs_log(self):
+        # Tests Simulation.crash_state, crash_inputs, and crash_log
 
         m = self.model.clone()
         istim = m.get('membrane.i_stim')
         istim.set_rhs('engine.pace / stim_amplitude')
-        '''
+
         s = myokit.Simulation(m, self.protocol)
         self.assertIsNone(s.crash_state())
         self.assertIsNone(s.crash_inputs())
+        self.assertIsNone(s.crash_log())
         s.run(1)
         self.assertIsNone(s.crash_state())
         s.set_constant('membrane.i_stim.stim_amplitude', 0)
@@ -545,7 +546,8 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s.crash_inputs()['pace'], 0)
         self.assertGreaterEqual(s.crash_inputs()['realtime'], 0)
         self.assertGreater(s.crash_inputs()['evaluations'], 0)
-        '''
+        self.assertIsInstance(s.crash_log(), myokit.DataLog)
+        self.assertGreater(s.crash_log().length(), 0)
 
         # Test crash at later time
         istim.set_rhs('if(engine.time == 5, 1 / (5 - engine.time), 0)')
@@ -561,6 +563,8 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s.crash_inputs()['time'], 5)
         self.assertEqual(s.crash_inputs()['pace'], 1)
         self.assertGreater(s.crash_inputs()['realtime'], 0)
+        self.assertIsInstance(s.crash_log(), myokit.DataLog)
+        self.assertGreater(s.crash_log().length(), 0)
 
         # Above should both crash via cvode flag set. Next should be halted by
         # C code for too many zero steps
@@ -572,6 +576,8 @@ class SimulationTest(unittest.TestCase):
         self.assertAlmostEqual(s.crash_inputs()['time'], 5)
         self.assertEqual(s.crash_inputs()['pace'], 1)
         self.assertGreater(s.crash_inputs()['realtime'], 0)
+        self.assertIsInstance(s.crash_log(), myokit.DataLog)
+        self.assertGreater(s.crash_log().length(), 0)
 
         # Test deprecated alias of crash_state
         x = s.crash_state()
