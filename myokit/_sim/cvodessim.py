@@ -239,6 +239,7 @@ class Simulation(myokit.CModule):
         # Last state reached before error
         self._error_state = None
         self._error_inputs = None
+        self._error_log = None
 
         # Starting time
         self._time = 0
@@ -396,8 +397,25 @@ class Simulation(myokit.CModule):
 
         Will return ``None`` if no simulation was run or the simulation did not
         result in an error.
+
+        A typical use case is to inspect the calculation of derivatives after a
+        crash, with::
+
+            sim.evaluate_derivatives(sim.crash_state(), sim.crash_inputs())
+
         """
         return dict(self._error_inputs) if self._error_inputs else None
+
+    def crash_log(self):
+        """
+        If the last call to :meth:`Simulation.pre()` or
+        :meth:`Simulation.run()` resulted in an error, this will return the
+        :class:`myokit.DataLog` containing the data logged up until the crash.
+
+        Will return ``None`` if no simulation was run or the simulation did not
+        result in an error.
+        """
+        return None if self._error_log is None else self._error_log.clone()
 
     def crash_state(self):
         """
@@ -407,6 +425,12 @@ class Simulation(myokit.CModule):
 
         Will return ``None`` if no simulation was run or the simulation did not
         result in an error.
+
+        A typical use case is to inspect the calculation of derivatives after a
+        crash, with::
+
+            sim.evaluate_derivatives(sim.crash_state(), sim.crash_inputs())
+
         """
         return list(self._error_state) if self._error_state else None
 
@@ -752,6 +776,7 @@ class Simulation(myokit.CModule):
         # Reset error state
         self._error_state = None
         self._error_inputs = None
+        self._error_log = None
 
         # Simulation times
         if duration < 0:
@@ -915,6 +940,7 @@ class Simulation(myokit.CModule):
                         self._error_inputs[label] = bound[1 + i]
                 for i, label in enumerate(self._pacing_labels):
                     self._error_inputs[label] = bound[3 + i]
+                self._error_log = log
 
                 # Create long error message
                 txt = ['A numerical error occurred during simulation at'
