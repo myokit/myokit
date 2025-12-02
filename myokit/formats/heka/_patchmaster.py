@@ -985,7 +985,8 @@ class Series(TreeNode, myokit.formats.SweepSource):
         for k, a in enumerate(amps):
             pre = '' if len(amps) == 1 else f'amp{1 + k}_'
             log.meta[f'{pre}current_gain_mV_per_pA'] = a.current_gain()
-            log.meta[f'{pre}cc_gain_pA_per_mV'] = a.cc_gain()
+            log.meta[f'{pre}cc_gain_pA_per_mV'] = \
+                a.current_clamp_stimulus_gain()
             log.meta[f'{pre}filter1'] = a.filter1_str()
             log.meta[f'{pre}filter2'] = a.filter2_str()
             log.meta[f'{pre}filter1_kHz'] = a.filter1().frequency()
@@ -1077,7 +1078,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         for k, a in enumerate(amps):
             out.append(f'Information from amplifier state {1 + k}:')
             out.append(f'  Current gain: {a.current_gain()} mV/pA')
-            out.append(f'  CC gain: {a.cc_gain()} pA/mV')
+            out.append(f'  CC gain: {a.current_clamp_stimulus_gain()} pA/mV')
             out.append(f'  Filter 1: {a.filter1_str()}')
             out.append(f'  Filter 2: {a.filter2_str()}')
             out.append(f'  Stimulus filter: {a.stimulus_filter_str()}')
@@ -1493,7 +1494,6 @@ class Trace(TreeNode):
         not perform this zeroing, but it can be applied by setting
         ``ignore_zero_segment`` to ``False``.
         """
-
         if self._data_interleave_size == 0 or self._data_interleave_skip == 0:
             # Read continuous data
             d = np.memmap(self._handle, self._data_type, 'r',
@@ -1668,11 +1668,9 @@ class AmplifierState:
         # Read properties
         i = handle.tell()
 
-        # Current gain (V/A)
+        # Current gain (the "gain" in VC mode) (V/A)
         handle.seek(i + 8)      # sCurrentGain = 8;  (* LONGREAL *)
         self._current_gain = reader.read1('d')
-        handle.seek(i + 243)    # sCCGain = 243; (* BYTE *)
-        self._cc_gain = reader.read1('b')
 
         # Holding potential and offsets
         handle.seek(i + 112)  # sVHold = 112; (* LONGREAL *)
@@ -1760,6 +1758,10 @@ class AmplifierState:
         handle.seek(i + 282)  # sStimFilterOn = 282; (* BYTE *)
         self._stimulus_filter = StimulusFilterSetting(reader.read1('b'))
 
+        # Stimulus scaling in current clamp mode (a byte / enum)
+        handle.seek(i + 243)    # sCCGain = 243; (* BYTE *)
+        self._cc_gain = reader.read1('b')
+
     def c_fast(self):
         """
         Return the capacitance (pF) used in fast capacitance correction.
@@ -1824,29 +1826,39 @@ class AmplifierState:
         """
         return self._cs_range
 
+    def current_clamp_stimulus_gain(self):
+        """
+        Returns the "CC-Gain" setting, in pA/mV.
+
+        For current-clamp measurements, this is one of two values (along with
+        the "CC Stim. Scale", which is currently not provided by this class)
+        that determines the scaling of applied stimuli.
+
+        **This value is provided for information only**: stimuli returned by
+        the :class:`PatchMasterFile` methods are already scaled appropriately.
+        """
+        gain_values = (0.1, 1, 10, 100)
+        try:
+            return gain_values[self._cc_gain]
+        except IndexError:  # pragma: no-cover
+            raise NotImplementedError(
+                'Unexpected value found for current clamp gain'
+                f' ({self._cc_gain}).')
+
     def current_gain(self):
         """
-        The gain setting for current measurements, in mV/pA.
+        The gain setting of the "current monitor" output, in mV/pA.
+
+        For voltage-clamp measurements, this is the main "gain" setting used to
+        record currents.
+
+        **This value is provided for information only**: the currents returned
+        by the :class:`PatchMasterFile` methods are already scaled
+        appropriately. The chosen gain value is mainly interesting because it
+        determines the feedback resistor used in the headstage. See the
+        Patchmaster and amplifier manuals for details.
         """
         return self._current_gain * 1e-9
-    def cc_gain(self):
-        """
-        Returns the current clamp gain setting as a byte (0-3).
-        
-        Encoding:
-        0 = 0.1 pA/mV
-        1 = 1 pA/mV
-        2 = 10 pA/mV
-        3 = 100 pA/mV
-        """
-        gain_values = [0.1, 1.0, 10.0, 100.0]
-        if 0 <= self._cc_gain < len(gain_values):
-            return gain_values[self._cc_gain]
-        else:
-            raise ValueError(
-                'Invalid value in CC_gain, should be from 0 to 3'+self._cc_gain
-            )
-
 
     def filter1(self):
         """
