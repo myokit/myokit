@@ -985,8 +985,6 @@ class Series(TreeNode, myokit.formats.SweepSource):
         for k, a in enumerate(amps):
             pre = '' if len(amps) == 1 else f'amp{1 + k}_'
             log.meta[f'{pre}current_gain_mV_per_pA'] = a.current_gain()
-            log.meta[f'{pre}cc_gain_pA_per_mV'] = \
-                a.current_clamp_stimulus_gain()
             log.meta[f'{pre}filter1'] = a.filter1_str()
             log.meta[f'{pre}filter2'] = a.filter2_str()
             log.meta[f'{pre}filter1_kHz'] = a.filter1().frequency()
@@ -1023,6 +1021,8 @@ class Series(TreeNode, myokit.formats.SweepSource):
                     a.r_series_tau()
             else:
                 log.meta[f'{pre}r_series_compensation_enabled'] = 'false'
+            log.meta[f'{pre}current_clamp_stimulus_gain'] = \
+                a.current_clamp_stimulus_gain()
 
         # Add protocol to meta data
         stimulus = self.stimulus()
@@ -1078,7 +1078,6 @@ class Series(TreeNode, myokit.formats.SweepSource):
         for k, a in enumerate(amps):
             out.append(f'Information from amplifier state {1 + k}:')
             out.append(f'  Current gain: {a.current_gain()} mV/pA')
-            out.append(f'  CC gain: {a.current_clamp_stimulus_gain()} pA/mV')
             out.append(f'  Filter 1: {a.filter1_str()}')
             out.append(f'  Filter 2: {a.filter2_str()}')
             out.append(f'  Stimulus filter: {a.stimulus_filter_str()}')
@@ -1113,6 +1112,9 @@ class Series(TreeNode, myokit.formats.SweepSource):
                 out.append(f'  R series compensation: {p} %, {q} us')
             else:
                 out.append('  R series compensation: not enabled')
+            # Current-clamp info
+            out.append('  Current clamp stimulus gain: '
+                       f'{a.current_clamp_stimulus_gain()} pA/mV')
 
         # Info from first trace
         if len(self) and len(self[0]):
