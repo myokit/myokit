@@ -322,7 +322,17 @@ class EndianAwareReader:
         returns a ``datetime`` object.
         """
         t = struct.unpack(f'{self._e}d', self._f.read(8))[0]
-        return datetime.datetime.fromtimestamp(t + _ts_1990, tz=_tz)
+        if t > 1580970496:  # Approximately 2040
+            # Assume windows date, use HEKA equation
+            _ts_1601 = datetime.datetime(1601, 1, 1, tzinfo=_tz).timestamp()
+            t = datetime.datetime.fromtimestamp(
+                t - 1580970496 + 9561652096 + _ts_1601, tz=_tz)
+        else:
+            # Use version that matches "seconds since 1990" idea
+            t = datetime.datetime.fromtimestamp(t + _ts_1990, tz=_tz)
+        print(t)
+        print()
+        return t
 
 
 class TreeNode:
