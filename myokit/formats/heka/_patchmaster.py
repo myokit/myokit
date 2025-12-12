@@ -318,21 +318,39 @@ class EndianAwareReader:
 
     def time(self):
         """
-        Reads a time in HEKA's seconds-since-1990 format, converts it, and
-        returns a ``datetime`` object.
+        Reads a time as a HEKA encoded 8-byte float, and returns a
+        ``datetime`` object.
+
+        The conversion may have an offset to the actual time of recording, for
+        one of three reasons:
+
+        First, no time zone is stored, so the time reported is in whatever
+        time zone the measurement was made.
+
+        Secondly, the time seems to be stored in one of two (overlapping)
+        formats. According to HEKA's documentation, the time stored is in
+        seconds since Jan 1st, 1990. But sometimes the number seems to have
+        been affected by a 4-byte overflow, leading to times after Feb 6th 2040
+        to be stored incorrectly. Currently, we "correct" for this, but this
+        may give wrong results after 2040.
+
+        Thirdly, the algorithm used in the HEKA software to convert between
+        the two formats seems to have an issue, leading to a further possible
+        offset.
+
+        However, relative times in PatchMasterFile objects are OK: if one
+        recording says it's 10s after another, this can be trusted.
         """
         t = struct.unpack(f'{self._e}d', self._f.read(8))[0]
-        if t > 1580970496:  # Approximately 2040
-            # Assume windows date, use HEKA equation
-            _ts_1601 = datetime.datetime(1601, 1, 1, tzinfo=_tz).timestamp()
-            t = datetime.datetime.fromtimestamp(
-                t - 1580970496 + 9561652096 + _ts_1601, tz=_tz)
-        else:
-            # Use version that matches "seconds since 1990" idea
-            t = datetime.datetime.fromtimestamp(t + _ts_1990, tz=_tz)
-        print(t)
-        print()
-        return t
+
+        # On windows, times seem to be stored differently, with values beyond
+        # _t_max_windows (Feb 6th 2040) stored with an offset. See definition
+        # of these values for details
+        if t > _t_max_windows:
+            t -= _t_cor_windows
+
+        print(datetime.datetime.fromtimestamp(t + _ts_1990))
+        return datetime.datetime.fromtimestamp(t + _ts_1990)
 
 
 class TreeNode:
@@ -509,7 +527,12 @@ class PulsedFile(TreeNode):
         self._time = reader.time()
 
     def time(self):
-        """ Returns the time this file was created as a ``datetime``. """
+        """
+        Returns the time this file was created as a ``datetime``.
+
+        Note that these times may have a (fixed) offset to the actual time of
+        recording, see :meth:`EndianAwareReader.time`.
+        """
         return self._time
 
     def version(self):
@@ -1173,7 +1196,12 @@ class Series(TreeNode, myokit.formats.SweepSource):
         return len(self)
 
     def time(self):
-        """ Returns the time this series was created as a ``datetime``. """
+        """
+        Returns the time this series was created as a ``datetime``.
+
+        Note that these times may have a (fixed) offset to the actual time of
+        recording, see :meth:`EndianAwareReader.time`.
+        """
         return self._time
 
     def time_unit(self):
@@ -1242,7 +1270,12 @@ class Sweep(TreeNode):
         return self._label
 
     def time(self):
-        """ Returns the time this sweep was recorded as a ``datetime``. """
+        """
+        Returns the time this sweep was recorded as a ``datetime``.
+
+        Note that these times may have a (fixed) offset to the actual time of
+        recording, see :meth:`EndianAwareReader.time`.
+        """
         return self._time
 
 
@@ -3211,10 +3244,20 @@ class AmplifierStateRecord(TreeNode):
 # Encoding for text parts of files
 _ENC = 'latin-1'
 
-# Time offset since 1990, utc
-_tz = datetime.timezone.utc
-_ts_1990 = datetime.datetime(1990, 1, 1, tzinfo=_tz).timestamp()
+# Time offset since 1990
+_ts_1990 = datetime.datetime(1990, 1, 1).timestamp()
 
+# Windows/mac weirdness
+# On windows, the values seem to be affected by a 4-byte int overflow. A
+# correction would be
+# _t_cor_windows = 2**32 - 1
+# but instead there seems to be an additional windows/mac issue with errors,
+# equating to a magic number version of
+_t_cor_windows = 4294944000
+_t_max_windows = 1580970495
+# See: https://github.com/myokit/myokit/pull/1160
+
+# Used data types and sizes
 _data_types = (np.int16, np.int32, np.float32, np.float64)
 _data_sizes = (2, 4, 4, 8)
 
