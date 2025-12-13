@@ -1,8 +1,6 @@
 #
 # This module reads files in HEKA Patchmaster format.
 #
-# Specifically, it targets the 2x90.2 format.
-#
 # Notes:
 #  - HEKA publishes a lot of information about its file format on its FTP
 #    server: server.hekahome.de
@@ -159,9 +157,10 @@ class PatchMasterFile:
         except ValueError:
             pass
 
-        if not self._version.startswith('v2x90.2'):
-            warnings.warn('Only PatchMaster version v2x90.2 is supported.'
-                          f' Attempting to read version {self._version}.')
+        if not (self._version.startswith('v2x90.2')
+                or self._version.startswith('v2x73')):
+            warnings.warn(
+                'Untested PatchMaster format version {self._version}.')
 
         # Endianness
         f.seek(52)
@@ -1021,6 +1020,9 @@ class Series(TreeNode, myokit.formats.SweepSource):
                     a.r_series_tau()
             else:
                 log.meta[f'{pre}r_series_compensation_enabled'] = 'false'
+            log.meta[f'{pre}current_clamp_holding_current_pA'] = a.i_hold()
+            log.meta[f'{pre}current_clamp_stimulus_gain'] = \
+                a.current_clamp_stimulus_gain()
 
         # Add protocol to meta data
         stimulus = self.stimulus()
@@ -1110,6 +1112,10 @@ class Series(TreeNode, myokit.formats.SweepSource):
                 out.append(f'  R series compensation: {p} %, {q} us')
             else:
                 out.append('  R series compensation: not enabled')
+            # Current-clamp info
+            out.append(f'  Current clamp holding current: {a.i_hold()} pA')
+            out.append('  Current clamp stimulus gain: '
+                       f'{a.current_clamp_stimulus_gain()} pA/mV')
 
         # Info from first trace
         if len(self) and len(self[0]):
@@ -1491,7 +1497,6 @@ class Trace(TreeNode):
         not perform this zeroing, but it can be applied by setting
         ``ignore_zero_segment`` to ``False``.
         """
-
         if self._data_interleave_size == 0 or self._data_interleave_skip == 0:
             # Read continuous data
             d = np.memmap(self._handle, self._data_type, 'r',
@@ -1666,17 +1671,24 @@ class AmplifierState:
         # Read properties
         i = handle.tell()
 
-        # Current gain (V/A)
+        # Current gain (the "gain" in VC mode) (V/A)
         handle.seek(i + 8)      # sCurrentGain = 8;  (* LONGREAL *)
         self._current_gain = reader.read1('d')
 
         # Holding potential and offsets
         handle.seek(i + 112)  # sVHold = 112; (* LONGREAL *)
-        self._holding = reader.read1('d')
+        self._vhold = reader.read1('d')
         handle.seek(i + 128)  # sVpOffset = 128; (* LONGREAL *)
         self._voff = reader.read1('d')
         handle.seek(i + 136)  # sVLiquidJunction = 136; (* LONGREAL *)
         self._ljp = reader.read1('d')
+
+        # Current clamp settings
+        handle.seek(i + 144)  # sCCIHold = 144; (* LONGREAL *)
+        self._ihold = reader.read1('d')
+        # Stimulus scaling in current clamp mode (a byte / enum)
+        handle.seek(i + 243)    # sCCGain = 243; (* BYTE *)
+        self._cc_gain = reader.read1('b')
 
         # Series resistance and compensation
         handle.seek(i + 40)     # sRsFraction = 40; (* LONGREAL *)
@@ -1730,6 +1742,10 @@ class AmplifierState:
         handle.seek(i + 16)  # sF2Bandwidth = 16; (* LONGREAL *)
         self._filter2_freq_both = reader.read1('d') * 1e-3
 
+        # Stimulus filter
+        handle.seek(i + 282)  # sStimFilterOn = 282; (* BYTE *)
+        self._stimulus_filter = StimulusFilterSetting(reader.read1('b'))
+
         # Suspect this indicates external filter 2
         #handle.seek(i + 287)  # sF2Source = 287; (* BYTE *)
         #self._temp['sF2Source'] = reader.read1('b')
@@ -1752,9 +1768,16 @@ class AmplifierState:
         #handle.seek(i + 264)  # sImon1Bandwidth = 264; (* LONGREAL *)
         #self._temp['sImon1Bandwidth'] = reader.read1('d')
 
-        # Stimulus filter
-        handle.seek(i + 282)  # sStimFilterOn = 282; (* BYTE *)
-        self._stimulus_filter = StimulusFilterSetting(reader.read1('b'))
+        #handle.seek(i + 242)  # sCCRange = 242; (* BYTE *)
+        #print('CC range', reader.read1('b'))
+        #handle.seek(i + 285)  # sCCCFastOn = 285; (* BYTE *)
+        #print('CC fast on', reader.read1('b'))
+        #handle.seek(i + 286)  # sCCFastSpeed = 286; (* BYTE *)
+        #print('CC fast speed', reader.read1('b'))
+        #handle.seek(i + 376)  # sCCStimDacScale = 376; (* LONGREAL *)
+        #print('CC stim dac scale', reader.read1('d'))
+        #handle.seek(i + 160)  # sCCTrackVHold = 160; (* LONGREAL *)
+        #print('CCTrackVHold', reader.read1('d'))
 
     def c_fast(self):
         """
@@ -1820,9 +1843,37 @@ class AmplifierState:
         """
         return self._cs_range
 
+    def current_clamp_stimulus_gain(self):
+        """
+        Returns the "CC-Gain" setting, in pA/mV.
+
+        For current-clamp measurements, this is one of two values (along with
+        the "CC Stim. Scale", which is currently not provided by this class)
+        that determines the scaling of applied stimuli.
+
+        **This value is provided for information only**: stimuli returned by
+        the :class:`PatchMasterFile` methods are already scaled appropriately.
+        """
+        gain_values = (0.1, 1, 10, 100)
+        try:
+            return gain_values[self._cc_gain]
+        except IndexError:  # pragma: no-cover
+            raise NotImplementedError(
+                'Unexpected value found for current clamp gain'
+                f' ({self._cc_gain}).')
+
     def current_gain(self):
         """
-        The gain setting for current measurements, in mV/pA.
+        The gain setting of the "current monitor" output, in mV/pA.
+
+        For voltage-clamp measurements, this is the main "gain" setting used to
+        record currents.
+
+        **This value is provided for information only**: the currents returned
+        by the :class:`PatchMasterFile` methods are already scaled
+        appropriately. The chosen gain value is mainly interesting because it
+        determines the feedback resistor used in the headstage. See the
+        Patchmaster and amplifier manuals for details.
         """
         return self._current_gain * 1e-9
 
@@ -1874,6 +1925,12 @@ class AmplifierState:
         fs = round(self._filter2_freq_solo, 2)
         fb = int(fb) if fb == int(fb) else fb
         return f'{self._filter2_type} {fb} kHz combined, {fs} kHz f2-only'
+
+    def i_hold(self):
+        """
+        Returns the current-clamp holding current, in pA.
+        """
+        return self._ihold * 1e12
 
     def ljp(self):
         """
@@ -1942,12 +1999,12 @@ class AmplifierState:
 
     def v_hold(self):
         """
-        Returns the holding potential (in mV).
+        Returns the voltage-clamp holding potential (in mV).
 
         This is the potential last set in the amplifier window, before any
         experiments were run.
         """
-        return self._holding * 1e3
+        return self._vhold * 1e3
 
 
 class Filter1Setting(enum.Enum):
