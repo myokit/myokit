@@ -222,7 +222,7 @@ check_cvode_flag(int flag)
 #if SUNDIALS_VERSION_MAJOR >= 7
 /*
  * Check sundials error code (Sundials 7 and above)
- *  sunerr   : The SunErroCode to check
+ *  code     : The SunErroCode to check
  *  funcname : The name of the function that returned the flag
  */
 int
@@ -295,6 +295,9 @@ SUNLinearSolver sundense_solver;    /* Linear solver object */
 #endif
 #if SUNDIALS_VERSION_MAJOR >= 6
 SUNContext sundials_context; /* A sundials context to run in (for profiling etc.) */
+#endif
+#if SUNDIALS_VERSION_MAJOR >= 7
+SUNLogger sundials_logger;
 #endif
 
 UserData udata;      /* UserData struct, used to pass in parameters */
@@ -717,6 +720,9 @@ sim_init(PyObject *self, PyObject *args)
     #endif
     #if SUNDIALS_VERSION_MAJOR >= 6
     sundials_context = NULL;
+    #endif
+    #if SUNDIALS_VERSION_MAJOR >= 7
+    sundials_logger = NULL;
     #endif
 
     /* Check input arguments     01234567890123456 */
@@ -1152,8 +1158,14 @@ sim_init(PyObject *self, PyObject *args)
 
         /* Set error and warning-message handler */
         #if SUNDIALS_VERSION_MAJOR >= 7
+        sunerr = SUNContext_ClearErrHandlers(sundials_context);
+        if (check_sundials_error(sunerr, "SUNContext_ClearErrHandlers")) return sim_clean();
         sunerr = SUNContext_PushErrHandler(sundials_context, ErrorHandler, NULL);
         if (check_sundials_error(sunerr, "SUNContext_PushErrHandler")) return sim_clean();
+        sunerr = SUNContext_GetLogger(sundials_context, &sundials_logger);
+        if (check_cvode_related_flag(flag_cvode, "SUNContext_GetLogger")) return sim_clean();
+        sunerr = SUNLogger_SetWarningFilename(sundials_logger, "");
+        if (check_cvode_related_flag(flag_cvode, "SUNLogger_SetWarningFilename")) return sim_clean();
         #else
         flag_cvode = CVodeSetErrHandlerFn(cvode_mem, ErrorHandler, NULL);
         if (check_cvode_related_flag(flag_cvode, "CVodeSetErrHandlerFn")) return sim_clean();
