@@ -7,6 +7,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1143](https://github.com/myokit/myokit/pull/1143) Added `convert_ramps` argument AbfFile which, if set, will allow reading ramps as steps (instead of refusing to import the protocol entirely).
   - [#1152](https://github.com/myokit/myokit/pull/1152) Added `Simulation.crash_log()` to return the logged data up until a `SimulationError`.
   - [#1155](https://github.com/myokit/myokit/pull/1155) The Patchmaster file reader now provides the holding current and "CC Gain" settings.
+  - [#1165](https://github.com/myokit/myokit/pull/1165) Added partial support for `min` and `max` in MathML. For now, only the binary forms are supported, and the import converts to an `if` function.
 - Changed
   - [#1147](https://github.com/myokit/myokit/pull/1147) In imported CellML files, the `author` meta data field is now called `mmt_authors`, reflecting it indicates the author(s) of the mmt implementation (rather than the model authors).
 - Deprecated
