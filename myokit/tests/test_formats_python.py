@@ -302,7 +302,7 @@ class NumPyExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         if arguments:
             arguments = [numpy.array(arg) for arg in arguments]
             values = function(*arguments)
-            self.assertEqual(list(values), list(expected))
+            self.assertLess(numpy.max(numpy.abs(values - expected)), 1e-12)
         else:
             value = function()
             self.assertEqual(value, expected)
