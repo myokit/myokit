@@ -133,7 +133,7 @@ class AnsiCExpressionWriter(CBasedExpressionWriter):
     def set_condition_function(self, func=None):
         """
         Sets a function name to use for :class:`myokit.If`; if not set the
-        ternary operatur will be used.
+        ternary operator will be used.
 
         If given, the function arguments should be ``(condition, value_if_true,
         value_if_false)``. To revert to using the ternary operator, call with

@@ -145,6 +145,13 @@ class MathMLParser:
     ``<rem>``
         Becomes a :class:`myokit.Remainder`.
 
+    Minimum and maximum
+
+    ``<max>`` and ``<min>``
+        Are converted to if-statements. Only binary comparisons are supported,
+        and the resulting ``if`` will evaluate its operands twice, which may be
+        inefficient if either operand is a complex expression.
+
     Trigonometry
 
     ``<sin>``, ``<cos>`` and ``<tan>``
@@ -415,6 +422,12 @@ class MathMLParser:
         elif name == 'leq':
             return myokit.LessEqual(*self._eat(element, iterator, 2))
 
+        # Min and max
+        elif name == 'min':
+            return self._parse_minmax(element, iterator, myokit.Less)
+        elif name == 'max':
+            return self._parse_minmax(element, iterator, myokit.More)
+
         # Trigonometry
         elif name == 'sin':
             return myokit.Sin(*self._eat(element, iterator))
@@ -654,6 +667,41 @@ class MathMLParser:
             return myokit.Log10(op)
         else:
             return myokit.Log(op, base)
+
+    def _parse_minmax(self, element, iterator, operator):
+        """
+        Parses a ``min`` or ``max`` operation, replacing it with one or more
+        :class:`myokit.If` functions.
+
+        Caveats: Only binary min & max are supported, and if either operand is
+        a complex expression if will evaluated twice.
+
+        Arguments:
+
+        ``element``
+            The element that determined the operator type.
+        ``iterator``
+            An iterator pointing at the first element after ``element``.
+        ``operator``
+            Either :class:`myokit.Less` or :class:`myokit.More`, depending on
+            the desired operation.
+
+        """
+        # Get all operands
+        ops = [self._parse_atomic(x) for x in iterator]
+
+        # Check the number of operands
+        n = len(ops)
+        if n != 2:
+            raise MathMLError(
+                'Only binary min() and max() operations are supported.',
+                element)
+
+        # Return chain of ifs
+        e = ops[0]
+        for i in range(1, n):
+            e = myokit.If(operator(e, ops[i]), e, ops[i])
+        return e
 
     def _parse_nary(self, element, iterator, binary, unary=None):
         """

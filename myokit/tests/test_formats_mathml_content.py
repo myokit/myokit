@@ -357,27 +357,10 @@ class ContentMathMLParserTest(unittest.TestCase):
         )
 
     def test_functions(self):
-        # Tests parsing basic functions
-
-        # Power
-        a = myokit.Name('a')
-        b = myokit.Number(1)
-        c = myokit.Number(2)
-        e = myokit.Power(a, b)
-        x = '<apply><power/><ci>a</ci><cn>1.0</cn></apply>'
-        self.assertEqual(self.p(x), e)
-        e = myokit.Power(myokit.Power(a, b), c)
-        x = ('<apply><power/><apply><power/><ci>a</ci><cn>1.0</cn></apply>'
-             '<cn>2.0</cn></apply>')
-        self.assertEqual(self.p(x), e)
-        e = myokit.Power(a, myokit.Power(b, c))
-        x = ('<apply><power/><ci>a</ci><apply><power/><cn>1.0</cn><cn>2.0</cn>'
-             '</apply></apply>')
-        self.assertEqual(self.p(x), e)
-
-        #TODO: Degree etc.
+        # Tests parsing simple functions
 
         # Exp
+        a = myokit.Name('a')
         e = myokit.Exp(a)
         x = '<apply><exp/><ci>a</ci></apply>'
         self.assertEqual(self.p(x), e)
@@ -393,9 +376,18 @@ class ContentMathMLParserTest(unittest.TestCase):
             mathml.MathMLError, r'Expecting 1 operand\(s\)', self.p, x)
 
         # Floor
+        b = myokit.Number(1)
         e = myokit.Floor(b)
         x = '<apply><floor/><cn>1.0</cn></apply>'
         self.assertEqual(self.p(x), e)
+
+        # Test number of arguments to unary operator
+        x = '<apply><floor/></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, r'Expecting 1 operand\(s\), got 0', self.p, x)
+        x = '<apply><floor/><cn>1.0</cn><cn>2.0</cn></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, r'Expecting 1 operand\(s\), got 2', self.p, x)
 
         # Ceil
         e = myokit.Ceil(b)
@@ -465,6 +457,50 @@ class ContentMathMLParserTest(unittest.TestCase):
              '</apply>')
         self.assertRaisesRegex(
             mathml.MathMLError, 'Expecting a single', self.p, x)
+
+    def test_functions_minmax(self):
+        # Tests parsing min and max
+
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        x = '<apply><min/><ci>a</ci><cn>1.0</cn></apply>'
+        e = myokit.If(myokit.Less(a, b), a, b)
+        self.assertEqual(self.p(x), e)
+
+        c = myokit.Number(7)
+        x = '<apply><max/><cn>7.0</cn><ci>a</ci></apply>'
+        e = myokit.If(myokit.More(c, a), c, a)
+        self.assertEqual(self.p(x), e)
+
+        x = f'<apply><min/><ci>a</ci>{x}</apply>'
+        e = myokit.If(myokit.Less(a, e), a, e)
+        self.assertEqual(self.p(x), e)
+
+        # Unsupported number of operands
+        x = '<apply><min/><ci>a</ci></apply>'
+        self.assertRaisesRegex(mathml.MathMLError, 'Only binary', self.p, x)
+        x = '<apply><min/><ci>a</ci><ci>b</ci><ci>c</ci></apply>'
+        self.assertRaisesRegex(mathml.MathMLError, 'Only binary', self.p, x)
+
+    def test_functions_power(self):
+        # Tests parsing powers
+
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        c = myokit.Number(2)
+        e = myokit.Power(a, b)
+        x = '<apply><power/><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        e = myokit.Power(myokit.Power(a, b), c)
+        x = ('<apply><power/><apply><power/><ci>a</ci><cn>1.0</cn></apply>'
+             '<cn>2.0</cn></apply>')
+        self.assertEqual(self.p(x), e)
+
+        e = myokit.Power(a, myokit.Power(b, c))
+        x = ('<apply><power/><ci>a</ci><apply><power/><cn>1.0</cn><cn>2.0</cn>'
+             '</apply></apply>')
+        self.assertEqual(self.p(x), e)
 
     def test_functions_root(self):
         # Tests parsing roots
