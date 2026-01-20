@@ -121,10 +121,8 @@ class FormatsTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'Unaccepted input', sf, '  +INFINITY\n')
 
-        # Error raises by float()
+        # Error raised by float()
         self.assertRaisesRegex(ValueError, 'could not convert', sf, 'three')
-
-
 
 
 class ExporterTest(unittest.TestCase):
