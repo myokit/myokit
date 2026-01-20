@@ -654,19 +654,28 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Real
         x = self.p('<cn>4</cn>')
         self.assertEqual(x, myokit.Number(4))
-        x = self.p('<cn>   4  \n </cn>')
+        x = self.p('<cn>   4.0  \n </cn>')
         self.assertEqual(x, myokit.Number(4))
         x = self.p('<cn type="real">4</cn>')
         self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unable to convert contents of <cn>',
             self.p, '<cn>barry</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn>nan</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn>-Infinity</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn>\n+inf</cn>')
 
         # Real with base
-        x = self.p('<cn type="real" base="10">4</cn>')
-        self.assertEqual(x, myokit.Number(4))
-        x = self.p('<cn type="real" base="  10  ">4</cn>')
-        self.assertEqual(x, myokit.Number(4))
+        self.assertEqual(
+            myokit.Number(4), self.p('<cn type="real" base="10">4</cn>'))
+        self.assertEqual(
+            myokit.Number(-3), self.p('<cn type="real" base=" 10 ">-3.0</cn>'))
         self.assertRaisesRegex(
             mathml.MathMLError, 'bases other than 10',
             self.p, '<cn type="real" base="9">4</cn>')
@@ -693,21 +702,24 @@ class ContentMathMLParserTest(unittest.TestCase):
             self.p, '<cn type="integer" base="barry">7</cn>')
 
         # Double
-        x = self.p('<cn type="double">4</cn>')
-        self.assertEqual(x, myokit.Number(4))
-        x = self.p('<cn type="double">\t4\n</cn>')
-        self.assertEqual(x, myokit.Number(4))
+        self.assertEqual(
+            myokit.Number(-3), self.p('<cn type="double">-3</cn>'))
+        self.assertEqual(
+            myokit.Number(4), self.p('<cn type="double">\t4\n</cn>'))
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unable to convert contents of <cn>',
             self.p, '<cn type="double">larry</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn type="double">nan</cn>')
 
         # E-notation
         x = self.p('<cn type="e-notation">40<sep/>-1</cn>')
         self.assertEqual(x, myokit.Number(4))
         x = self.p('<cn type="e-notation">\n40<sep/>-1</cn>')
         self.assertEqual(x, myokit.Number(4))
-        x = self.p('<cn type="e-notation">40<sep/>\t-1</cn>')
-        self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="e-notation"> -40.3<sep/>\t-12</cn>')
+        self.assertEqual(x, myokit.Number(-40.3e-12))
         self.assertRaisesRegex(
             mathml.MathMLError, 'e-notation should have the format',
             self.p, '<cn type="e-notation">12</cn>')
@@ -725,7 +737,19 @@ class ContentMathMLParserTest(unittest.TestCase):
             self.p, '<cn type="e-notation">2<sep/></cn>')
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unable to parse number in e-notation',
+            self.p, '<cn type="e-notation">1e3<sep/>1</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to parse number in e-notation',
+            self.p, '<cn type="e-notation">1<sep/>1e3</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to parse number in e-notation',
             self.p, '<cn type="e-notation">larry<sep/>2</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to parse number in e-notation',
+            self.p, '<cn type="e-notation">nan<sep/>2</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to parse number in e-notation',
+            self.p, '<cn type="e-notation">1<sep/>inf</cn>')
 
         # Rational
         x = self.p('<cn type="rational">16<sep/>4</cn>')

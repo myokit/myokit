@@ -14,6 +14,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1166](https://github.com/myokit/myokit/pull/1166) MathML `<cn>` parsing now correctly rejects strings like `nan` and `inf` that were previously accepted.
   - [#1170](https://github.com/myokit/myokit/pull/1170) Fixed bug where `myokit.Number`'s constructor was too lenient, converting e.g. variables to `0` and leading to unexpected results.
 
 ## [1.38.0] - 2025-08-14

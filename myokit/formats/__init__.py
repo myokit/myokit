@@ -897,9 +897,11 @@ def strict_str_to_float(text):
 
     Calls ``float(text)``, but only after the following checks pass:
 
-    1. The given ``text`` is a string (not e.g. an integer or numpy number)
+    1. The given ``text`` is a string (not e.g. an integer or numpy number).
+       Failing this check raises a :class:`TypeError`.
     2. ``text.strip().lower()`` does not equal ``inf``, ``nan``, ``infinity``,
-       or the same preceded by ``+`` or ``-``.
+       or the same preceded by ``+`` or ``-``. Failing this check raises a
+       :class:`ValueError`.
 
     This function is meant to allow reading string numbers from formats where
     stricter _input_ checking is required. No checks are made on the _output_:
@@ -908,13 +910,14 @@ def strict_str_to_float(text):
     Returns the converted ``float`` value.
     """
     if not isinstance(text, str):
-        raise ValueError(f'Expected string input, but got {type(text)}.')
+        raise TypeError(f'Expected string input, but got {type(text)}.')
 
     x = text.strip().lower()
     if x[0] in '+-':
         x = x[1:]
     if x in ('inf', 'nan', 'infinity'):
         raise ValueError(f'Unaccepted input {text}')
+    del x
 
-    return float(x)
+    return float(text)
 

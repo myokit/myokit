@@ -98,6 +98,34 @@ class FormatsTest(unittest.TestCase):
             KeyError, 'Expression writer not found',
             myokit.formats.ewriter, 'testo')
 
+    def test_strict_str_to_float(self):
+        # Tests the str-to-float that doens't accept nan, inf, or non-string
+
+        sf = myokit.formats.strict_str_to_float
+        self.assertEqual(3, sf('3'))
+        self.assertEqual(3, sf(' 3 '))
+        self.assertEqual(3, sf('\t\f+3.0\n'))
+        self.assertEqual(-3, sf('\t\f-3.0\n'))
+        self.assertEqual(-1.234e-56, sf('-1.234e-56'))
+
+        # Non-string inputs
+        import numpy as np
+        self.assertRaisesRegex(TypeError, 'Expected string', sf, 3)
+        self.assertRaisesRegex(TypeError, 'Expected string', sf, 3.0)
+        self.assertRaisesRegex(TypeError, 'Expected string', sf, np.float64(3))
+        self.assertRaisesRegex(TypeError, 'Expected string', sf, [3])
+
+        # Accepted by float, not by sf
+        self.assertRaisesRegex(ValueError, 'Unaccepted input', sf, 'nan')
+        self.assertRaisesRegex(ValueError, 'Unaccepted input', sf, 'inf')
+        self.assertRaisesRegex(
+            ValueError, 'Unaccepted input', sf, '  +INFINITY\n')
+
+        # Error raises by float()
+        self.assertRaisesRegex(ValueError, 'could not convert', sf, 'three')
+
+
+
 
 class ExporterTest(unittest.TestCase):
     """ Tests shared :class:`Exporter` functionality. """

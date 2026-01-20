@@ -762,7 +762,8 @@ class MathMLParser:
                 base = int(base)
             except (TypeError, ValueError):
                 raise MathMLError(
-                    'Invalid base specified on <ci> element.', element)
+                    f'Invalid base specified on <ci> element: {base}.',
+                    element)
             if base != 10:
                 raise MathMLError(
                     'Real numbers in bases other than 10 are not supported.',
@@ -867,7 +868,7 @@ class MathMLParser:
                 value = int(numer) / int(denom)
             except ValueError:
                 raise MathMLError(
-                    f'Unable to parse rational number "{numer} / {denom}".,
+                    f'Unable to parse rational number "{numer} / {denom}".',
                     element)
 
         else:
