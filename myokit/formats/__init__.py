@@ -888,3 +888,33 @@ class SweepSource:
         """ Returns the time unit used in this source. """
         raise NotImplementedError
 
+
+def strict_str_to_float(text):
+    """
+    Converts a string to a float, but without accepting some input that
+    Python's ``float`` constructor accepts, such as ``nan``, ``inf``, or
+    non-string inputs.
+
+    Calls ``float(text)``, but only after the following checks pass:
+
+    1. The given ``text`` is a string (not e.g. an integer or numpy number)
+    2. ``text.strip().lower()`` does not equal ``inf``, ``nan``, ``infinity``,
+       or the same preceded by ``+`` or ``-``.
+
+    This function is meant to allow reading string numbers from formats where
+    stricter _input_ checking is required. No checks are made on the _output_:
+    passing in e.g. ``"1e99"`` will still return ``inf``.
+
+    Returns the converted ``float`` value.
+    """
+    if not isinstance(text, str):
+        raise ValueError(f'Expected string input, but got {type(text)}.')
+
+    x = text.strip().lower()
+    if x[0] in '+-':
+        x = x[1:]
+    if x in ('inf', 'nan', 'infinity'):
+        raise ValueError(f'Unaccepted input {text}')
+
+    return float(x)
+

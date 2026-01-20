@@ -6,6 +6,7 @@
 #
 import myokit
 
+from myokit.formats import strict_str_to_float as strict_float
 from myokit.formats.xml import split
 
 
@@ -758,26 +759,27 @@ class MathMLParser:
             # May be in a different base than 10
             base = element.attrib.get('base', '10').strip()
             try:
-                base = float(base)
+                base = int(base)
             except (TypeError, ValueError):
                 raise MathMLError(
                     'Invalid base specified on <ci> element.', element)
             if base != 10:
                 raise MathMLError(
-                    'Numbers in bases other than 10 are not supported.',
+                    'Real numbers in bases other than 10 are not supported.',
                     element)
 
             # Get value
             # Note: We are being tolerant here and allowing e-notation (which
-            # is not consistent with the spec!)
+            # is not consistent with the spec). However, not accepting "nan" or
+            # "inf" or similar.
             if element.text is None:
                 raise MathMLError('Empty <cn> element', element)
             try:
-                value = float(element.text.strip())
+                value = strict_float(element.text)
             except ValueError:
                 raise MathMLError(
-                    'Unable to convert contents of <cn> to a real number: "'
-                    + str(element.text) + '"', element)
+                    'Unable to convert contents of <cn> to a real number:'
+                    f' "{element.text}".', element)
 
         elif kind == 'integer':
             # Integer in any given base
@@ -786,30 +788,28 @@ class MathMLParser:
                 base = int(base)
             except ValueError:
                 raise MathMLError(
-                    'Unable to parse base of <cn> element: "' + base + '"',
-                    element)
+                    f'Unable to parse base of <cn> element: "{base}"', element)
 
             # Get value
             if element.text is None:
                 raise MathMLError('Empty <cn> element', element)
             try:
-                value = int(element.text.strip(), base)
+                value = int(element.text, base)
             except ValueError:
                 raise MathMLError(
-                    'Unable to convert contents of <cn> to an integer: "'
-                    + str(element.text) + '"', element)
+                    'Unable to convert contents of <cn> to an integer:'
+                    f' "{element.text}".', element)
 
         elif kind == 'double':
             # Floating point (positive, negative, exponents, etc)
-
             if element.text is None:
                 raise MathMLError('Empty <cn> element', element)
             try:
-                value = float(element.text.strip())
+                value = strict_float(element.text)
             except ValueError:
                 raise MathMLError(
-                    'Unable to convert contents of <cn> to a real number: "'
-                    + str(element.text) + '"', element)
+                    'Unable to convert contents of <cn> to a real number:'
+                    f' "{element.text}".', element)
 
         elif kind == 'e-notation':
             # 1<sep />3 = 1e3
@@ -835,11 +835,11 @@ class MathMLParser:
 
             # Get value
             try:
-                value = float(sig.strip() + 'e' + exp.strip())
+                value = float(f'{sig.strip()}e{exp.strip()}')
             except ValueError:
                 raise MathMLError(
-                    'Unable to parse number in e-notation "' + sig + 'e' + exp
-                    + '".', element)
+                    f'Unable to parse number in e-notation "{sig}e{exp}".',
+                    element)
 
         elif kind == 'rational':
             # 1<sep />3 = 1 / 3
@@ -864,14 +864,14 @@ class MathMLParser:
 
             # Get value
             try:
-                value = float(numer.strip()) / float(denom.strip())
+                value = int(numer) / int(denom)
             except ValueError:
                 raise MathMLError(
-                    'Unable to parse rational number "' + numer + ' / ' + denom
-                    + '".', element)
+                    f'Unable to parse rational number "{numer} / {denom}".,
+                    element)
 
         else:
-            raise MathMLError('Unsupported <cn> type: ' + kind, element)
+            raise MathMLError(f'Unsupported <cn> type: {kind}', element)
 
         # Create number and return
         return self._nfac(value, element)
