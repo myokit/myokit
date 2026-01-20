@@ -15,6 +15,7 @@ myokit.formats
 - :meth:`myokit.formats.register_external_ewriter`
 - :meth:`myokit.formats.register_external_importer`
 - :meth:`myokit.formats.register_external_exporter`
+- :meth:`myokit.formats.strict_str_to_float`
 - :class:`myokit.formats.SweepSource`
 - :class:`myokit.formats.TemplatedRunnableExporter`
 
