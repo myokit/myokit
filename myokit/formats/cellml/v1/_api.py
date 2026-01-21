@@ -1083,11 +1083,8 @@ class Model(AnnotatableElement):
                             # Note: In this case, rhs_or_initial_value() always
                             # returns the RHS, so ``rhs`` is guaranteed not to
                             # be the initial value
-                            init = variable.initial_value()
-                            if init is None:
-                                v.promote(0)
-                            else:
-                                v.promote(init.clone(subst=var_map))
+                            v.promote(
+                                variable.initial_value().clone(subst=var_map))
 
                 # Add local copies of variables requiring unit conversion
                 elif variable in needs_conversion:
@@ -1674,7 +1671,7 @@ class Variable(AnnotatableElement):
         if not isinstance(value, myokit.Expression):
             raise ValueError(
                 'Initial value must be specified as myokit.Expression, but got'
-                f' {type(value)}')
+                f' {type(value)}.')
 
         # Check interface
         if self._public_interface == 'in' or self._private_interface == 'in':
@@ -1731,7 +1728,7 @@ class Variable(AnnotatableElement):
         if not isinstance(rhs, myokit.Expression):
             raise ValueError(
                 'Equations must be specified as myokit.Expression, but got'
-                f' {type(value)}')
+                f' {type(rhs)}.')
 
         # Check interface
         if self._public_interface == 'in' or self._private_interface == 'in':

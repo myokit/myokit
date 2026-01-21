@@ -1166,6 +1166,12 @@ class TestCellML1Variable(unittest.TestCase):
             cellml.CellMLError, 'from the same component',
             v.set_initial_value, myokit.Name(z))
 
+        # Can't be any other type of expression
+        self.assertRaisesRegex(
+            cellml.CellMLError, r'In CellML 1.1, an initial_value \(if set\)',
+            v.set_initial_value,
+            myokit.Plus(myokit.Number(1), myokit.Number(2)))
+
         # In 1.0, can only be a number
         c = cellml.Model('m', version='1.0').add_component('c')
         v = c.add_variable('v', 'volt')
@@ -1263,6 +1269,11 @@ class TestCellML1Variable(unittest.TestCase):
         v.set_rhs(None)
         self.assertIsNone(v.rhs())
 
+        # Must be an expression
+        self.assertRaises(ValueError, v.set_rhs, 'a')
+        self.assertRaises(ValueError, v.set_rhs, '1 + 2')
+        self.assertRaises(ValueError, v.set_rhs, 13)
+
         # Bad interface
         w = v.component().add_variable('w', 'volt', 'in')
         self.assertRaisesRegex(
@@ -1285,6 +1296,7 @@ class TestCellML1Variable(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'units appearing in a variable\'s RHS',
             v.set_rhs, rhs)
+
 
     def test_set_and_is_state(self):
         # Tests Variable.set_is_state() and Variable.is_state()
