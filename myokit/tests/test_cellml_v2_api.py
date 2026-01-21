@@ -1912,36 +1912,6 @@ class TestCellML2Methods(unittest.TestCase):
         self.assertFalse(cellml.is_integer_string('a'))
         self.assertFalse(cellml.is_integer_string('12C'))
 
-    def test_is_basic_real_number_string(self):
-        # Tests is_basic_real_number_string().
-
-        self.assertTrue(cellml.is_basic_real_number_string('0'))
-        self.assertTrue(cellml.is_basic_real_number_string('+0'))
-        self.assertTrue(cellml.is_basic_real_number_string('-0'))
-        self.assertTrue(cellml.is_basic_real_number_string('3'))
-        self.assertTrue(cellml.is_basic_real_number_string('+3'))
-        self.assertTrue(cellml.is_basic_real_number_string('-3'))
-        self.assertTrue(cellml.is_basic_real_number_string(
-            '3426938669860453783679436474536745674567887'))
-        self.assertTrue(cellml.is_basic_real_number_string(
-            '-.342693866982438645847568457875604537836794387'))
-        self.assertTrue(cellml.is_basic_real_number_string('1.2'))
-        self.assertTrue(cellml.is_basic_real_number_string('-1.2'))
-        self.assertTrue(cellml.is_basic_real_number_string('1.0'))
-        self.assertTrue(cellml.is_basic_real_number_string('1.'))
-        self.assertTrue(cellml.is_basic_real_number_string('.1'))
-
-        self.assertFalse(cellml.is_basic_real_number_string(''))
-        self.assertFalse(cellml.is_basic_real_number_string('.'))
-        self.assertFalse(cellml.is_basic_real_number_string('1e3'))
-        self.assertFalse(cellml.is_basic_real_number_string('++1'))
-        self.assertFalse(cellml.is_basic_real_number_string('+-3'))
-        self.assertFalse(cellml.is_basic_real_number_string('--1'))
-        self.assertFalse(cellml.is_basic_real_number_string('+'))
-        self.assertFalse(cellml.is_basic_real_number_string('-'))
-        self.assertFalse(cellml.is_basic_real_number_string('a'))
-        self.assertFalse(cellml.is_basic_real_number_string('12C'))
-
     def test_is_real_number_string(self):
         # Tests is_real_number_string().
 

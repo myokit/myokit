@@ -824,9 +824,8 @@ class CellMLParser:
                 for name, deps in unresolved.items():
                     deps.difference_update(fresh)
             else:
-                raise CellMLParsingError(
-                    'Unable to resolve network of units in '
-                    + self._tag(element) + '.', element)
+                raise CellMLParsingError('Unable to resolve network of units'
+                                         f' in {self._tag(element)}.', element)
         return ordered
 
     def _tag(self, element, name=None):

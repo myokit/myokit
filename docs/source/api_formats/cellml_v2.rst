@@ -17,14 +17,6 @@ In most cases, it's easier to avoid these methods and use the
 CellML Model API
 ================
 
-.. autofunction:: is_identifier
-
-.. autofunction:: is_integer_string
-
-.. autofunction:: is_basic_real_number_string
-
-.. autofunction:: is_real_number_string
-
 .. autoclass:: Model
 
 .. autoclass:: Component
@@ -36,6 +28,12 @@ CellML Model API
 .. autoclass:: AnnotatableElement
 
 .. autoclass:: CellMLError
+
+.. autofunction:: is_identifier
+
+.. autofunction:: is_integer_string
+
+.. autofunction:: is_real_number_string
 
 .. autofunction:: clean_identifier
 

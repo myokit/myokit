@@ -16,7 +16,7 @@ from ._api import (     # noqa
     UnsupportedBaseUnitsError,
     UnsupportedUnitOffsetError,
     Variable,
-    is_valid_identifier,
+    is_identifier,
 )
 
 from ._parser import (  # noqa

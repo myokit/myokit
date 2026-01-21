@@ -380,7 +380,7 @@ class CellMLParser:
                         ' (3.4.3.7).', child)
 
                 # Check if valid identifier
-                if not myokit.formats.cellml.v1.is_valid_identifier(raw_value):
+                if not myokit.formats.cellml.v1.is_identifier(raw_value):
                     raise CellMLParsingError(
                         'A variable\'s initial_value attribute must be a real'
                         ' number or a valid CellML identifier, but found'
@@ -689,7 +689,7 @@ class CellMLParser:
                     'Encapsulation relationships may not define a name'
                     ' attribute (6.4.2.4).', element)
 
-            if not myokit.formats.cellml.v1.is_valid_identifier(name):
+            if not myokit.formats.cellml.v1.is_identifier(name):
                 raise CellMLParsingError(
                     'Relationship_ref name must be a valid CellML identifier,'
                     f' but found "{name}" (6.4.2.3).', element)

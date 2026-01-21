@@ -12,8 +12,10 @@ This page lists the main changes made to Myokit in each release.
 - Changed
   - [#1147](https://github.com/myokit/myokit/pull/1147) In imported CellML files, the `author` meta data field is now called `mmt_authors`, reflecting it indicates the author(s) of the mmt implementation (rather than the model authors).
   - [#1166](https://github.com/myokit/myokit/pull/1166) The CellML 1 and 2 methods `Variable.set_initial_value` no longer accept number types, but only `myokit.Name`, `myokit.Number`, or `None`. Numbers will still be stored dimensionless.
+  - [#1166](https://github.com/myokit/myokit/pull/1166) Renamed the CellML 1 method `is_valid_identifier` to `is_identifier`, for compatibility with Myokit's CellML 2 API.
 - Deprecated
 - Removed
+  - [#1166](https://github.com/myokit/myokit/pull/1166) Removed `myokit.formats.cellml.v2.is_basic_real()`.
 - Fixed
   - [#1166](https://github.com/myokit/myokit/pull/1166) MathML `<cn>` parsing now correctly rejects strings like `nan` and `inf` that were previously accepted.
   - [#1170](https://github.com/myokit/myokit/pull/1170) Fixed bug where `myokit.Number`'s constructor was too lenient, converting e.g. variables to `0` and leading to unexpected results.

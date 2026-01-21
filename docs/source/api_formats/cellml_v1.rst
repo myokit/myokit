@@ -17,8 +17,6 @@ In most cases, it's easier to avoid these methods and use the
 CellML Model API
 ================
 
-.. autofunction:: is_valid_identifier
-
 .. autoclass:: Model
 
 .. autoclass:: Component
@@ -36,6 +34,8 @@ CellML Model API
 .. autoclass:: UnsupportedBaseUnitsError
 
 .. autoclass:: UnsupportedUnitOffsetError
+
+.. autofunction:: is_identifier
 
 .. autofunction:: clean_identifier
 

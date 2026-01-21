@@ -15,8 +15,11 @@ import myokit
 _cellml_identifier = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
 _cellml_integer = re.compile(r'^[+-]?[0-9]+$')
 _real = r'[+-]?(([0-9]*\.[0-9]+)|([0-9]+\.?[0-9]*))'
-_cellml_basic_real = re.compile(rf'^{_real}$')
 _cellml_real = re.compile(rf'^{_real}([eE][+-]?[0-9]+)?$')
+_cellml_real = re.compile(
+    rf'^[+-]?(([0-9]*\.[0-9]+)|([0-9]+\.?[0-9]*))([eE][+-]?[0-9]+)?$')
+
+
 
 
 def is_identifier(name):
@@ -37,13 +40,6 @@ def is_integer_string(text):
     Tests if the given ``text`` is a valid CellML 2.0 integer string.
     """
     return _cellml_integer.match(text) is not None
-
-
-def is_basic_real_number_string(text):
-    """
-    Tests if the given ``text`` is a valid CellML 2.0 basic real number string.
-    """
-    return _cellml_basic_real.match(text) is not None
 
 
 def is_real_number_string(text):
@@ -297,7 +293,8 @@ class Model(AnnotatableElement):
 
     - Imports are not supported.
     - Reset rules are not supported.
-    - Using variables in ``initial_value`` attributes is not supported.
+    - Using variables in ``initial_value`` attributes is supported, as long as
+      they have constant values.
     - Defining new base units is not supported.
     - All equations must be of the form ``x = ...`` or ``dx/dt = ...``.
     - Models that take derivatives with respect to more than one variable are
@@ -1597,18 +1594,27 @@ class Variable(AnnotatableElement):
         Sets this variable's intial value (must be a number or ``None``).
         """
         # Allow unsetting with ``None``
-        if value is not None:
+        if value is None:
+            self._cset.set_initial_value(self, value)
+            return
 
-            # Check value is a real number string
-            if isinstance(value, str):
-                if is_real_number_string(value):
-                    value = float(value)
-                else:
-                    raise CellMLError(
-                        'If given, a variable initial_value must be a real'
-                        ' number (using variables as initial values is not'
-                        ' supported).')
+        # Allow string input
+        bad_msg = ('If given, a variable initial_value must be a real number'
+                    f' of the name of a local variable, found{value}.')
+        if isinstance(value, str):
+            if is_real_number_string(value):
+                value = myokit.Number(value)
+            elif is_identifier(value):
+                try:
+                    value = self._component.variable(value)
+                except KeyError:
+                    raise CellMLError(bad_msg)
             else:
+                raise CellMLError(bad_msg)
+
+
+
+
                 value = float(value)
 
             value = myokit.Number(value, self._units.myokit_unit())
@@ -1743,7 +1749,7 @@ class ConnectedVariableSet:
 
     def set_initial_value(self, variable, value=None):
         """
-        Sets the ``initial_value`` for this variable set, as defined for
+        Sets the ``initial_value`` for this variable set, as defined in
         ``variable``.
         """
         if self._initial_value_variable not in (variable, None):
