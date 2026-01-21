@@ -693,7 +693,7 @@ class CellMLParser:
                 raise CellMLParsingError(
                     'Relationship_ref name must be a valid CellML identifier,'
                     f' but found "{name}" (6.4.2.3).', element)
-            rel += ', ' + name
+            rel = f'{rel}, {name}'
 
         # Check uniqueness of relationship (only in null namespace)
         if ns is None and rel in relationships:
