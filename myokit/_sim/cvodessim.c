@@ -33,6 +33,19 @@ import myokit
 #if SUNDIALS_VERSION_MAJOR >= 7
     #define realtype sunrealtype
     #define RCONST SUN_RCONST
+
+/* This is too extreme */
+struct SUNLogger_
+{
+  SUNComm comm;
+  int output_rank;
+
+  FILE* debug_fp;
+  FILE* warning_fp;
+  FILE* info_fp;
+  FILE* error_fp;
+};
+
 #endif
 #include <nvector/nvector_serial.h>
 #include <cvodes/cvodes.h>
@@ -840,6 +853,21 @@ sim_init(PyObject *self, PyObject *args)
     #if SUNDIALS_VERSION_MAJOR >= 7
     sunerr = SUNContext_Create(SUN_COMM_NULL, &sundials_context);
     if (check_sundials_error(sunerr, "SUNContext_Create")) return sim_clean();
+
+    sunerr = SUNContext_ClearErrHandlers(sundials_context);
+    if (check_sundials_error(sunerr, "SUNContext_ClearErrHandlers")) return sim_clean();
+    sunerr = SUNContext_PushErrHandler(sundials_context, ErrorHandler, NULL);
+    if (check_sundials_error(sunerr, "SUNContext_PushErrHandler")) return sim_clean();
+
+    sunerr = SUNContext_GetLogger(sundials_context, &sundials_logger);
+    if (check_sundials_error(sunerr, "SUNContext_GetLogger")) return sim_clean();
+    sundials_logger->warning_fp = NULL;
+    sundials_logger->error_fp = NULL;
+
+    //sunerr = SUNLogger_SetWarningFilename(sundials_logger, NULL);
+    //if (check_cvode_related_flag(flag_cvode, "SUNLogger_SetWarningFilename")) return sim_clean();
+    //sunerr = SUNLogger_SetErrorFilename(sundials_logger, "gg.txt");
+    //if (check_cvode_related_flag(flag_cvode, "SUNLogger_SetErrorFilename")) return sim_clean();
     #elif SUNDIALS_VERSION_MAJOR >= 6
     flag_cvode = SUNContext_Create(NULL, &sundials_context);
     if (check_sundials_flag(flag_cvode, "SUNContext_Create")) return sim_clean();
@@ -1157,16 +1185,7 @@ sim_init(PyObject *self, PyObject *args)
         if (cvode_mem == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate CVODE memory.");
 
         /* Set error and warning-message handler */
-        #if SUNDIALS_VERSION_MAJOR >= 7
-        sunerr = SUNContext_ClearErrHandlers(sundials_context);
-        if (check_sundials_error(sunerr, "SUNContext_ClearErrHandlers")) return sim_clean();
-        sunerr = SUNContext_PushErrHandler(sundials_context, ErrorHandler, NULL);
-        if (check_sundials_error(sunerr, "SUNContext_PushErrHandler")) return sim_clean();
-        sunerr = SUNContext_GetLogger(sundials_context, &sundials_logger);
-        if (check_cvode_related_flag(flag_cvode, "SUNContext_GetLogger")) return sim_clean();
-        sunerr = SUNLogger_SetWarningFilename(sundials_logger, "");
-        if (check_cvode_related_flag(flag_cvode, "SUNLogger_SetWarningFilename")) return sim_clean();
-        #else
+        #if SUNDIALS_VERSION_MAJOR < 7
         flag_cvode = CVodeSetErrHandlerFn(cvode_mem, ErrorHandler, NULL);
         if (check_cvode_related_flag(flag_cvode, "CVodeSetErrHandlerFn")) return sim_clean();
         #endif
