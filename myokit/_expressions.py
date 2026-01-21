@@ -848,7 +848,7 @@ class Number(Expression):
             self._unit = value.unit()
         else:
             # Basic creation with number and unit
-            self._value = float(value) if value else 0.0
+            self._value = float(value)
             if unit is None or isinstance(unit, myokit.Unit):
                 self._unit = unit
             elif isinstance(unit, str):
