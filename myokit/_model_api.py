@@ -4624,9 +4624,9 @@ class Variable(VarOwner):
         Returns an iterator over the set of :class:`Variables <Variable>` that
         refer to this variable.
 
-        By default (``state_refs=False``), the references to this variable's
-        defining :class:`LhsExpression` (i.e. the one returned by
-        :meth:`lhs()`) are returned.
+        By default (``state_refs=False``), the returned variables all refer to
+        this variable's defining :class:`LhsExpression`, i.e. the one returned
+        by :meth:`lhs()`.
 
         For example::
 
@@ -4635,22 +4635,22 @@ class Variable(VarOwner):
 
             a.refs_by() will include b
 
-        But references to state _values_ are not counted::
+        But references to *state values* are not counted::
 
             dot(a) = 2
             b = 1 + a
             c = 1 + dot(a)
 
-            a.refs_by() will NOT include b, but will include c
+            a.refs_by() will include c, but not b
 
         To see who refers to this variable's state value, use
-        ``state_refs=True``:
+        ``state_refs=True``::
 
             dot(a) = 2
             b = 1 + a
             c = 1 + dot(a)
 
-            a.refs_by(True) will include b, but will NOT include c
+            a.refs_by(True) will include b, but not c
 
         Calling ``refs_by(True)`` on a non-state variable will raise an
         :class:`Exception`.
