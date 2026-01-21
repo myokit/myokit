@@ -26,7 +26,7 @@ class TestCellMLWriter(unittest.TestCase):
         c1.set_cmeta_id('commponnent')
         v1 = c1.add_variable('v', 'volt')
         v1.set_cmeta_id('variiable')
-        v1.set_initial_value(3)
+        v1.set_initial_value(myokit.Number(3))
 
         xml = cellml.write_string(m1)
         m2 = cellml.parse_string(xml)
@@ -58,8 +58,8 @@ class TestCellMLWriter(unittest.TestCase):
         q = d.add_variable('q', 'mole', public_interface='in')
         r = c.add_variable('r', 'ampere', public_interface='in')
         s = d.add_variable('r', 'ampere', public_interface='out')
-        p.set_initial_value(1)
-        s.set_initial_value(2)
+        p.set_initial_value(myokit.Number(1))
+        s.set_initial_value(myokit.Number(2))
         m1.add_connection(p, q)
         m1.add_connection(r, s)
 
@@ -138,22 +138,31 @@ class TestCellMLWriter(unittest.TestCase):
         c = m.add_component('c')
         p = c.add_variable('p', 'mole')
 
-        p.set_initial_value(1.234)
+        p.set_initial_value(myokit.Number(1.234))
         x = find(cellml.write_string(m))
         self.assertEqual(x, '1.234')
 
-        p.set_initial_value(1e-6)
+        p.set_initial_value(myokit.Number(1e-6))
         x = find(cellml.write_string(m))
         self.assertEqual(x, '1e-06')
 
-        p.set_initial_value(1e9)
+        p.set_initial_value(myokit.Number(1e9))
         x = find(cellml.write_string(m))
         self.assertEqual(x, '1.00000000000000000e+09')
 
         # String e+00
-        p.set_initial_value(1.23424352342423)
+        p.set_initial_value(myokit.Number(1.23424352342423))
         x = find(cellml.write_string(m))
         self.assertEqual(x, '1.23424352342422994')
+
+        # Variables (in 1.1)
+        m = cellml.Model('m', '1.1')
+        c = m.add_component('c')
+        p = c.add_variable('p', 'mole')
+        q = c.add_variable('q', 'mole')
+        p.set_initial_value(myokit.Name(q))
+        x = find(cellml.write_string(m))
+        self.assertEqual(x, 'q')
 
     def test_maths(self):
         # Test maths is written
@@ -168,18 +177,18 @@ class TestCellMLWriter(unittest.TestCase):
         m1 = cellml.Model('m', version)
         c1 = m1.add_component('c')
         p1 = c1.add_variable('p', 'mole')
-        p1.set_initial_value(2)
+        p1.set_initial_value(myokit.Number(2))
         q1 = c1.add_variable('q', 'dimensionless')
         r1 = c1.add_variable('r', 'second')
         r1.set_is_state(True)
-        r1.set_initial_value(0.1)
+        r1.set_initial_value(myokit.Number(0.1))
         t1 = c1.add_variable('t', 'second')
         m1.set_free_variable(t1)
 
         # Add component without maths
         d1 = m1.add_component('d')
         s1 = d1.add_variable('s', 'volt')
-        s1.set_initial_value(1.23)
+        s1.set_initial_value(myokit.Number(1.23))
 
         # Add two rhs equations
         eq1 = myokit.Plus(myokit.Number(3, myokit.units.mole), myokit.Name(p1))
@@ -202,7 +211,7 @@ class TestCellMLWriter(unittest.TestCase):
         er2 = er1.clone(subst)
         self.assertEqual(q2.rhs(), eq2)
         self.assertEqual(r2.rhs(), er2)
-        self.assertEqual(s2.initial_value(), 1.23)
+        self.assertEqual(s2.initial_value(), myokit.Number(1.23))
         self.assertFalse(p2.is_state())
         self.assertFalse(q2.is_state())
         self.assertTrue(r2.is_state())
@@ -242,10 +251,10 @@ class TestCellMLWriter(unittest.TestCase):
         p = c.add_variable('p', 'ampere')
         s = c.add_variable('s', 'kilogram')
         q = c.add_variable('q', 'mole')
-        r.set_initial_value(1)
-        p.set_initial_value(1)
-        s.set_initial_value(1)
-        q.set_initial_value(1)
+        r.set_initial_value(myokit.Number(1))
+        p.set_initial_value(myokit.Number(1))
+        s.set_initial_value(myokit.Number(1))
+        q.set_initial_value(myokit.Number(1))
 
         xml = cellml.write_string(m)
         reg = re.compile(br'<variable [^>]*name="[\w]+"')
@@ -323,7 +332,7 @@ class TestCellMLWriter(unittest.TestCase):
         p = c.add_variable('p', 'mole')
         q = c.add_variable('q', 'kelvin', public_interface='in')
         r = c.add_variable('r', 'ampere', private_interface='out')
-        p.set_initial_value(1)
+        p.set_initial_value(myokit.Number(1, 'volt'))
 
         with WarningCollector():
             xml = cellml.write_string(m1)
@@ -339,7 +348,7 @@ class TestCellMLWriter(unittest.TestCase):
         self.assertEqual(p.private_interface(), 'none')
         self.assertEqual(q.private_interface(), 'none')
         self.assertEqual(r.private_interface(), 'out')
-        self.assertEqual(p.initial_value(), 1)
+        self.assertEqual(p.initial_value(), myokit.Number(1))
         self.assertEqual(q.initial_value(), None)
         self.assertEqual(r.initial_value(), None)
 
