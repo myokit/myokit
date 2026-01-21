@@ -11,6 +11,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1170](https://github.com/myokit/myokit/pull/1170) `Variable.set_initial_value` now accepts variables, automatically converting them to names.
 - Changed
   - [#1147](https://github.com/myokit/myokit/pull/1147) In imported CellML files, the `author` meta data field is now called `mmt_authors`, reflecting it indicates the author(s) of the mmt implementation (rather than the model authors).
+  - [#1166](https://github.com/myokit/myokit/pull/1166) The CellML 1 and 2 methods `Variable.set_initial_value` no longer accept floats, but only `myokit.Name` or `myokit.Number` objects or `None`. The number objects are now exected to be dimensionless, and will be stored as such.
 - Deprecated
 - Removed
 - Fixed
