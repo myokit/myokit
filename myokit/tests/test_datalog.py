@@ -100,6 +100,23 @@ class DataLogTest(unittest.TestCase):
         self.assertAlmostEqual(1, apds1['duration'][0] / apds2['duration'][0])
         self.assertAlmostEqual(1, apds1['duration'][1] / apds2['duration'][1])
 
+    def test_append_after_access(self):
+        # Test appending to a log after it's been used by matplotlib,
+        # caused problems in older matplotlibs on Python3, but fixed since
+        # Matplotlib 3.6.3 or earlier.
+        import matplotlib
+        matplotlib.use('template')
+        import matplotlib.pyplot as plt
+
+        # Create log, write to it
+        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.Simulation(m, p)
+        d = s.run(1)
+        plt.figure()
+        plt.plot(d.time(), d['membrane.V'])
+        d = s.run(1, log=d)
+        plt.close()
+
     def test_clone(self):
         # Test cloning via constructor and clone() method
 
