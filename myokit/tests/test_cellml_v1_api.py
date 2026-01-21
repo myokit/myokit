@@ -1297,7 +1297,6 @@ class TestCellML1Variable(unittest.TestCase):
             cellml.CellMLError, 'units appearing in a variable\'s RHS',
             v.set_rhs, rhs)
 
-
     def test_set_and_is_state(self):
         # Tests Variable.set_is_state() and Variable.is_state()
 
