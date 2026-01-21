@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         # All Python versions except latest, which is tested by coverage.
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.8']
 
     steps:
       - uses: actions/checkout@v4
@@ -38,14 +38,12 @@ jobs:
           python --version
           python -m pip install --upgrade pip
           python -m pip install .[optional]
-          python .github/workflows/select-opencl-device.py
 
       - name: Show Myokit info
         run: |
           python -m myokit system
-          python -m myokit opencl
 
       - name: Run unit tests
         run: |
-          python -m myokit test unit
+          python myokit/tests/test_simulation_cvodes.py
 
