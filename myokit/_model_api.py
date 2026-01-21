@@ -3926,10 +3926,10 @@ class Variable(VarOwner):
         # the expression returned by rhs()). References to values of state
         # variables are stored separately. Bound variables are treated as if
         # they were unbound.
-        self._refs_by = set()   # Vars that refer to this var
-        self._refs_to = set()   # Vars that this var refers to
-        self._srefs_by = set()  # Vars that refer to this state var's value
-        self._srefs_to = set()  # State var values that this var refers to
+        self._refs_by = set()   # Vars that refer to my LHS
+        self._srefs_by = set()  # Vars that refer to my current state value
+        self._refs_to = set()   # Vars whos LHS I refer to
+        self._srefs_to = set()  # Vars who current state value I refer to
 
         # Left-hand side representation (name or dot)
         self._lhs = myokit.Name(self)
@@ -4621,22 +4621,44 @@ class Variable(VarOwner):
 
     def refs_by(self, state_refs=False):
         """
-        Returns an iterator over the set of :class:`Variables <Variable>`  that
-        refer to this variable in their defining equation.
+        Returns an iterator over the set of :class:`Variables <Variable>` that
+        refer to this variable.
 
-        Note that only references to this variable's defining
-        :class:`LhsExpression` (i.e. the one returned by :meth:`lhs()`) are
-        returned. For a state variable ``x``, this means the returned result
-        contains all variables referring to ``dot(x)``. To get an iterator over
-        the variables referring to ``x`` instead, add the optional attribute
-        ``state_refs=True``. For non-state variables this setting will trigger
-        an :class:`Exception`.
+        By default (``state_refs=False``), the references to this variable's
+        defining :class:`LhsExpression` (i.e. the one returned by
+        :meth:`lhs()`) are returned.
+
+        For example::
+
+            a = 2
+            b = 1 + a
+
+            a.refs_by() will include b
+
+        But references to state _values_ are not counted::
+
+            dot(a) = 2
+            b = 1 + a
+            c = 1 + dot(a)
+
+            a.refs_by() will NOT include b, but will include c
+
+        To see who refers to this variable's state value, use
+        ``state_refs=True``:
+
+            dot(a) = 2
+            b = 1 + a
+            c = 1 + dot(a)
+
+            a.refs_by(True) will include b, but will NOT include c
+
+        Calling ``refs_by(True)`` on a non-state variable will raise an
+        :class:`Exception`.
         """
         if state_refs:
             if not self._is_state:
-                raise Exception(
-                    'The argument "state_refs=True" can only be used on state'
-                    ' variables.')
+                raise Exception('The argument "state_refs=True" can only be'
+                                ' used on state variables.')
             return iter(self._srefs_by)
         return iter(self._refs_by)
 
@@ -4648,6 +4670,8 @@ class Variable(VarOwner):
         By default, this will _not_ include references to a state variable's
         value. To obtain a list of state variables whose value is referenced,
         use ``state_refs=True``.
+
+        See also: :meth:`refs_by`.
         """
         if state_refs:
             return iter(self._srefs_to)
