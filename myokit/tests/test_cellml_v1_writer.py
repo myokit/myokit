@@ -160,6 +160,7 @@ class TestCellMLWriter(unittest.TestCase):
         c = m.add_component('c')
         p = c.add_variable('p', 'mole')
         q = c.add_variable('q', 'mole')
+        q.set_rhs(myokit.Number(1))
         p.set_initial_value(myokit.Name(q))
         x = find(cellml.write_string(m))
         self.assertEqual(x, 'q')
