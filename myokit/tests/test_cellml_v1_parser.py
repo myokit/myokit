@@ -581,7 +581,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Non-existent units
         y = '<apply><eq /><ci>x</ci><cn cellml:units="vlop">-80</cn></apply>'
-        self.assertBad(x + y + z, 'Unknown unit "vlop" referenced')
+        self.assertBad(x + y + z, 'Unknown units "vlop" referenced')
 
         # Unsupported units: Warning
         y = '<apply><eq /><ci>x</ci><cn cellml:units="celsius">2</cn></apply>'

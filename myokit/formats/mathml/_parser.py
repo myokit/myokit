@@ -786,8 +786,7 @@ class MathMLParser:
                 base = int(base)
             except ValueError:
                 raise MathMLError(
-                    'Unable to parse base of <cn> element: "' + base + '"',
-                    element)
+                    f'Unable to parse base of <cn> element: "{base}"', element)
 
             # Get value
             if element.text is None:
@@ -796,20 +795,19 @@ class MathMLParser:
                 value = int(element.text.strip(), base)
             except ValueError:
                 raise MathMLError(
-                    'Unable to convert contents of <cn> to an integer: "'
-                    + str(element.text) + '"', element)
+                    'Unable to convert contents of <cn> to an integer:'
+                    f' "{element.text}".', element)
 
         elif kind == 'double':
             # Floating point (positive, negative, exponents, etc)
-
             if element.text is None:
                 raise MathMLError('Empty <cn> element', element)
             try:
                 value = float(element.text.strip())
             except ValueError:
                 raise MathMLError(
-                    'Unable to convert contents of <cn> to a real number: "'
-                    + str(element.text) + '"', element)
+                    'Unable to convert contents of <cn> to a real number:'
+                    f' "{element.text}".', element)
 
         elif kind == 'e-notation':
             # 1<sep />3 = 1e3
@@ -835,11 +833,11 @@ class MathMLParser:
 
             # Get value
             try:
-                value = float(sig.strip() + 'e' + exp.strip())
+                value = float(f'{sig.strip()}e{exp.strip()}')
             except ValueError:
                 raise MathMLError(
-                    'Unable to parse number in e-notation "' + sig + 'e' + exp
-                    + '".', element)
+                    f'Unable to parse number in e-notation "{sig}e{exp}".',
+                    element)
 
         elif kind == 'rational':
             # 1<sep />3 = 1 / 3
@@ -867,11 +865,11 @@ class MathMLParser:
                 value = float(numer.strip()) / float(denom.strip())
             except ValueError:
                 raise MathMLError(
-                    'Unable to parse rational number "' + numer + ' / ' + denom
-                    + '".', element)
+                    f'Unable to parse rational number "{numer} / {denom}".',
+                    element)
 
         else:
-            raise MathMLError('Unsupported <cn> type: ' + kind, element)
+            raise MathMLError(f'Unsupported <cn> type: {kind}', element)
 
         # Create number and return
         return self._nfac(value, element)

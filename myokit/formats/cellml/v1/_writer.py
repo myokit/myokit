@@ -283,7 +283,7 @@ class CellMLWriter:
                 self._oxmeta_variables.items(), key=lambda x: x[0]):
             description = etree.SubElement(
                 rdf, etree.QName(cellml.NS_RDF, 'Description'))
-            description.attrib[etree.QName(cellml.NS_RDF, 'about')] = '#' + cid
+            description.attrib[etree.QName(cellml.NS_RDF, 'about')] = f'#{cid}'
             iz = etree.SubElement(
                 description, etree.QName(cellml.NS_BQBIOL, 'is'))
             iz.attrib[etree.QName(cellml.NS_RDF, 'resource')] = \
