@@ -15,8 +15,8 @@ import myokit
 _cellml_identifier = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
 _cellml_integer = re.compile(r'^[+-]?[0-9]+$')
 _real = r'[+-]?(([0-9]*\.[0-9]+)|([0-9]+\.?[0-9]*))'
-_cellml_basic_real = re.compile(r'^' + _real + r'$')
-_cellml_real = re.compile(r'^' + _real + r'([eE][+-]?[0-9]+)?$')
+_cellml_basic_real = re.compile(rf'^{_real}$')
+_cellml_real = re.compile(rf'^{_real}([eE][+-]?[0-9]+)?$')
 
 
 def is_identifier(name):
@@ -70,8 +70,7 @@ def clean_identifier(name):
     if is_identifier(clean):
         return clean
     raise ValueError(
-        'Unable to create a valid CellML 2.0 identifier from "' + str(name)
-        + '".')
+        f'Unable to create a valid CellML 2.0 identifier from "{name}".')
 
 
 def create_unit_name(unit):
@@ -262,7 +261,7 @@ class Component(AnnotatableElement):
             parent._children.add(self)
 
     def __str__(self):
-        return 'Component[@name="' + self._name + '"]'
+        return f'Component[@name="{self._name}"]'
 
     def _validate(self):
         """
@@ -401,39 +400,36 @@ class Model(AnnotatableElement):
             interface_2 = 'public'
         else:
             raise CellMLError(
-                'Unable to connect ' + str(variable_1) + ' to '
-                + str(variable_2) + ': connections can only be made between'
-                ' components that are siblings or have a parent-child'
-                ' relationship.')
+                f'Unable to connect {variable_1} to {variable_2}: connections'
+                ' can only be made between components that are siblings or'
+                ' have a parent-child relationship.')
 
         # Check the variables' interfaces.
         if interface_1 not in variable_1.interface():
             raise CellMLError(
-                'Unable to connect ' + str(variable_1) + ' to '
-                + str(variable_2) + ': variable_1 requires the ' + interface_1
-                + ' interface, but is set to ' + variable_1.interface() + '.')
+                f'Unable to connect {variable_1} to {variable_2}: variable_1'
+                f' requires the {interface_1} interface, but is set to'
+                f' {variable_1.interface()}.')
         if interface_2 not in variable_2.interface():
             raise CellMLError(
-                'Unable to connect ' + str(variable_1) + ' to '
-                + str(variable_2) + ': variable_2 requires the ' + interface_2
-                + ' interface, but is set to ' + variable_2.interface() + '.')
+                f'Unable to connect {variable_1} to {variable_2}: variable_2'
+                f' requires the {interface_2} interface, but is set to'
+                f' {variable_2.interface()}.')
 
         # Check the variables' units.
         unit_1 = variable_1.units().myokit_unit()
         unit_2 = variable_2.units().myokit_unit()
         if not myokit.Unit.can_convert(unit_1, unit_2):
             raise CellMLError(
-                'Unable to connect ' + str(variable_1) + ' to '
-                + str(variable_2) + ': Connected variables must have'
-                ' compatible units. Found ' + str(variable_1.units())
-                + ' and ' + str(variable_2.units()) + '.')
+                f'Unable to connect {variable_1} to {variable_2}: Connected'
+                ' variables must have compatible units. Found'
+                f' {variable_1.units()} and {variable_2.units()}.')
 
         # Check the variables aren't already connected
         if variable_1 in variable_2._cset:
             raise CellMLError(
-                'Variables cannot be connected twice: ' + str(variable_1)
-                + ' is already in the connected variable set of '
-                + str(variable_2) + '.')
+                f'Variables cannot be connected twice: {variable_1} is already'
+                f' in the connected variable set of {variable_2}.')
 
         # Connect the variables, by merging their connected variable sets.
         ConnectedVariableSet._merge(variable_1._cset, variable_2._cset)
@@ -967,11 +963,11 @@ class Model(AnnotatableElement):
         elif variable not in self._voi._cset:
             voi = self.variable_of_integration()
             raise CellMLError(
-                'Cannot set ' + str(variable) + ' as variable of integration,'
-                ' the variable ' + str(voi) + ' has already been set.')
+                f'Cannot set {variable} as variable of integration, the'
+                f' variable {voi} has already been set.')
 
     def __str__(self):
-        return 'Model[@name="' + self._name + '"]'
+        return f'Model[@name="{self._name}"]'
 
     def units(self):
         """
@@ -1006,7 +1002,7 @@ class Model(AnnotatableElement):
                 free.add(cset)
                 if self._voi not in cset:
                     for var in cset:
-                        warnings.warn('No value set for ' + str(var) + '.')
+                        warnings.warn(f'No value set for {var}.')
 
         # Check that there's at most one free variable.
         if len(free) > 1:
@@ -1015,20 +1011,20 @@ class Model(AnnotatableElement):
         # Check that the variable of integration is a free variable
         voi = self.variable_of_integration()
         if not (voi is None or voi.is_free()):
-            msg = 'Variable of integration ' + str(voi) + ' must be a free'
-            msg += ' variable, but has '
+            msg = (f'Variable of integration {voi} must be a free variable,'
+                   ' but has ')
             if voi.has_equation():
                 var = voi.equation_variable()
                 if voi is var:
                     msg += 'equation.'
                 else:
-                    msg += 'equation (set by ' + str(var) + ').'
+                    msg += f'equation (set by {var}).'
             else:
                 var = voi.initial_value_variable()
                 if voi is var:
                     msg += 'initial value.'
                 else:
-                    msg += 'initial value (set by ' + str(var) + ').'
+                    msg += f'initial value (set by {var}).'
             raise CellMLError(msg)
 
     def variable_of_integration(self):
@@ -1083,7 +1079,7 @@ class Units:
                 'Units name must be a valid CellML identifier.')
         if not predefined and name in self._si_units:
             raise CellMLError(
-                'Units name "' + name + '" overlaps with a predefined name.')
+                f'Units name "{name}" overlaps with a predefined name.')
         self._name = name
 
         # Check and store Myokit unit
@@ -1110,7 +1106,7 @@ class Units:
             # If not raise error (and one that makes sense even if this was
             # called via a model or component units lookup).
             if myokit_unit is None:
-                raise CellMLError('Unknown units name "' + str(name) + '".')
+                raise CellMLError(f'Unknown units name "{name}".')
 
             # Create and store object
             obj = cls(name, myokit_unit, predefined=True)
@@ -1130,7 +1126,7 @@ class Units:
             return cls._si_units_r[myokit_unit]
         except KeyError:
             raise CellMLError(
-                'No name found for myokit unit ' + str(myokit_unit) + '.')
+                f'No name found for myokit unit f{myokit_unit}.')
 
     def myokit_unit(self):
         """
@@ -1189,14 +1185,13 @@ class Units:
                 except KeyError:
                     raise CellMLError(
                         'Units prefix must be a string from the list of known'
-                        ' prefixes or an integer string, got "' + str(prefix)
-                        + '".')
+                        f' prefixes or an integer string, got "{prefix}".')
 
             # Apply prefix to unit
 
             # float(10**309) is the first int that doesn't fit in a float
             if p > 309:
-                raise CellMLError('Unit prefix too large: 10^' + str(p))
+                raise CellMLError(f'Unit prefix too large: 10^{p}')
             unit *= 10**int(p)
 
         # Handle exponent (note: prefix is exponentiated, multiplier is not).
@@ -1205,8 +1200,8 @@ class Units:
 
             if not is_real_number_string(str(exponent).strip()):
                 raise CellMLError(
-                    'Unit exponent must be a real number string, got "'
-                    + str(multiplier) + '"')
+                    'Unit exponent must be a real number string, got'
+                    f' "{multiplier}".')
             e = float(exponent)
 
             # Apply exponent to unit
@@ -1216,8 +1211,8 @@ class Units:
         if multiplier is not None:
             if not is_real_number_string(str(multiplier).strip()):
                 raise CellMLError(
-                    'Unit multiplier must be a real number string, got "'
-                    + str(multiplier) + '"')
+                    'Unit multiplier must be a real number string, got'
+                    f' "{multiplier}".')
             m = float(multiplier)
 
             # Apply multiplier to unit
@@ -1234,7 +1229,7 @@ class Units:
         return cls._si_units.keys()
 
     def __str__(self):
-        return 'Units[@name="' + self._name + '"]'
+        return f'Units[@name="{self._name}"]'
 
     # Predefined units in CellML, name to Unit
     _si_units = {
@@ -1368,8 +1363,8 @@ class Variable(AnnotatableElement):
         except CellMLError:
             raise CellMLError(
                 'Variable units attribute must reference a units element in'
-                ' the model, or one of the predefined units, found "'
-                + str(units) + '".')
+                ' the model, or one of the predefined units, found'
+                f' "{units}".')
 
         # Check and store interfaces
         interfaces = ('none', 'public', 'private', 'public_and_private')
@@ -1566,8 +1561,7 @@ class Variable(AnnotatableElement):
                     ' of the form `x = ...` or `dx/dt = ...`.')
             if lhs.var() is not self:
                 raise CellMLError(
-                    'Equation for ' + str(lhs.var()) + ' passed to variable '
-                    + str(self) + '.')
+                    f'Equation for f{lhs.var()} passed to variable {self}.')
 
             # Check all references are local
             for ref in lhs.references() | rhs.references():
@@ -1575,7 +1569,7 @@ class Variable(AnnotatableElement):
                 if var._component is not self._component:
                     raise CellMLError(
                         'An equation can only reference variables from the'
-                        ' same component, found: ' + str(var) + '.')
+                        f' same component, found: {var}.')
 
             # Check all units in the RHS are known, and replace numbers
             # without units with numbers in units 'dimensionless'.
@@ -1590,7 +1584,7 @@ class Variable(AnnotatableElement):
                     except CellMLError:
                         raise CellMLError(
                             'All units appearing in a variable\'s RHS must'
-                            ' be known, found: ' + str(x.unit()) + '.')
+                            f' be known, found: {x.unit()}.')
             if numbers_without_units:
                 rhs = rhs.clone(subst=numbers_without_units)
                 equation = myokit.Equation(lhs, rhs)
@@ -1624,7 +1618,7 @@ class Variable(AnnotatableElement):
 
     def __str__(self):
         return (
-            'Variable[@name="' + self._name + '"] in ' + str(self._component))
+            f'Variable[@name="{self._name}"] in {self._component}')
 
     def units(self):
         """
@@ -1705,9 +1699,8 @@ class ConnectedVariableSet:
             equation_variable = set2._equation_variable
         elif set2._equation is not None:
             raise CellMLError(
-                'Multiple equations defined in connected variable set: '
-                + str(set1._equation_variable) + ' and '
-                + str(set2._equation_variable) + '.')
+                'Multiple equations defined in connected variable set:'
+                f' {set1._equation_variable} and {set2._equation_variable}.')
 
         # Get initial value
         initial_value = set1._initial_value
@@ -1717,9 +1710,9 @@ class ConnectedVariableSet:
             initial_value_variable = set2._initial_value_variable
         elif set2._initial_value is not None:
             raise CellMLError(
-                'Multiple initial values defined in connected variable set: '
-                + str(set1._initial_value_variable) + ' and '
-                + str(set2._initial_value_variable) + '.')
+                'Multiple initial values defined in connected variable set:'
+                f' {set1._initial_value_variable} and'
+                f' {set2._initial_value_variable}.')
 
         # Create new set
         cset = ConnectedVariableSet()
@@ -1741,8 +1734,8 @@ class ConnectedVariableSet:
         if self._equation_variable not in (variable, None):
             raise CellMLError(
                 'Unable to change equation: the equation in this connected'
-                ' variable set is already defined by '
-                + str(self._equation_variable) + '.')
+                ' variable set is already defined by'
+                f' {self._equation_variable}.')
 
         # Update
         self._equation = equation
@@ -1756,8 +1749,8 @@ class ConnectedVariableSet:
         if self._initial_value_variable not in (variable, None):
             raise CellMLError(
                 'Unable to change initial value: the initial value in this'
-                ' connected variable set is already defined by '
-                + str(self._initial_value_variable) + '.')
+                ' connected variable set is already defined by'
+                f' {self._initial_value_variable}.')
 
         # Update
         self._initial_value = value
@@ -1774,13 +1767,12 @@ class ConnectedVariableSet:
         if isinstance(self._equation.lhs, myokit.Derivative):
             if self._initial_value is None:
                 raise CellMLError(
-                    'No initial value set for state variable '
-                    + str(self._equation_variable) + '.')
+                    'No initial value set for state variable'
+                    f' {self._equation_variable}.')
         elif self._initial_value is not None:
-            msg = 'Overdefined variable: ' + str(self._equation_variable)
-            msg += ' has both a (non-ODE) equation and an initial value'
+            msg = (f'Overdefined variable: {self._equation_variable} has both'
+                   ' a (non-ODE) equation and an initial value')
             if self._initial_value_variable is not self._equation_variable:
-                msg += ' (set by ' + str(self._initial_value_variable) + ')'
-            msg += '.'
-            raise CellMLError(msg)
+                msg += f' (set by {self._initial_value_variable})'
+            raise CellMLError(f'{msg}.')
 
