@@ -222,7 +222,7 @@ check_cvode_flag(int flag)
 #if SUNDIALS_VERSION_MAJOR >= 7
 /*
  * Check sundials error code (Sundials 7 and above)
- *  code     : The SunErroCode to check
+ *  code     : The SUNErrCode to check
  *  funcname : The name of the function that returned the flag
  */
 int
