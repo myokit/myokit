@@ -2939,8 +2939,8 @@ class Model(ObjectWithMetaData, VarProvider):
             self._state_init = [
                 myokit.Number(x) for x in self.map_to_state(values)]
         elif len(values) != len(self._state_vars):
-            raise ValueError('Wrong number of initial values, expecting '
-                             + str(len(self._state_vars)) + '.')
+            raise ValueError('Wrong number of initial values, expecting'
+                             f' {len(self._state_vars)}.')
         else:
             # Parsing of arguments without making changes, in case it fails.
             expr = []
@@ -4788,6 +4788,8 @@ class Variable(VarOwner):
         if not isinstance(value, myokit.Expression):
             if isinstance(value, str):
                 value = myokit.parse_expression(value, context=model)
+            elif isinstance(value, myokit.Variable):
+                value = myokit.Name(value)
             else:
                 value = myokit.Number(value)
 
