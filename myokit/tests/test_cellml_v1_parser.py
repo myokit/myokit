@@ -537,6 +537,52 @@ class TestCellMLParser(unittest.TestCase):
         self.assertBad(
             '<import />', 'Imports are not supported', version='1.1')
 
+    def test_initial_value(self):
+        # Test setting a variable as initial value, allowed in 1.1
+
+        x = ('<component name="a">'
+             '  <variable name="p" units="volt" initial_value="q" />'
+             '  <variable name="q" units="volt" initial_value="12.3" />'
+             '</component>')
+
+        # Not allowed in 1.0
+        self.assertBad(x, 'In CellML 1.0, a variable', version='1.0')
+
+        # But supported in 1.1
+        m = self.parse(x, version='1.1')
+        self.assertEqual(m['a']['p'].initial_value(), myokit.Name(m['a']['q']))
+        self.assertEqual(m['a']['q'].initial_value(), myokit.Number(12.3))
+
+        # Unknown variable, or non-local
+        x = ('<component name="a">'
+             '  <variable name="p" units="volt" initial_value="q" />'
+             '</component>')
+        self.assertBad(x, 'Unknown local variable', version='1.1')
+        x = ('<component name="a">'
+             '  <variable name="p" units="volt" initial_value="q" />'
+             '</component>'
+             '<component name="b">'
+             '  <variable name="q" units="volt" initial_value="1" />'
+             '</component>')
+        self.assertBad(x, 'Unknown local variable', version='1.1')
+
+        # Invalid attributes in either version
+        x = ('<component name="a">'
+             '  <variable name="p" units="volt" initial_value="@" />'
+             '</component>')
+        self.assertBad(x, 'initial_value attribute must be', version='1.1')
+        x = ('<component name="a">'
+             '  <variable name="p" units="volt" initial_value="-inf" />'
+             '</component>')
+        self.assertBad(x, 'initial_value attribute must be', version='1.1')
+
+        # Shouldn't have initial value (API check)
+        x = ('<component name="a">'
+             '  <variable name="p" units="volt" initial_value="1"'
+             '            public_interface="in" />'
+             '</component>')
+        self.assertBad(x, 'An initial value cannot be set', version='1.1')
+
     def test_math(self):
         # Tests parsing math elements
         x = ('<component name="a">'
@@ -581,7 +627,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Non-existent units
         y = '<apply><eq /><ci>x</ci><cn cellml:units="vlop">-80</cn></apply>'
-        self.assertBad(x + y + z, 'Unknown unit "vlop" referenced')
+        self.assertBad(x + y + z, 'Unknown units "vlop" referenced')
 
         # Unsupported units: Warning
         y = '<apply><eq /><ci>x</ci><cn cellml:units="celsius">2</cn></apply>'
@@ -629,21 +675,6 @@ class TestCellMLParser(unittest.TestCase):
             ' xmlns:mathml="http://www.w3.org/1998/Math/MathML" />',
             'Unexpected attribute mathml:name',
         )
-
-    def test_maths_1_1(self):
-        # Test setting a variable as initial value, allowed in 1.1
-
-        # Legal case in 1.1
-        x = ('<component name="a">'
-             '  <variable name="p" units="volt" initial_value="q" />'
-             '  <variable name="q" units="volt" initial_value="12.3" />'
-             '</component>')
-
-        # Not allowed in 1.0
-        self.assertBad(x, r'a real number \(3.4.3.7\)', version='1.0')
-
-        # Not supported in 1.1
-        self.assertBad(x, 'not supported', version='1.1')
 
     def test_model(self):
         # Tests parsing a model element.
@@ -741,7 +772,7 @@ class TestCellMLParser(unittest.TestCase):
         m = self.parse(x + a + z)
         v = m['a']['x']
         self.assertEqual(v.rhs(), myokit.Number(3))
-        self.assertEqual(v.initial_value(), 2)
+        self.assertEqual(v.initial_value(), myokit.Number(2))
 
         # Initial value and equation for a non-state
         b = ('    <apply>'
