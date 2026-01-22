@@ -18,6 +18,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1174](https://github.com/myokit/myokit/pull/1174) Removed `cellml.v2.is_integer_string`, `is_real_number_string` and `is_basic_real_number_string`.
 - Fixed
   - [#1170](https://github.com/myokit/myokit/pull/1170) Fixed bug where `myokit.Number`'s constructor was too lenient, converting e.g. variables to `0` and leading to unexpected results.
+  - [#1175](https://github.com/myokit/myokit/pull/1175) Fixed literal (number) syntax highlighting in IDE.
 
 ## [1.38.0] - 2025-08-14
 - Added
