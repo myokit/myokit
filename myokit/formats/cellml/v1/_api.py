@@ -451,9 +451,9 @@ class Model(AnnotatableElement):
 
     Support notes for 1.1:
 
-    - The new feature of using variables in ``initial_value`` attributes is not
-      supported.
     - Imports (CellML 1.1) are not supported.
+    - Initial values can be variables, as long as those variables are
+      constants (or depend only on constants).
 
     Support notes for 1.0:
 
@@ -470,7 +470,7 @@ class Model(AnnotatableElement):
         '1.0' or '1.1').
 
     """
-    def __init__(self, name, version='1.0'):
+    def __init__(self, name, version='1.1'):
         super().__init__(self)
 
         # Check and store name
@@ -678,7 +678,7 @@ class Model(AnnotatableElement):
         return self._free_variable
 
     @staticmethod
-    def from_myokit_model(model, version='1.0'):
+    def from_myokit_model(model, version='1.1'):
         """
         Creates a CellML :class:`Model` from a :class:`myokit.Model`.
 
@@ -701,6 +701,38 @@ class Model(AnnotatableElement):
 
         # Create CellML model
         m = Model(name, version)
+
+        # For version 1.1 only, check if we need to create a Myokit model where
+        # all initial values are either numbers or names of local variables
+        # For version 1.0, anything that's not a number will be converted to a
+        # literal at a later stage
+        if version == '1.1':
+            to_fix = []
+            for state in model.states():
+                e = state.initial_value()
+                if isinstance(e, myokit.Number):
+                    continue
+                if isinstance(e, myokit.Name):
+                    # Compare parents: note, nested is invalid so this is fine
+                    if e.var().parent() == state.parent():
+                        continue
+                to_fix.append(state.qname())
+
+            if to_fix:
+                model = model.clone()
+                for state in to_fix:
+                    state = model.get(state)
+                    value = state.initial_value()
+                    if is_prefixed_number(value):
+                        # Don't make variables for x = -1
+                        state.set_initial_value(myokit.Number(value.eval()))
+                    else:
+                        # But do for `1 + exp(3)`, or `a + b`
+                        init_var = state.parent().add_variable_allow_renaming(
+                            state.name() + '_init')
+                        init_var.set_rhs(value)
+                        init_var.set_unit(state.unit())
+                        state.set_initial_value(init_var.lhs())
 
         # Valid model always has a time variable
         time = model.time()
@@ -894,12 +926,28 @@ class Model(AnnotatableElement):
                 # Promote states and set rhs and initial value
                 elif variable.is_state():
                     v.set_is_state(True)
-                    v.set_initial_value(variable.initial_value(True))
                     v.set_rhs(rhs)
+
+                    init = variable.initial_value()
+                    if isinstance(init, myokit.Number):
+                        v.set_initial_value(init)
+                    elif version == '1.0':
+                        # In 1.0, evaluate any other expression, warn if
+                        # variables are involved
+                        if not init.is_literal():
+                            warnings.warn(
+                                f'Incompatible expression "{init}", of type'
+                                f' {type(init)} specified for initial value of'
+                                f' {variable}, replacing by its evaluation'
+                                f' "{init.eval()}".')
+                        v.set_initial_value(myokit.Number(init.eval()))
+                    else:
+                        assert isinstance(init, myokit.Name)
+                        v.set_initial_value(subst[init])
 
                 # Store literals (single number) in initial value
                 elif isinstance(rhs, myokit.Number):
-                    v.set_initial_value(rhs.eval())
+                    v.set_initial_value(rhs)
 
                 # For all other use rhs
                 else:
@@ -1020,8 +1068,11 @@ class Model(AnnotatableElement):
 
                         v.set_rhs(rhs)
                         if variable.is_state():
-                            init = variable.initial_value()
-                            v.promote(0 if init is None else init)
+                            # Note: In this case, rhs_or_initial_value() always
+                            # returns the RHS, so ``rhs`` is guaranteed not to
+                            # be the initial value
+                            v.promote(
+                                variable.initial_value().clone(subst=var_map))
 
                 # Add local copies of variables requiring unit conversion
                 elif variable in needs_conversion:
@@ -1582,25 +1633,33 @@ class Variable(AnnotatableElement):
 
     def rhs_or_initial_value(self):
         """
-        For non-states, returns this variable's RHS or a :class:`myokit.Number`
-        representing the initial value if no RHS is set. For states always
-        returns the RHS.
+        For non-states, returns this variable's RHS or its initial value if no
+        RHS is set. For states always returns the RHS.
         """
         if self._is_state:
             return self._rhs
         if self._rhs is None and self._initial_value is not None:
-            return myokit.Number(
-                self._initial_value, self._units.myokit_unit())
+            return self._initial_value
         return self._rhs
 
     def set_initial_value(self, value):
         """
-        Sets this variable's intial value (must be a number or ``None``).
+        Sets this variable's intial value.
+
+        In CellML 1.0, this must be a :class:`myokit.Number` or ``None``. In
+        CellML 1.1 it can also be a :class:`myokit.Name` referencing a variable
+        in the same component.
+
+        To stay close to the specification, numbers are stored without units.
         """
-        # Allow unsetting with ``None``
+        # Type check and unsetting
         if value is None:
             self._initial_value = None
             return
+        if not isinstance(value, myokit.Expression):
+            raise ValueError(
+                'Initial value must be specified as myokit.Expression, but got'
+                f' {type(value)}.')
 
         # Check interface
         if self._public_interface == 'in' or self._private_interface == 'in':
@@ -1610,17 +1669,26 @@ class Variable(AnnotatableElement):
                 f' {i}_interface="in" (3.4.3.8).')
 
         # Check and store
-        try:
-            self._initial_value = float(value)
-        except ValueError:
-            if self._model.version() == '1.0':
+        if isinstance(value, myokit.Number):
+            # Store, but (silently) strip units
+            self._initial_value = myokit.Number(value.eval())
+        elif self._model.version() == '1.0':
+            raise CellMLError(
+                'In CellML 1.0, an initial value (if set) must be a real'
+                ' number (3.4.3.7).')
+        elif isinstance(value, myokit.Name):
+            # Check reference is local
+            var = value.var()
+            if var._component is not self._component:
                 raise CellMLError(
-                    'If given, a variable initial_value must be a real number'
-                    ' (3.4.3.7).')
-            else:
-                raise CellMLError(
-                    'If given, a variable initial_value must be a real number'
-                    ' (using variables as initial values is not supported).')
+                    'An initial_value can only reference variables from the'
+                    f' same component, but found: {var}, referenced from'
+                    f' {self} (3.4.3.7).')
+            self._initial_value = value
+        else:
+            raise CellMLError(
+                'In CellML 1.1, an initial_value (if set) must be a real'
+                ' number or a reference to a local variable (3.4.3.7).')
 
     def set_is_state(self, state):
         """
@@ -1641,6 +1709,15 @@ class Variable(AnnotatableElement):
         :class:`myokit.Name` objects have a CellML :class:`Variable` as their
         value.
         """
+        # Type check and unsetting
+        if rhs is None:
+            self._rhs = None
+            return
+        if not isinstance(rhs, myokit.Expression):
+            raise ValueError(
+                'Equations must be specified as myokit.Expression, but got'
+                f' {type(rhs)}.')
+
         # Check interface
         if self._public_interface == 'in' or self._private_interface == 'in':
             i = 'public' if self._public_interface == 'in' else 'private'
@@ -1649,30 +1726,29 @@ class Variable(AnnotatableElement):
                 f' {i}_interface="in" (4.4.4).')
 
         # Check all references in equation are known and local
-        if rhs is not None:
-            for ref in rhs.references():
-                var = ref.var()
-                if var._component is not self._component:
-                    raise CellMLError(
-                        'A variable RHS can only reference variables from the'
-                        f' same component, found: {var}.')
+        for ref in rhs.references():
+            var = ref.var()
+            if var._component is not self._component:
+                raise CellMLError(
+                    'A variable RHS can only reference variables from the'
+                    f' same component, found: {var}.')
 
-            # Check all units are known
-            numbers_without_units = {}
-            for x in rhs.walk(myokit.Number):
-                # Replace None with dimensionless
-                if x.unit() is None:
-                    numbers_without_units[x] = myokit.Number(
-                        x.eval(), myokit.units.dimensionless)
-                else:
-                    try:
-                        self._component.find_units_name(x.unit())
-                    except CellMLError:
-                        raise CellMLError(
-                            'All units appearing in a variable\'s RHS must be'
-                            f' known to its component, found: {x.unit()}.')
-            if numbers_without_units:
-                rhs = rhs.clone(subst=numbers_without_units)
+        # Check all units are known
+        numbers_without_units = {}
+        for x in rhs.walk(myokit.Number):
+            # Replace None with dimensionless
+            if x.unit() is None:
+                numbers_without_units[x] = myokit.Number(
+                    x.eval(), myokit.units.dimensionless)
+            else:
+                try:
+                    self._component.find_units_name(x.unit())
+                except CellMLError:
+                    raise CellMLError(
+                        'All units appearing in a variable\'s RHS must be'
+                        f' known to its component, found: {x.unit()}.')
+        if numbers_without_units:
+            rhs = rhs.clone(subst=numbers_without_units)
 
         # Store
         self._rhs = rhs

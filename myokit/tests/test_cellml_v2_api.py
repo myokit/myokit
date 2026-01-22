@@ -986,7 +986,7 @@ class TestCellML2ModelConversion(unittest.TestCase):
         self.assertEqual(mz2.unit(), myokit.units.meter)
 
         # Check equations
-        self.assertEqual(mt.rhs(), myokit.Number(0, myokit.units.second))
+        self.assertEqual(mt.rhs(), myokit.Number(0))
         self.assertEqual(mx.rhs(), myokit.Number(1, myokit.units.volt))
         self.assertEqual(
             my.rhs(),
@@ -994,7 +994,7 @@ class TestCellML2ModelConversion(unittest.TestCase):
         self.assertEqual(
             mz.rhs(),
             myokit.Plus(myokit.Number(3, myokit.units.volt), myokit.Name(mx)))
-        self.assertEqual(mz2.rhs(), myokit.Number(4, myokit.units.meter))
+        self.assertEqual(mz2.rhs(), myokit.Number(4))
 
         # Check state
         self.assertTrue(mx.is_state())
@@ -1321,11 +1321,11 @@ class TestCellML2Variable(unittest.TestCase):
         # Set with float
         x.set_initial_value(3)
         self.assertTrue(x.has_initial_value())
-        self.assertEqual(x.initial_value(), myokit.Number(3, myokit.units.V))
+        self.assertEqual(x.initial_value(), myokit.Number(3))
 
         # Unit is ignored
         x.set_initial_value(myokit.Number(2, myokit.units.dimensionless))
-        self.assertEqual(x.initial_value(), myokit.Number(2, myokit.units.V))
+        self.assertEqual(x.initial_value(), myokit.Number(2))
 
         # Unset
         x.set_initial_value(None)
@@ -1333,7 +1333,7 @@ class TestCellML2Variable(unittest.TestCase):
 
         # Set with other than a number
         self.assertRaisesRegex(
-            cellml.CellMLError, 'must be a real number',
+            cellml.CellMLError, 'Unknown local variable',
             x.set_initial_value, 'twelve')
 
     def test_initial_value_setting_connection(self):
@@ -1379,6 +1379,8 @@ class TestCellML2Variable(unittest.TestCase):
         self.assertIsNotNone(v3)
         self.assertEqual(v1.eval(), v3.eval())
         self.assertEqual(v1.eval() * 1000, v2.eval())
+
+        print(v1, v2, v3)
 
         # Check initial value can be unset and set elsewhere
         x.set_initial_value(None)
@@ -1474,7 +1476,7 @@ class TestCellML2Variable(unittest.TestCase):
         # Only initial value set
         x.set_equation(None)
         self.assertEqual(x.rhs(), y.rhs())
-        self.assertEqual(y.rhs(), myokit.Number(4, myokit.units.V))
+        self.assertEqual(y.rhs(), myokit.Number(4))
 
         # Neither set
         y.set_initial_value(None)

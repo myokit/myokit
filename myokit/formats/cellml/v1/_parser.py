@@ -353,9 +353,52 @@ class CellMLParser:
         for child in self._sort_units(element, model):
             self._parse_units(child, component)
 
-        # Create variables and set interfaces
+        # Create variables, set interfaces, prepare to set initial values
+        initial_values = []
         for child in element.findall(self._join('variable')):
-            self._parse_variable(child, component)
+            init = self._parse_variable(child, component)
+            if init is not None:
+                initial_values.append(init)
+
+        # Set initial values
+        for child, variable, raw_value in initial_values:
+            # Parse as number
+            value = None
+            try:
+                value = myokit.Number(strict_str_to_float(raw_value))
+            except ValueError or TypeError:
+                pass
+
+            # Parse as name
+            if value is None:
+                # Not supported in 1.0
+                if self._ns == cellml.NS_CELLML_1_0:
+                    raise CellMLParsingError(
+                        'In CellML 1.0, a variable\'s initial_value attribute'
+                        f' must be a real number, but found "{raw_value}"'
+                        ' (3.4.3.7).', child)
+
+                # Check if valid identifier
+                if not myokit.formats.cellml.v1.is_identifier(raw_value):
+                    raise CellMLParsingError(
+                        'A variable\'s initial_value attribute must be a real'
+                        ' number or a valid CellML identifier, but found'
+                        f' "{raw_value}" (3.4.3.7).', child)
+
+                # Must be a local variable
+                try:
+                    value = variable.component().variable(raw_value)
+                except KeyError:
+                    raise CellMLParsingError(
+                        'Unknown local variable referenced from a variable\'s'
+                        f' initial_value attribute "{raw_value}"', child)
+                value = myokit.Name(value)
+
+            # Set initial value
+            try:
+                variable.set_initial_value(value)
+            except myokit.formats.cellml.v1.CellMLError as e:
+                raise CellMLParsingError(str(e), child)
 
     def _parse_connection(self, element, model, connected):
         """
@@ -1039,6 +1082,10 @@ class CellMLParser:
         """
         Parses a variable ``element`` and adds a variable to the given
         ``component``.
+
+        If an initial value needs to be set, returns a tuple
+        ``(element, variable, initial_value_string)``. Otherwise returns
+        ``None``.
         """
         # Check name is present
         try:
@@ -1086,9 +1133,10 @@ class CellMLParser:
             ]
             self._check_allowed_content(element, [], attr, name)
 
-            # Set initial value
-            variable.set_initial_value(
-                element.attrib.get('initial_value', None))
+            # Store initial value, to parse later
+            init = element.attrib.get('initial_value', None)
+            if init is not None:
+                return (element, variable, init)
 
         except myokit.formats.cellml.v1.CellMLError as e:
             raise CellMLParsingError(str(e), element)

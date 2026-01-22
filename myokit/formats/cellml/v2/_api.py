@@ -274,7 +274,8 @@ class Model(AnnotatableElement):
 
     - Imports are not supported.
     - Reset rules are not supported.
-    - Using variables in ``initial_value`` attributes is not supported.
+    - Using variables in ``initial_value`` attributes is supported, as long as
+      they have constant values.
     - Defining new base units is not supported.
     - All equations must be of the form ``x = ...`` or ``dx/dt = ...``.
     - Models that take derivatives with respect to more than one variable are
@@ -1571,27 +1572,68 @@ class Variable(AnnotatableElement):
 
     def set_initial_value(self, value):
         """
-        Sets this variable's intial value (must be a number or ``None``).
+        Sets this variable's intial value: must be a number, a local variable,
+        or ``None``.
+
+        Numbers can be specified as number types, strings, or
+        :class:`myokit.Number` objects (wrapped in prefix plus or minus
+        operators). Numbers will be stored without units.
+
+        Names can be specified as strings or :class:`myokit.Name` expressions.
         """
         # Allow unsetting with ``None``
-        if value is not None:
+        if value is None:
+            self._cset.set_initial_value(self, value)
+            return
 
-            # Check value is a real number string
-            if isinstance(value, str):
-                if is_real_number_string(value):
-                    value = float(value)
-                else:
-                    raise CellMLError(
-                        'If given, a variable initial_value must be a real'
-                        ' number (using variables as initial values is not'
-                        ' supported).')
+        # Allow string input
+        if isinstance(value, str):
+            if is_real_number_string(value):
+                value = myokit.Number(value)
+            elif is_identifier(value):
+                try:
+                    value = self._component.variable(value)
+                except KeyError:
+                    raise CellMLError('Unknown local variable specified as'
+                                      f' variable initial_value: {value}.')
+                value = myokit.Name(value)
             else:
-                value = float(value)
+                raise CellMLError(
+                    'If given, a variable initial_value must be a real number'
+                    f' or the name of a local variable, found {value}.')
 
-            value = myokit.Number(value, self._units.myokit_unit())
+        # Allow expression input
+        if isinstance(value, myokit.Expression):
+            if self._is_prefixed_number(value):
+                value = myokit.Number(value.eval())
+            elif isinstance(value, myokit.Name):
+                if value.var()._component is not self._component:
+                    raise CellMLError('Non-local variable specified as'
+                                      f' variable initial value {value.var()}')
+            else:
+                raise CellMLError(
+                    'If given, a variable initial_value must be a real number'
+                    f' or a local variable, found {type(value)}.')
+
+        # Allow numeric input
+        try:
+            value = myokit.Number(value)
+        except (ValueError, TypeError):
+            raise CellMLError(
+                'If given, a variable initial_value must be a real number or'
+                f' a local variable, found {value}.')
 
         # Store
         self._cset.set_initial_value(self, value)
+
+    def _is_prefixed_number(self, expr):
+        """
+        Checks if ``expr`` is a :class:`myokit.Number`, wrapped in any number
+        of prefix plus or minus operators.
+        """
+        while isinstance(expr, (myokit.PrefixPlus, myokit.PrefixMinus)):
+            expr = expr[0]
+        return isinstance(expr, myokit.Number)
 
     def __str__(self):
         return (
