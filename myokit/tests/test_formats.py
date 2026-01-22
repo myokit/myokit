@@ -235,5 +235,104 @@ class EWriterTest(unittest.TestCase):
             'dada')
 
 
+class FormatsStringTest(unittest.TestCase):
+    """ Test shared string checking functionality """
+
+    def test_is_integer_string(self):
+        # Tests is_integer_string().
+
+        from myokit.formats import is_integer_string as t
+        self.assertTrue(t('0'))
+        self.assertTrue(t('+0'))
+        self.assertTrue(t('-0'))
+        self.assertTrue(t('3'))
+        self.assertTrue(t('+3'))
+        self.assertTrue(t('-3'))
+        self.assertTrue(t('34269386698604537836794387'))
+
+        self.assertFalse(t(''))
+        self.assertFalse(t('.'))
+        self.assertFalse(t('1.2'))
+        self.assertFalse(t('-1.2'))
+        self.assertFalse(t('1.0'))
+        self.assertFalse(t('1.'))
+        self.assertFalse(t('.0'))
+        self.assertFalse(t('1e3'))
+        self.assertFalse(t('++1'))
+        self.assertFalse(t('+-3'))
+        self.assertFalse(t('--1'))
+        self.assertFalse(t('+'))
+        self.assertFalse(t('-'))
+        self.assertFalse(t('a'))
+        self.assertFalse(t('12C'))
+
+        self.assertFalse(t(' -3'))
+        self.assertFalse(t('-3 '))
+        self.assertFalse(t('\t\f123   '))
+        self.assertTrue(t(' -3', True))
+        self.assertTrue(t('-3 ', True))
+        self.assertTrue(t('\t\f123', True))
+
+        # Newline at end: potential pitfall for $
+        self.assertFalse(t('546184\n'))
+        self.assertTrue(t('546184\n', True))
+
+        self.assertFalse(t('', True))
+        self.assertFalse(t('.', True))
+        self.assertFalse(t('-1.2', True))
+        self.assertFalse(t('++1', True))
+
+    def test_is_real_number_string(self):
+        # Tests is_real_number_string().
+
+        from myokit.formats import is_real_number_string as t
+        self.assertTrue(t('0'))
+        self.assertTrue(t('+0'))
+        self.assertTrue(t('-0'))
+        self.assertTrue(t('3'))
+        self.assertTrue(t('+3'))
+        self.assertTrue(t('-3'))
+        self.assertTrue(t(
+            '3426938669860453783679436474536745674567887'))
+        self.assertTrue(t(
+            '-.342693866982438645847568457875604537836794387'))
+        self.assertTrue(t('1.2'))
+        self.assertTrue(t('-1.2'))
+        self.assertTrue(t('+1.0'))
+        self.assertTrue(t('+1.'))
+        self.assertTrue(t('.1'))
+        self.assertTrue(t('1e3'))
+        self.assertTrue(t('.1e-3'))
+        self.assertTrue(t('-1.E0'))
+        self.assertTrue(t('1E33464636'))
+        self.assertTrue(t('1.23000000000000028e+02'))
+
+        self.assertFalse(t(''))
+        self.assertFalse(t('.'))
+        self.assertFalse(t('++1'))
+        self.assertFalse(t('+-3'))
+        self.assertFalse(t('--1'))
+        self.assertFalse(t('+'))
+        self.assertFalse(t('-'))
+        self.assertFalse(t('a'))
+        self.assertFalse(t('12C'))
+
+        self.assertFalse(t(' 1'))
+        self.assertFalse(t('1 '))
+        self.assertFalse(t('\t\f1'))
+        self.assertTrue(t(' 1', True))
+        self.assertTrue(t('1 ', True))
+        self.assertTrue(t('\t\f1', True))
+
+        # Newline at end: potential pitfall for $
+        self.assertFalse(t('+3\n'))
+        self.assertTrue(t('+3\n', True))
+
+        self.assertFalse(t('', True))
+        self.assertFalse(t('.', True))
+        self.assertFalse(t('++1', True))
+        self.assertFalse(t('+', True))
+
+
 if __name__ == '__main__':
     unittest.main()

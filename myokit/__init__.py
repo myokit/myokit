@@ -262,6 +262,11 @@ SFDOUBLE = '{:< 1.17e}'  # Exponent can have 3 digits for very small numbers
 SFSINGLE = '{:< 1.9e}'
 
 #
+# Shared real regex. Unsigned, and without "anchors" for string start and end
+#
+_RE_UNSIGNED_REAL = r'(([0-9]*\.[0-9]+)|([0-9]+\.?[0-9]*))([eE][+-]?[0-9]+)?'
+
+#
 # Date and time formats to use throughout Myokit
 #
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'

@@ -12,6 +12,8 @@ myokit.formats
 - :meth:`myokit.formats.importer`
 - :class:`myokit.formats.Importer`
 - :meth:`myokit.formats.importers`
+- :meth:`myokit.formats.is_integer_string`
+- :meth:`myokit.formats.is_real_number_string`
 - :meth:`myokit.formats.register_external_ewriter`
 - :meth:`myokit.formats.register_external_importer`
 - :meth:`myokit.formats.register_external_exporter`
@@ -61,7 +63,7 @@ myokit.formats.cellml.v1
 - :meth:`myokit.formats.cellml.v1.clean_identifier`
 - :meth:`myokit.formats.cellml.v1.create_unit_name`
 - :class:`myokit.formats.cellml.v1.Component`
-- :meth:`myokit.formats.cellml.v1.is_valid_identifier`
+- :meth:`myokit.formats.cellml.v1.is_identifier`
 - :class:`myokit.formats.cellml.v1.Model`
 - :meth:`myokit.formats.cellml.v1.parse_file`
 - :meth:`myokit.formats.cellml.v1.parse_string`
@@ -83,10 +85,7 @@ myokit.formats.cellml.v2
 - :meth:`myokit.formats.cellml.v2.clean_identifier`
 - :meth:`myokit.formats.cellml.v2.create_unit_name`
 - :class:`myokit.formats.cellml.v2.Component`
-- :meth:`myokit.formats.cellml.v2.is_basic_real_number_string`
 - :meth:`myokit.formats.cellml.v2.is_identifier`
-- :meth:`myokit.formats.cellml.v2.is_integer_string`
-- :meth:`myokit.formats.cellml.v2.is_real_number_string`
 - :class:`myokit.formats.cellml.v2.Model`
 - :meth:`myokit.formats.cellml.v2.parse_file`
 - :meth:`myokit.formats.cellml.v2.parse_string`

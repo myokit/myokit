@@ -10,13 +10,11 @@ import warnings
 
 import myokit
 
+from myokit.formats import is_integer_string, is_real_number_string
+
 
 # Data types
 _cellml_identifier = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
-_cellml_integer = re.compile(r'^[+-]?[0-9]+$')
-_real = r'[+-]?(([0-9]*\.[0-9]+)|([0-9]+\.?[0-9]*))'
-_cellml_basic_real = re.compile(r'^' + _real + r'$')
-_cellml_real = re.compile(r'^' + _real + r'([eE][+-]?[0-9]+)?$')
 
 
 def is_identifier(name):
@@ -30,27 +28,6 @@ def is_identifier(name):
 
     """
     return _cellml_identifier.match(name) is not None
-
-
-def is_integer_string(text):
-    """
-    Tests if the given ``text`` is a valid CellML 2.0 integer string.
-    """
-    return _cellml_integer.match(text) is not None
-
-
-def is_basic_real_number_string(text):
-    """
-    Tests if the given ``text`` is a valid CellML 2.0 basic real number string.
-    """
-    return _cellml_basic_real.match(text) is not None
-
-
-def is_real_number_string(text):
-    """
-    Tests if the given ``text`` is a valid CellML 2.0 basic real number string.
-    """
-    return _cellml_real.match(text) is not None
 
 
 def clean_identifier(name):
