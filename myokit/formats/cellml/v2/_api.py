@@ -10,6 +10,8 @@ import warnings
 
 import myokit
 
+from myokit.formats import is_integer_string, is_real_number_string
+
 
 # Data types
 _cellml_identifier = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
