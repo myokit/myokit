@@ -1564,21 +1564,21 @@ class TestCellML1Methods(unittest.TestCase):
         u = myokit.units.meter ** 2
         self.assertEqual(cellml.create_unit_name(u), 'm2')
 
-    def test_valid_identifier(self):
-        # Tests is_valid_identifier().
+    def test_is_identifier(self):
+        # Tests is_identifier().
 
-        self.assertTrue(cellml.is_valid_identifier('hello'))
-        self.assertTrue(cellml.is_valid_identifier('h_e_l_l_o'))
-        self.assertTrue(cellml.is_valid_identifier('X123'))
-        self.assertTrue(cellml.is_valid_identifier('ZAa123_lo_2'))
-        self.assertTrue(cellml.is_valid_identifier('a'))
-        self.assertTrue(cellml.is_valid_identifier('_a'))
+        self.assertTrue(cellml.is_identifier('hello'))
+        self.assertTrue(cellml.is_identifier('h_e_l_l_o'))
+        self.assertTrue(cellml.is_identifier('X123'))
+        self.assertTrue(cellml.is_identifier('ZAa123_lo_2'))
+        self.assertTrue(cellml.is_identifier('a'))
+        self.assertTrue(cellml.is_identifier('_a'))
 
-        self.assertFalse(cellml.is_valid_identifier('_'))
-        self.assertFalse(cellml.is_valid_identifier('123'))
-        self.assertFalse(cellml.is_valid_identifier('1e3'))
-        self.assertFalse(cellml.is_valid_identifier('3'))
-        self.assertFalse(cellml.is_valid_identifier(''))
+        self.assertFalse(cellml.is_identifier('_'))
+        self.assertFalse(cellml.is_identifier('123'))
+        self.assertFalse(cellml.is_identifier('1e3'))
+        self.assertFalse(cellml.is_identifier('3'))
+        self.assertFalse(cellml.is_identifier(''))
 
 
 if __name__ == '__main__':

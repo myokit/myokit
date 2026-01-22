@@ -149,3 +149,13 @@ Classes for these three formats share a common API, and make use of the
 
 .. autoclass:: SweepSource
 
+Shared functions
+================
+
+The root ``myokit.formats`` module contains some shared string parsing methods,
+used for example by MathML and CellML parsing.
+
+.. autofunction:: is_integer_string
+
+.. autofunction:: is_real_number_string
+

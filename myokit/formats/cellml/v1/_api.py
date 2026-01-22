@@ -15,7 +15,7 @@ import myokit
 _cellml_identifier = re.compile('^([_][0-9_]*)?[a-zA-Z][a-zA-Z0-9_]*$')
 
 
-def is_valid_identifier(name):
+def is_identifier(name):
     """
     Tests if the given ``name`` is a valid CellML 1.1 identifier.
 
@@ -41,14 +41,14 @@ def clean_identifier(name):
 
     Raises a ``ValueError`` if it can't create a valid identifier.
     """
-    if is_valid_identifier(name):
+    if is_identifier(name):
         return name
 
     # Replace spaces and hyphens with underscores
     clean = re.sub(r'[\s-]', '_', name)
 
     # Check if valid and return
-    if is_valid_identifier(clean):
+    if is_identifier(clean):
         return clean
     raise ValueError(
         f'Unable to create a valid CellML identifier from "{name}".')
@@ -63,7 +63,7 @@ def create_unit_name(unit):
     name = str(unit)[1:-1]
 
     # If this is a valid name, return
-    if is_valid_identifier(name):
+    if is_identifier(name):
         return name
 
     # Not allowed: could be because of a multiplier, e.g. [m (0.0254)]
@@ -209,7 +209,7 @@ class Component(AnnotatableElement):
         self._model = model
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Component name must be a valid CellML identifier (3.4.2.2).')
         self._name = name
@@ -474,7 +474,7 @@ class Model(AnnotatableElement):
         super().__init__(self)
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Model name must be a valid CellML identifier (3.4.1.2).')
         self._name = name
@@ -1179,7 +1179,7 @@ class Units:
     def __init__(self, name, myokit_unit, predefined=False):
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Units name must be a valid CellML identifier (5.4.1.2).')
         if not predefined and name in self._si_units:
@@ -1470,7 +1470,7 @@ class Variable(AnnotatableElement):
         self._component = component
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Variable name must be a valid CellML identifier (3.4.3.2).')
         self._name = name

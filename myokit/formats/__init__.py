@@ -5,6 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import re
 import sys
 import traceback
 import warnings
@@ -18,6 +19,12 @@ DIR_FORMATS = os.path.join(myokit.DIR_MYOKIT, 'formats')
 _IMPORTERS = None
 _EXPORTERS = None
 _EWRITERS = None
+
+# String matching
+_re_int = re.compile(r'^[+-]?[0-9]+$')
+_re_int_s = re.compile(r'^\s*[+-]?[0-9]+\s*$')
+_re_real = re.compile(rf'^[+-]?{myokit._RE_UNSIGNED_REAL}$')
+_re_real_s = re.compile(rf'^\s*[+-]?{myokit._RE_UNSIGNED_REAL}\s*$')
 
 
 # Classes & methods
@@ -887,4 +894,33 @@ class SweepSource:
     def time_unit(self):
         """ Returns the time unit used in this source. """
         raise NotImplementedError
+
+
+def is_integer_string(text, strip_whitespace=False):
+    """
+    Checks whether ``text`` can be interpreted as a signed integer string.
+
+    By default, this only returns ``True`` if the whole string matches, without
+    whitespace before or after. To allow surrounding whitespace, set
+    ``strip_whitespace=True``.
+    """
+    if strip_whitespace:
+        return _re_int_w.match(text) is not None
+    return _re_int.match(text) is not None
+
+
+def is_real_number_string(text, strip_whitespace=False):
+    """
+    Checks whether ``text`` can be interpreted as a signed real number string.
+
+    By default, this only returns ``True`` if the whole string matches, without
+    whitespace before or after. To allow surrounding whitespace, set
+    ``strip_whitespace=True``.
+
+    Unlike Python's ``float``, values such as ``nan`` or ``-inf`` are not
+    accepted.
+    """
+    if strip_whitespace:
+        return _re_real_w.match(text) is not None
+    return _re_real.match(text) is not None
 

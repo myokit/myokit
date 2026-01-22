@@ -645,7 +645,7 @@ class CellMLParser:
                     'Encapsulation relationships may not define a name'
                     ' attribute (6.4.2.4).', element)
 
-            if not myokit.formats.cellml.v1.is_valid_identifier(name):
+            if not myokit.formats.cellml.v1.is_identifier(name):
                 raise CellMLParsingError(
                     'Relationship_ref name must be a valid CellML identifier,'
                     f' but found "{name}" (6.4.2.3).', element)
