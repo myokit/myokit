@@ -1213,8 +1213,8 @@ _rTOKEN = re.compile('|'.join([
     r'([a-zA-Z]\w*:)+',
     # Names
     r'[a-zA-Z]\w*',
-    # Floating point numbers
-    r'(([0-9]*\.[0-9]+)|([0-9]+\.?[0-9]*))([eE][+-]?[0-9]+)?',
+    # Unsigned real numbers, allowing exponential notation
+    myokit._RE_UNSIGNED_REAL,
     # Integers
     r'[0-9]+',
     # Comparison 1
