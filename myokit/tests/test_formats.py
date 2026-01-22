@@ -98,32 +98,6 @@ class FormatsTest(unittest.TestCase):
             KeyError, 'Expression writer not found',
             myokit.formats.ewriter, 'testo')
 
-    def test_strict_str_to_float(self):
-        # Tests the str-to-float that doens't accept nan, inf, or non-string
-
-        sf = myokit.formats.strict_str_to_float
-        self.assertEqual(3, sf('3'))
-        self.assertEqual(3, sf(' 3 '))
-        self.assertEqual(3, sf('\t\f+3.0\n'))
-        self.assertEqual(-3, sf('\t\f-3.0\n'))
-        self.assertEqual(-1.234e-56, sf('-1.234e-56'))
-
-        # Non-string inputs
-        import numpy as np
-        self.assertRaisesRegex(TypeError, 'Expected string', sf, 3)
-        self.assertRaisesRegex(TypeError, 'Expected string', sf, 3.0)
-        self.assertRaisesRegex(TypeError, 'Expected string', sf, np.float64(3))
-        self.assertRaisesRegex(TypeError, 'Expected string', sf, [3])
-
-        # Accepted by float, not by sf
-        self.assertRaisesRegex(ValueError, 'Unaccepted input', sf, 'nan')
-        self.assertRaisesRegex(ValueError, 'Unaccepted input', sf, 'inf')
-        self.assertRaisesRegex(
-            ValueError, 'Unaccepted input', sf, '  +INFINITY\n')
-
-        # Error raised by float()
-        self.assertRaisesRegex(ValueError, 'could not convert', sf, 'three')
-
 
 class ExporterTest(unittest.TestCase):
     """ Tests shared :class:`Exporter` functionality. """
@@ -292,10 +266,26 @@ class FormatsStringTest(unittest.TestCase):
         self.assertFalse(t('a'))
         self.assertFalse(t('12C'))
 
+        self.assertFalse(t(' -3'))
+        self.assertFalse(t('-3 '))
+        self.assertFalse(t('\t\f123   '))
+        self.assertTrue(t(' -3', True))
+        self.assertTrue(t('-3 ', True))
+        self.assertTrue(t('\t\f123', True))
+
+        # Newline at end: potential pitfall for $
+        self.assertFalse(t('546184\n'))
+        self.assertTrue(t('546184\n', True))
+
+        self.assertFalse(t('', True))
+        self.assertFalse(t('.', True))
+        self.assertFalse(t('-1.2', True))
+        self.assertFalse(t('++1', True))
+
     def test_is_real_number_string(self):
         # Tests is_real_number_string().
 
-        from myokit.formats import is_real_number_string
+        from myokit.formats import is_real_number_string as t
         self.assertTrue(t('0'))
         self.assertTrue(t('+0'))
         self.assertTrue(t('-0'))
@@ -326,6 +316,22 @@ class FormatsStringTest(unittest.TestCase):
         self.assertFalse(t('-'))
         self.assertFalse(t('a'))
         self.assertFalse(t('12C'))
+
+        self.assertFalse(t(' 1'))
+        self.assertFalse(t('1 '))
+        self.assertFalse(t('\t\f1'))
+        self.assertTrue(t(' 1', True))
+        self.assertTrue(t('1 ', True))
+        self.assertTrue(t('\t\f1', True))
+
+        # Newline at end: potential pitfall for $
+        self.assertFalse(t('+3\n'))
+        self.assertTrue(t('+3\n', True))
+
+        self.assertFalse(t('', True))
+        self.assertFalse(t('.', True))
+        self.assertFalse(t('++1', True))
+        self.assertFalse(t('+', True))
 
 
 if __name__ == '__main__':

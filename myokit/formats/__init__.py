@@ -21,10 +21,11 @@ _EXPORTERS = None
 _EWRITERS = None
 
 # String matching
-_re_int = re.compile(r'^[+-]?[0-9]+$')
-_re_int_s = re.compile(r'^\s*[+-]?[0-9]+\s*$')
-_re_real = re.compile(rf'^[+-]?{myokit._RE_UNSIGNED_REAL}$')
-_re_real_s = re.compile(rf'^\s*[+-]?{myokit._RE_UNSIGNED_REAL}\s*$')
+# Note: $ allows a newline before the end of string, \Z does not
+_re_int = re.compile(r'^[+-]?[0-9]+\Z')
+_re_int_s = re.compile(r'^\s*[+-]?[0-9]+\s*\Z')
+_re_real = re.compile(rf'^[+-]?{myokit._RE_UNSIGNED_REAL}\Z')
+_re_real_s = re.compile(rf'^\s*[+-]?{myokit._RE_UNSIGNED_REAL}\s*\Z')
 
 
 # Classes & methods
@@ -905,7 +906,7 @@ def is_integer_string(text, strip_whitespace=False):
     ``strip_whitespace=True``.
     """
     if strip_whitespace:
-        return _re_int_w.match(text) is not None
+        return _re_int_s.match(text) is not None
     return _re_int.match(text) is not None
 
 
@@ -921,6 +922,6 @@ def is_real_number_string(text, strip_whitespace=False):
     accepted.
     """
     if strip_whitespace:
-        return _re_real_w.match(text) is not None
+        return _re_real_s.match(text) is not None
     return _re_real.match(text) is not None
 
