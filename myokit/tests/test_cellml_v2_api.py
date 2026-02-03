@@ -1314,29 +1314,69 @@ class TestCellML2Variable(unittest.TestCase):
         m.add_units('millivolt', myokit.units.mV)
         c = m.add_component('c1')
         x = c.add_variable('bart', 'volt', 'public')
+        y = c.add_variable('bort', 'volt')
+        y.set_initial_value(1)
+        z = c.add_variable('burt', 'ampere')
+        z.set_initial_value(0)
+        d = m.add_component('c2')
+        p = d.add_variable('birt', 'volt', 'public')
 
         # Not set yet
         self.assertIsNone(x.initial_value())
 
-        # Set with float
+        # Set with number type
         x.set_initial_value(3)
         self.assertTrue(x.has_initial_value())
         self.assertEqual(
             x.initial_value(), myokit.Number(3, myokit.units.volt))
 
-        # Unit is ignored
+        # If using Number, the units must be correct
         self.assertRaisesRegex(
             cellml.CellMLError, 'must have the same units',
             x.set_initial_value, myokit.Number(2, myokit.units.dimensionless))
+        x.set_initial_value(myokit.Number(1, myokit.units.volt))
+        self.assertEqual(
+            x.initial_value(), myokit.Number(1, myokit.units.volt))
+
+        # Prefix operators are fine
+        x.set_initial_value(myokit.PrefixMinus(myokit.PrefixPlus(
+            myokit.Number(1.23, myokit.units.volt))))
+        self.assertEqual(
+            x.initial_value(), myokit.Number(-1.23, myokit.units.volt))
 
         # Unset
         x.set_initial_value(None)
         self.assertIsNone(x.initial_value())
 
-        # Set with other than a number
+        # Local names are allowed
+        x.set_initial_value(myokit.Name(y))
+        self.assertEqual(x.initial_value(), myokit.Name(y))
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Non-local variable',
+            x.set_initial_value, myokit.Name(p))
         self.assertRaisesRegex(
             cellml.CellMLError, 'Unknown local variable',
-            x.set_initial_value, 'twelve')
+            x.set_initial_value, 'brrr')
+
+        # Strings are allowed
+        x.set_initial_value('-1')
+        self.assertEqual(
+            x.initial_value(), myokit.Number(-1, myokit.units.volt))
+        x.set_initial_value('3.21e4')
+        self.assertEqual(
+            x.initial_value(), myokit.Number(3.21e4, myokit.units.volt))
+        x.set_initial_value('bort')
+        self.assertEqual(x.initial_value(), myokit.Name(y))
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'If given, a variable initial_value',
+            x.set_initial_value, '@hello')
+
+        # Set with other than a number or name
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'must be a real number or a local variable',
+            x.set_initial_value, myokit.Plus(
+                myokit.Number(1, myokit.units.volt),
+                myokit.Number(2, myokit.units.volt)))
 
     def test_initial_value_setting_connection(self):
         # Tests setting of initial values on connected variables.

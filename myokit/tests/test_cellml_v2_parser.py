@@ -714,6 +714,18 @@ class TestCellMLParser(unittest.TestCase):
         x = '<component name="a">' + x + '</component>'
         self.assertBad(x, 'valid CellML identifier')
 
+        # Initial values can be numbers or variables
+        m = self.parse(
+            '<component name="c">'
+            '  <variable name="x" units="volt" initial_value="1" />'
+            '  <variable name="y" units="volt" initial_value="x" />'
+            '</component>'
+        )
+        x, y = m['c']['x'], m['c']['y']
+        self.assertEqual(
+            x.initial_value(), myokit.Number(1, myokit.units.volt))
+        self.assertEqual(y.initial_value(), myokit.Name(x))
+
 
 if __name__ == '__main__':
     import warnings

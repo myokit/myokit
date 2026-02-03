@@ -15,6 +15,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1174](https://github.com/myokit/myokit/pull/1174) Renamed `cellml.v1.is_valid_identifier` to `cellml.v1.is_identifier` to match with `cellml.v2`.
   - [#1176](https://github.com/myokit/myokit/pull/1176) Made MathML number parsing text-based, and slightly more stringent.
   - [#1177](https://github.com/myokit/myokit/pull/1177) The CellML 1.1 and 2.0 APIs now accept variables as initial values. The CellML 1 API now uses version 1.1 by default.
+  - [#1177](https://github.com/myokit/myokit/pull/1177) The CellML 2.0 API will now raise an error if a `myokit.Number` with the wrong units is passed to `set_initial_value`.
 - Deprecated
 - Removed
   - [#1174](https://github.com/myokit/myokit/pull/1174) Removed `cellml.v2.is_integer_string`, `is_real_number_string` and `is_basic_real_number_string`.
