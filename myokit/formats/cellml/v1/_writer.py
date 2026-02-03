@@ -353,16 +353,17 @@ class CellMLWriter:
 
         # Add initial value
         init = variable.initial_value()
-        if isinstance(init, myokit.Number):
-            value = myokit.float.str(variable.initial_value()).strip()
-            if value[-4:] == 'e+00':
-                value = value[:-4]
-            element.attrib['initial_value'] = value
-        elif isinstance(init, myokit.Name):
-            element.attrib['initial_value'] = init.var().name()
-        else:  # pragma: no cover
-            raise Exception(
-                f'Unexpected type for initial value: {type(init)}.')
+        if init is not None:
+            if isinstance(init, myokit.Number):
+                value = myokit.float.str(variable.initial_value()).strip()
+                if value[-4:] == 'e+00':
+                    value = value[:-4]
+                element.attrib['initial_value'] = value
+            elif isinstance(init, myokit.Name):
+                element.attrib['initial_value'] = init.var().name()
+            else:  # pragma: no cover
+                raise Exception(
+                    f'Unexpected type for initial value: {type(init)}.')
 
         # Add cmeta id
         cid = variable.cmeta_id()

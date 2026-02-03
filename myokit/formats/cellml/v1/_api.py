@@ -10,6 +10,8 @@ import warnings
 
 import myokit
 
+from myokit.formats import is_integer_string, is_real_number_string
+
 
 # Identifier validation
 _cellml_identifier = re.compile('^([_][0-9_]*)?[a-zA-Z][a-zA-Z0-9_]*$')
@@ -1686,7 +1688,7 @@ class Variable(AnnotatableElement):
             if is_real_number_string(value):
                 value = myokit.Number(value)
             elif is_identifier(value):
-                if self._model.version() == '1.0'
+                if self._model.version() == '1.0':
                     raise CellMLError(e10)
                 try:
                     value = self._component.variable(value)
@@ -1697,11 +1699,11 @@ class Variable(AnnotatableElement):
                 raise CellMLError(e11)
 
         # Allow expression input
-        if isinstance(value, myokit.Expression):
+        elif isinstance(value, myokit.Expression):
             if is_prefixed_number(value):
                 value = myokit.Number(value.eval())
             elif isinstance(value, myokit.Name):
-                if self._model.version() == '1.0'
+                if self._model.version() == '1.0':
                     raise CellMLError(e10)
                 if value.var()._component is not self._component:
                     raise CellMLError(e11)
@@ -1709,10 +1711,11 @@ class Variable(AnnotatableElement):
                 raise CellMLError(e11)
 
         # Allow numeric input
-        try:
-            value = myokit.Number(float(value))
-        except (ValueError, TypeError):
-            raise CellMLError(e11)
+        else:
+            try:
+                value = myokit.Number(float(value))
+            except (ValueError, TypeError):
+                raise CellMLError(e11)
 
         # Store
         self._initial_value = value

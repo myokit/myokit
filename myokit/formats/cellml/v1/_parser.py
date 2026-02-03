@@ -361,40 +361,7 @@ class CellMLParser:
                 initial_values.append(init)
 
         # Set initial values
-        for child, variable, raw_value in initial_values:
-            # Parse as number
-            value = None
-            try:
-                value = myokit.Number(strict_str_to_float(raw_value))
-            except ValueError or TypeError:
-                pass
-
-            # Parse as name
-            if value is None:
-                # Not supported in 1.0
-                if self._ns == cellml.NS_CELLML_1_0:
-                    raise CellMLParsingError(
-                        'In CellML 1.0, a variable\'s initial_value attribute'
-                        f' must be a real number, but found "{raw_value}"'
-                        ' (3.4.3.7).', child)
-
-                # Check if valid identifier
-                if not myokit.formats.cellml.v1.is_identifier(raw_value):
-                    raise CellMLParsingError(
-                        'A variable\'s initial_value attribute must be a real'
-                        ' number or a valid CellML identifier, but found'
-                        f' "{raw_value}" (3.4.3.7).', child)
-
-                # Must be a local variable
-                try:
-                    value = variable.component().variable(raw_value)
-                except KeyError:
-                    raise CellMLParsingError(
-                        'Unknown local variable referenced from a variable\'s'
-                        f' initial_value attribute "{raw_value}"', child)
-                value = myokit.Name(value)
-
-            # Set initial value
+        for child, variable, value in initial_values:
             try:
                 variable.set_initial_value(value)
             except myokit.formats.cellml.v1.CellMLError as e:
