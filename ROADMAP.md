@@ -48,10 +48,10 @@ Two major improvements are planned:
 
 Projects which are ongoing but not currently prioritised include
 
-- Add new features for working with stimulus protocols ([project](https://github.com/myokit/myokit/projects/9)).
-- Improve support for expressions in initial values ([project](https://github.com/myokit/myokit/projects/8)).
-  - Related: Add more CellML tests, by further developing the [CellML test suite](https://github.com/MichaelClerx/cellml-validation), see also the [tickets](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3ACellML).
-- Create a unified data and simulation data interface, allowing the Explorer and DataLogViewer to be combined into a single tool that can be used to compare data with predictions ([project](https://github.com/myokit/myokit/projects/55555555555), see also the [edata tag](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3Aedata)).
+- Add new features for working with stimulus protocols ([project](https://github.com/orgs/myokit/projects/9)).
+- Improve support for expressions in initial values ([project](https://github.com/orgs/myokit/projects/8)).
+- Add more CellML tests, by further developing the [CellML test suite](https://github.com/MichaelClerx/cellml-validation), see also the [tickets](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3ACellML).
+- Create a unified data and simulation data interface, allowing the Explorer and DataLogViewer to be combined into a single tool that can be used to compare data with predictions ([project](https://github.com/orgs/myokit/projects/11), see also the [edata tag](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3Aedata)).
   - Related: Obtain suitable test files for patch-clamp data formats.
   - Alternatively, the data reading parts could be split off into a separate project or merged into other projects like Neo (provided the goals and functionality is sufficiently aligned). See [this ticket](https://github.com/myokit/myokit/issues/259).
 - Unification of multi-cell simulation interfaces ([project](https://github.com/myokit/myokit/projects/9999999)).
