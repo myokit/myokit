@@ -858,6 +858,10 @@ class TimeSeriesProtocol:
     Protocols can be compared with ``==``, which will check if the sequence of
     time value pairs is the same, and the interpolation method is the same.
     Protocols can be serialized with ``pickle``.
+
+    **Note**: Time series protocols cannot be used to represent signals
+    containing discontinuities, as these will be smoothed out by the
+    interpolation.
     """
 
     def __init__(self, times, values, method=None):

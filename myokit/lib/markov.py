@@ -975,6 +975,10 @@ class AnalyticalSimulation:
         """
         self._parameters[self._parameter_map[variable]] = float(value)
 
+        # Invalidate cache
+        self._cached_matrices = {}
+        self._cached_solution = {}
+
     def set_default_state(self, state):
         """
         Changes this simulation's default state.
@@ -1073,7 +1077,7 @@ class AnalyticalSimulation:
         y0 = PI.dot(self._state.reshape((n, 1)))
 
         # Reshape times array
-        times = np.array(times, copy=False).reshape((len(times),))
+        times = np.asarray(times).reshape((len(times),))
 
         # Calculate state
         x = P.dot(y0 * np.exp(times * E))
@@ -1219,7 +1223,7 @@ class DiscreteSimulation:
 
         Returns a discretized state ``y`` where ``sum(y) = nchannels``.
         """
-        x = np.array(x, copy=False, dtype=float)
+        x = np.asarray(x, dtype=float)
         if (np.abs(1 - np.sum(x))) > 1e-6:
             raise ValueError(
                 'The sum of fractions in the state to be discretized must'
@@ -1492,6 +1496,8 @@ class DiscreteSimulation:
         Updates a single parameter to a new value.
         """
         self._parameters[self._parameter_map[variable]] = float(value)
+        self._cached_rates = None
+        self._cached_matrix = None
 
     def set_default_state(self, state):
         """

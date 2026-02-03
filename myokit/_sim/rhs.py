@@ -153,7 +153,7 @@ class RhsBenchmarker(myokit.CModule):
         the given benchmarked times.
         """
         import numpy as np
-        times = np.array(times, copy=False)
+        times = np.asarray(times)
         # Remove outliers twice
         for i in range(0, 2):
             avg = np.mean(times)

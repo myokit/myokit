@@ -53,7 +53,7 @@ class CellMLParsingError(myokit.ImportError):
         if element is not None:
             try:    # pragma: no cover
                 line = str(element.sourceline)
-                message = 'Error on line ' + line + '. ' + message
+                message = f'Error on line {line}. {message}'
             except AttributeError:
                 pass
         super().__init__(message)
@@ -89,8 +89,7 @@ class CellMLParser:
         if element.text is not None:
             if element.text.strip():
                 raise CellMLParsingError(
-                    'Text found in ' + self._tag(element, name) + '.',
-                    element)
+                    f'Text found in {self._tag(element, name)}.', element)
 
         # Check child elements
         allowed = set([self._join(x) for x in children])
@@ -102,17 +101,16 @@ class CellMLParser:
             # Check for trailing text
             if child.tail is not None and child.tail.strip():
                 raise CellMLParsingError(
-                    'Text found in ' + self._tag(element, name)
-                    + ', after ' + self._tag(child) + ' element.',
-                    child)
+                    f'Text found in {self._tag(element, name)}, after'
+                    f' {self._tag(child)} element.', child)
 
             # Check if allowed
             if str(child.tag) in allowed:
                 continue
 
             raise CellMLParsingError(
-                'Unexpected content type in ' + self._tag(element, name)
-                + ', found element of type ' + self._tag(child) + '.', child)
+                f'Unexpected content type in {self._tag(element, name)}, found'
+                f' element of type {self._tag(child)}.', child)
 
         # Check attributes
         allowed = set(attributes)
@@ -128,8 +126,8 @@ class CellMLParser:
                 ns, at = split(key)
                 key = self._item(ns, at)
                 raise CellMLParsingError(
-                    'Unexpected attribute ' + key + ' found in '
-                    + self._tag(element, name) + '.', element)
+                    f'Unexpected attribute {key} found in'
+                    f' {self._tag(element, name)}.', element)
 
     def _check_id(self, element, obj=None):
         """
@@ -148,7 +146,7 @@ class CellMLParser:
 
         # Check uniqueness
         if xid in self._ids:
-            raise CellMLParsingError('Duplicate id "' + xid + '".', element)
+            raise CellMLParsingError(f'Duplicate id "{xid}".', element)
 
         # Store and return
         self._ids[xid] = obj
@@ -165,11 +163,11 @@ class CellMLParser:
         if ns is None:
             return item
         elif ns == self._ns:
-            return 'cellml:' + item
+            return f'cellml:{item}'
         elif ns == cellml.NS_MATHML:
-            return 'mathml:' + item
+            return f'mathml:{item}'
         else:
-            return '{' + ns + '}' + item
+            return f'{{{ns}}}{item}'
 
     def _join(self, element, namespace=None):
         """
@@ -177,7 +175,7 @@ class CellMLParser:
         """
         if namespace is None:
             namespace = self._ns
-        return '{' + namespace + '}' + element
+        return f'{{{namespace}}}{element}'
 
     def parse(self, root):
         """
@@ -207,7 +205,7 @@ class CellMLParser:
             parser = etree.XMLParser(remove_comments=True)
             tree = etree.parse(path, parser=parser)
         except Exception as e:
-            raise CellMLParsingError('Unable to parse XML: ' + str(e))
+            raise CellMLParsingError(f'Unable to parse XML: {e}')
 
         # Parse content
         return self.parse(tree.getroot())
@@ -222,7 +220,7 @@ class CellMLParser:
         try:
             root = etree.fromstring(text)
         except Exception as e:
-            raise CellMLParsingError('Unable to parse XML: ' + str(e))
+            raise CellMLParsingError(f'Unable to parse XML: {e}')
 
         # Parse content
         return self.parse(root)
@@ -236,8 +234,7 @@ class CellMLParser:
             name = element.attrib['name']
         except KeyError:
             raise CellMLParsingError(
-                'Component element must have a name attribute.',
-                element)
+                'Component element must have a name attribute.', element)
 
         # Create component (validates name and checks uniqueness)
         try:
@@ -259,8 +256,18 @@ class CellMLParser:
             element, ['variable'], ['name'], name, math=True)
 
         # Create variables and set interfaces
+        initial_values = []
         for child in element.findall(self._join('variable')):
-            self._parse_variable(child, component)
+            init = self._parse_variable(child, component)
+            if init is not None:
+                initial_values.append(init)
+
+        # Set initial values
+        for child, variable, value in initial_values:
+            try:
+                variable.set_initial_value(value)
+            except myokit.formats.cellml.v2.CellMLError as e:
+                raise CellMLParsingError(str(e), child)
 
     def _parse_connection(self, element, model, connected):
         """
@@ -288,8 +295,7 @@ class CellMLParser:
         if c1 == c2:
             raise CellMLParsingError(
                 'The component_1 and component_2 attributes in a connection'
-                ' element must be different, got "' + str(c1)
-                + '" twice.', element)
+                f' element must be different, got "{c1}" twice.', element)
 
         # Get components
         try:
@@ -297,22 +303,20 @@ class CellMLParser:
         except KeyError:
             raise CellMLParsingError(
                 'A map_components component_1 attribute must refer to a'
-                ' component in the current model, got "' + str(c1) + '".',
-                element)
+                f' component in the current model, got "{c1}".', element)
         try:
             c2 = model.component(c2)
         except KeyError:
             raise CellMLParsingError(
                 'A map_components component_2 attribute must refer to a'
-                ' component in the current model, got "' + str(c2) + '".',
-                element)
+                f' component in the current model, got "{c2}".', element)
 
         # Check components are not yet connected
         if (c1, c2) in connected:
             raise CellMLParsingError(
                 'Each connection in a model must connect a unique pair of'
-                ' components, found multiple for "' + c1.name() + '" and "'
-                + c2.name() + '".', element)
+                f' components, found multiple for "{c1.name()}" and'
+                f' "{c2.name()}".', element)
         connected.add((c1, c2))
         connected.add((c2, c1))
 
@@ -359,15 +363,13 @@ class CellMLParser:
         except KeyError:
             raise CellMLParsingError(
                 'A map_variables variable_1 attribute must refer to a'
-                ' variable in component_1, got "' + str(v1) + '".',
-                element)
+                f' variable in component_1, got "{v1}".', element)
         try:
             v2 = c2.variable(v2)
         except KeyError:
             raise CellMLParsingError(
                 'A map_variables variable_2 attribute must refer to a'
-                ' variable in component_2, got "' + str(v1) + '".',
-                element)
+                f' variable in component_2, got "{v1}".', element)
 
         # Connect variables
         model = c1.model()
@@ -428,8 +430,7 @@ class CellMLParser:
         except KeyError:
             raise CellMLParsingError(
                 'A component_ref\'s component attribute must reference a'
-                ' component in the same model, got "' + component + '".',
-                element)
+                f' component in the same model, got "{component}".', element)
 
         # Check allowed content
         self._check_allowed_content(element, ['component_ref'], ['component'])
@@ -441,9 +442,8 @@ class CellMLParser:
             if component.parent() is not None:
                 raise CellMLParsingError(
                     'A component can only have a single encapsulation parent:'
-                    ' found ' + str(component) + ' with parents '
-                    + str(component.parent()) + ' and ' + str(parent) + '.',
-                    element)
+                    f' found {component} with parents {component.parent()} and'
+                    f' and {parent}.', element)
 
             # Set parent (won't raise CellMLErrors)
             component.set_parent(parent)
@@ -498,8 +498,8 @@ class CellMLParser:
                 units = model.find_units(units)
             except myokit.formats.cellml.v2.CellMLError:
                 raise CellMLParsingError(
-                    'Unknown unit "' + str(units) + '" referenced inside a'
-                    ' MathML equation.', element)
+                    f'Unknown unit "{units}" referenced inside a MathML'
+                    ' equation.', element)
 
             # Create and return
             return myokit.Number(value, units.myokit_unit())
@@ -516,36 +516,36 @@ class CellMLParser:
             if ns != cellml.NS_MATHML:
                 raise CellMLParsingError(
                     'The contents of a mathml:math element must be in the'
-                    ' mathml namespace, found "' + str(child.tag) + '" inside '
-                    + str(component) + '.', child)
+                    f' mathml namespace, found "{child.tag}" inside'
+                    f' {component}.', child)
 
             # If it isn't these it must be an apply
             if el != 'apply':
                 raise CellMLParsingError(
                     'Unexpected contents in mathml:math. Expecting'
-                    ' mathml:apply but found mathml:' + el + ' inside maths'
-                    ' for ' + str(component) + '.', child)
+                    f' mathml:apply but found mathml:{el} inside maths for'
+                    f' {component}.', child)
 
             # Parse
             eq = p.parse(child)
             if not isinstance(eq, myokit.Equal):
                 raise CellMLParsingError(
                     'Unexpected element in MathML, expecting a list of'
-                    ' equations, got ' + self._tag(child) + '.', child)
+                    f' equations, got f{self._tag(child)}.', child)
             lhs, rhs = eq
 
             # Check lhs
             if not isinstance(lhs, myokit.LhsExpression):
                 raise CellMLParsingError(
                     'Invalid expression found on the left-hand side of an'
-                    ' equation: ' + self._dae_message, child)
+                    f' equation: {self._dae_message}.', child)
 
             # Check variable is undefined
             var = lhs.var()
             if var.has_equation():
                 raise CellMLParsingError(
-                    'Overdefined variable: ' + str(var) + ': Two defining'
-                    ' equations.', child)
+                    f'Overdefined variable: {var}: Two defining equations.',
+                    child)
 
             # Set equations
             try:
@@ -642,7 +642,7 @@ class CellMLParser:
         except myokit.formats.cellml.v2.CellMLError as e:
             raise CellMLParsingError(
                 'Models that take derivatives with respect to more than one'
-                ' variable are not supported (' + str(e) + ').')
+                f' variable are not supported ({e}).')
 
         # Read any rdf annotations
         # TODO: Allow RDF annotations from external files
@@ -697,9 +697,9 @@ class CellMLParser:
         children = element.findall(self._join('unit'))
         if not children:
             warnings.warn(
-                'Unable to parse definition for units "' + str(name) + '",'
-                ' using `dimensionless instead. (Defining new base units is'
-                ' not supported.)')
+                f'Unable to parse definition for units "{name}", using'
+                ' `dimensionless instead. (Defining new base units is not'
+                ' supported.)')
 
         # Parse content
         myokit_unit = myokit.units.dimensionless
@@ -716,6 +716,10 @@ class CellMLParser:
         """
         Parses a variable ``element`` and adds a variable to the given
         ``component``.
+
+        If an initial value needs to be set, returns a tuple
+        ``(element, variable, initial_value_string)``. Otherwise returns
+        ``None``.
         """
         # Check name is present
         try:
@@ -752,12 +756,14 @@ class CellMLParser:
             ]
             self._check_allowed_content(element, [], attr, name)
 
-            # Set initial value
-            variable.set_initial_value(
-                element.attrib.get('initial_value', None))
+            # Pass back initial value for delayed processing
+            init = element.attrib.get('initial_value', None)
 
         except myokit.formats.cellml.v2.CellMLError as e:
             raise CellMLParsingError(str(e), element)
+
+        if init is not None:
+            return (element, variable, init)
 
     def _sort_units(self, element):
         """
@@ -794,14 +800,14 @@ class CellMLParser:
             # Check doesn't shadow an si unit
             if name in si_units:
                 raise CellMLParsingError(
-                    'Units name "' + name + '" overlaps with a predefined name'
-                    ' in ' + self._tag(element) + '.', element)
+                    f'Units name "{name}" overlaps with a predefined name in'
+                    f' {self._tag(element)}.', element)
 
             # Check for duplicates
             if name in local_units:
                 raise CellMLParsingError(
-                    'Duplicate units definition "' + name + '" in '
-                    + self._tag(element) + '.', element)
+                    f'Duplicate units definition "{name}" in'
+                    f' {self._tag(element)}.', element)
             local_units[name] = units
 
             # Determine dependencies
@@ -811,8 +817,7 @@ class CellMLParser:
                     dep = unit.attrib['units']
                 except KeyError:
                     raise CellMLParsingError(
-                        'Unit elements must have a units attribute.',
-                        element)
+                        'Unit elements must have a units attribute.', element)
                 deps.add(dep)
             unresolved[name] = deps
 
@@ -835,9 +840,8 @@ class CellMLParser:
                 for name, deps in unresolved.items():
                     deps.difference_update(fresh)
             else:
-                raise CellMLParsingError(
-                    'Unable to resolve network of units in '
-                    + self._tag(element) + '.', element)
+                raise CellMLParsingError('Unable to resolve network of units'
+                                         f' in {self._tag(element)}.', element)
         return ordered
 
     def _tag(self, element, name=None):
@@ -854,6 +858,6 @@ class CellMLParser:
         ns, el = split(element.tag)
         tag = self._item(ns, el)
         if ns == self._ns and name is not None:
-            tag += '[@name="' + name + '"]'
+            tag += f'[@name="{name}"]'
         return tag
 

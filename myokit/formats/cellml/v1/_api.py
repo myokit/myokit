@@ -10,12 +10,14 @@ import warnings
 
 import myokit
 
+from myokit.formats import is_real_number_string
+
 
 # Identifier validation
 _cellml_identifier = re.compile('^([_][0-9_]*)?[a-zA-Z][a-zA-Z0-9_]*$')
 
 
-def is_valid_identifier(name):
+def is_identifier(name):
     """
     Tests if the given ``name`` is a valid CellML 1.1 identifier.
 
@@ -41,17 +43,17 @@ def clean_identifier(name):
 
     Raises a ``ValueError`` if it can't create a valid identifier.
     """
-    if is_valid_identifier(name):
+    if is_identifier(name):
         return name
 
     # Replace spaces and hyphens with underscores
     clean = re.sub(r'[\s-]', '_', name)
 
     # Check if valid and return
-    if is_valid_identifier(clean):
+    if is_identifier(clean):
         return clean
     raise ValueError(
-        'Unable to create a valid CellML identifier from "' + str(name) + '".')
+        f'Unable to create a valid CellML identifier from "{name}".')
 
 
 def create_unit_name(unit):
@@ -63,7 +65,7 @@ def create_unit_name(unit):
     name = str(unit)[1:-1]
 
     # If this is a valid name, return
-    if is_valid_identifier(name):
+    if is_identifier(name):
         return name
 
     # Not allowed: could be because of a multiplier, e.g. [m (0.0254)]
@@ -94,7 +96,7 @@ def create_unit_name(unit):
         # Use e-notation if multiple of 10
         multiplier10 = unit.multiplier_log_10()
         if myokit.float.eq(multiplier10, int(multiplier10)):
-            multiplier = '1e' + str(int(multiplier10))
+            multiplier = f'1e{int(multiplier10)}'
 
         # Format as integer
         elif myokit.float.eq(multiplier, int(multiplier)):
@@ -108,9 +110,19 @@ def create_unit_name(unit):
         multiplier = multiplier.replace('+', '')
         multiplier = multiplier.replace('-', '_minus_')
         multiplier = multiplier.replace('.', '_dot_')
-        name += '_times_' + multiplier
+        name = f'{name}_times_{multiplier}'
 
     return name
+
+
+def is_prefixed_number(expr):
+    """
+    Checks if ``expr`` is a :class:`myokit.Number`, wrapped in any number of
+    prefix plus or minus operators.
+    """
+    while isinstance(expr, (myokit.PrefixPlus, myokit.PrefixMinus)):
+        expr = expr[0]
+    return isinstance(expr, myokit.Number)
 
 
 class AnnotatableElement:
@@ -185,7 +197,7 @@ class UnsupportedBaseUnitsError(UnitsError):
     def __init__(self, units):
         self.units = units
         super().__init__(
-            'Unsupported base units "' + units + '".')
+            f'Unsupported base units "{units}".')
 
 
 class UnsupportedUnitOffsetError(UnitsError):
@@ -209,7 +221,7 @@ class Component(AnnotatableElement):
         self._model = model
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Component name must be a valid CellML identifier (3.4.2.2).')
         self._name = name
@@ -373,7 +385,7 @@ class Component(AnnotatableElement):
             parent._children.add(self)
 
     def __str__(self):
-        return 'Component[@name="' + self._name + '"]'
+        return f'Component[@name="{self._name}"]'
 
     def units(self):
         """
@@ -419,7 +431,7 @@ class Component(AnnotatableElement):
                     ' with Model.set_free_variable().')
             if not has_free:
                 raise CellMLError(
-                    str(self) + ' has state variables, but no local variable'
+                    f'{self} has state variables, but no local variable'
                     ' connected to the free variable.')
 
     def variable(self, name):
@@ -451,14 +463,14 @@ class Model(AnnotatableElement):
 
     Support notes for 1.1:
 
-    - The new feature of using variables in ``initial_value`` attributes is not
-      supported.
     - Imports (CellML 1.1) are not supported.
+    - Initial values can be local variable names, as long as those variables
+      are constants (or depend only on constants).
 
     Support notes for 1.0:
 
     - The stricter 1.1 rule for identifiers is used for both CellML 1.0 and
-      1.1: a valid identifier not start with a number, and must contain at
+      1.1: a valid identifier may not start with a number, and must contain at
       least one letter.
 
     Arguments:
@@ -470,11 +482,11 @@ class Model(AnnotatableElement):
         '1.0' or '1.1').
 
     """
-    def __init__(self, name, version='1.0'):
+    def __init__(self, name, version='1.1'):
         super().__init__(self)
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Model name must be a valid CellML identifier (3.4.1.2).')
         self._name = name
@@ -524,17 +536,17 @@ class Model(AnnotatableElement):
         """
         # Check both are variables, and from this model
         if not isinstance(variable_1, Variable):
-            raise ValueError('Argument variable_1 must be a'
-                             ' cellml.v1.Variable.')
+            raise ValueError(
+                'Argument variable_1 must be a cellml.v1.Variable.')
         if not isinstance(variable_2, Variable):
-            raise ValueError('Argument variable_2 must be a'
-                             ' cellml.v1.Variable.')
+            raise ValueError(
+                'Argument variable_2 must be a cellml.v1.Variable.')
         if variable_1._model is not self:
-            raise ValueError('Argument variable_1 must be a variable from this'
-                             ' model.')
+            raise ValueError(
+                'Argument variable_1 must be a variable from this model.')
         if variable_2._model is not self:
-            raise ValueError('Argument variable_2 must be a variable from this'
-                             ' model.')
+            raise ValueError(
+                'Argument variable_2 must be a variable from this model.')
 
         # Check variables are distinct
         if variable_1 is variable_2:
@@ -573,31 +585,30 @@ class Model(AnnotatableElement):
                 variable_2._source = variable_1
             elif variable_2._source is variable_1:
                 raise CellMLError(
-                    'Invalid connection: ' + str(variable_2) + ' is already'
-                    ' connected to ' + str(variable_1) + '.')
+                    f'Invalid connection: {variable_2} is already connected to'
+                    f' {variable_1}.')
             else:
                 raise CellMLError(
-                    'Invalid connection: ' + str(variable_2) + ' has a '
-                    + string_1 + '_interface of "in" and is already connected'
+                    f'Invalid connection: {variable_2} has a'
+                    f' {string_1}_interface of "in" and is already connected'
                     ' to a variable with an interface of "out".')
         elif interface_1 == 'in' and interface_2 == 'out':
             if variable_1._source is None:
                 variable_1._source = variable_2
             elif variable_1._source is variable_2:
                 raise CellMLError(
-                    'Invalid connection: ' + str(variable_1) + ' is already'
-                    ' connected to ' + str(variable_2) + '.')
+                    f'Invalid connection: {variable_1} is already connected to'
+                    f' {variable_2}.')
             else:
                 raise CellMLError(
-                    'Invalid connection: ' + str(variable_1) + ' has a '
-                    + string_2 + '_interface of "in" and is already connected'
+                    f'Invalid connection: {variable_1} has a'
+                    f' {string_2}_interface of "in" and is already connected'
                     ' to a variable with an interface of "out".')
         else:
             raise CellMLError(
-                'Invalid connection: ' + str(variable_1) + ' has a ' + string_1
-                + '_interface of "' + interface_1 + '", while '
-                + str(variable_2) + ' has a ' + string_2 + '_interface of "'
-                + interface_2 + '" (3.4.6.4).')
+                f'Invalid connection: {variable_1} has a {string_1}_interface'
+                f' of "{interface_1}", while {variable_2} has a'
+                f' {string_2}_interface of "{interface_2}" (3.4.6.4).')
 
     def add_units(self, name, myokit_unit):
         """
@@ -679,7 +690,7 @@ class Model(AnnotatableElement):
         return self._free_variable
 
     @staticmethod
-    def from_myokit_model(model, version='1.0'):
+    def from_myokit_model(model, version='1.1'):
         """
         Creates a CellML :class:`Model` from a :class:`myokit.Model`.
 
@@ -702,6 +713,39 @@ class Model(AnnotatableElement):
 
         # Create CellML model
         m = Model(name, version)
+
+        # For version 1.1 only, check if we need to create a Myokit model where
+        # all initial values are either numbers or names of local variables
+        # For version 1.0, anything that's not a number will be converted to a
+        # literal at a later stage
+        if version == '1.1':
+            to_fix = []
+            for state in model.states():
+                e = state.initial_value()
+                if isinstance(e, myokit.Number):
+                    continue
+                if isinstance(e, myokit.Name):
+                    # Compare parents: note, nested variables can't be
+                    # referenced here, so this check is sufficient
+                    if e.var().parent() == state.parent():
+                        continue
+                to_fix.append(state.qname())
+
+            if to_fix:
+                model = model.clone()
+                for state in to_fix:
+                    state = model.get(state)
+                    value = state.initial_value()
+                    if is_prefixed_number(value):
+                        # Don't make variables for x = -1
+                        state.set_initial_value(value.eval())
+                    else:
+                        # But do for `1 + exp(3)`, or `a + b`
+                        init_var = state.parent().add_variable_allow_renaming(
+                            state.name() + '_init')
+                        init_var.set_rhs(value)
+                        init_var.set_unit(state.unit())
+                        state.set_initial_value(init_var.lhs())
 
         # Valid model always has a time variable
         time = model.time()
@@ -777,7 +821,7 @@ class Model(AnnotatableElement):
         in_variables = {component: set() for component in model}
 
         # Dict mapping Myokit variables to CellML variables, per component
-        var_map = {component: dict() for component in model}
+        var_map = {component: {} for component in model}
 
         # Add components
         for component in model:
@@ -792,7 +836,7 @@ class Model(AnnotatableElement):
                 # Check if this variable is needed in other components
                 interface = 'none'
 
-                # Get all refs to variable's LHS
+                # Get all refs to this variable's LHS
                 refs = set(variable.refs_by())
                 if variable.is_state():
                     # If it's a state, refs to dot(x) also require the time
@@ -895,11 +939,27 @@ class Model(AnnotatableElement):
                 # Promote states and set rhs and initial value
                 elif variable.is_state():
                     v.set_is_state(True)
-                    v.set_initial_value(variable.initial_value(True))
                     v.set_rhs(rhs)
 
+                    init = variable.initial_value()
+                    if is_prefixed_number(init):
+                        v.set_initial_value(init.eval())
+                    elif version == '1.0':
+                        # In 1.0, evaluate any other expression, warn if
+                        # variables are involved
+                        if not init.is_literal():
+                            warnings.warn(
+                                f'Incompatible expression "{init}", of type'
+                                f' {type(init)} specified for initial value of'
+                                f' {variable}, replacing by its evaluation'
+                                f' "{init.eval()}".')
+                        v.set_initial_value(myokit.Number(init.eval()))
+                    else:
+                        assert isinstance(init, myokit.Name)
+                        v.set_initial_value(subst[init])
+
                 # Store literals (single number) in initial value
-                elif isinstance(rhs, myokit.Number):
+                elif is_prefixed_number(rhs):
                     v.set_initial_value(rhs.eval())
 
                 # For all other use rhs
@@ -927,7 +987,7 @@ class Model(AnnotatableElement):
 
         # Create model
         m = myokit.Model(self.name())
-        m.meta['author'] = 'Myokit CellML 1 API'
+        m.meta['mmt_authors'] = 'Myokit CellML 1 API'
 
         # Copy meta data
         for key, value in self.meta.items():
@@ -1021,8 +1081,12 @@ class Model(AnnotatableElement):
 
                         v.set_rhs(rhs)
                         if variable.is_state():
+                            # Note: In this case, rhs_or_initial_value() always
+                            # returns the RHS, so ``rhs`` is guaranteed not to
+                            # be the initial value
                             init = variable.initial_value()
-                            v.promote(0 if init is None else init)
+                            v.promote(0 if init is None else
+                                      init.clone(subst=var_map))
 
                 # Add local copies of variables requiring unit conversion
                 elif variable in needs_conversion:
@@ -1040,9 +1104,8 @@ class Model(AnnotatableElement):
                         f = myokit.Number(f)
                     except myokit.IncompatibleUnitError:
                         warnings.warn(
-                            'Unable to determine unit conversion factor for '
-                            + str(v) + ', from ' + str(v.unit()) + ' to '
-                            + str(r.unit()) + '.')
+                            'Unable to determine unit conversion factor for'
+                            f' {v}, from {v.unit()} to {r.unit()}.')
                         f = myokit.Number(1)
 
                     # Add equation
@@ -1109,7 +1172,7 @@ class Model(AnnotatableElement):
             variable._is_free = True
 
     def __str__(self):
-        return 'Model[@name="' + self._name + '"]'
+        return f'Model[@name="{self._name}"]'
 
     def units(self):
         """
@@ -1151,9 +1214,9 @@ class Model(AnnotatableElement):
             free = free.pop()
             if self._free_variable is not free:
                 warnings.warn(
-                    'No value is defined for the variable "'
-                    + free.name() + '", but "' + self._free_variable.name()
-                    + '" is listed as the free variable.')
+                    f'No value is defined for the variable "{free.name()}",'
+                    f' but "{self._free_variable.name()}" is listed as the'
+                    ' free variable.')
 
     def version(self):
         """
@@ -1181,12 +1244,12 @@ class Units:
     def __init__(self, name, myokit_unit, predefined=False):
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Units name must be a valid CellML identifier (5.4.1.2).')
         if not predefined and name in self._si_units:
             raise CellMLError(
-                'Units name "' + name + '" overlaps with a predefined name'
+                f'Units name "{name}" overlaps with a predefined name'
                 ' (5.4.1.2).')
         self._name = name
 
@@ -1218,7 +1281,7 @@ class Units:
             # If not raise error (and one that makes sense even if this was
             # called via a model or component units lookup).
             if myokit_unit is None:
-                raise CellMLError('Unknown units name "' + str(name) + '".')
+                raise CellMLError(f'Unknown units name "{name}".')
 
             # Create and store object
             obj = cls(name, myokit_unit, predefined=True)
@@ -1237,8 +1300,7 @@ class Units:
         try:
             return cls._si_units_r[myokit_unit]
         except KeyError:
-            raise CellMLError(
-                'No name found for myokit unit ' + str(myokit_unit) + '.')
+            raise CellMLError(f'No name found for myokit unit {myokit_unit}.')
 
     def myokit_unit(self):
         """
@@ -1308,7 +1370,7 @@ class Units:
 
             # float(10**309) is the first int that doesn't fit in a float
             if p > 309:
-                raise CellMLError('Unit prefix too large: 10^' + str(p))
+                raise CellMLError(f'Unit prefix too large: 10^{p}')
             unit *= 10**int(p)
 
         # Handle exponent (note: prefix is exponentiated, multiplier is not).
@@ -1344,7 +1406,7 @@ class Units:
         return cls._si_units.keys()
 
     def __str__(self):
-        return 'Units[@name="' + self._name + '"]'
+        return f'Units[@name="{self._name}"]'
 
     # Predefined units in CellML, name to Unit
     _si_units = {
@@ -1473,7 +1535,7 @@ class Variable(AnnotatableElement):
         self._component = component
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Variable name must be a valid CellML identifier (3.4.3.2).')
         self._name = name
@@ -1484,12 +1546,12 @@ class Variable(AnnotatableElement):
         except UnsupportedBaseUnitsError as e:
             raise UnsupportedBaseUnitsError(
                 'Variable units attribute references the unsupported base'
-                ' units "' + e.units + '".')
+                f' units "{e.units}".')
         except CellMLError:
             raise CellMLError(
                 'Variable units attribute must reference a units element in'
                 ' the current component or model, or one of the predefined'
-                ' units, found "' + str(units) + '" (3.4.3.3).')
+                f' units, found "{units}" (3.4.3.3).')
 
         # Check and store interfaces
         if public_interface not in ['none', 'in', 'out']:
@@ -1579,26 +1641,30 @@ class Variable(AnnotatableElement):
 
     def rhs(self):
         """
-        Returns this variable's right-hand side.
+        Returns this variable's right-hand side expression, if set.
         """
         return self._rhs
 
     def rhs_or_initial_value(self):
         """
-        For non-states, returns this variable's RHS or a :class:`myokit.Number`
-        representing the initial value if no RHS is set. For states always
-        returns the RHS.
+        For non-states, returns this variable's RHS or its initial value if no
+        RHS is set. For states always returns the RHS.
         """
         if self._is_state:
             return self._rhs
         if self._rhs is None and self._initial_value is not None:
-            return myokit.Number(
-                self._initial_value, self._units.myokit_unit())
+            return self._initial_value
         return self._rhs
 
     def set_initial_value(self, value):
         """
-        Sets this variable's intial value (must be a number or ``None``).
+        Sets this variable's intial value.
+
+        In CellML 1.0, this must be a :class:`myokit.Number` or ``None``. In
+        CellML 1.1 it can also be a :class:`myokit.Name` referencing a variable
+        in the same component.
+
+        To stay close to the specification, numbers are stored without units.
         """
         # Allow unsetting with ``None``
         if value is None:
@@ -1609,21 +1675,51 @@ class Variable(AnnotatableElement):
         if self._public_interface == 'in' or self._private_interface == 'in':
             i = 'public' if self._public_interface == 'in' else 'private'
             raise CellMLError(
-                'An initial value cannot be set for ' + str(self) + ', which'
-                ' has ' + i + '_interface="in" (3.4.3.8).')
+                f'An initial value cannot be set for {self}, which has'
+                f' {i}_interface="in" (3.4.3.8).')
 
-        # Check and store
-        try:
-            self._initial_value = float(value)
-        except ValueError:
-            if self._model.version() == '1.0':
-                raise CellMLError(
-                    'If given, a variable initial_value must be a real number'
-                    ' (3.4.3.7).')
+        # Reusable error
+        e10 = ('In CellML 1.0, an initial value (if set) must be a real number'
+               f' (3.4.3.7), found "{value}".')
+        e11 = ('Initial value (if set) must be a real number or a variable'
+               f' from the same component (3.4.3.7), found "{value}".')
+
+        # Allow string input
+        if isinstance(value, str):
+            if is_real_number_string(value):
+                value = myokit.Number(value)
+            elif is_identifier(value):
+                if self._model.version() == '1.0':
+                    raise CellMLError(e10)
+                try:
+                    value = self._component.variable(value)
+                except KeyError:
+                    raise CellMLError(e11)
+                value = myokit.Name(value)
             else:
-                raise CellMLError(
-                    'If given, a variable initial_value must be a real number'
-                    ' (using variables as initial values is not supported).')
+                raise CellMLError(e11)
+
+        # Allow expression input
+        elif isinstance(value, myokit.Expression):
+            if is_prefixed_number(value):
+                value = myokit.Number(value.eval())
+            elif isinstance(value, myokit.Name):
+                if self._model.version() == '1.0':
+                    raise CellMLError(e10)
+                if value.var()._component is not self._component:
+                    raise CellMLError(e11)
+            else:
+                raise CellMLError(e11)
+
+        # Allow numeric input
+        else:
+            try:
+                value = myokit.Number(float(value))
+            except (ValueError, TypeError):
+                raise CellMLError(e11)
+
+        # Store
+        self._initial_value = value
 
     def set_is_state(self, state):
         """
@@ -1631,7 +1727,6 @@ class Variable(AnnotatableElement):
         """
         # Check interface
         if self._public_interface == 'in' or self._private_interface == 'in':
-            i = 'public' if self._public_interface == 'in' else 'private'
             raise CellMLError(
                 'State variables can not have an "in" interface.')
 
@@ -1641,43 +1736,50 @@ class Variable(AnnotatableElement):
         """
         Sets a right-hand side expression for this variable.
 
-        The given ``rhs`` must be a :class:`myokit.Expression` tree where any
+        The given ``rhs`` must be a :class:`myokit.Expression` where any
         :class:`myokit.Name` objects have a CellML :class:`Variable` as their
         value.
         """
+        # Type check and unsetting
+        if rhs is None:
+            self._rhs = None
+            return
+        if not isinstance(rhs, myokit.Expression):
+            raise ValueError(
+                'RHS expressions must be specified as myokit.Expression'
+                f' objects, but got {type(rhs)}.')
+
         # Check interface
         if self._public_interface == 'in' or self._private_interface == 'in':
             i = 'public' if self._public_interface == 'in' else 'private'
             raise CellMLError(
-                'An equation cannot be set for ' + str(self) + ', which has '
-                + i + '_interface="in" (4.4.4).')
+                f'An equation cannot be set for {self}, which has'
+                f' {i}_interface="in" (4.4.4).')
 
         # Check all references in equation are known and local
-        if rhs is not None:
-            for ref in rhs.references():
-                var = ref.var()
-                if var._component is not self._component:
-                    raise CellMLError(
-                        'A variable RHS can only reference variables from the'
-                        ' same component, found: ' + str(var) + '.')
+        for ref in rhs.references():
+            var = ref.var()
+            if var._component is not self._component:
+                raise CellMLError(
+                    'A variable RHS can only reference variables from the'
+                    f' same component, found: {var}.')
 
-            # Check all units are known
-            numbers_without_units = {}
-            for x in rhs.walk(myokit.Number):
-                # Replace None with dimensionless
-                if x.unit() is None:
-                    numbers_without_units[x] = myokit.Number(
-                        x.eval(), myokit.units.dimensionless)
-                else:
-                    try:
-                        self._component.find_units_name(x.unit())
-                    except CellMLError:
-                        raise CellMLError(
-                            'All units appearing in a variable\'s RHS must be'
-                            ' known to its component, found: ' + str(x.unit())
-                            + '.')
-            if numbers_without_units:
-                rhs = rhs.clone(subst=numbers_without_units)
+        # Check all units are known
+        numbers_without_units = {}
+        for x in rhs.walk(myokit.Number):
+            # Replace None with dimensionless
+            if x.unit() is None:
+                numbers_without_units[x] = myokit.Number(
+                    x.eval(), myokit.units.dimensionless)
+            else:
+                try:
+                    self._component.find_units_name(x.unit())
+                except CellMLError:
+                    raise CellMLError(
+                        'All units appearing in a variable\'s RHS must be'
+                        f' known to its component, found: {x.unit()}.')
+        if numbers_without_units:
+            rhs = rhs.clone(subst=numbers_without_units)
 
         # Store
         self._rhs = rhs
@@ -1692,8 +1794,7 @@ class Variable(AnnotatableElement):
         return self._source
 
     def __str__(self):
-        return (
-            'Variable[@name="' + self._name + '"] in ' + str(self._component))
+        return (f'Variable[@name="{self._name}"] in {self._component}')
 
     def units(self):
         """
@@ -1709,33 +1810,30 @@ class Variable(AnnotatableElement):
         # Check that variables with an in interface are connected
         # Sort of allowed in the spec ?
         if self._public_interface == 'in' or self._private_interface == 'in':
-            i = 'public' if self._public_interface == 'in' else 'private'
             if self._source is None:
+                i = 'public' if self._public_interface == 'in' else 'private'
                 warnings.warn(
-                    str(self) + ' has ' + i + '_interface="in", but is not'
-                    ' connected to a variable with an appropriate "out"')
+                    f'{self} has {i}_interface="in", but is not connected to a'
+                    ' variable with an appropriate "out"')
 
         # Check that state variables define two values
         elif self._is_state:
-
             if self._initial_value is None:
-                warnings.warn(
-                    'State ' + str(self) + ' has no initial value.')
-
+                warnings.warn(f'State {self} has no initial value.')
             if self._rhs is None:
                 raise CellMLError(
-                    'State ' + str(self) + ' must have a defining equation.')
+                    f'State {self} must have a defining equation.')
 
         # Check that other variables define a value
         elif self._rhs is None:
             if self._initial_value is None and not self._is_free:
-                warnings.warn('No value set for ' + str(self) + '.')
+                warnings.warn(f'No value set for {self}.')
 
         # And only one value
         elif self._initial_value is not None:
             raise CellMLError(
-                'Overdefined: ' + str(self) + ' has both an initial value and'
-                ' a defining equation (which is not an ODE).')
+                f'Overdefined: {self} has both an initial value and a defining'
+                ' equation which is not an ODE.')
 
     def value_source(self):
         """

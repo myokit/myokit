@@ -17,13 +17,13 @@ jobs:
     strategy:
       matrix:
         # All Python versions except latest, which is tested by coverage.
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Configure Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -36,7 +36,7 @@ jobs:
       - name: Install Myokit
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip
           python -m pip install .[optional]
           python .github/workflows/select-opencl-device.py
 

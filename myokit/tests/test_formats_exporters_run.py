@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Tests the exporters from the format module.
+# Tests that exporters run: doesn't check output
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -95,74 +95,6 @@ class ExportTest(unittest.TestCase):
                 raise Exception(
                     'No types of export supported by: ' + exporter)
 
-    def test_runnable_exporter_shared(self):
-        # Test shared functionality of the TemplatedRunnableExporters.
-
-        e = myokit.formats.exporter('ansic')
-
-        # Load model, protocol
-        m, p, x = myokit.load('example')
-
-        # Create empty output directory as subdirectory of DIR_OUT
-        with TemporaryDirectory() as d:
-            path = d.path()
-
-            # Simple export
-            dpath = os.path.join(path, 'runnable1')
-            ret = e.runnable(dpath, m)
-            self.assertIsNone(ret)
-            self.assertTrue(os.path.isdir(dpath))
-            self.assertTrue(len(os.listdir(dpath)) > 0)
-
-            # Write to complex path
-            dpath = os.path.join(path, 'runnable2', 'nest', 'test')
-            ret = e.runnable(dpath, m, p)
-            self.assertIsNone(ret)
-            self.assertTrue(os.path.isdir(dpath))
-            self.assertTrue(len(os.listdir(dpath)) > 0)
-
-            # Overwrite existing path
-            ret = e.runnable(dpath, m, p)
-            self.assertIsNone(ret)
-            self.assertTrue(os.path.isdir(dpath))
-            self.assertTrue(len(os.listdir(dpath)) > 0)
-
-            # Path pointing to file
-            dpath = os.path.join(path, 'file')
-            with open(dpath, 'w') as f:
-                f.write('contents\n')
-            self.assertRaisesRegex(
-                myokit.ExportError, 'file exists', e.runnable, dpath, m, p)
-
-            # Directory exists where we're trying to write a file
-            dpath = os.path.join(path, 'runnable3')
-            fname = os.path.join(dpath, 'sim.c')
-            os.makedirs(fname)
-            self.assertRaisesRegex(
-                myokit.ExportError, 'Directory exists',
-                e.runnable, dpath, m, p)
-
-            # Directory embedded in the output file path
-            def embedded():
-                return {'sim.c': 'nested/sim.c'}
-
-            # 1. Normal operation
-            e._dict = embedded
-            dpath = os.path.join(path, 'runnable4')
-            ret = e.runnable(dpath, m, p)
-            self.assertIsNone(ret)
-            self.assertTrue(os.path.isdir(dpath))
-            self.assertTrue(len(os.listdir(dpath)) > 0)
-
-            # 2. Try to create directory where file exists
-            def embedded():
-                return {'sim.c': 'nested/sim.c/som.c'}
-
-            e._dict = embedded
-            dpath = os.path.join(path, 'runnable4')
-            self.assertRaisesRegex(
-                myokit.ExportError, 'file or link', e.runnable, dpath, m, p)
-
     def test_completeness(self):
         # Test that all exporters have a test (so meta!).
 
@@ -171,6 +103,9 @@ class ExportTest(unittest.TestCase):
             name = name.replace('-', '_')
             name = 'test_' + name + '_exporter'
             self.assertIn(name, methods)
+
+    def test_sbml_exporter(self):
+        self._test(myokit.formats.exporter('sbml'))
 
     def test_ansic_exporter(self):
         self._test(myokit.formats.exporter('ansic'))
@@ -195,6 +130,9 @@ class ExportTest(unittest.TestCase):
 
     def test_cuda_kernel_rl_exporter(self):
         self._test(myokit.formats.exporter('cuda-kernel-rl'))
+
+    def test_diffsl_exporter(self):
+        self._test(myokit.formats.exporter('diffsl'))
 
     def test_easyml_exporter(self):
         self._test(myokit.formats.exporter('easyml'))

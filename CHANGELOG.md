@@ -4,10 +4,122 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1143](https://github.com/myokit/myokit/pull/1143) Added `convert_ramps` argument AbfFile which, if set, will allow reading ramps as steps (instead of refusing to import the protocol entirely).
+  - [#1152](https://github.com/myokit/myokit/pull/1152) Added `Simulation.crash_log()` to return the logged data up until a `SimulationError`.
+  - [#1155](https://github.com/myokit/myokit/pull/1155) The Patchmaster file reader now provides the holding current and "CC Gain" settings.
+  - [#1165](https://github.com/myokit/myokit/pull/1165) Added partial support for `min` and `max` in MathML. For now, only the binary forms are supported, and the import converts to an `if` function.
+  - [#1170](https://github.com/myokit/myokit/pull/1170) `Variable.set_initial_value` now accepts variables, automatically converting them to names.
+  - [#1174](https://github.com/myokit/myokit/pull/1174) Added methods `is_integer_string` and `is_real_number_string` to `myokit.formats`.
 - Changed
+  - [#1147](https://github.com/myokit/myokit/pull/1147) In imported CellML files, the `author` meta data field is now called `mmt_authors`, reflecting it indicates the author(s) of the mmt implementation (rather than the model authors).
+  - [#1174](https://github.com/myokit/myokit/pull/1174) Renamed `cellml.v1.is_valid_identifier` to `cellml.v1.is_identifier` to match with `cellml.v2`.
+  - [#1176](https://github.com/myokit/myokit/pull/1176) Made MathML number parsing text-based, and slightly more stringent.
+  - [#1177](https://github.com/myokit/myokit/pull/1177) The CellML 1.1 and 2.0 APIs now accept variables as initial values. The CellML 1 API now uses version 1.1 by default.
+  - [#1177](https://github.com/myokit/myokit/pull/1177) The CellML 2.0 API will now raise an error if a `myokit.Number` with the wrong units is passed to `set_initial_value`.
 - Deprecated
 - Removed
+  - [#1174](https://github.com/myokit/myokit/pull/1174) Removed `cellml.v2.is_integer_string`, `is_real_number_string` and `is_basic_real_number_string`.
 - Fixed
+  - [#1170](https://github.com/myokit/myokit/pull/1170) Fixed bug where `myokit.Number`'s constructor was too lenient, converting e.g. variables to `0` and leading to unexpected results.
+  - [#1175](https://github.com/myokit/myokit/pull/1175) Fixed literal (number) syntax highlighting in IDE.
+
+## [1.38.0] - 2025-08-14
+- Added
+  - [#1136](https://github.com/myokit/myokit/pull/1136) Added limited support for ABF reading in modes other than "episodic acquisition".
+- Changed
+  - [#1135](https://github.com/myokit/myokit/pull/1135) Updated documentation of "prediction" in PatchMasterFile.
+  - [#1139](https://github.com/myokit/myokit/pull/1139) Protocol start times set using the ``next`` keyword are now rounded to 9 digits precision. This helps avoid unexpected results in very long protocols, where floating point errors can accumulate. Start times set explicitly are not rounded.
+- Fixed
+  - [#1135](https://github.com/myokit/myokit/pull/1135) Fixed bug in PatchMasterFile where data types other than int 16 were not detected.
+  - [#1137](https://github.com/myokit/myokit/pull/1137) Fixed error in colormap attribution.
+  - [#1138](https://github.com/myokit/myokit/pull/1138) Fixed bug in FiberTissueSimulation and Simulation1d that was causing compilation errors.
+
+## [1.37.4] - 2025-06-30
+- Added
+  - [#1118](https://github.com/myokit/myokit/pull/1118) @kwabenantim Added a minimal `pyproject.toml` specifying the build system.
+  - [#1120](https://github.com/myokit/myokit/pull/1120) Added "close" and "close all" menu items in the data log viewer.
+  - [#1122](https://github.com/myokit/myokit/pull/1122) The Patchmaster file reader now documents the lack of "prediction" setting availability. Added detailed C-fast information to meta data exported to DataLog.
+- Changed
+  - [#1121](https://github.com/myokit/myokit/pull/1121) The filter 2 frequency in Patchmaster files is now returned in kHz instead of Hz. Added a method to get the filter 1 frequency. Both frequencies are added to the meta data when creating a DataLog.
+- Fixed
+  - [#1117](https://github.com/myokit/myokit/pull/1117) @martinjrobins Fixed a bug in SBML export of non-constant, non-state variables.
+  - [#1134](https://github.com/myokit/myokit/pull/1134) Added missing `__len__` method to `PatchMasterFile`.
+
+## [1.37.3] - 2025-01-09
+- Changed
+  - [#1116](https://github.com/myokit/myokit/pull/1116) Unit names passed to `Unit.register` are now validated using `myokit.check_name`, and the fourth argument to `Unit.register` is now called `preferred_representation`.
+  - [#1116](https://github.com/myokit/myokit/pull/1116) The method `Unit.register_preferred_representation` now checks that the given representation parses to the given unit.
+- Fixed
+  - [#1116](https://github.com/myokit/myokit/pull/1116) Fixed issue where units were represented with double multipliers, e.g. ``[m (0.001) (1e-3)]``, causing unparseable code to be written.
+
+## [1.37.2] - 2025-01-09
+- Added
+  - [#1098](https://github.com/myokit/myokit/pull/1098) @martinjrobins Added SBML export.
+- Changed
+  - [#1102](https://github.com/myokit/myokit/pull/1102) Replaced the HEKA method `c_fast_tau` with a method `c_fast_detailed`.
+- Removed
+  - [#1111](https://github.com/myokit/myokit/pull/1111) No longer testing on Python 3.7.
+- Fixed
+  - [#1100](https://github.com/myokit/myokit/pull/1100) Added missing PatchMaster classes to the API and docs.
+  - [#1109](https://github.com/myokit/myokit/pull/1109) Fixed issue with meta data in Patchmaster class for files with alternative amplifier state storage.
+
+## [1.37.1] - 2024-11-05
+- Added
+  - [#1073](https://github.com/myokit/myokit/pull/1073) Added export to [DiffSL](https://github.com/martinjrobins/diffeq-js/).
+  - [#1088](https://github.com/myokit/myokit/pull/1088) The DataLogViewer now displays meta data for myokit DataLogs.
+  - [#1088](https://github.com/myokit/myokit/pull/1088) The HEKA file format now supports more meta data, including filters.
+  - [#1092](https://github.com/myokit/myokit/pull/1092) The method `DataLog.load_csv` can now read CSV files with duplicate column names.
+  - [#1095](https://github.com/myokit/myokit/pull/1095) Myokit is now tested on Python 3.12 and 3.13.
+- Fixed
+  - [#1083](https://github.com/myokit/myokit/pull/1083) Fixed bug when passing initial state `Expression` objects to `myokit.step`.
+  - [#1088](https://github.com/myokit/myokit/pull/1088) The HEKA file format meta data now shows the correct value for fast capacitance correction.
+  - [#1088](https://github.com/myokit/myokit/pull/1088) The ABF reader no longer crashes if degrees Celsius are encountered.
+  - [#1093](https://github.com/myokit/myokit/pull/1093) `DataLog.load_csv` will now ignore an initial byte order marker.
+
+## [1.37.0] - 2024-06-17
+- Added
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Add a `myokit.TypeError` exception, which inherits from `myokit.IntegrityError` but is used specifically if one type of expression was expected but another was found.
+- Changed
+  - [#1067](https://github.com/myokit/myokit/pull/1067) Improved the meta data loaded from HEKA files when creating a `myokit.DataLog`.
+  - [#1074](https://github.com/myokit/myokit/pull/1074) Expressions will now raise a `myokit.IntegrityError` in the constructor if their operands are not expression objects: previously, this check was only performed by `Expression.validate()`.
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Expressions will now raise a `myokit.TypeError` in the constructor if their operands are unexpected expression types, e.g. if numbers and booleans are mixed.
+- Removed
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Removed the `PrefixCondition` base class previously used in the expression system, as only `Not` inherited from it.
+- Fixed
+  - [#1071](https://github.com/myokit/myokit/pull/1071) When DataLog.split_periodic does not make a split, a length 1 list is returned instead of a `DataLog`.
+  - [#1075](https://github.com/myokit/myokit/pull/1075) Added missing `Expression` base classes to public API.
+  - [#1077](https://github.com/myokit/myokit/pull/1077) Fixed bug where data log viewer crashed when reading an empty WCP file.
+  - [#1078](https://github.com/myokit/myokit/pull/1078) Added support for Numpy 2.
+
+## [1.36.1] - 2024-05-10
+- Added
+  - [#1063](https://github.com/myokit/myokit/pull/1063) Added support for Sundials 7.0.0.
+- Removed
+  - [#1061](https://github.com/myokit/myokit/issues/1061) Currently unable to test OpenCL features on Mac OS.
+- Fixed
+  - [#1060](https://github.com/myokit/myokit/pull/1060) Fixed an issue with overflows in tau for HH analytical simulations leading to unnecessary NaNs in state and current simulation outputs.
+
+## [1.36.0] - 2024-03-22
+This release fixes a potential issue in simulation output, please see [#1055](https://github.com/myokit/myokit/pull/1055) for details.
+- Added
+  - [#1051](https://github.com/myokit/myokit/pull/1051) Added a method `Simulation.crash_inputs` that returns the inputs (binding values) if the last run raised a `SimulationError`.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) Added an abstract class `CBasedExpressionWriter` to use as base class for expression writers for C-like languages.
+- Changed
+  - [#1051](https://github.com/myokit/myokit/pull/1051) `Model.evaluate_derivatives` will now use `numpy.errstate(all='raise')` when `ignore_errors` is set to `False`, causing more numerical issues to be reported.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) `Expression.pyfunc` now sorts its arguments in alphabetical order.
+- Deprecated
+  - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.eval_derivatives` is deprecated in favour of an `evaluate_derivatives` method that uses `default_state` instead of `state` when no state is given, and has better support and clearer rules for handling bindings.
+  - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.last_state` is deprecated in favour of `crash_state`.
+- Fixed
+  - [#1045](https://github.com/myokit/myokit/pull/1045) Fixed an issue where the cache used in MarkovModel was not invalidated if `set_constant()` changed simulation parameters.
+  - [#1050](https://github.com/myokit/myokit/pull/1050) Fixed warnings about unknown escape sequences.
+  - [#1051](https://github.com/myokit/myokit/pull/1051) Numerical simulation errors in `Simulation` now re-evaluate the state using the last inputs, as well as the last state.
+  - [#1051](https://github.com/myokit/myokit/pull/1051) The `Simulation` class now provides error states and inputs for both cvode-detected crashes and too many zero-length step crashes.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) `ExpressionWriter` classes now always output a `PrefixPlus`, including brackets where necessary.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) The `AnsiCExpressionWriter` and related expression writers now wrap all conditions in brackets.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) The `PythonExpressionWriter`, `NumPyExpressionWriter`, `StanExpressionWriter`, and `LatexExpressionWriter` now output brackets around double `Power` operations, so that the Myokit expression `a**b**c` is interpreted as `(a**b)**c`.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) Fixed bracket adding for `PrefixPlus`, `PrefixMinus`, and `Not` in `LatexExpressionWriter`.
+  - [#1055](https://github.com/myokit/myokit/pull/1055) Fixed bracket adding for `PrefixPlus` and `PrefixMinus` in Presentation MathML.
 
 ## [1.35.4] - 2023-10-12
 - Added

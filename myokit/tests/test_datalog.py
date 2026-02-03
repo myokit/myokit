@@ -700,6 +700,26 @@ class DataLogTest(unittest.TestCase):
         d = myokit.DataLog.load(path, progress=p)
         self.assertIsNone(d)
 
+    def test_load_csv_duplicate_keys(self):
+        # Test loading a CSV with duplicate key names
+
+        path = os.path.join(DIR_IO, 'datalog-18-duplicate-keys.csv')
+        d = myokit.DataLog.load_csv(path)
+        self.assertEqual(len(d), 7)
+        self.assertEqual(
+            list(d.keys()),
+            ['time', 'x-1', 'x-3', 'ys-2-1', 'x-4', 'ys-2-2', 'x-2'])
+
+    def test_load_csv_ufeff(self):
+        # Test ignoring byte order marker (BOM) at start of file
+
+        with TemporaryDirectory() as td:
+            path = td.path('test.csv')
+            with open(path, 'w', encoding='utf-8-sig') as f:
+                f.write('time,x\n0,2\n1,3\n')
+            d = myokit.DataLog.load_csv(path)
+            self.assertEqual(list(d.keys()), ['time', 'x'])
+
     def test_load_csv_errors(self):
         # Test for errors during csv loading.
 
@@ -2126,9 +2146,12 @@ class DataLogTest(unittest.TestCase):
         self.assertRaises(ValueError, d.split_periodic, 0)
         self.assertRaises(ValueError, d.split_periodic, -1)
 
-        # Test larger period than log data
+        # Test larger period than log data: Should return length-1 list
         d['x'] = [4, 5, 6, 7]
         e = d.split_periodic(100)
+        self.assertIsInstance(e, list)
+        self.assertEqual(len(e), 1)
+        e = e[0]
         self.assertEqual(set(d.keys()), set(e.keys()))
         self.assertFalse(d is e)
 

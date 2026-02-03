@@ -768,13 +768,17 @@ class VariableTest(unittest.TestCase):
         v.set_initial_value(myokit.Number(12, myokit.units.g))
         self.assertEqual(v.initial_value(), myokit.Number(12, myokit.units.g))
 
-        # Test setting expressions
-        v.set_initial_value('1 + 11')
-        #self.assertEqual(v.initial_value(),
-        #                 myokit.Plus(myokit.Number(1), myokit.Number(11)))
+        # Test setting expressions and strings
+        e = myokit.Plus(myokit.Number(1), myokit.Number(11))
+        v.set_initial_value(e)
+        self.assertEqual(v.initial_value(), e)
         v.set_initial_value('1 + c.w')
         self.assertEqual(v.initial_value(),
                          myokit.Plus(myokit.Number(1), myokit.Name(w)))
+
+        # Test setting using variables
+        v.set_initial_value(w)
+        self.assertEqual(v.initial_value(), myokit.Name(w))
 
         # Strings must use global context
         self.assertRaisesRegex(myokit.ParseError, 'No component specified for',
@@ -802,9 +806,8 @@ class VariableTest(unittest.TestCase):
         x = v.add_variable('x')
         x.set_rhs(1)
         v.set_initial_value(x.lhs())
-        self.assertRaises(
-            myokit.IllegalReferenceInInitialValueError, m.validate)
-        v.set_initial_value(x)
+        self.assertRaisesRegex(
+            myokit.IllegalReferenceInInitialValueError, 'is nest', m.validate)
 
         # InitialValue and PartialDerivative can not be used
         v.set_initial_value(myokit.PartialDerivative(v.lhs(), x.lhs()))

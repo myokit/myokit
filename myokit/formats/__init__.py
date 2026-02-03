@@ -5,6 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import re
 import sys
 import traceback
 import warnings
@@ -19,11 +20,21 @@ _IMPORTERS = None
 _EXPORTERS = None
 _EWRITERS = None
 
+# String matching
+# Note: $ allows a newline before the end of string, \Z does not
+_re_int = re.compile(r'^[+-]?[0-9]+\Z')
+_re_int_s = re.compile(r'^\s*[+-]?[0-9]+\s*\Z')
+_re_real = re.compile(rf'^[+-]?{myokit._RE_UNSIGNED_REAL}\Z')
+_re_real_s = re.compile(rf'^\s*[+-]?{myokit._RE_UNSIGNED_REAL}\s*\Z')
+
 
 # Classes & methods
 class Exporter:
     """
     Abstract base class for exporters.
+
+    An exporter is a class that can produce model code or runnable code from a
+    Myokit model or a model & protocol combination (runnable).
     """
     def __init__(self):
         super().__init__()
@@ -106,15 +117,38 @@ def exporters():
 
 class ExpressionWriter:
     """
-    Base class for expression writers, that take myokit expressions as input
-    and convert them to text or other formats.
+    Base class for expression writers.
+
+    Expression writers take :class:`myokit.Expression` objects and produce code
+    in some language other than Myokit.
+
+    When implementing an expression writer, there are a few important edge
+    cases to consider:
+
+    1. Simplifications must not be made at this stage. For example, if the user
+       writes "+1" instead of "1", the code should output "+1". If
+       simplifications are desired, these should be made at an earlier stage,
+       when everything is still in symbolic form.
+
+    2. Powers (exponentiation) can be left or right-associative. In Myokit and,
+       for example, in Matlab, the expression ``a^b^c`` is interpreted as
+       ``(a^b)^c``. By in Python (and e.g. in many spreadsheet applications)
+       ``a**b**c`` is interpreted as ``a**(b**c)``, necessitating a different
+       bracket-adding logic than used in Myokit.
+
+    3. Myokit does not have increment or decrement operators ``--`` and ``++``,
+       so the expression ``--x`` is interpreted as ``-(-x)``. This is the same
+       in Python. But in C-based languages, this is interpreted as a decrement
+       operator so care must be taken to add extra brackets.
+
     """
     def __init__(self):
         self._op_map = self._build_op_map()
 
     def _build_op_map(self):
         """
-        Returns a mapping from myokit operators to lambda functions on expr.
+        Returns a mapping from Myokit operators to lambda functions on
+        expressions.
         """
         return {
             myokit.Name: self._ex_name,
@@ -158,15 +192,11 @@ class ExpressionWriter:
         }
 
     def eq(self, q):
-        """
-        Converts an equation to a string
-        """
+        """ Converts a :class:`myokit.Equation` to a string. """
         return self.ex(q.lhs) + ' = ' + self.ex(q.rhs)
 
     def ex(self, e):
-        """
-        Converts an Expression to a string.
-        """
+        """ Converts a :class:`myokit.Expression` to a string. """
         t = type(e)
         if t not in self._op_map:   # pragma: no cover
             raise ValueError('Unknown expression type: ' + str(t))
@@ -188,9 +218,17 @@ class ExpressionWriter:
         raise NotImplementedError
 
     def _ex_prefix_plus(self, e):
+        #
+        # Note: Spaces or brackets should be used in languages where ++ is an
+        #       operator
+        #
         raise NotImplementedError
 
     def _ex_prefix_minus(self, e):
+        #
+        # Note: Spaces or brackets should be used in languages where -- is an
+        #       operator
+        #
         raise NotImplementedError
 
     def _ex_plus(self, e):
@@ -212,6 +250,10 @@ class ExpressionWriter:
         raise NotImplementedError
 
     def _ex_power(self, e):
+        #
+        # Note: Most languages agree that -a**b means -(a**b)
+        #       https://codeplea.com/exponentiation-associativity-options
+        #
         raise NotImplementedError
 
     def _ex_sqrt(self, e):
@@ -239,6 +281,11 @@ class ExpressionWriter:
         raise NotImplementedError
 
     def _ex_log(self, e):
+        #
+        # Log can have 1 or 2 arguments. If the language does not support
+        # 2-argument log, use (log(a) / log(b)), including the outer
+        # brackets (because a function is expected, which is never bracketed).
+        #
         raise NotImplementedError
 
     def _ex_log10(self, e):
@@ -253,10 +300,11 @@ class ExpressionWriter:
     def _ex_abs(self, e):
         raise NotImplementedError
 
-    def _ex_not(self, e):
-        raise NotImplementedError
-
     def _ex_equal(self, e):
+        #
+        # To obtain the desired `(0 == 0) == 0` behaviour, this and other
+        # conditions are best rendered with brackets.
+        #
         raise NotImplementedError
 
     def _ex_not_equal(self, e):
@@ -278,6 +326,9 @@ class ExpressionWriter:
         raise NotImplementedError
 
     def _ex_or(self, e):
+        raise NotImplementedError
+
+    def _ex_not(self, e):
         raise NotImplementedError
 
     def _ex_if(self, e):
@@ -835,10 +886,42 @@ class SweepSource:
 
         Note that a source with zero recorded channels may still report a
         non-zero number of sweeps if it can provide D/A outputs.
+
+        Similarly, formats like WCP can report zero sweeps but have a non-zero
+        channel count (if no data was recorded).
         """
         raise NotImplementedError
 
     def time_unit(self):
         """ Returns the time unit used in this source. """
         raise NotImplementedError
+
+
+def is_integer_string(text, strip_whitespace=False):
+    """
+    Checks whether ``text`` can be interpreted as a signed integer string.
+
+    By default, this only returns ``True`` if the whole string matches, without
+    whitespace before or after. To allow surrounding whitespace, set
+    ``strip_whitespace=True``.
+    """
+    if strip_whitespace:
+        return _re_int_s.match(text) is not None
+    return _re_int.match(text) is not None
+
+
+def is_real_number_string(text, strip_whitespace=False):
+    """
+    Checks whether ``text`` can be interpreted as a signed real number string.
+
+    By default, this only returns ``True`` if the whole string matches, without
+    whitespace before or after. To allow surrounding whitespace, set
+    ``strip_whitespace=True``.
+
+    Unlike Python's ``float``, values such as ``nan`` or ``-inf`` are not
+    accepted.
+    """
+    if strip_whitespace:
+        return _re_real_s.match(text) is not None
+    return _re_real.match(text) is not None
 

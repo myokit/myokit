@@ -7,28 +7,28 @@
 from ._api import (     # noqa
     AnnotatableElement,
     CellMLError,
+    Component,
     clean_identifier,
     create_unit_name,
-    Component,
+    is_identifier,
     Model,
     Units,
     UnitsError,
     UnsupportedBaseUnitsError,
     UnsupportedUnitOffsetError,
     Variable,
-    is_valid_identifier,
 )
 
 from ._parser import (  # noqa
-    parse_file,
-    parse_string,
     CellMLParser,
     CellMLParsingError,
+    parse_file,
+    parse_string,
 )
 
 from ._writer import (  # noqa
+    CellMLWriter,
     write_file,
     write_string,
-    CellMLWriter,
 )
 

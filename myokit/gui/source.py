@@ -51,6 +51,14 @@ COLOR_BRACKET = QtGui.QColor(240, 100, 0)
 # Selected line is highlighted
 COLOR_SELECTED_LINE = QtGui.QColor(238, 238, 238)
 
+# Real number regex
+# Note 1: The first part is a "lookbehind", that stops it matching just after a
+# word character, so in "a1" it won't match, and in "a.1" it won't start
+# matching until the "1" because "." is not a word character.
+# Note 2: The remainder is the same as in myokit.float
+# Note 3: Deliberately unsigned
+LITERAL = rf'(?<!\w){myokit._RE_UNSIGNED_REAL}'
+
 
 def _adapt_for_dark_mode(palette):
     """
@@ -985,30 +993,30 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
 
         # Headers
         name = r'[a-zA-Z]+[a-zA-Z0-9_]*'
-        self._rule_head = R(r'^\s*(\[{1,2}' + name + '\]{1,2})')
+        self._rule_head = R(r'^\s*(\[{1,2}' + name + r'\]{1,2})')
 
         # Simple rules
         self._rules = []
 
         # Numbers
-        pattern = R(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
-        self._rules.append((pattern, STYLE_LITERAL))
+        self._rules.append((R(LITERAL), STYLE_LITERAL))
         unit = r'\[([a-zA-Z0-9/^-]|\*)+\]'
         self._rules.append((R(unit), STYLE_INLINE_UNIT))
 
         # Keywords
+        # Note: \b is a "word boundary" match
         for keyword in self.KEYWORD_1:
-            self._rules.append((R(r'\b' + keyword + r'\b'), STYLE_KEYWORD_1))
+            self._rules.append((R(rf'\b{keyword}\b'), STYLE_KEYWORD_1))
         for keyword in self.KEYWORD_2:
-            self._rules.append((R(r'\b' + keyword + r'\b'), STYLE_KEYWORD_2))
+            self._rules.append((R(rf'\b{keyword}\b'), STYLE_KEYWORD_2))
 
         # Meta-data coloring
         self._rules_labels = [
-            R(r'(\s*)(bind)\s+(' + name + ')'),
-            R(r'(\s*)(label)\s+(' + name + ')'),
+            R(rf'(\s*)(bind)\s+({name})'),
+            R(rf'(\s*)(label)\s+({name})'),
         ]
-        self._rule_meta = R(r'^\s*(' + name + r':)(\s*)(.+)')
-        self._rule_var_unit = R(r'^(\s*)(in)(\s*)(' + unit + ')')
+        self._rule_meta = R(rf'^\s*({name}:)(\s*)(.+)')
+        self._rule_var_unit = R(rf'^(\s*)(in)(\s*)({unit})')
 
         # Comment
         self._comment = R(r'#')
@@ -1141,8 +1149,7 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
         self._rules = []
 
         # Numbers
-        self._rules.append(
-            (R(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b'), STYLE_LITERAL))
+        self._rules.append((R(LITERAL), STYLE_LITERAL))
 
         # Keyword "next"
         self._rules.append((R(r'\bnext\b'), STYLE_KEYWORD_1))
@@ -1192,8 +1199,7 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
 
         # Literals: numbers, True, False, None
         # Override some keywords
-        self._rules.append((R(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b'),
-                            STYLE_LITERAL))
+        self._rules.append((R(LITERAL), STYLE_LITERAL))
         self._rules.append((R(r'\bTrue\b'), STYLE_LITERAL))
         self._rules.append((R(r'\bFalse\b'), STYLE_LITERAL))
         self._rules.append((R(r'\bNone\b'), STYLE_LITERAL))

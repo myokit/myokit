@@ -949,6 +949,10 @@ def parse_protocol_from_stream(stream):
                 'Expecting [[protocol]]')
         expect(next(stream), EOL)
 
+    # Handling "next" accuracy: after summing, times set using "next" will be
+    # rounded to 9 digits precision.
+    round_next = lambda x: round(x, 9)
+
     # Create protocol
     protocol = myokit.Protocol()
 
@@ -971,7 +975,7 @@ def parse_protocol_from_stream(stream):
                     'Unable to determine end of previous event, "next" cannot'
                     ' be used here.')
             else:
-                t = t_next
+                t = round_next(t_next)
         else:
             t = parse_number(stream)
         if t_last is None:
@@ -1209,8 +1213,8 @@ _rTOKEN = re.compile('|'.join([
     r'([a-zA-Z]\w*:)+',
     # Names
     r'[a-zA-Z]\w*',
-    # Floating point numbers
-    r'(([0-9]*\.[0-9]+)|([0-9]+\.?[0-9]*))([eE][+-]?[0-9]+)?',
+    # Unsigned real numbers, allowing exponential notation
+    myokit._RE_UNSIGNED_REAL,
     # Integers
     r'[0-9]+',
     # Comparison 1

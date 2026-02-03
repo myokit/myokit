@@ -5,6 +5,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import os
 import unittest
 
 import myokit
@@ -14,9 +15,7 @@ from myokit.tests import TemporaryDirectory
 
 
 class FormatsTest(unittest.TestCase):
-    """
-    Test infrastructure from the formats module.
-    """
+    """ Test shared formats functionality. """
 
     def test_register_external_importer(self):
         # Tests registering an external importer.
@@ -101,10 +100,8 @@ class FormatsTest(unittest.TestCase):
 
 
 class ExporterTest(unittest.TestCase):
-    """
-    Tests some parts of :class:`Exporter` that are not tested when testing the
-    various exporter implementations.
-    """
+    """ Tests shared :class:`Exporter` functionality. """
+
     def test_writable_dir(self):
         # Test :meth:`_test_writable_dir` for existing paths.
 
@@ -125,6 +122,216 @@ class ExporterTest(unittest.TestCase):
                 f.write('Hello')
             self.assertRaisesRegex(
                 myokit.ExportError, 'file exists', e.runnable, path, m, p)
+
+    def test_runnable_exporter(self):
+        # Test shared functionality of the TemplatedRunnableExporters.
+
+        e = myokit.formats.exporter('ansic')
+
+        # Load model, protocol
+        m, p, x = myokit.load('example')
+
+        # Create empty output directory as subdirectory of DIR_OUT
+        with TemporaryDirectory() as d:
+            path = d.path()
+
+            # Simple export
+            dpath = os.path.join(path, 'runnable1')
+            ret = e.runnable(dpath, m)
+            self.assertIsNone(ret)
+            self.assertTrue(os.path.isdir(dpath))
+            self.assertTrue(len(os.listdir(dpath)) > 0)
+
+            # Write to complex path
+            dpath = os.path.join(path, 'runnable2', 'nest', 'test')
+            ret = e.runnable(dpath, m, p)
+            self.assertIsNone(ret)
+            self.assertTrue(os.path.isdir(dpath))
+            self.assertTrue(len(os.listdir(dpath)) > 0)
+
+            # Overwrite existing path
+            ret = e.runnable(dpath, m, p)
+            self.assertIsNone(ret)
+            self.assertTrue(os.path.isdir(dpath))
+            self.assertTrue(len(os.listdir(dpath)) > 0)
+
+            # Path pointing to file
+            dpath = os.path.join(path, 'file')
+            with open(dpath, 'w') as f:
+                f.write('contents\n')
+            self.assertRaisesRegex(
+                myokit.ExportError, 'file exists', e.runnable, dpath, m, p)
+
+            # Directory exists where we're trying to write a file
+            dpath = os.path.join(path, 'runnable3')
+            fname = os.path.join(dpath, 'sim.c')
+            os.makedirs(fname)
+            self.assertRaisesRegex(
+                myokit.ExportError, 'Directory exists',
+                e.runnable, dpath, m, p)
+
+            # Directory embedded in the output file path
+            def embedded():
+                return {'sim.c': 'nested/sim.c'}
+
+            # 1. Normal operation
+            e._dict = embedded
+            dpath = os.path.join(path, 'runnable4')
+            ret = e.runnable(dpath, m, p)
+            self.assertIsNone(ret)
+            self.assertTrue(os.path.isdir(dpath))
+            self.assertTrue(len(os.listdir(dpath)) > 0)
+
+            # 2. Try to create directory where file exists
+            def embedded():
+                return {'sim.c': 'nested/sim.c/som.c'}
+
+            e._dict = embedded
+            dpath = os.path.join(path, 'runnable4')
+            self.assertRaisesRegex(
+                myokit.ExportError, 'file or link', e.runnable, dpath, m, p)
+
+
+class ImporterTest(unittest.TestCase):
+    """ Test shared importer functionality. """
+
+    def test_importer_interface(self):
+        # Test listing and creating importers.
+        ims = myokit.formats.importers()
+        self.assertTrue(len(ims) > 0)
+        for i in ims:
+            self.assertIsInstance(i, str)
+            i = myokit.formats.importer(i)
+            self.assertTrue(isinstance(i, myokit.formats.Importer))
+
+    def test_unknown(self):
+        # Test requesting an unknown importer.
+        # Test fetching using importer method
+        self.assertRaisesRegex(
+            KeyError, 'Importer not found', myokit.formats.importer, 'blip')
+
+
+class EWriterTest(unittest.TestCase):
+    """ Test shared ewriter functionality. """
+
+    def test_ewriter_interface(self):
+        # Test listing and creating expression writers.
+
+        # Test listing
+        es = myokit.formats.ewriters()
+        self.assertTrue(len(es) > 0)
+
+        # Create one of each
+        for e in es:
+            self.assertIsInstance(e, str)
+            e = myokit.formats.ewriter(e)
+            self.assertTrue(isinstance(e, myokit.formats.ExpressionWriter))
+
+    def test_unknown(self):
+        # Test requesting an unknown expression writer.
+        # Test fetching using ewriter method
+        self.assertRaisesRegex(
+            KeyError, 'Expression writer not found', myokit.formats.ewriter,
+            'dada')
+
+
+class FormatsStringTest(unittest.TestCase):
+    """ Test shared string checking functionality """
+
+    def test_is_integer_string(self):
+        # Tests is_integer_string().
+
+        from myokit.formats import is_integer_string as t
+        self.assertTrue(t('0'))
+        self.assertTrue(t('+0'))
+        self.assertTrue(t('-0'))
+        self.assertTrue(t('3'))
+        self.assertTrue(t('+3'))
+        self.assertTrue(t('-3'))
+        self.assertTrue(t('34269386698604537836794387'))
+
+        self.assertFalse(t(''))
+        self.assertFalse(t('.'))
+        self.assertFalse(t('1.2'))
+        self.assertFalse(t('-1.2'))
+        self.assertFalse(t('1.0'))
+        self.assertFalse(t('1.'))
+        self.assertFalse(t('.0'))
+        self.assertFalse(t('1e3'))
+        self.assertFalse(t('++1'))
+        self.assertFalse(t('+-3'))
+        self.assertFalse(t('--1'))
+        self.assertFalse(t('+'))
+        self.assertFalse(t('-'))
+        self.assertFalse(t('a'))
+        self.assertFalse(t('12C'))
+
+        self.assertFalse(t(' -3'))
+        self.assertFalse(t('-3 '))
+        self.assertFalse(t('\t\f123   '))
+        self.assertTrue(t(' -3', True))
+        self.assertTrue(t('-3 ', True))
+        self.assertTrue(t('\t\f123', True))
+
+        # Newline at end: potential pitfall for $
+        self.assertFalse(t('546184\n'))
+        self.assertTrue(t('546184\n', True))
+
+        self.assertFalse(t('', True))
+        self.assertFalse(t('.', True))
+        self.assertFalse(t('-1.2', True))
+        self.assertFalse(t('++1', True))
+
+    def test_is_real_number_string(self):
+        # Tests is_real_number_string().
+
+        from myokit.formats import is_real_number_string as t
+        self.assertTrue(t('0'))
+        self.assertTrue(t('+0'))
+        self.assertTrue(t('-0'))
+        self.assertTrue(t('3'))
+        self.assertTrue(t('+3'))
+        self.assertTrue(t('-3'))
+        self.assertTrue(t(
+            '3426938669860453783679436474536745674567887'))
+        self.assertTrue(t(
+            '-.342693866982438645847568457875604537836794387'))
+        self.assertTrue(t('1.2'))
+        self.assertTrue(t('-1.2'))
+        self.assertTrue(t('+1.0'))
+        self.assertTrue(t('+1.'))
+        self.assertTrue(t('.1'))
+        self.assertTrue(t('1e3'))
+        self.assertTrue(t('.1e-3'))
+        self.assertTrue(t('-1.E0'))
+        self.assertTrue(t('1E33464636'))
+        self.assertTrue(t('1.23000000000000028e+02'))
+
+        self.assertFalse(t(''))
+        self.assertFalse(t('.'))
+        self.assertFalse(t('++1'))
+        self.assertFalse(t('+-3'))
+        self.assertFalse(t('--1'))
+        self.assertFalse(t('+'))
+        self.assertFalse(t('-'))
+        self.assertFalse(t('a'))
+        self.assertFalse(t('12C'))
+
+        self.assertFalse(t(' 1'))
+        self.assertFalse(t('1 '))
+        self.assertFalse(t('\t\f1'))
+        self.assertTrue(t(' 1', True))
+        self.assertTrue(t('1 ', True))
+        self.assertTrue(t('\t\f1', True))
+
+        # Newline at end: potential pitfall for $
+        self.assertFalse(t('+3\n'))
+        self.assertTrue(t('+3\n', True))
+
+        self.assertFalse(t('', True))
+        self.assertFalse(t('.', True))
+        self.assertFalse(t('++1', True))
+        self.assertFalse(t('+', True))
 
 
 if __name__ == '__main__':

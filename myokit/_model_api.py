@@ -10,6 +10,8 @@ import re
 
 from collections import OrderedDict
 
+import numpy
+
 import myokit
 
 
@@ -714,7 +716,10 @@ class VarOwner(ModelPart, VarProvider):
         If ``recursive`` is ``True``, any child variables will be deleted as
         well.
 
-        A :class:`myokit.IntegrityError` will be raised if
+        A :class:`myokit.IntegrityError` will be raised if the variable cannot
+        be removed because other variables depend on it. (Although dependencies
+        from child variables will be ignored if ``recursive`` is set to
+        ``True``).
         """
         if variable.parent() != self:
             raise ValueError(
@@ -1093,9 +1098,7 @@ class Model(ObjectWithMetaData, VarProvider):
                 raise myokit.IncompatibleUnitError(msg, var._token)
 
     def clone(self):
-        """
-        Returns a (deep) clone of this model.
-        """
+        """ Returns a (deep) clone of this model. """
         clone = Model()
 
         # Copy meta data
@@ -1406,11 +1409,13 @@ class Model(ObjectWithMetaData, VarProvider):
                         value = float('nan')
                     values[eq.lhs] = value
         else:
-            for group in order.values():
-                for eq in group:
-                    if eq.lhs in values:
-                        continue
-                    values[eq.lhs] = eq.rhs.eval(values, precision=precision)
+            with numpy.errstate(all='raise'):
+                for group in order.values():
+                    for eq in group:
+                        if eq.lhs in values:
+                            continue
+                        values[eq.lhs] = eq.rhs.eval(
+                            values, precision=precision)
 
         # Return calculated state
         return [values[state.lhs()] for state in self._state_vars]
@@ -1571,7 +1576,7 @@ class Model(ObjectWithMetaData, VarProvider):
         ``derivatives=None``
             An optional list or other sequence of evaluated derivatives. If not
             given, the values will be calculed from ``state`` using
-            :meth:`eval_derivatives()`.
+            :meth:`evaluate_derivatives()`.
         ``precision=myokit.DOUBLE_PRECISION``
             An optional precision argument to use when evaluating the state
             derivatives, and to pass into :meth:`myokit.float.str` when
@@ -2196,7 +2201,7 @@ class Model(ObjectWithMetaData, VarProvider):
         """
         # Deprecated since 2023-02-22
         import warnings
-        warnings.warn('The method `load_state` is deprecated.')
+        warnings.warn('The method `Model.load_state` is deprecated.')
         self.set_initial_values(myokit.load_state(filename, self))
 
     def map_component_dependencies(
@@ -2934,8 +2939,8 @@ class Model(ObjectWithMetaData, VarProvider):
             self._state_init = [
                 myokit.Number(x) for x in self.map_to_state(values)]
         elif len(values) != len(self._state_vars):
-            raise ValueError('Wrong number of initial values, expecting '
-                             + str(len(self._state_vars)) + '.')
+            raise ValueError('Wrong number of initial values, expecting'
+                             f' {len(self._state_vars)}.')
         else:
             # Parsing of arguments without making changes, in case it fails.
             expr = []
@@ -3921,10 +3926,10 @@ class Variable(VarOwner):
         # the expression returned by rhs()). References to values of state
         # variables are stored separately. Bound variables are treated as if
         # they were unbound.
-        self._refs_by = set()   # Vars that refer to this var
-        self._refs_to = set()   # Vars that this var refers to
-        self._srefs_by = set()  # Vars that refer to this state var's value
-        self._srefs_to = set()  # State var values that this var refers to
+        self._refs_by = set()   # Vars that refer to my LHS
+        self._srefs_by = set()  # Vars that refer to my current state value
+        self._refs_to = set()   # Vars whos LHS I refer to
+        self._srefs_to = set()  # Vars who current state value I refer to
 
         # Left-hand side representation (name or dot)
         self._lhs = myokit.Name(self)
@@ -4516,16 +4521,10 @@ class Variable(VarOwner):
             warnings.warn('The keyword argument `state_value` is deprecated.'
                           ' Please use `initial_value` instead.')
 
-        # Handle string and number rhs's
-        model = self.model()
-        if not isinstance(initial_value, myokit.Expression):
-            if isinstance(initial_value, str):
-                # Expressions are evaluated in model context
-                initial_value = myokit.parse_expression(
-                    initial_value, context=model)
-            elif initial_value is not None:
-                initial_value = myokit.Number(initial_value)
+        # Parse initial value
+        initial_value = self._set_initial_value(initial_value, False)
 
+        model = self.model()
         try:
             # Set lhs to derivative expression
             self._lhs = myokit.Derivative(myokit.Name(self))
@@ -4622,22 +4621,44 @@ class Variable(VarOwner):
 
     def refs_by(self, state_refs=False):
         """
-        Returns an iterator over the set of :class:`Variables <Variable>`  that
-        refer to this variable in their defining equation.
+        Returns an iterator over the set of :class:`Variables <Variable>` that
+        refer to this variable.
 
-        Note that only references to this variable's defining
-        :class:`LhsExpression` (i.e. the one returned by :meth:`lhs()`) are
-        returned. For a state variable ``x``, this means the returned result
-        contains all variables referring to ``dot(x)``. To get an iterator over
-        the variables referring to ``x`` instead, add the optional attribute
-        ``state_refs=True``. For non-state variables this setting will trigger
-        an :class:`Exception`.
+        By default (``state_refs=False``), the returned variables all refer to
+        this variable's defining :class:`LhsExpression`, i.e. the one returned
+        by :meth:`lhs()`.
+
+        For example::
+
+            a = 2
+            b = 1 + a
+
+            a.refs_by() will include b
+
+        But references to *state values* are not counted::
+
+            dot(a) = 2
+            b = 1 + a
+            c = 1 + dot(a)
+
+            a.refs_by() will include c, but not b
+
+        To see who refers to this variable's state value, use
+        ``state_refs=True``::
+
+            dot(a) = 2
+            b = 1 + a
+            c = 1 + dot(a)
+
+            a.refs_by(True) will include b, but not c
+
+        Calling ``refs_by(True)`` on a non-state variable will raise an
+        :class:`Exception`.
         """
         if state_refs:
             if not self._is_state:
-                raise Exception(
-                    'The argument "state_refs=True" can only be used on state'
-                    ' variables.')
+                raise Exception('The argument "state_refs=True" can only be'
+                                ' used on state variables.')
             return iter(self._srefs_by)
         return iter(self._refs_by)
 
@@ -4649,6 +4670,8 @@ class Variable(VarOwner):
         By default, this will _not_ include references to a state variable's
         value. To obtain a list of state variables whose value is referenced,
         use ``state_refs=True``.
+
+        See also: :meth:`refs_by`.
         """
         if state_refs:
             return iter(self._srefs_to)
@@ -4789,6 +4812,8 @@ class Variable(VarOwner):
         if not isinstance(value, myokit.Expression):
             if isinstance(value, str):
                 value = myokit.parse_expression(value, context=model)
+            elif isinstance(value, myokit.Variable):
+                value = myokit.Name(value)
             else:
                 value = myokit.Number(value)
 
@@ -4849,6 +4874,9 @@ class Variable(VarOwner):
             # Ways of setting x = 1 + y
             x.set_rhs(myokit.Plus(myokit.Number(1), myokit.Name(y)))
             x.set_rhs('1 + y')
+
+        Expressions used as a variable's right-hand side must be numerical:
+        :class:`myokit.Condition` operators can not be used as RHS.
 
         Calling `set_rhs` will reset the validation status of the model this
         variable belongs to.
@@ -5103,6 +5131,14 @@ class Equation:
     def __init__(self, lhs, rhs):
         self._lhs = lhs
         self._rhs = rhs
+        if not isinstance(lhs, myokit.Expression):
+            raise myokit.IntegrityError(
+                'Both sides of an equation must be myokit.Expression objects.'
+                f' Found {type(lhs)} for LHS.')
+        if not isinstance(rhs, myokit.Expression):
+            raise myokit.IntegrityError(
+                'Both sides of an equation must be myokit.Expression objects.'
+                f' Found {type(lhs)} for RHS.')
 
     def __eq__(self, other):
         if not isinstance(other, Equation):

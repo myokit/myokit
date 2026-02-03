@@ -23,7 +23,7 @@ class PdfExporter(myokit.formats.Exporter):
         """
         Cleans some text for use in latex.
         """
-        return text.replace('_', '\_')
+        return text.replace('_', r'\_')
 
     def post_export_info(self):
         return '\n'.join((

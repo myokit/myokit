@@ -12,6 +12,8 @@ myokit.formats
 - :meth:`myokit.formats.importer`
 - :class:`myokit.formats.Importer`
 - :meth:`myokit.formats.importers`
+- :meth:`myokit.formats.is_integer_string`
+- :meth:`myokit.formats.is_real_number_string`
 - :meth:`myokit.formats.register_external_ewriter`
 - :meth:`myokit.formats.register_external_importer`
 - :meth:`myokit.formats.register_external_exporter`
@@ -24,6 +26,7 @@ myokit.formats.ansic
 - :class:`myokit.formats.ansic.AnsiCCableExporter`
 - :class:`myokit.formats.ansic.AnsiCEulerExporter`
 - :class:`myokit.formats.ansic.AnsiCExpressionWriter`
+- :class:`myokit.formats.ansic.CBasedExpressionWriter`
 - :meth:`myokit.formats.ansic.exporters`
 - :meth:`myokit.formats.ansic.ewriters`
 
@@ -60,7 +63,7 @@ myokit.formats.cellml.v1
 - :meth:`myokit.formats.cellml.v1.clean_identifier`
 - :meth:`myokit.formats.cellml.v1.create_unit_name`
 - :class:`myokit.formats.cellml.v1.Component`
-- :meth:`myokit.formats.cellml.v1.is_valid_identifier`
+- :meth:`myokit.formats.cellml.v1.is_identifier`
 - :class:`myokit.formats.cellml.v1.Model`
 - :meth:`myokit.formats.cellml.v1.parse_file`
 - :meth:`myokit.formats.cellml.v1.parse_string`
@@ -82,10 +85,7 @@ myokit.formats.cellml.v2
 - :meth:`myokit.formats.cellml.v2.clean_identifier`
 - :meth:`myokit.formats.cellml.v2.create_unit_name`
 - :class:`myokit.formats.cellml.v2.Component`
-- :meth:`myokit.formats.cellml.v2.is_basic_real_number_string`
 - :meth:`myokit.formats.cellml.v2.is_identifier`
-- :meth:`myokit.formats.cellml.v2.is_integer_string`
-- :meth:`myokit.formats.cellml.v2.is_real_number_string`
 - :class:`myokit.formats.cellml.v2.Model`
 - :meth:`myokit.formats.cellml.v2.parse_file`
 - :meth:`myokit.formats.cellml.v2.parse_string`
@@ -113,6 +113,13 @@ myokit.formats.cuda
 - :meth:`myokit.formats.cuda.exporters`
 - :meth:`myokit.formats.cuda.ewriters`
 
+myokit.formats.diffsl
+---------------------
+- :class:`myokit.formats.diffsl.DiffSLExporter`
+- :class:`myokit.formats.diffsl.DiffSLExpressionWriter`
+- :meth:`myokit.formats.diffsl.exporters`
+- :meth:`myokit.formats.diffsl.ewriters`
+
 myokit.formats.easyml
 ---------------------
 - :class:`myokit.formats.easyml.EasyMLExporter`
@@ -127,7 +134,10 @@ myokit.formats.heka
 - :class:`myokit.formats.heka.AmplifierSeries`
 - :class:`myokit.formats.heka.AmplifierState`
 - :class:`myokit.formats.heka.AmplifierStateRecord`
+- :class:`myokit.formats.heka.CSlowRange`
 - :class:`myokit.formats.heka.EndianAwareReader`
+- :class:`myokit.formats.heka.Filter1Setting`
+- :class:`myokit.formats.heka.Filter2Type`
 - :class:`myokit.formats.heka.Group`
 - :meth:`myokit.formats.heka.importers`
 - :class:`myokit.formats.heka.NoSupportedDAChannelError`
@@ -142,6 +152,7 @@ myokit.formats.heka
 - :class:`myokit.formats.heka.Stimulus`
 - :class:`myokit.formats.heka.StimulusChannel`
 - :class:`myokit.formats.heka.StimulusFile`
+- :class:`myokit.formats.heka.StimulusFilterSetting`
 - :class:`myokit.formats.heka.Sweep`
 - :class:`myokit.formats.heka.Trace`
 - :class:`myokit.formats.heka.TreeNode`
@@ -196,18 +207,23 @@ myokit.formats.sbml
 -------------------
 - :class:`myokit.formats.sbml.Compartment`
 - :class:`myokit.formats.sbml.CSymbolVariable`
+- :meth:`myokit.formats.sbml.exporters`
+- :meth:`myokit.formats.sbml.importers`
 - :class:`myokit.formats.sbml.Model`
 - :class:`myokit.formats.sbml.ModifierSpeciesReference`
-- :meth:`myokit.formats.sbml.importers`
 - :class:`myokit.formats.sbml.Parameter`
 - :class:`myokit.formats.sbml.Quantity`
 - :class:`myokit.formats.sbml.Reaction`
 - :class:`myokit.formats.sbml.SBMLError`
+- :class:`myokit.formats.sbml.SBMLExporter`
 - :class:`myokit.formats.sbml.SBMLImporter`
 - :class:`myokit.formats.sbml.SBMLParser`
 - :class:`myokit.formats.sbml.SBMLParsingError`
+- :class:`myokit.formats.sbml.SBMLWriter`
 - :class:`myokit.formats.sbml.Species`
 - :class:`myokit.formats.sbml.SpeciesReference`
+- :meth:`myokit.formats.sbml.write_file`
+- :meth:`myokit.formats.sbml.write_string`
 
 myokit.formats.stan
 -------------------

@@ -82,6 +82,10 @@ class ContentMathMLParserTest(unittest.TestCase):
         e = myokit.PrefixPlus(myokit.Number(1))
         x = '<apply><plus/><cn>1.0</cn></apply>'
         self.assertEqual(self.p(x), e)
+        e = myokit.PrefixPlus(myokit.Plus(myokit.Number(3), myokit.Number(4)))
+        x = ('<apply><plus/><apply><plus /><cn>3.0</cn><cn>4.0</cn></apply>'
+             '</apply>')
+        self.assertEqual(self.p(x), e)
 
         # Prefix minus
         e = myokit.PrefixMinus(myokit.Number(1))
@@ -353,18 +357,10 @@ class ContentMathMLParserTest(unittest.TestCase):
         )
 
     def test_functions(self):
-        # Tests parsing basic functions
-
-        # Power
-        a = myokit.Name('a')
-        b = myokit.Number(1)
-        e = myokit.Power(a, b)
-        x = '<apply><power/><ci>a</ci><cn>1.0</cn></apply>'
-        self.assertEqual(self.p(x), e)
-
-        #TODO: Degree etc.
+        # Tests parsing simple functions
 
         # Exp
+        a = myokit.Name('a')
         e = myokit.Exp(a)
         x = '<apply><exp/><ci>a</ci></apply>'
         self.assertEqual(self.p(x), e)
@@ -380,9 +376,18 @@ class ContentMathMLParserTest(unittest.TestCase):
             mathml.MathMLError, r'Expecting 1 operand\(s\)', self.p, x)
 
         # Floor
+        b = myokit.Number(1)
         e = myokit.Floor(b)
         x = '<apply><floor/><cn>1.0</cn></apply>'
         self.assertEqual(self.p(x), e)
+
+        # Test number of arguments to unary operator
+        x = '<apply><floor/></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, r'Expecting 1 operand\(s\), got 0', self.p, x)
+        x = '<apply><floor/><cn>1.0</cn><cn>2.0</cn></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, r'Expecting 1 operand\(s\), got 2', self.p, x)
 
         # Ceil
         e = myokit.Ceil(b)
@@ -452,6 +457,50 @@ class ContentMathMLParserTest(unittest.TestCase):
              '</apply>')
         self.assertRaisesRegex(
             mathml.MathMLError, 'Expecting a single', self.p, x)
+
+    def test_functions_minmax(self):
+        # Tests parsing min and max
+
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        x = '<apply><min/><ci>a</ci><cn>1.0</cn></apply>'
+        e = myokit.If(myokit.Less(a, b), a, b)
+        self.assertEqual(self.p(x), e)
+
+        c = myokit.Number(7)
+        x = '<apply><max/><cn>7.0</cn><ci>a</ci></apply>'
+        e = myokit.If(myokit.More(c, a), c, a)
+        self.assertEqual(self.p(x), e)
+
+        x = f'<apply><min/><ci>a</ci>{x}</apply>'
+        e = myokit.If(myokit.Less(a, e), a, e)
+        self.assertEqual(self.p(x), e)
+
+        # Unsupported number of operands
+        x = '<apply><min/><ci>a</ci></apply>'
+        self.assertRaisesRegex(mathml.MathMLError, 'Only binary', self.p, x)
+        x = '<apply><min/><ci>a</ci><ci>b</ci><ci>c</ci></apply>'
+        self.assertRaisesRegex(mathml.MathMLError, 'Only binary', self.p, x)
+
+    def test_functions_power(self):
+        # Tests parsing powers
+
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        c = myokit.Number(2)
+        e = myokit.Power(a, b)
+        x = '<apply><power/><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        e = myokit.Power(myokit.Power(a, b), c)
+        x = ('<apply><power/><apply><power/><ci>a</ci><cn>1.0</cn></apply>'
+             '<cn>2.0</cn></apply>')
+        self.assertEqual(self.p(x), e)
+
+        e = myokit.Power(a, myokit.Power(b, c))
+        x = ('<apply><power/><ci>a</ci><apply><power/><cn>1.0</cn><cn>2.0</cn>'
+             '</apply></apply>')
+        self.assertEqual(self.p(x), e)
 
     def test_functions_root(self):
         # Tests parsing roots
@@ -605,19 +654,28 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Real
         x = self.p('<cn>4</cn>')
         self.assertEqual(x, myokit.Number(4))
-        x = self.p('<cn>   4  \n </cn>')
+        x = self.p('<cn>   4.0  \n </cn>')
         self.assertEqual(x, myokit.Number(4))
         x = self.p('<cn type="real">4</cn>')
         self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unable to convert contents of <cn>',
             self.p, '<cn>barry</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn>nan</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn>-Infinity</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn>\n+inf</cn>')
 
         # Real with base
-        x = self.p('<cn type="real" base="10">4</cn>')
-        self.assertEqual(x, myokit.Number(4))
-        x = self.p('<cn type="real" base="  10  ">4</cn>')
-        self.assertEqual(x, myokit.Number(4))
+        self.assertEqual(
+            myokit.Number(4), self.p('<cn type="real" base="10">4</cn>'))
+        self.assertEqual(
+            myokit.Number(-3), self.p('<cn type="real" base=" 10 ">-3.0</cn>'))
         self.assertRaisesRegex(
             mathml.MathMLError, 'bases other than 10',
             self.p, '<cn type="real" base="9">4</cn>')
@@ -640,43 +698,58 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = self.p('<cn type="integer" base="  2  ">100</cn>')
         self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Unable to parse base',
+            mathml.MathMLError, 'Invalid base specified',
             self.p, '<cn type="integer" base="barry">7</cn>')
 
         # Double
-        x = self.p('<cn type="double">4</cn>')
-        self.assertEqual(x, myokit.Number(4))
-        x = self.p('<cn type="double">\t4\n</cn>')
-        self.assertEqual(x, myokit.Number(4))
+        self.assertEqual(
+            myokit.Number(-3), self.p('<cn type="double">-3</cn>'))
+        self.assertEqual(
+            myokit.Number(4), self.p('<cn type="double">\t4\n</cn>'))
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unable to convert contents of <cn>',
             self.p, '<cn type="double">larry</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn type="double">nan</cn>')
 
         # E-notation
         x = self.p('<cn type="e-notation">40<sep/>-1</cn>')
         self.assertEqual(x, myokit.Number(4))
         x = self.p('<cn type="e-notation">\n40<sep/>-1</cn>')
         self.assertEqual(x, myokit.Number(4))
-        x = self.p('<cn type="e-notation">40<sep/>\t-1</cn>')
-        self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="e-notation"> -40.3<sep/>\t-12</cn>')
+        self.assertEqual(x, myokit.Number(-40.3e-12))
         self.assertRaisesRegex(
             mathml.MathMLError, 'e-notation should have the format',
             self.p, '<cn type="e-notation">12</cn>')
         self.assertRaisesRegex(
-            mathml.MathMLError, 'missing part before the separator',
+            mathml.MathMLError, 'before the separator should be a basic real',
             self.p, '<cn type="e-notation"> <sep/>2</cn>')
         self.assertRaisesRegex(
             mathml.MathMLError, 'missing part before the separator',
             self.p, '<cn type="e-notation"><sep/>2</cn>')
         self.assertRaisesRegex(
-            mathml.MathMLError, 'missing part after the separator',
+            mathml.MathMLError, 'after the separator should be an integer',
             self.p, '<cn type="e-notation">2<sep/> </cn>')
         self.assertRaisesRegex(
             mathml.MathMLError, 'missing part after the separator',
             self.p, '<cn type="e-notation">2<sep/></cn>')
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Unable to parse number in e-notation',
+            mathml.MathMLError, 'before the separator should be a basic real',
+            self.p, '<cn type="e-notation">1e3<sep/>1</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'after the separator should be an integer',
+            self.p, '<cn type="e-notation">1<sep/>1e3</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'before the separator should be a basic real',
             self.p, '<cn type="e-notation">larry<sep/>2</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'should be a basic real number',
+            self.p, '<cn type="e-notation">nan<sep/>2</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'after the separator should be an integer',
+            self.p, '<cn type="e-notation">1<sep/>inf</cn>')
 
         # Rational
         x = self.p('<cn type="rational">16<sep/>4</cn>')
@@ -689,7 +762,7 @@ class ContentMathMLParserTest(unittest.TestCase):
             mathml.MathMLError, 'Rational number should have the format',
             self.p, '<cn type="rational">12</cn>')
         self.assertRaisesRegex(
-            mathml.MathMLError, 'missing part before the separator',
+            mathml.MathMLError, 'before the separator should be an integer',
             self.p, '<cn type="rational"> <sep/>2</cn>')
         self.assertRaisesRegex(
             mathml.MathMLError, 'missing part before the separator',
@@ -698,10 +771,10 @@ class ContentMathMLParserTest(unittest.TestCase):
             mathml.MathMLError, 'missing part after the separator',
             self.p, '<cn type="rational">1<sep/></cn>')
         self.assertRaisesRegex(
-            mathml.MathMLError, 'missing part after the separator',
+            mathml.MathMLError, 'after the separator should be an integer',
             self.p, '<cn type="rational">1<sep/> </cn>')
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Unable to parse rational number',
+            mathml.MathMLError, 'before the separator should be an integer',
             self.p, '<cn type="rational">larry<sep/>2</cn>')
 
         # Unknown type

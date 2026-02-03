@@ -11,6 +11,7 @@ import unittest
 import numpy as np
 
 import myokit
+import myokit.formats
 import myokit.formats.axon as axon
 
 from myokit.tests import TemporaryDirectory, DIR_FORMATS, WarningCollector
@@ -207,6 +208,8 @@ class AbfTest(unittest.TestCase):
         self.assertIn('version 1.65', abf.meta_str())
         self.maxDiff = None
         self.assertEqual(abf.meta_str(), V1_INFO)
+        self.assertEqual(abf.acquisition_mode_str(),
+                         'Episodic stimulation mode')
 
         # Test getting full header runs without crashing
         abf.meta_str(True)
@@ -444,6 +447,8 @@ class AbfTest(unittest.TestCase):
         self.assertIn('version 2.0', abf.meta_str())
         self.maxDiff = None
         self.assertEqual(abf.meta_str(), V2_INFO)
+        self.assertEqual(abf.acquisition_mode_str(),
+                         'Episodic stimulation mode')
 
         # Test getting full header runs without crashing
         abf.meta_str(True)
@@ -851,6 +856,22 @@ class AtfTest(unittest.TestCase):
 
             # Test version
             self.assertEqual(atf.version(), '1.0')
+
+
+class AbfImporterInterfaceTest(unittest.TestCase):
+    """ Tests ABF importer interface. """
+
+    def test_capability_reporting(self):
+        # Test if the right capabilities are reported.
+        i = myokit.formats.importer('abf')
+        self.assertFalse(i.supports_component())
+        self.assertFalse(i.supports_model())
+        self.assertTrue(i.supports_protocol())
+
+    def test_protocol(self):
+        i = myokit.formats.importer('abf')
+        self.assertTrue(i.supports_protocol())
+        i.protocol(os.path.join(DIR_FORMATS, 'abf-v1.abf'))
 
 
 if __name__ == '__main__':

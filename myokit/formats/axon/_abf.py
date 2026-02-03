@@ -223,9 +223,13 @@ class AbfFile(myokit.formats.SweepSource):
         D/A "protocol" information will be read. If left at its default value
         of ``None`` files with the extension ``.pro`` will be recognized as
         protocol files.
+    ``convert_ramps``
+        If set to ``True``, a protocol with ramps will be read, with ramps
+        replaced by steps. If left at the default ``False``, the protocol will
+        not be read.
 
     """
-    def __init__(self, filepath, is_protocol_file=None):
+    def __init__(self, filepath, is_protocol_file=None, convert_ramps=False):
         # The path to the file and its basename
         filepath = str(filepath)
         self._filepath = os.path.abspath(filepath)
@@ -254,7 +258,6 @@ class AbfFile(myokit.formats.SweepSource):
         # Read the protocol information
         self._n_adc = None
         self._n_dac = None
-
         self._rate = None
         self._mode = None
 
@@ -264,6 +267,7 @@ class AbfFile(myokit.formats.SweepSource):
         self._run_start_to_start = None
         self._sweeps_per_run = None
         self._sweep_start_to_start = None
+        self._equal_length_sweeps = None
         self._samples_per_channel = None
 
         # To be able to treat v1 and v2 slightly more easily, we define 3
@@ -281,7 +285,7 @@ class AbfFile(myokit.formats.SweepSource):
         # will have A/D but no (or no supported) D/A. Conversely protocol files
         # will have D/A only. So all in one sweep is easiest.
         self._sweeps = None
-
+        self._convert_ramps = bool(convert_ramps)
         self._read_3_protocol_information()
 
         # Read and calculate conversion factors for integer data in ADC
@@ -553,12 +557,14 @@ class AbfFile(myokit.formats.SweepSource):
             # 1.x versions only seem to have 1 DAC channel, but this is not
             # supported here.
             self._n_adc = int(h['nADCNumChannels'])
-            self._n_dac = min(len(h['sDACChannelName']), 2)
+            if h['sDACChannelName'] is None:    # pragma: no cover
+                self._n_dac = 2
+            else:
+                self._n_dac = min(len(h['sDACChannelName']), 2)
             self._rate = 1e6 / (h['fADCSampleInterval'] * self._n_adc)
             self._mode = h['nOperationMode']
         else:
             # In version 2, there are up to 8 "waveform" D/A channels
-
             self._n_adc = int(h['sections']['ADC']['length'])
             self._n_dac = int(h['sections']['DAC']['length'])
             self._rate = 1e6 / h['protocol']['fADCSequenceInterval']
@@ -574,14 +580,10 @@ class AbfFile(myokit.formats.SweepSource):
         # Only episodic stimulation is supported.
         if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
             warnings.warn(
-                'Unsupported acquisition method '
-                + acquisition_modes[self._mode] + '; unable to read D/A'
+                'Unsupported acquisition method'
+                f' {acquisition_modes[self._mode]}; unable to read D/A'
                 ' channels.')
-
-            # Remaining code is all about reading D/A info for episodic
-            # stimulation, so return
             self._n_dac = 0
-            return
 
         # Gather protocol information
         if self._version < 2:
@@ -668,9 +670,16 @@ class AbfFile(myokit.formats.SweepSource):
             self._sweep_start_to_start = self._samples_per_channel / self._rate
 
         # Create empty sweeps
-        n = h['lActualSweeps']
-        if self._is_protocol_file:
+        if self._mode == ACMODE_GAP_FREE:   # pragma: no cover
+            # In gap-free mode, treat the data as a single sweep
+            n = 1
+        elif self._is_protocol_file:
+            # In protocol file, there is no number of recorded sweeps, so use
+            # intended number of sweeps instead
             n = self._sweeps_per_run
+        else:
+            # Use number of recorded sweeps
+            n = h['lActualSweeps']
         self._sweeps = [Sweep() for i in range(n)]
 
         # User lists are not supported for D/A reconstruction
@@ -691,7 +700,6 @@ class AbfFile(myokit.formats.SweepSource):
             return
 
         # Get indices of enabled and supported DAC reconstructions
-        supported = {EPOCH_DISABLED, EPOCH_STEPPED}
         for i_dac in range(self._n_dac):
             if einfo_exists(i_dac):
                 i = einfo(i_dac)
@@ -710,10 +718,16 @@ class AbfFile(myokit.formats.SweepSource):
                         t = e['type']
                         if t == EPOCH_STEPPED:
                             use = True
+                        elif t == EPOCH_RAMPED and self._convert_ramps:  # pragma: no cover  # noqa
+                            # Read ramp as step
+                            use = True
+                            warnings.warn(
+                                f'Unsupported epoch type: {epoch_types[t]}:'
+                                ' converting to step')
                         elif t != EPOCH_DISABLED:  # pragma: no cover
                             use = False
                             warnings.warn(
-                                f'Unsupported epoch type: {epoch_types(t)}')
+                                f'Unsupported epoch type: {epoch_types[t]}')
                             break
                 elif source == DAC_DACFILEWAVEFORM:  # pragma: no cover
                     # Stimulus file? Then don't use
@@ -811,7 +825,8 @@ class AbfFile(myokit.formats.SweepSource):
         # Get binary integer format
         dt = np.dtype('i2') if h['nDataFormat'] == 0 else np.dtype('f4')
 
-        # Get number of channels, create a numpy memory map
+        # Get number of channels, create a numpy memory map of all data
+        # The map has size n and starts at offset o
         if self._version < 2:
             # Old files, get info from fields stored directly in header
             o = h['lDataSectionPtr'] * BLOCKSIZE \
@@ -823,37 +838,57 @@ class AbfFile(myokit.formats.SweepSource):
             n = h['sections']['Data']['length']
         data = np.memmap(self._filepath, dt, 'r', shape=(n,), offset=o)
 
-        # Load list of sweeps (Sweeps are called 'episodes' in ABF < 2)
+        # Load information about sweep sizes from "SynchArray".
+        # The number of sweep information structs will be n, and information
+        # starts at an offset o
         if self._version < 2:
             n = h['lSynchArraySize']
             o = h['lSynchArrayPtr'] * BLOCKSIZE
         else:
             n = h['sections']['SynchArray']['length']
             o = h['sections']['SynchArray']['index'] * BLOCKSIZE
-        if n > 0:
-            dt = [(str('offset'), str('i4')), (str('len'), str('i4'))]
-            sweep_data = np.memmap(
-                self._filepath, dt, 'r', shape=(n,), offset=o)
+
+        # Get sweep start times (real times, not array offsets) and sizes
+        # (as number of points in an array)
+        if self._mode != ACMODE_GAP_FREE:
+            # This will be read in as an array of numpy.Void objects, which are
+            # similar to structs. In ``dt`` we name the entries offset and len.
+            sweep_starts_sizes = np.memmap(
+                self._filepath, [('offset', 'i4'), ('len', 'i4')], 'r',
+                shape=(n,), offset=o)
         else:   # pragma: no cover
-            # Cover pragma: Don't have appropriate test file
-            sweep_data = np.empty((1), dt)
-            sweep_data[0]['len'] = data.size
-            sweep_data[0]['offset'] = 0
+            # In gap-free model, all data is a single sweep
+            sweep_starts_sizes = [(0, len(data))]
 
-        # Number of sweeps must equal n
-        if n != h['lActualSweeps']:
-            raise NotImplementedError(
-                'Unable to read file with different sizes per sweep.')
+        # Sanity check
+        if len(sweep_starts_sizes) != len(self._sweeps):  # pragma: no cover
+            raise RuntimeError(
+                'Unexpected situation: number of sweeps is'
+                f' {len(self._sweeps)} but found list of'
+                f' {len(sweep_starts_sizes)} sweep sizes.')
 
-        # Time-offset at start of first sweep
-        start = sweep_data[0]['offset'] / rate
+        # Check if sweep sizes are all the same
+        self._equal_length_sweeps = True
+        if len(sweep_starts_sizes) > 0:
+            size = sweep_starts_sizes[0][1]
+            for o, s in sweep_starts_sizes[1:]:
+                if s != size:   # pragma: no cover
+                    self._equal_length_sweeps = False
+                    break
+            del size
+
+        # Episodic stimulation? Then increment start time using sweep interval
+        # First time is time listed in first sweep
+        if self._mode == ACMODE_EPISODIC_STIMULATION:
+            tstart = sweep_starts_sizes[0][0] / rate
 
         # Get data
         pos = 0
-        for i_sweep, sdat in enumerate(sweep_data):
+        for i_sweep, (start, size) in enumerate(sweep_starts_sizes):
 
-            # Get the number of data points
-            size = sdat['len']
+            # Not episodic: Then use listed start time
+            if self._mode != ACMODE_EPISODIC_STIMULATION:   # pragma: no cover
+                tstart = start / rate
 
             # Calculate the correct size for variable-length event mode
             if self._mode == ACMODE_VARIABLE_LENGTH_EVENTS:  # pragma: no cover
@@ -874,25 +909,20 @@ class AbfFile(myokit.formats.SweepSource):
             # If needed, reformat the integers
             if h['nDataFormat'] == 0:
                 # Data given as integers? Convert to floating point
-
                 for i in range(self._n_adc):
                     part[:, i] *= self._adc_factors[i]
                     part[:, i] += self._adc_offsets[i]
 
-            # Get start in other modes
-            if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
-                # All modes except episodic stimulation
-                start = data['offset'] / rate
-
-            # Create and populate sweep
+            # Create and populate sweep object
             sweep = self._sweeps[i_sweep]
             for i in range(self._n_adc):
                 c = Channel(self)
                 c._data = part[:, i]    # Actually store the data
                 c._rate = rate
-                c._start = start
+                c._start = tstart
                 c._is_reconstruction = False
 
+                # Add meta data
                 if self._version < 2:
                     j = h['nADCSamplingSeq'][i]
 
@@ -947,9 +977,9 @@ class AbfFile(myokit.formats.SweepSource):
 
                 sweep._channels.append(c)
 
+            # In episodic mode, increase time according to sweep interval
             if self._mode == ACMODE_EPISODIC_STIMULATION:
-                # Increase time according to sweeps in episodic stim. mode
-                start += self._sweep_start_to_start
+                tstart += self._sweep_start_to_start
 
     def _read_6_da_reconstructions(self):
         """
@@ -959,8 +989,7 @@ class AbfFile(myokit.formats.SweepSource):
         user lists.
 
         The resulting analog signal has the same size as the recorded
-        signals, so not always the full length of the protocol!
-
+        signals, so not always the full length of the protocol.
         """
         dinfo, einfo_exists, einfo = self._epoch_functions
 
@@ -1034,6 +1063,12 @@ class AbfFile(myokit.formats.SweepSource):
 
         return int_id
 
+    def acquisition_mode_str(self):
+        """
+        Returns the acquisition mode, as a string.
+        """
+        return acquisition_modes[self._mode]
+
     def channel(self, channel_id, join_sweeps=False):
         # Docstring in SweepSource
         channel_id = self._channel_id(channel_id)
@@ -1077,8 +1112,9 @@ class AbfFile(myokit.formats.SweepSource):
         else:
             int_id = int(output_id)  # Propagate TypeError
             if int_id < 0 or int_id >= self._n_dac:
-                raise IndexError(f'output_id out of range: {output_id}')
-
+                raise IndexError(
+                    f'output_id out of range: {output_id} ({self._n_dac}'
+                    ' channel(s) available)')
         return int_id
 
     def da(self, output_id, join_sweeps=False):
@@ -1172,10 +1208,35 @@ class AbfFile(myokit.formats.SweepSource):
                     e_level = round(df * level, n_digits)
                     e_start = round(tf * start, n_digits)
                     e_length = round(tf * duration, n_digits)
-                    p.schedule(e_level, e_start, e_length)
-
+                    if e_length > 0:
+                        p.schedule(e_level, e_start, e_length)
+                    else:  # pragma: no cover
+                        warnings.warn(f'Skipping {e_length}{tu} protocol step'
+                                      f' at t={start}{tu}.')
                     start += duration
-                # Note: Only other type can be EPOCH_DISABLED at this point
+
+                elif e['type'] == EPOCH_RAMPED:  # pragma: no cover
+                    assert self._convert_ramps
+                    dur = e['init_duration'] / self._rate
+                    inc = e['duration_inc'] / self._rate
+                    duration = dur + i_sweep * inc
+                    # The "init_level" field in a ramp indicates the _final_
+                    # value. The initial values seems to be the value from the
+                    # previous step.
+                    level = e['init_level'] + e['level_inc'] * i_sweep
+
+                    e_level = round(df * level, n_digits)
+                    e_start = round(tf * start, n_digits)
+                    e_length = round(tf * duration, n_digits)
+                    if e_length > 0:
+                        p.schedule(e_level, e_start, e_length)
+                    else:
+                        warnings.warn(f'Skipping {e_length}{tu} protocol step'
+                                      f' at t={start}{tu}.')
+                    start += duration
+
+                else:
+                    assert e['type'] == EPOCH_DISABLED
 
             # End of sweep: event at holding potential
             e_start = round(tf * start, n_digits)
@@ -1193,8 +1254,7 @@ class AbfFile(myokit.formats.SweepSource):
         return self._da_units[index]
 
     def equal_length_sweeps(self):
-        # Always true for ABF
-        return True
+        return self._equal_length_sweeps
 
     def filename(self):
         """ Returns this ABF file's filename. """
@@ -1375,7 +1435,14 @@ class AbfFile(myokit.formats.SweepSource):
         try:
             return self._unit_cache[unit_string]
         except KeyError:
-            unit = myokit.parse_unit(unit_string.replace(MU, 'u'))
+            try:
+                unit = myokit.parse_unit(unit_string.replace(MU, 'u'))
+            except myokit.ParseError:  # pragma: no cover
+                if unit_string == 'oC':
+                    warnings.warn('Unsupported units degrees C.')
+                else:
+                    warnings.warn(f'Unsupported units {unit_string}.')
+                unit = myokit.units.dimensionless
             self._unit_cache[unit_string] = unit
             return unit
 
@@ -1523,13 +1590,13 @@ HEADER_FIELDS = {
     # Note that a lot of the groups in the version 1 header start with obsolete
     # fields, followed later by their newer equivalents.
     1: [
-        ('fFileSignature', 0, '4s'),       # Coarse file version indication
+        ('fFileSignature', 0, '4s'),        # Coarse file version indication
         # Group 1, File info and sizes
-        ('fFileVersionNumber', 4, 'f'),    # Version number as float
-        ('nOperationMode', 8, 'h'),        # Acquisition mode
+        ('fFileVersionNumber', 4, 'f'),     # Version number as float
+        ('nOperationMode', 8, 'h'),         # Acquisition mode
         ('lActualAcqLength', 10, 'i'),
         ('nNumPointsIgnored', 14, 'h'),
-        ('lActualSweeps', 16, 'i'),
+        ('lActualSweeps', 16, 'i'),         # AKA lActualEpisodes
         ('lFileStartDate', 20, 'i'),
         ('lFileStartTime', 24, 'i'),
         ('lStopWatchTime', 28, 'i'),

@@ -63,8 +63,8 @@ SETTINGS_FILE = os.path.join(myokit.DIR_USER, 'DataLogViewer.ini')
 # About
 ABOUT = '<h1>' + TITLE + '</h1>' + """
 <p>
-    The DataLog viewer is a PROTOTYPE utility to examine time series data.
-    At the moment, exclusively WinWCP, ABF and CSV files.
+    The DataLog viewer is a PROTOTYPE utility to examine time series data in
+    formats supported by Myokit.
 </p>
 <p>
     System info:
@@ -162,6 +162,8 @@ class DataLogViewer(myokit.gui.MyokitApplication):
                 self._tool_next_file.setEnabled(True)
                 self._tool_prev_file.setEnabled(True)
             self._tabs.setCurrentIndex(0)
+            self._tool_close.setEnabled(True)
+            self._tool_close_all.setEnabled(True)
 
     def action_about(self):
         """
@@ -178,15 +180,48 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tabs.removeTab(index)
 
         # Update buttons
-        if self._tabs.count() < 2:
+        n = self._tabs.count()
+        if n < 2:
             self._tool_next_file.setEnabled(False)
             self._tool_prev_file.setEnabled(False)
+            if n < 1:
+                self._tool_close.setEnabled(False)
+                self._tool_close_all.setEnabled(False)
 
         # Delete tab
         if tab is not None:
             tab.deleteLater()
-        gc.collect()
         del tab
+        gc.collect()
+
+    def action_close_current(self):
+        """ Close the current tab. """
+        idx = self._tabs.currentIndex()
+        if idx >= 0:
+            self.action_close(idx)
+
+    def action_close_all(self):
+        """ Called to close all tabs. """
+        n = self._tabs.count()
+        if n < 1:
+            return
+
+        # Get all tabs, to delete later
+        tabs = [self._tabs.widget(i) for i in range(n)]
+        # Remove all tabs, without deleting
+        self._tabs.clear()
+
+        # Update buttons
+        self._tool_close.setEnabled(False)
+        self._tool_close_all.setEnabled(False)
+        self._tool_next_file.setEnabled(False)
+        self._tool_prev_file.setEnabled(False)
+
+        # Delete tabs
+        for tab in tabs:
+            tab.deleteLater()
+        del tab, tabs
+        gc.collect()
 
     def action_first_var(self):
         """ Select the first variable in the current file. """
@@ -224,6 +259,10 @@ class DataLogViewer(myokit.gui.MyokitApplication):
             tab_count_new = self._tabs.count()
             if tab_count_new > tab_count:
                 self._tabs.setCurrentIndex(tab_count)
+
+                # Enable tab closing buttons
+                self._tool_close.setEnabled(True)
+                self._tool_close_all.setEnabled(True)
 
                 # Enable next/previous file menu items
                 if tab_count_new > 1:
@@ -285,6 +324,21 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tool_open.setIcon(QtGui.QIcon.fromTheme('document-open'))
         self._tool_open.triggered.connect(self.action_open)
         self._menu_file.addAction(self._tool_open)
+        # File > Close
+        self._tool_close = QtGui.QAction('&Close tab', self)
+        self._tool_close.setShortcut('Ctrl+W')
+        self._tool_close.setStatusTip('Close the current tab')
+        self._tool_close.setIcon(QtGui.QIcon.fromTheme('document-close'))
+        self._tool_close.triggered.connect(self.action_close_current)
+        self._tool_close.setEnabled(False)
+        self._menu_file.addAction(self._tool_close)
+        # File > Close all
+        self._tool_close_all = QtGui.QAction('Close &all tabs', self)
+        self._tool_close_all.setStatusTip('Close all tabs')
+        self._tool_close_all.setIcon(QtGui.QIcon.fromTheme('document-close'))
+        self._tool_close_all.triggered.connect(self.action_close_all)
+        self._tool_close_all.setEnabled(False)
+        self._menu_file.addAction(self._tool_close_all)
         # File > ----
         self._menu_file.addSeparator()
         # File > Quit
@@ -401,9 +455,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
                     self._path = path
 
     def load_file(self, filename):
-        """
-        Loads a data file.
-        """
+        """ Loads a data file. """
         root, ext = os.path.splitext(os.path.basename(filename))
         try:
             action = self._load_actions[ext.lower()]
@@ -641,13 +693,18 @@ class SweepSourceTab(GraphTabWidget):
     def __init__(self, parent, source):
         super().__init__(parent)
 
-        # Add A/D
-        for i in range(source.channel_count()):
-            self._add_graph_tab(source, i)
+        if source.sweep_count() > 0:
+            # Must have this condition to avoid getting exceptions with e.g.
+            # the empty WCP file in the test data set.
+            # myokit log myokit/tests/data/formats/wcp-file-empty.wcp
 
-        # Add D/A
-        for i in range(source.da_count()):
-            self._add_graph_tab(source, i, True)
+            # Add A/D
+            for i in range(source.channel_count()):
+                self._add_graph_tab(source, i)
+
+            # Add D/A
+            for i in range(source.da_count()):
+                self._add_graph_tab(source, i, True)
 
         # Add meta data
         self._add_meta_tab(source)
@@ -695,7 +752,8 @@ class SweepSourceTab(GraphTabWidget):
         widget.setLayout(vbox)
 
         # Add tab
-        self.addTab(widget, name)
+        adda = 'D/A' if da else 'A/D'
+        self.addTab(widget, f'{adda}: {name}')
 
     '''
     def debug_tab(self, channel_index, da=True):
@@ -846,6 +904,10 @@ class CsvTab(GraphTabWidget):
         for k in keys:
             self.addTab(self.create_graph_tab(k, groups.get(k)), k)
 
+        # Add meta data tab
+        if log.meta:
+            self.addTab(self.create_meta_tab(log.meta), 'info')
+
     def create_graph_tab(self, key, indices=None):
         """ Creates a widget displaying the data stored under ``key``. """
         widget = QtWidgets.QWidget(self)
@@ -873,6 +935,18 @@ class CsvTab(GraphTabWidget):
         widget.setLayout(vbox)
         self._figures.append(figure)
         self._axes.append(axes)
+        return widget
+
+    def create_meta_tab(self, meta):
+        """
+        Returns a tab showing information from a DataLog meta data object.
+        """
+        widget = QtWidgets.QTextEdit(self)
+        lines = []
+        for k, v in meta.items():
+            lines.append(f'{k}: {v}')
+        widget.setText('\n'.join(lines))
+        widget.setReadOnly(True)
         return widget
 
 
@@ -992,9 +1066,7 @@ class TxtTab(GraphTabWidget):
             return
 
     def create_graph_tab(self, time, data):
-        """
-        Creates a widget displaying a time series.
-        """
+        """ Creates a widget displaying a time series. """
         widget = QtWidgets.QWidget(self)
         # Create figure
         figure = matplotlib.figure.Figure()

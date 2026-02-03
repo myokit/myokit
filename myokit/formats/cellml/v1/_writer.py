@@ -283,7 +283,7 @@ class CellMLWriter:
                 self._oxmeta_variables.items(), key=lambda x: x[0]):
             description = etree.SubElement(
                 rdf, etree.QName(cellml.NS_RDF, 'Description'))
-            description.attrib[etree.QName(cellml.NS_RDF, 'about')] = '#' + cid
+            description.attrib[etree.QName(cellml.NS_RDF, 'about')] = f'#{cid}'
             iz = etree.SubElement(
                 description, etree.QName(cellml.NS_BQBIOL, 'is'))
             iz.attrib[etree.QName(cellml.NS_RDF, 'resource')] = \
@@ -352,11 +352,18 @@ class CellMLWriter:
             element.attrib['private_interface'] = variable.private_interface()
 
         # Add initial value
-        if variable.initial_value() is not None:
-            value = myokit.float.str(variable.initial_value()).strip()
-            if value[-4:] == 'e+00':
-                value = value[:-4]
-            element.attrib['initial_value'] = value
+        init = variable.initial_value()
+        if init is not None:
+            if isinstance(init, myokit.Number):
+                value = myokit.float.str(variable.initial_value()).strip()
+                if value[-4:] == 'e+00':
+                    value = value[:-4]
+                element.attrib['initial_value'] = value
+            elif isinstance(init, myokit.Name):
+                element.attrib['initial_value'] = init.var().name()
+            else:  # pragma: no cover
+                raise Exception(
+                    f'Unexpected type for initial value: {type(init)}.')
 
         # Add cmeta id
         cid = variable.cmeta_id()

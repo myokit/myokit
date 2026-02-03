@@ -238,6 +238,8 @@ class Simulation(myokit.CModule):
 
         # Last state reached before error
         self._error_state = None
+        self._error_inputs = None
+        self._error_log = None
 
         # Starting time
         self._time = 0
@@ -387,6 +389,51 @@ class Simulation(myokit.CModule):
         finally:
             myokit.tools.rmtree(d_build, silent=True)
 
+    def crash_inputs(self):
+        """
+        If the last call to :meth:`Simulation.pre()` or
+        :meth:`Simulation.run()` resulted in an error, this will return the
+        last "inputs" (time, pace, etc) reached during that simulation.
+
+        Will return ``None`` if no simulation was run or the simulation did not
+        result in an error.
+
+        A typical use case is to inspect the calculation of derivatives after a
+        crash, with::
+
+            sim.evaluate_derivatives(sim.crash_state(), sim.crash_inputs())
+
+        """
+        return dict(self._error_inputs) if self._error_inputs else None
+
+    def crash_log(self):
+        """
+        If the last call to :meth:`Simulation.pre()` or
+        :meth:`Simulation.run()` resulted in an error, this will return the
+        :class:`myokit.DataLog` containing the data logged up until the crash.
+
+        Will return ``None`` if no simulation was run or the simulation did not
+        result in an error.
+        """
+        return None if self._error_log is None else self._error_log.clone()
+
+    def crash_state(self):
+        """
+        If the last call to :meth:`Simulation.pre()` or
+        :meth:`Simulation.run()` resulted in an error, this will return the
+        last state reached during that simulation.
+
+        Will return ``None`` if no simulation was run or the simulation did not
+        result in an error.
+
+        A typical use case is to inspect the calculation of derivatives after a
+        crash, with::
+
+            sim.evaluate_derivatives(sim.crash_state(), sim.crash_inputs())
+
+        """
+        return list(self._error_state) if self._error_state else None
+
     def default_state(self):
         """
         Returns the default state.
@@ -402,60 +449,83 @@ class Simulation(myokit.CModule):
             return [list(x) for x in self._s_default_state]
         return None
 
-    def last_state(self):
-        """
-        If the last call to :meth:`Simulation.pre()` or
-        :meth:`Simulation.run()` resulted in an error, this will return the
-        last state reached during that simulation.
-
-        Will return ``None`` if no simulation was run or the simulation did not
-        result in an error.
-        """
-        return list(self._error_state) if self._error_state else None
-
     def eval_derivatives(self, y=None, pacing=None):
         """
-        Evaluates and returns the state derivatives.
+        Deprecated alias of :meth:`evaluate_derivatives`.
 
-        The state to evaluate for can be given as ``y``. If no state is given
-        the current simulation state is used.
+        Note that while :meth:`eval_derivatives` used the :meth:`state()` as
+        default, the new method uses :meth:`default_state()`.
+        """
+        # Deprecated on 2024-03-08
+        import warnings
+        warnings.warn(
+            'The method `myokit.Simulation.eval_derivatives` is deprecated,'
+            ' please use `evaluate_derivatives(state=sim.state())` instead.'
+        )
+        if y is None:
+            y = self.state()
+        return self.evaluate_derivatives(y, pacing)
 
-        An optional dict ``pacing`` can be passed in that maps labels to
-        numerical values. If a label is used but not provided in ``pacing``,
-        it's value will be set to 0.
+    def evaluate_derivatives(self, state=None, inputs=None):
+        """
+        Evaluates and returns the state derivatives for the given ``state`` and
+        ``inputs``.
+
+        If no ``state`` is given, the value returned by :meth:`default_state()`
+        is used.
+
+        An optional dict ``inputs`` can be passed in to set the values of
+        time and other inputs (e.g. pacing values). If "time" is not set in
+        ``inputs``, the value 0 will be used, regardless of the current
+        simulation. Similarly, if pacing values are not set in ``inputs``, 0
+        will be used regardless of the protocols or the current time.
+
+        If any variables have been changed with `set_constant` their new value
+        will be used.
         """
         # Get state
-        if y is None:
-            y = list(self._state)
+        if state is None:
+            y = list(self._default_state)
         else:
-            y = self._model.map_to_state(y)
+            y = self._model.map_to_state(state)
 
+        # Get inputs
+        time = realtime = evaluations = 0
         pacing_values = [0.0] * len(self._pacing_labels)
-        if pacing is not None:
-            for k, v in pacing.items():
+        if inputs is not None:
+            if 'time' in inputs:
+                time = float(inputs['time'])
+                del inputs['time']
+            if 'realtime' in inputs:  # User really shouldn't, but can do this
+                realtime = float(inputs['realtime'])
+                del inputs['realtime']
+            if 'evaluations' in inputs:
+                evaluations = float(inputs['evaluations'])
+                del inputs['evaluations']
+            for k, v in inputs.items():
                 try:
                     ki = self._pacing_labels.index(k)
-                    pacing_values[ki] = float(v)
                 except ValueError:
-                    pass
+                    raise ValueError(f'Unknown binding or pacing label `{k}`.')
+                pacing_values[ki] = float(v)
+
+        # Literals and parameters: Can be changed with set_constant
+        literals = list(self._literals.values())
+        parameters = list(self._parameters.values())
 
         # Create space to store derivatives
         dy = list(self._state)
 
         # Evaluate and return
-        self._sim.eval_derivatives(
-            # 0. Time
-            0,
-            # 1. Pace
-            pacing_values,
-            # 2. State
-            y,
-            # 3. Space to store the state derivatives
-            dy,
-            # 4. Literal values
-            list(self._literals.values()),
-            # 5. Parameter values
-            list(self._parameters.values()),
+        self._sim.evaluate_derivatives(
+            time,               # 0. Time
+            pacing_values,      # 1. Pacing values
+            realtime,           # 2. Realtime
+            evaluations,        # 3. Evaluations
+            literals,           # 4. Literals
+            parameters,         # 5. Parameters
+            y,                  # 6. State
+            dy,                 # 7. Derivatives (out)
         )
         return dy
 
@@ -472,6 +542,21 @@ class Simulation(myokit.CModule):
         simulation.
         """
         return self._sim.number_of_steps()
+
+    def last_state(self):
+        """
+        If the last call to :meth:`Simulation.pre()` or
+        :meth:`Simulation.run()` resulted in an error, this will return the
+        last state reached during that simulation.
+
+        Will return ``None`` if no simulation was run or the simulation did not
+        result in an error.
+        """
+        # Deprecated on 2024-03-08
+        import warnings
+        warnings.warn('The method `myokit.Simulation.last_state` is'
+                      ' deprecated. Please use `crash_state` instead.')
+        return self.crash_state()
 
     def pre(self, duration, progress=None, msg='Pre-pacing simulation'):
         """
@@ -634,9 +719,9 @@ class Simulation(myokit.CModule):
             An optional fixed size log interval. Must be ``None`` if
             ``log_times`` is used. If both are ``None`` every step is logged.
         ``log_times``
-            An optional set of pre-determined logging times. Must be ``None``
-            if ``log_interval`` is used. If both are ``None`` every step is
-            logged.
+            An optional sequence (e.g. a list or a numpy array) of
+            pre-determined logging times. Must be ``None`` if ``log_interval``
+            is used. If both are ``None`` every step is logged.
         ``sensitivities``
             An optional list-of-lists to append the calculated sensitivities
             to.
@@ -690,6 +775,8 @@ class Simulation(myokit.CModule):
 
         # Reset error state
         self._error_state = None
+        self._error_inputs = None
+        self._error_log = None
 
         # Simulation times
         if duration < 0:
@@ -847,26 +934,29 @@ class Simulation(myokit.CModule):
 
                 # Store error state
                 self._error_state = state
+                self._error_inputs = {'time': bound[0]}
+                for i, label in enumerate(('realtime', 'evaluations')):
+                    if self._model.binding(label) is not None:
+                        self._error_inputs[label] = bound[1 + i]
+                for i, label in enumerate(self._pacing_labels):
+                    self._error_inputs[label] = bound[3 + i]
+                self._error_log = log
 
                 # Create long error message
                 txt = ['A numerical error occurred during simulation at'
-                       ' t = ' + str(t) + '.', 'Last reached state: ']
+                       ' t = ' + myokit.float.str(bound[0]) + '.',
+                       'Last reached state: ']
                 txt.extend(['  ' + x for x
                             in self._model.format_state(state).splitlines()])
                 txt.append('Inputs for binding:')
-                txt.append('  time        = ' + myokit.float.str(bound[0]))
-                txt.append('  realtime    = ' + myokit.float.str(bound[1]))
-                txt.append('  evaluations = ' + myokit.float.str(bound[2]))
-                for i, label in enumerate(self._pacing_labels):
-                    txt.append(
-                        '  ' + label + ' = ' + myokit.float.str(bound[3 + i])
-                    )
+                for key, value in self._error_inputs.items():
+                    txt.append(f'  {key} = {myokit.float.str(value)}')
                 txt.append(str(e))
 
                 # Check if state derivatives can be evaluated in Python, if
                 # not, add the error to the error message.
                 try:
-                    self._model.evaluate_derivatives(state)
+                    self._model.evaluate_derivatives(state, self._error_inputs)
                 except Exception as en:
                     txt.append(str(en))
 

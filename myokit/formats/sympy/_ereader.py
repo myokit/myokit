@@ -156,7 +156,8 @@ class SymPyExpressionReader:
     def _ex_abs(self, e):
         return myokit.Abs(self.ex(e.args[0]))
 
-    def _ex_not(self, e):
+    def _ex_not(self, e):   # pragma: no cover
+        # Sympy turns not(a == b) into a != b etc., so can't test!
         return myokit.Not(self.ex(e.args[0]))
 
     def _ex_equal(self, e):

@@ -53,3 +53,11 @@ SBML Parsing
 
 .. autoclass:: SBMLParsingError
 
+SBML Writing
+==============
+
+.. autofunction:: write_file
+
+.. autofunction:: write_string
+
+.. autoclass:: SBMLWriter

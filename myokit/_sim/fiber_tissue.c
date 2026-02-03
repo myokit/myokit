@@ -291,7 +291,7 @@ sim_clean()
     return 0;
 }
 static PyObject*
-py_sim_clean()
+py_sim_clean(PyObject *self, PyObject *args)
 {
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Python py_sim_clean called.\n");

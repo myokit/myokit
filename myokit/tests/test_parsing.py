@@ -697,6 +697,25 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Duplicate variable unit', p, code)
 
+        # Invalid use of condition
+        code = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'x = 3 == 2',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'not be a condition', p, code)
+        code = (
+            '[[model]]',
+            'x.y = 1 < 2',
+            '[x]',
+            't = 0 bind time',
+            'dot(y) = 1',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'not be a condition', p, code)
+
     def test_parse_unit(self):
         # Test :meth:`parse_unit` and :meth:`parse_unit_string`.
         from myokit._parsing import parse_unit_string as p

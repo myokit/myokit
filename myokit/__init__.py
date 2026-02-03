@@ -79,7 +79,7 @@ Copyright (c) 2017-2020 University of Oxford. All rights reserved.
  (University of Oxford means the Chancellor, Masters and Scholars of the
   University of Oxford, having an administrative office at Wellington Square,
   Oxford OX1 2JD, UK).
-Copyright (c) 2020-2023 University of Nottingham. All rights reserved.
+Copyright (c) 2020-2025 University of Nottingham. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -118,7 +118,7 @@ LICENSE_HTML = """
     <br />(University of Oxford means the Chancellor, Masters and Scholars of
     the University of Oxford, having an administrative office at Wellington
     Square, Oxford OX1 2JD, UK).
-    <br />Copyright (c) 2020-2023 University of Nottingham. All rights
+    <br />Copyright (c) 2020-2025 University of Nottingham. All rights
     reserved.</br></p>
 <p>
     Redistribution and use in source and binary forms, with or without
@@ -220,8 +220,10 @@ DEBUG_WG = False
 DEBUG_SC = False
 # Show C debug Messages when running compiled code:
 DEBUG_SM = False
-# Show C Profiling information when running compiled code:
+# Show C profiling information when running compiled code:
 DEBUG_SP = False
+# Show C detailed simulator stats when running simulations
+DEBUG_SS = False
 
 #
 # Compatibility settings: Some users report problems with output capturing.
@@ -258,6 +260,11 @@ UNIT_STRICT = 2
 #
 SFDOUBLE = '{:< 1.17e}'  # Exponent can have 3 digits for very small numbers
 SFSINGLE = '{:< 1.9e}'
+
+#
+# Shared real regex. Unsigned, and without "anchors" for string start and end
+#
+_RE_UNSIGNED_REAL = r'(([0-9]*\.[0-9]+)|([0-9]+\.?[0-9]*))([eE][+-]?[0-9]+)?'
 
 #
 # Date and time formats to use throughout Myokit
@@ -334,28 +341,11 @@ from ._err import (  # noqa
     SimulationCancelledError,
     SimulationError,
     SimultaneousProtocolEventError,
+    TypeError,
     UnresolvedReferenceError,
     UnusedVariableError,
     VariableMappingError,
 )
-
-# Check if all errors imported
-# Dynamically importing them doesn't seem to be possible, and forgetting to
-#  import an error creates a hard to debug bug (something needs to go wrong
-#  before the interpreter reaches the code raising the error and notices it's
-#  not there).
-if not __release__:
-    from . import _err  # noqa
-    import inspect  # noqa
-    _globals = globals()
-    ex, name, clas = None, None, None
-    for ex in inspect.getmembers(_err):
-        name, clas = ex
-        if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-            if name not in _globals:    # pragma: no cover
-                raise Exception('Failed to import exception: ' + name)
-    del ex, name, clas, _globals, inspect  # Prevent public visibility
-    del _err
 
 # Tools
 from . import float  # noqa
@@ -384,6 +374,7 @@ from ._expressions import (  # noqa
     And,
     ASin,
     ATan,
+    BinaryComparison,
     Ceil,
     Condition,
     Cos,
@@ -409,6 +400,8 @@ from ._expressions import (  # noqa
     Multiply,
     Name,
     Number,
+    NumericalInfixExpression,
+    NumericalPrefixExpression,
     Not,
     NotEqual,
     Or,
@@ -416,7 +409,6 @@ from ._expressions import (  # noqa
     Piecewise,
     Plus,
     Power,
-    PrefixCondition,
     PrefixExpression,
     PrefixMinus,
     PrefixPlus,
@@ -425,6 +417,8 @@ from ._expressions import (  # noqa
     Sin,
     Sqrt,
     Tan,
+    UnaryNumericalFunction,
+    UnaryNumericalDimensionlessFunction,
 )
 
 # Unit and quantity

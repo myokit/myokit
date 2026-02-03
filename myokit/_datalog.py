@@ -329,23 +329,27 @@ class DataLog(OrderedDict):
         """
         Creates a copy of the log, split with the given ``period``.
 
-        Split signals are given indexes so that "current" becomes "0.current",
-        "1.current", "2.current", etc.
+        Split signals are given indexes so that ``current`` becomes
+        ``0.current``, ``1.current``, ``2.current``, etc.
 
         If the logs entries do not divide well by ``period``, the remainder
         will be ignored. This happens commonly due to rounding point errors (in
         which case the remainder is a single entry). To disable this behavior,
         set ``discard_remainder=False``.
+
+        To split a log into a list of logs, use :meth:`DataLog.split_periodic`.
         """
         # Note: Using closed intervals can lead to logs of unequal length, so
         # it should be disabled here to ensure a valid log
         logs = self.split_periodic(period, adjust=True, closed_intervals=False)
+
         # Discard remainder if present
         if discard_remainder:
             if len(logs) > 1:
                 n = logs[0].length()
                 if logs[-1].length() < n:
                     logs = logs[:-1]
+
         # Create new log with folded data
         out = myokit.DataLog()
         out._time = self._time
@@ -666,9 +670,11 @@ class DataLog(OrderedDict):
         """
         Loads a CSV file from disk and returns it as a :class:`DataLog`.
 
-        The CSV file must start with a header line indicating the variable
-        names, separated by commas. Each subsequent row should contain the
-        values at a single point in time for all logged variables.
+        The CSV file must start with a header line indicating the column names,
+        separated by commas. Each subsequent row should contain the values at a
+        single point in time for all logged variables. Duplicate column names
+        will be given a suffix "-i", where "i" is an integer chosen to create
+        a unique name.
 
         The ``DataLog`` is created using the data type specified by the
         argument ``precision``, regardless of the data type of the stored data.
@@ -691,9 +697,18 @@ class DataLog(OrderedDict):
                 'Syntax error on line ' + str(line) + ', character '
                 + str(1 + char) + ': ' + msg)
 
+        # Detect Microsoft's annyoing utf-8-sig encoding
+        # Note: We have to perform the first read in utf-8 mode, because the
+        # default encoding on windows will turn the BOM into a different set of
+        # characters, so that f.read(1) won't actually equal \ufeff
+        encoding = None
+        with open(filename, 'r', encoding='utf-8') as f:
+            if f.read(1) == '\ufeff':
+                encoding = 'utf-8-sig'
+
         quote = '"'
         delim = ','
-        with open(filename, 'r', newline=None) as f:
+        with open(filename, 'r', newline=None, encoding=encoding) as f:
             # Read header
             keys = []   # The log keys, in order of appearance
 
@@ -784,8 +799,32 @@ class DataLog(OrderedDict):
             if c == delim:
                 e(1, i, 'Empty field in header.')
 
-            # Create data structure
+            # Handle duplicate keys by adding "-i" to all keys that appear
+            # more than once. If an entry key-i already exists, i is
+            # incremented.
             m = len(keys)
+            if len(set(keys)) != m:
+                first_seen = {}  # key: index first seen at
+                duplicates = {}  # key: list of indices of duplicates
+                for i, key in enumerate(keys):
+                    if key in first_seen:
+                        try:
+                            duplicates[key].append(i)
+                        except KeyError:
+                            duplicates[key] = [first_seen[key], i]
+                    else:
+                        first_seen[key] = i
+                for key, indices in duplicates.items():
+                    j = 1
+                    for i in indices:
+                        k = key
+                        while k in first_seen:
+                            k = f'{key}-{j}'
+                            j += 1
+                        keys[i] = k
+                        first_seen[k] = i
+
+            # Create data structure
             lists = []
             for key in keys:
                 x = array.array(typecode)
@@ -829,7 +868,7 @@ class DataLog(OrderedDict):
 
             # Guess time variable
             for key in keys:
-                x = np.array(log[key], copy=False)
+                x = np.asarray(log[key])
                 y = x[1:] - x[:-1]
                 if np.all(y > 0):
                     log.set_time_key(key)
@@ -1270,10 +1309,12 @@ class DataLog(OrderedDict):
 
     def split_periodic(self, period, adjust=False, closed_intervals=True):
         """
-        Splits this log into multiple logs, each covering an equal period of
-        time. For example a log covering the time span ``[0, 10000]`` can be
-        split with period ``1000`` to obtain ten logs covering ``[0, 1000]``,
-        ``[1000, 2000]`` etc.
+        Splits this log into multiple logs, returning a list of
+        :class:`DataLog` objects.
+
+        Each returned log covers an equal ``period`` of time. For example a log
+        covering the time span ``[0, 10000]`` split with period ``1000`` will
+        result in a list of ten logs ``[0, 1000]``, ``[1000, 2000]`` etc.
 
         The split log files can be returned as-is, or with the time variable's
         value adjusted so that all logs appear to cover the same span. To
@@ -1284,6 +1325,9 @@ class DataLog(OrderedDict):
         the duplication of some data points. To disable this behavior and
         return half-closed endpoints (containing only the left point), set
         ``closed_intervals`` to ``False``.
+
+        To return a single log with entries ``x`` split as ``x.0``, ``x.1``,
+        etc., use :meth:`DataLog.fold`.
         """
         # Validate log before starting
         self.validate()
@@ -1305,7 +1349,7 @@ class DataLog(OrderedDict):
 
         # No splitting needed? Return clone!
         if nlogs < 2:
-            return self.clone()
+            return [self.clone()]
 
         # Find split points
         tstarts = tmin + np.arange(nlogs) * period

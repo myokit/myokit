@@ -64,6 +64,9 @@ class SymPyReadWriteTest(unittest.TestCase):
         self.assertEqual(w.ex(x), cb)
         # Note: Sympy doesn't seem to have a prefix plus
         self.assertEqual(r.ex(cb), b)
+        x = myokit.Divide(myokit.PrefixPlus(myokit.Plus(a, b)), self._b)
+        y = r.ex(w.ex(x))
+        self.assertEqual(y.code(), 'c.b^-1 * (12 + c.a)')
 
         # Prefix minus
         # Note: SymPy treats -x as Mul(NegativeOne, x)
@@ -105,8 +108,12 @@ class SymPyReadWriteTest(unittest.TestCase):
 
         # Power
         x = myokit.Power(a, b)
-        self.assertEqual(w.ex(x), ca ** cb)
-        self.assertEqual(float(r.ex(ca ** cb)), float(x))
+        self.assertEqual(w.ex(x), ca**cb)
+        self.assertEqual(float(r.ex(ca**cb)), float(x))
+        x = myokit.Power(myokit.Power(a, b), self._b)
+        self.assertEqual(w.ex(x), (ca**cb)**sp.Symbol('c.b'))
+        x = myokit.Power(a, myokit.Power(b, self._b))
+        self.assertEqual(w.ex(x), ca**(cb**sp.Symbol('c.b')))
 
         # Sqrt
         x = myokit.Sqrt(a)
@@ -230,10 +237,10 @@ class SymPyReadWriteTest(unittest.TestCase):
         self.assertEqual(r.ex(cx), x)
 
         # Not
-        x = myokit.Not(a)
-        cx = sp.Not(ca)
+        x = myokit.Not(x)
+        cx = sp.Not(cx)
         self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r.ex(cx), x)
+        self.assertEqual(r.ex(cx), myokit.More(a, b))  # Can't test!
 
         # And
         cond1 = myokit.More(a, b)

@@ -127,8 +127,8 @@ obtain e.g. an :class:`Exporter` via
 Default expression writers
 ==========================
 
-Finally, Myokit contains two default expression writers, which are used
-internally to write expressions in Python format with or without NumPy support.
+Myokit contains two default expression writers, which are used internally to
+write expressions in Python format with or without NumPy support.
 
 .. currentmodule:: myokit
 
@@ -148,4 +148,14 @@ Classes for these three formats share a common API, and make use of the
 .. currentmodule:: myokit.formats
 
 .. autoclass:: SweepSource
+
+Shared functions
+================
+
+The root ``myokit.formats`` module contains some shared string parsing methods,
+used for example by MathML and CellML parsing.
+
+.. autofunction:: is_integer_string
+
+.. autofunction:: is_real_number_string
 

@@ -15,6 +15,8 @@ import myokit.lib.hh as hh
 
 from myokit.tests import DIR_DATA
 
+from myokit.tests import WarningCollector
+
 
 MODEL = """
 [[model]]
@@ -913,6 +915,40 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test current output is very similar
         e = np.abs(d1['binding.I'] - d2['binding.I'])
         self.assertLess(np.max(e), 2e-4)
+
+    def test_tau_overflow(self):
+        # Overflows leading to tau=0 should still report current
+        # https://github.com/myokit/myokit/issues/1059
+
+        # Load model and convert to inf-tau form
+        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
+        model = hh.convert_hh_states_to_inf_tau_form(myokit.load_model(fname))
+
+        # Get initial state and set steady state
+        initial_state = model.get('ina.m').initial_value(as_float=True)
+        steady_state = 0.75
+        model.get('ina.m.inf').set_rhs(steady_state)
+
+        # Create an analytical simulation
+        model = hh.HHModel(model, states=['ina.m', 'ina.h', 'ina.j'],
+                           parameters=['ina.p5'], current='ina.INa')
+        p = myokit.pacing.steptrain_linear(20, 40, 10, -80, 10, 10)
+        s = hh.AnalyticalSimulation(model, protocol=p)
+
+        # Setting p5=0.001 will trigger an overflow in ina.m.beta
+        s.set_parameters([0.001])
+        with WarningCollector() as wc:
+            # Log times chosen so that s._function varies length of _t
+            log = s.run(41, log_times=np.array([0, 1, 2, 10, 11, 12, 20, 40]))
+        self.assertIn('overflow', wc.text())
+
+        # Should be no NaNs in log
+        self.assertFalse(np.any(np.isnan(log['ina.INa'])))
+        self.assertFalse(np.any(np.isnan(log['ina.m'])))
+
+        # Should immediately jump from initial state to steady state
+        self.assertTrue(log['ina.m'][0] == initial_state)
+        self.assertTrue(np.all(log['ina.m'][1:] == steady_state))
 
 
 if __name__ == '__main__':

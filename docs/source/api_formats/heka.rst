@@ -84,10 +84,24 @@ where more than one amplifier was used.
 
 .. autoclass:: AmplifierSeries
 
-.. autoclass:: AmplifierState
-
 .. autoclass:: AmplifierStateRecord
 
+Amplifier information classes
+-----------------------------
+
+An "amplifier state" provides information about the amplifier settings, stored
+either in a :class:`Series` or as part of an "amplifier file". Some subclasses
+are defined for enumeration-type amplifier information.
+
+.. autoclass:: AmplifierState
+
+.. autoclass:: CSlowRange
+
+.. autoclass:: Filter1Setting
+
+.. autoclass:: Filter2Type
+
+.. autoclass:: StimulusFilterSetting
 
 Internals
 =========
