@@ -127,8 +127,8 @@ obtain e.g. an :class:`Exporter` via
 Default expression writers
 ==========================
 
-Finally, Myokit contains two default expression writers, which are used
-internally to write expressions in Python format with or without NumPy support.
+Myokit contains two default expression writers, which are used internally to
+write expressions in Python format with or without NumPy support.
 
 .. currentmodule:: myokit
 
