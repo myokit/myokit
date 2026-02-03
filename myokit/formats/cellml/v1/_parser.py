@@ -353,9 +353,19 @@ class CellMLParser:
         for child in self._sort_units(element, model):
             self._parse_units(child, component)
 
-        # Create variables and set interfaces
+        # Create variables, set interfaces, prepare to set initial values
+        initial_values = []
         for child in element.findall(self._join('variable')):
-            self._parse_variable(child, component)
+            init = self._parse_variable(child, component)
+            if init is not None:
+                initial_values.append(init)
+
+        # Set initial values
+        for child, variable, value in initial_values:
+            try:
+                variable.set_initial_value(value)
+            except myokit.formats.cellml.v1.CellMLError as e:
+                raise CellMLParsingError(str(e), child)
 
     def _parse_connection(self, element, model, connected):
         """
@@ -1039,6 +1049,10 @@ class CellMLParser:
         """
         Parses a variable ``element`` and adds a variable to the given
         ``component``.
+
+        If an initial value needs to be set, returns a tuple
+        ``(element, variable, initial_value_string)``. Otherwise returns
+        ``None``.
         """
         # Check name is present
         try:
@@ -1086,9 +1100,10 @@ class CellMLParser:
             ]
             self._check_allowed_content(element, [], attr, name)
 
-            # Set initial value
-            variable.set_initial_value(
-                element.attrib.get('initial_value', None))
+            # Store initial value, to parse later
+            init = element.attrib.get('initial_value', None)
+            if init is not None:
+                return (element, variable, init)
 
         except myokit.formats.cellml.v1.CellMLError as e:
             raise CellMLParsingError(str(e), element)

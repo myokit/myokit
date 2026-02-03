@@ -125,7 +125,7 @@ class TestCellMLWriter(unittest.TestCase):
         self.assertIs(c.parent(), e)
         self.assertIs(b.parent(), c)
 
-    def test_initial_value_representation(self):
+    def test_initial_values(self):
         # Test the way initial values are represented in generated CellML code
 
         def find(xml):
@@ -154,6 +154,16 @@ class TestCellMLWriter(unittest.TestCase):
         p.set_initial_value(1.23424352342423)
         x = find(cellml.write_string(m))
         self.assertEqual(x, '1.23424352342422994')
+
+        # Variables (in 1.1)
+        m = cellml.Model('m', '1.1')
+        c = m.add_component('c')
+        p = c.add_variable('p', 'mole')
+        q = c.add_variable('q', 'mole')
+        q.set_rhs(myokit.Number(1))
+        p.set_initial_value(myokit.Name(q))
+        x = find(cellml.write_string(m))
+        self.assertEqual(x, 'q')
 
     def test_maths(self):
         # Test maths is written
@@ -202,7 +212,7 @@ class TestCellMLWriter(unittest.TestCase):
         er2 = er1.clone(subst)
         self.assertEqual(q2.rhs(), eq2)
         self.assertEqual(r2.rhs(), er2)
-        self.assertEqual(s2.initial_value(), 1.23)
+        self.assertEqual(s2.initial_value(), myokit.Number(1.23))
         self.assertFalse(p2.is_state())
         self.assertFalse(q2.is_state())
         self.assertTrue(r2.is_state())
@@ -323,7 +333,7 @@ class TestCellMLWriter(unittest.TestCase):
         p = c.add_variable('p', 'mole')
         q = c.add_variable('q', 'kelvin', public_interface='in')
         r = c.add_variable('r', 'ampere', private_interface='out')
-        p.set_initial_value(1)
+        p.set_initial_value(myokit.Number(1, 'volt'))
 
         with WarningCollector():
             xml = cellml.write_string(m1)
@@ -339,7 +349,7 @@ class TestCellMLWriter(unittest.TestCase):
         self.assertEqual(p.private_interface(), 'none')
         self.assertEqual(q.private_interface(), 'none')
         self.assertEqual(r.private_interface(), 'out')
-        self.assertEqual(p.initial_value(), 1)
+        self.assertEqual(p.initial_value(), myokit.Number(1))
         self.assertEqual(q.initial_value(), None)
         self.assertEqual(r.initial_value(), None)
 

@@ -109,6 +109,16 @@ def create_unit_name(unit):
     return name
 
 
+def is_prefixed_number(expr):
+    """
+    Checks if ``expr`` is a :class:`myokit.Number`, wrapped in any number of
+    prefix plus or minus operators.
+    """
+    while isinstance(expr, (myokit.PrefixPlus, myokit.PrefixMinus)):
+        expr = expr[0]
+    return isinstance(expr, myokit.Number)
+
+
 class AnnotatableElement:
     """
     Represents a CellML 2.0 element that can be annotated (using a public dict
@@ -274,7 +284,8 @@ class Model(AnnotatableElement):
 
     - Imports are not supported.
     - Reset rules are not supported.
-    - Using variables in ``initial_value`` attributes is not supported.
+    - Using variables in ``initial_value`` attributes is supported, as long as
+      they have constant values.
     - Defining new base units is not supported.
     - All equations must be of the form ``x = ...`` or ``dx/dt = ...``.
     - Models that take derivatives with respect to more than one variable are
@@ -573,6 +584,35 @@ class Model(AnnotatableElement):
         # Create CellML model
         m = Model(name, version)
 
+        # Check if we need to create a Myokit model where all initial variables
+        # are either numbers or names of local variables.
+        states_to_fix = []
+        for state in model.states():
+            e = state.initial_value()
+            if isinstance(e, myokit.Number):
+                continue
+            if isinstance(e, myokit.Name):
+                # Compare parents: note, nested variables can't be referenced
+                # here, so this check is sufficient
+                if e.var().parent() == state.parent():
+                    continue
+            states_to_fix.append(state.qname())
+        if states_to_fix:
+            model = model.clone()
+            for state in states_to_fix:
+                state = model.get(state)
+                value = state.initial_value()
+                if is_prefixed_number(value):
+                    # Don't make variables for x = -1
+                    state.set_initial_value(value.eval())
+                else:
+                    # But do for `1 + exp(3)`, or `a + b`
+                    init_var = state.parent().add_variable_allow_renaming(
+                        state.name() + '_init')
+                    init_var.set_rhs(value)
+                    init_var.set_unit(state.unit())
+                    state.set_initial_value(init_var.lhs())
+
         # Valid model always has a time variable
         time = model.time()
 
@@ -766,7 +806,12 @@ class Model(AnnotatableElement):
 
                 # Promote states and set rhs and initial value
                 elif variable.is_state():
-                    v.set_initial_value(variable.initial_value(True))
+                    init = variable.initial_value()
+                    if is_prefixed_number(init):
+                        # Pass in float, in case unit not specified
+                        v.set_initial_value(init.eval())
+                    else:
+                        v.set_initial_value(init.clone(subst=subst))
                     v.set_equation(myokit.Equation(lhs, rhs))
 
                 # Store literals (single number) in initial value
@@ -899,8 +944,9 @@ class Model(AnnotatableElement):
 
                     # Promote states
                     if variable.is_state():
-                        init = variable.initial_value().eval()
-                        v.promote(0 if init is None else init)
+                        init = variable.initial_value()
+                        v.promote(
+                            0 if init is None else init.clone(subst=var_map))
 
                     # Set time variable
                     if variable is voi:
@@ -1370,6 +1416,19 @@ class Variable(AnnotatableElement):
         """
         Returns the equation for this variable (or its connected variable set),
         in the correct units.
+
+        Note that this method is primarily intended to *extract* equations from
+        a CellML model, and care must be taken when using it to manipulate a
+        CellML model. Specifically:
+
+        1. If the equation was not set on this variable, but on a variable in
+           the connected variable set, the returned equation may refer to
+           non-local variables.
+        2. Similarly, if unit conversion is required, the conversion factor may
+           have a unit not defined in this model.
+
+        As a result, calling :meth:`set_equation` with the value returned by
+        :meth:`equation` is not always possible.
         """
         eq = self._cset.equation()
         if eq is None or eq.lhs.var() is self:
@@ -1423,6 +1482,11 @@ class Variable(AnnotatableElement):
         set), in the correct units.
 
         The returned value is a :class:`myokit.Expression`.
+
+        Note that, like :meth:`equation`, this method is primarily intended to
+        *extract* initial values from a CellML model. As a result, the returned
+        value may be a referenced to a variable in another component, and may
+        contain a unit conversion multiplication.
         """
         value = self._cset.initial_value()
         if value is None or self._cset.initial_value_variable() is self:
@@ -1506,6 +1570,9 @@ class Variable(AnnotatableElement):
         value.
 
         If neither is found, ``None`` will be returned.
+
+        Note that the caveats applying to :meth:`equation` and
+        :meth:`initial_value` also apply here.
         """
         eq = self.equation()
         return eq.rhs if eq is not None else self.initial_value()
@@ -1571,24 +1638,64 @@ class Variable(AnnotatableElement):
 
     def set_initial_value(self, value):
         """
-        Sets this variable's intial value (must be a number or ``None``).
+        Sets this variable's intial value: must be a number, a local variable,
+        or ``None``.
+
+        Numbers can be specified as number types, strings, or
+        :class:`myokit.Number` objects (wrapped in prefix plus or minus
+        operators). If a :class:`myokit.Number` is passed in, it should have
+        the same units as this variable. Variables can be passed in as strings
+        or :class:`myokit.Name` objects.
         """
         # Allow unsetting with ``None``
-        if value is not None:
+        if value is None:
+            self._cset.set_initial_value(self, None)
+            return
 
-            # Check value is a real number string
-            if isinstance(value, str):
-                if is_real_number_string(value):
-                    value = float(value)
-                else:
-                    raise CellMLError(
-                        'If given, a variable initial_value must be a real'
-                        ' number (using variables as initial values is not'
-                        ' supported).')
+        # Allow string input
+        if isinstance(value, str):
+            if is_real_number_string(value):
+                value = myokit.Number(value, self._units.myokit_unit())
+            elif is_identifier(value):
+                try:
+                    value = self._component.variable(value)
+                except KeyError:
+                    raise CellMLError('Unknown local variable specified as'
+                                      f' variable initial_value: "{value}".')
+                value = myokit.Name(value)
             else:
-                value = float(value)
+                raise CellMLError(
+                    'If given, a variable initial_value must be a real number'
+                    f' or the name of a local variable, found "{value}".')
 
-            value = myokit.Number(value, self._units.myokit_unit())
+        # Allow expression input
+        elif isinstance(value, myokit.Expression):
+            if is_prefixed_number(value):
+                if self._units.myokit_unit() != value.eval_unit():
+                    raise CellMLError(
+                        'If specified as a myokit.Number, an initial value'
+                        ' must have the same units as the variable, found'
+                        f' {value.eval_unit()} for variable in'
+                        f' {self._units.myokit_unit()}.')
+                value = myokit.Number(value.eval(), self._units.myokit_unit())
+            elif isinstance(value, myokit.Name):
+                if value.var()._component is not self._component:
+                    raise CellMLError(
+                        'Non-local variable specified as variable initial'
+                        f' value "{value.var()}".')
+            else:
+                raise CellMLError(
+                    'If given, a variable initial_value must be a real number'
+                    f' or a local variable, found {type(value)}.')
+
+        # Allow numeric input
+        else:
+            try:
+                value = myokit.Number(value, self._units.myokit_unit())
+            except (ValueError, TypeError):
+                raise CellMLError(
+                    'If given, a variable initial_value must be a real number'
+                    f' or a local variable, found "{value}".')
 
         # Store
         self._cset.set_initial_value(self, value)
