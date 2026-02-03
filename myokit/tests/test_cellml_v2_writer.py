@@ -142,6 +142,13 @@ class TestCellMLWriter(unittest.TestCase):
         x = find(cellml.write_string(m))
         self.assertEqual(x, '1.23424352342422994')
 
+        # Variable
+        q = c.add_variable('q', 'mole')
+        q.set_initial_value(1)
+        p.set_initial_value('q')
+        x = find(cellml.write_string(m))
+        self.assertEqual(x, 'q')
+
     def test_maths(self):
         # Test maths is written
 

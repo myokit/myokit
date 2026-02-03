@@ -125,7 +125,7 @@ class TestCellMLWriter(unittest.TestCase):
         self.assertIs(c.parent(), e)
         self.assertIs(b.parent(), c)
 
-    def test_initial_value_representation(self):
+    def test_initial_values(self):
         # Test the way initial values are represented in generated CellML code
 
         def find(xml):

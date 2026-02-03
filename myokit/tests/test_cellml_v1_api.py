@@ -410,6 +410,8 @@ class TestCellML1Model(unittest.TestCase):
         # Tests Model creation
 
         m = cellml.Model('hiya')
+        self.assertEqual(m.name(), 'hiya')
+        self.assertEqual(m.version(), '1.1')
 
         # Test bad name
         self.assertRaisesRegex(
@@ -680,11 +682,12 @@ class TestCellML1ModelConversion(unittest.TestCase):
         m = myokit.parse_model('''
             [[model]]
             x.a = 1e3
-            x.b = -1   # parsed as PrefixMinus(Number(1))
-            x.c = 1 + sqrt(4)
-            x.d = x.p
-            x.e = x.p + 3
-            x.f = y.q
+            x.b = -1       # parsed as PrefixMinus(Number(1))
+            x.c = --+-+-5  # extreme case of same
+            x.d = 1 + sqrt(4)
+            x.e = x.p
+            x.f = x.p + 3
+            x.g = y.q
 
             [x]
             t = 0 bind time
@@ -694,8 +697,9 @@ class TestCellML1ModelConversion(unittest.TestCase):
             dot(d) = 3
             dot(e) = 4
             dot(f) = 5
+            dot(g) = 6
             p = 12
-            f_init = 0
+            g_init = 0
 
             [y]
             q = 13
@@ -706,20 +710,21 @@ class TestCellML1ModelConversion(unittest.TestCase):
         with WarningCollector() as w:
             cm = cellml.Model.from_myokit_model(m, version='1.1')
         self.assertFalse(w.has_warnings())
-        a, b, c, d, e, f, p = [cm['x'][i] for i in 'abcdefp']
-        ci = cm['x']['c_init']
-        ei = cm['x']['e_init']
-        fi = cm['x']['f_init_1']
+        a, b, c, d, e, f, g, p = [cm['x'][i] for i in 'abcdefgp']
+        di = cm['x']['d_init']
+        fi = cm['x']['f_init']
+        gi = cm['x']['g_init_1']
         self.assertEqual(a.initial_value(), myokit.Number(1e3))
         self.assertEqual(b.initial_value(), myokit.Number(-1))
-        self.assertEqual(c.initial_value(), myokit.Name(ci))
-        self.assertEqual(d.initial_value(), myokit.Name(p))
-        self.assertEqual(e.initial_value(), myokit.Name(ei))
+        self.assertEqual(c.initial_value(), myokit.Number(5))
+        self.assertEqual(d.initial_value(), myokit.Name(di))
+        self.assertEqual(e.initial_value(), myokit.Name(p))
         self.assertEqual(f.initial_value(), myokit.Name(fi))
+        self.assertEqual(g.initial_value(), myokit.Name(gi))
         self.assertEqual(
-            ei.rhs(), myokit.Plus(myokit.Name(p), myokit.Number(3)))
+            fi.rhs(), myokit.Plus(myokit.Name(p), myokit.Number(3)))
         # Note: ei has rhs x.q, not y.q, because connections!
-        self.assertEqual(fi.rhs(), myokit.Name(cm['x']['q']))
+        self.assertEqual(gi.rhs(), myokit.Name(cm['x']['q']))
         self.assertEqual(cm['x']['q'].public_interface(), 'in')
         self.assertEqual(a.rhs(), myokit.Number(0))
         self.assertEqual(b.rhs(), myokit.Number(1))
@@ -727,8 +732,9 @@ class TestCellML1ModelConversion(unittest.TestCase):
         self.assertEqual(d.rhs(), myokit.Number(3))
         self.assertEqual(e.rhs(), myokit.Number(4))
         self.assertEqual(f.rhs(), myokit.Number(5))
+        self.assertEqual(g.rhs(), myokit.Number(6))
         cm.validate()
-        del ci, ei, fi
+        del di, fi, gi
 
         # CellML 1.0
         #self.assertEqual(cm['c']['x'].initial_value(), myokit.Number(2))
@@ -739,16 +745,17 @@ class TestCellML1ModelConversion(unittest.TestCase):
         self.assertEqual(w.count(), 3)
         for warning in w.warnings():
             self.assertIn('Incompatible expression', str(warning))
-        a, b, c, d, e, f, p = [cm['x'][i] for i in 'abcdefp']
-        self.assertNotIn('d_init', cm['x'])
-        self.assertNotIn('e_init_1', cm['x'])
+        a, b, c, d, e, f, g, p = [cm['x'][i] for i in 'abcdefgp']
+        self.assertNotIn('f_init', cm['x'])
+        self.assertNotIn('g_init_1', cm['x'])
         self.assertNotIn('q', cm['x'])
         self.assertEqual(a.initial_value(), myokit.Number(1e3))
         self.assertEqual(b.initial_value(), myokit.Number(-1))
-        self.assertEqual(c.initial_value(), myokit.Number(3))
-        self.assertEqual(d.initial_value(), myokit.Number(12))
-        self.assertEqual(e.initial_value(), myokit.Number(15))
-        self.assertEqual(f.initial_value(), myokit.Number(13))
+        self.assertEqual(c.initial_value(), myokit.Number(5))
+        self.assertEqual(d.initial_value(), myokit.Number(3))
+        self.assertEqual(e.initial_value(), myokit.Number(12))
+        self.assertEqual(f.initial_value(), myokit.Number(15))
+        self.assertEqual(g.initial_value(), myokit.Number(13))
         self.assertEqual(a.rhs(), myokit.Number(0))
         self.assertEqual(b.rhs(), myokit.Number(1))
         self.assertEqual(c.rhs(), myokit.Number(2))
@@ -921,12 +928,34 @@ class TestCellML1ModelConversion(unittest.TestCase):
         z.set_initial_value(myokit.Name(y))
 
         # Convert and test
-        m = m.myokit_model()
-        x, y, z = m.get('a.x'), m.get('a.y'), m.get('a.z')
-        self.assertEqual(x.rhs(), myokit.Number(1))
-        self.assertEqual(y.rhs(), myokit.Name(x))
-        self.assertEqual(z.rhs(), myokit.Number(2))
-        self.assertEqual(z.initial_value(), myokit.Name(y))
+        mm = m.myokit_model()
+        mx, my, mz = mm.get('a.x'), mm.get('a.y'), mm.get('a.z')
+        self.assertEqual(mx.rhs(), myokit.Number(1))
+        self.assertEqual(my.rhs(), myokit.Name(mx))
+        self.assertEqual(mz.rhs(), myokit.Number(2))
+        self.assertEqual(mz.initial_value(), myokit.Name(my))
+
+        # Initial value in other component
+        m = cellml.Model('m')
+        a = m.add_component('a')
+        t = a.add_variable('t', 'dimensionless')
+        m.set_free_variable(t)
+        ax = a.add_variable('x', 'volt', public_interface='in')
+        y = a.add_variable('y', 'volt')
+        y.set_initial_value(myokit.Name(ax))
+        y.set_is_state(True)
+        y.set_rhs(myokit.Number(12))
+        b = m.add_component('b')
+        bx = b.add_variable('x', 'volt', public_interface='out')
+        bx.set_initial_value(3)
+        m.add_connection(ax, bx)
+
+        # Convert and test
+        mm = m.myokit_model()
+        mx, my = mm.get('b.x'), mm.get('a.y')
+        self.assertEqual(mx.rhs(), myokit.Number(3))
+        self.assertEqual(my.rhs(), myokit.Number(12))
+        self.assertEqual(my.initial_value(), myokit.Name(mx))
 
     def test_c2m_pass_through_variables(self):
         # Test support for variables used only to pass a value through a
@@ -1169,6 +1198,10 @@ class TestCellML1Variable(unittest.TestCase):
             cellml.CellMLError, r'Initial value \(if set\)',
             v.set_initial_value,
             myokit.Plus(myokit.Number(1), myokit.Number(2)))
+        # or a random object type
+        self.assertRaisesRegex(
+            cellml.CellMLError, r'Initial value \(if set\)',
+            v.set_initial_value, self)
 
         # In 1.0, can only be a number
         c = cellml.Model('m', version='1.0').add_component('c')
