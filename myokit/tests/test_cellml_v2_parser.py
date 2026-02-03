@@ -726,6 +726,19 @@ class TestCellMLParser(unittest.TestCase):
             x.initial_value(), myokit.Number(1, myokit.units.volt))
         self.assertEqual(y.initial_value(), myokit.Name(x))
 
+        # And initial values need delayed handling: Can refer to variable that
+        # has not been parsed yet!
+        m = self.parse(
+            '<component name="c">'
+            '  <variable name="y" units="volt" initial_value="x" />'
+            '  <variable name="x" units="volt" initial_value="1" />'
+            '</component>'
+        )
+        x, y = m['c']['x'], m['c']['y']
+        self.assertEqual(
+            x.initial_value(), myokit.Number(1, myokit.units.volt))
+        self.assertEqual(y.initial_value(), myokit.Name(x))
+
 
 if __name__ == '__main__':
     import warnings
