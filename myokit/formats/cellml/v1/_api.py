@@ -1084,8 +1084,9 @@ class Model(AnnotatableElement):
                             # Note: In this case, rhs_or_initial_value() always
                             # returns the RHS, so ``rhs`` is guaranteed not to
                             # be the initial value
-                            v.promote(
-                                variable.initial_value().clone(subst=var_map))
+                            init = variable.initial_value()
+                            v.promote(0 if init is None else
+                                      init.clone(subst=var_map))
 
                 # Add local copies of variables requiring unit conversion
                 elif variable in needs_conversion:

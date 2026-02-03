@@ -957,6 +957,15 @@ class TestCellML1ModelConversion(unittest.TestCase):
         self.assertEqual(my.rhs(), myokit.Number(12))
         self.assertEqual(my.initial_value(), myokit.Name(mx))
 
+        # Missing initial values
+        y.set_initial_value(None)
+        bx.set_initial_value(None)
+        with WarningCollector() as w:
+            mm = m.myokit_model()
+        mx, my = mm.get('b.x'), mm.get('a.y')
+        self.assertEqual(my.initial_value(), myokit.Number(0))
+        self.assertEqual(mx.rhs(), myokit.Number(0, myokit.units.volt))
+
     def test_c2m_pass_through_variables(self):
         # Test support for variables used only to pass a value through a
         # hierarchical CellML structure.
