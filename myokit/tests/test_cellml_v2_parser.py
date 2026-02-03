@@ -711,7 +711,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # CellML errors are converted to parsing errors
         x = '<variable name="1" units="volt"/>'
-        x = '<component name="a">' + x + '</component>'
+        x = f'<component name="a">{x}</component>'
         self.assertBad(x, 'valid CellML identifier')
 
         # Initial values can be numbers or variables
@@ -738,6 +738,11 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(
             x.initial_value(), myokit.Number(1, myokit.units.volt))
         self.assertEqual(y.initial_value(), myokit.Name(x))
+
+        # Bad initial values are passed back from the API
+        x = '<variable name="b" units="volt" initial_value="1 + 2" />'
+        x = f'<component name="a">{x}</component>'
+        self.assertBad(x, 'must be a real number or the name of')
 
 
 if __name__ == '__main__':
