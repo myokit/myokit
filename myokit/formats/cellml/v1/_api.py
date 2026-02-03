@@ -738,7 +738,7 @@ class Model(AnnotatableElement):
                     value = state.initial_value()
                     if is_prefixed_number(value):
                         # Don't make variables for x = -1
-                        state.set_initial_value(myokit.Number(value.eval()))
+                        state.set_initial_value(value.eval())
                     else:
                         # But do for `1 + exp(3)`, or `a + b`
                         init_var = state.parent().add_variable_allow_renaming(

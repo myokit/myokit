@@ -851,6 +851,65 @@ class TestCellML2ModelConversion(unittest.TestCase):
         mm = cm.myokit_model()
         self.assertEqual(mm.get('c.y').eval(), 6.2)
 
+    def test_m2c_initial_values(self):
+        # Test conversion of initial values
+
+        m = myokit.parse_model('''
+            [[model]]
+            x.a = 1e3
+            x.b = -1       # parsed as PrefixMinus(Number(1))
+            x.c = --+-+-5  # extreme case of same
+            x.d = 1 + sqrt(4)
+            x.e = x.p
+            x.f = x.p + 3
+            x.g = y.q
+
+            [x]
+            t = 0 bind time
+            dot(a) = 0
+            dot(b) = 1
+            dot(c) = 2
+            dot(d) = 3
+            dot(e) = 4
+            dot(f) = 5
+            dot(g) = 6
+            p = 12
+            g_init = 0
+
+            [y]
+            q = 13
+        ''')
+        self.assertIsInstance(m.get('x.b').initial_value(), myokit.PrefixMinus)
+
+        with WarningCollector() as w:
+            cm = cellml.Model.from_myokit_model(m)
+        self.assertFalse(w.has_warnings())
+        a, b, c, d, e, f, g, p = [cm['x'][i] for i in 'abcdefgp']
+        di = cm['x']['d_init']
+        fi = cm['x']['f_init']
+        gi = cm['x']['g_init_1']
+        self.assertEqual(a.initial_value(), myokit.Number(1e3))
+        self.assertEqual(b.initial_value(), myokit.Number(-1))
+        self.assertEqual(c.initial_value(), myokit.Number(5))
+        self.assertEqual(d.initial_value(), myokit.Name(di))
+        self.assertEqual(e.initial_value(), myokit.Name(p))
+        self.assertEqual(f.initial_value(), myokit.Name(fi))
+        self.assertEqual(g.initial_value(), myokit.Name(gi))
+        self.assertEqual(
+            fi.rhs(), myokit.Plus(myokit.Name(p), myokit.Number(3)))
+        # Note: ei has rhs x.q, not y.q, because connections!
+        self.assertEqual(gi.rhs(), myokit.Name(cm['x']['q']))
+        self.assertEqual(cm['x']['q'].interface(), 'public')
+        self.assertEqual(a.rhs(), myokit.Number(0))
+        self.assertEqual(b.rhs(), myokit.Number(1))
+        self.assertEqual(c.rhs(), myokit.Number(2))
+        self.assertEqual(d.rhs(), myokit.Number(3))
+        self.assertEqual(e.rhs(), myokit.Number(4))
+        self.assertEqual(f.rhs(), myokit.Number(5))
+        self.assertEqual(g.rhs(), myokit.Number(6))
+        cm.validate()
+        del di, fi, gi
+
     def test_m2c_oxmeta(self):
         # Test that oxmeta data is passed on when creating a CellML model.
 
@@ -929,7 +988,13 @@ class TestCellML2ModelConversion(unittest.TestCase):
         m.add_connection(x, xb)
         m.add_connection(xc, xb)
         z2 = c.add_variable('z2', 'metre')
-        z2.set_initial_value(4)
+        z3 = c.add_variable('z3', 'metre')
+        m.add_units(
+            'meter_per_second', myokit.units.meter / myokit.units.second)
+        z2.set_equation(myokit.Equation(
+            myokit.Derivative(myokit.Name(z2)), myokit.Number(1.23, 'm/s')))
+        z2.set_initial_value('z3')
+        z3.set_initial_value(13)
         t = a.add_variable('t', 'second')
         t.meta['yes'] = 'no'
         m.set_variable_of_integration(t)
@@ -963,20 +1028,16 @@ class TestCellML2ModelConversion(unittest.TestCase):
         self.assertEqual(mm.get('a.t').meta['yes'], 'no')
 
         # Check components are present
-        ma = mm['a']
-        mb = mm['b']
-        mc = mm['c']
+        ma, mb, mc = mm['a'], mm['b'], mm['c']
         self.assertEqual(len(mm), 3)
 
         # Check variables are present
-        mt = ma['t']
-        mx = ma['x']
+        mt, mx = ma['t'], ma['x']
         self.assertEqual(len(ma), 2)
         my = mb['y']
         self.assertEqual(len(mb), 1)
-        mz = mc['z']
-        mz2 = mc['z2']
-        self.assertEqual(len(mc), 2)
+        mz, mz2, mz3 = mc['z'], mc['z2'], mc['z3']
+        self.assertEqual(len(mc), 3)
 
         # Check units are set
         self.assertEqual(mt.unit(), myokit.units.second)
@@ -994,7 +1055,9 @@ class TestCellML2ModelConversion(unittest.TestCase):
         self.assertEqual(
             mz.rhs(),
             myokit.Plus(myokit.Number(3, myokit.units.volt), myokit.Name(mx)))
-        self.assertEqual(mz2.rhs(), myokit.Number(4, myokit.units.meter))
+        self.assertEqual(mz3.rhs(), myokit.Number(13, myokit.units.meter))
+        self.assertEqual(mz2.rhs(), myokit.Number(1.23, 'm/s'))
+        self.assertEqual(mz2.initial_value(), myokit.Name(mz3))
 
         # Check state
         self.assertTrue(mx.is_state())
@@ -1371,12 +1434,17 @@ class TestCellML2Variable(unittest.TestCase):
             cellml.CellMLError, 'If given, a variable initial_value',
             x.set_initial_value, '@hello')
 
-        # Set with other than a number or name
+        # Set with expression other than a number or name
         self.assertRaisesRegex(
             cellml.CellMLError, 'must be a real number or a local variable',
             x.set_initial_value, myokit.Plus(
                 myokit.Number(1, myokit.units.volt),
                 myokit.Number(2, myokit.units.volt)))
+
+        # Set with unhandled type
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'must be a real number or a local variable',
+            x.set_initial_value, self)
 
     def test_initial_value_setting_connection(self):
         # Tests setting of initial values on connected variables.

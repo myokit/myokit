@@ -584,6 +584,35 @@ class Model(AnnotatableElement):
         # Create CellML model
         m = Model(name, version)
 
+        # Check if we need to create a Myokit model where all initial variables
+        # are either numbers or names of local variables.
+        states_to_fix = []
+        for state in model.states():
+            e = state.initial_value()
+            if isinstance(e, myokit.Number):
+                continue
+            if isinstance(e, myokit.Name):
+                # Compare parents: note, nested variables can't be referenced
+                # here, so this check is sufficient
+                if e.var().parent() == state.parent():
+                    continue
+            states_to_fix.append(state.qname())
+        if states_to_fix:
+            model = model.clone()
+            for state in states_to_fix:
+                state = model.get(state)
+                value = state.initial_value()
+                if is_prefixed_number(value):
+                    # Don't make variables for x = -1
+                    state.set_initial_value(value.eval())
+                else:
+                    # But do for `1 + exp(3)`, or `a + b`
+                    init_var = state.parent().add_variable_allow_renaming(
+                        state.name() + '_init')
+                    init_var.set_rhs(value)
+                    init_var.set_unit(state.unit())
+                    state.set_initial_value(init_var.lhs())
+
         # Valid model always has a time variable
         time = model.time()
 
@@ -777,7 +806,12 @@ class Model(AnnotatableElement):
 
                 # Promote states and set rhs and initial value
                 elif variable.is_state():
-                    v.set_initial_value(variable.initial_value(True))
+                    init = variable.initial_value()
+                    if is_prefixed_number(init):
+                        # Pass in float, in case unit not specified
+                        v.set_initial_value(init.eval())
+                    else:
+                        v.set_initial_value(init.clone(subst=subst))
                     v.set_equation(myokit.Equation(lhs, rhs))
 
                 # Store literals (single number) in initial value
@@ -910,8 +944,9 @@ class Model(AnnotatableElement):
 
                     # Promote states
                     if variable.is_state():
-                        init = variable.initial_value().eval()
-                        v.promote(0 if init is None else init)
+                        init = variable.initial_value()
+                        v.promote(
+                            0 if init is None else init.clone(subst=var_map))
 
                     # Set time variable
                     if variable is voi:
