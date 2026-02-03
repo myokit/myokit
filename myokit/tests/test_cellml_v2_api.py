@@ -1321,11 +1321,13 @@ class TestCellML2Variable(unittest.TestCase):
         # Set with float
         x.set_initial_value(3)
         self.assertTrue(x.has_initial_value())
-        self.assertEqual(x.initial_value(), myokit.Number(3, myokit.units.V))
+        self.assertEqual(
+            x.initial_value(), myokit.Number(3, myokit.units.volt))
 
         # Unit is ignored
-        x.set_initial_value(myokit.Number(2, myokit.units.dimensionless))
-        self.assertEqual(x.initial_value(), myokit.Number(2, myokit.units.V))
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'must have the same units',
+            x.set_initial_value, myokit.Number(2, myokit.units.dimensionless))
 
         # Unset
         x.set_initial_value(None)
@@ -1333,7 +1335,7 @@ class TestCellML2Variable(unittest.TestCase):
 
         # Set with other than a number
         self.assertRaisesRegex(
-            cellml.CellMLError, 'must be a real number',
+            cellml.CellMLError, 'Unknown local variable',
             x.set_initial_value, 'twelve')
 
     def test_initial_value_setting_connection(self):
@@ -1394,8 +1396,8 @@ class TestCellML2Variable(unittest.TestCase):
         self.assertIs(z.initial_value_variable(), z)
 
         # Check double initial values can't be set
-        z.set_initial_value(v2)
-        z.set_initial_value(myokit.Number(200))
+        z.set_initial_value(v3)
+        z.set_initial_value(myokit.Number(200, myokit.units.V))
         z.set_initial_value(-123)
         self.assertRaisesRegex(
             cellml.CellMLError, 'Unable to change initial value',
@@ -1474,7 +1476,7 @@ class TestCellML2Variable(unittest.TestCase):
         # Only initial value set
         x.set_equation(None)
         self.assertEqual(x.rhs(), y.rhs())
-        self.assertEqual(y.rhs(), myokit.Number(4, myokit.units.V))
+        self.assertEqual(y.rhs(), myokit.Number(4, myokit.units.volt))
 
         # Neither set
         y.set_initial_value(None)

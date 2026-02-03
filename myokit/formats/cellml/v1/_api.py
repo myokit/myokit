@@ -10,7 +10,7 @@ import warnings
 
 import myokit
 
-from myokit.formats import is_integer_string, is_real_number_string
+from myokit.formats import is_real_number_string
 
 
 # Identifier validation
@@ -1640,7 +1640,7 @@ class Variable(AnnotatableElement):
 
     def rhs(self):
         """
-        Returns this variable's right-hand side.
+        Returns this variable's right-hand side expression, if set.
         """
         return self._rhs
 
