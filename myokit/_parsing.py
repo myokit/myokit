@@ -1184,6 +1184,8 @@ add_token('AS', 'as')           # Alias
 add_token('BIND', 'bind')       # External value
 add_token('LABEL', 'label')     # Special value
 add_token('UNIT', 'unit')       # Used to given Units a useful token.
+add_token('INF', 'inf')
+add_token('NAN', 'nan')
 
 # Reserved keywords
 KEYWORD_MAP = {
@@ -1195,6 +1197,8 @@ KEYWORD_MAP = {
     'as': AS,
     'bind': BIND,
     'label': LABEL,
+    'inf': INF,
+    'nan': NAN,
 }
 KEYWORDS = KEYWORD_MAP.keys()
 
@@ -2166,6 +2170,8 @@ nud_parsers[MINUS] = PrefixParser(myokit.PrefixMinus)
 nud_parsers[NOT] = PrefixParser(myokit.Not)
 nud_parsers[PAREN_OPEN] = GroupingParser()
 nud_parsers[FUNC_NAME] = FunctionParser()
+nud_parsers[INF] = NumberParser()
+nud_parsers[NAN] = NumberParser()
 # Left denomination parsers
 led_parsers = {}
 led_parsers[PLUS] = InfixParser(myokit.Plus)
