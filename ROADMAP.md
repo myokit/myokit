@@ -38,12 +38,6 @@ Two major improvements are planned:
   - Provide compiled simulations for better performance during inference (relies on LLVM work described above).
   - Provide fast "analytic" parameter sensitivities for HH model simulations.
 
-## Minor maintenance
-
-- Some possible, but low-priority, bugs have been reported: [Tickets here](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3Abug).
-- Potential small code improvements have been identified: [Tickets here](https://github.com/myokit/myokit/issues?q=is%3Aissue+is%3Aopen+label%3Acode).
-- Use of IDE components needs to be made easier on Mac [#38](https://github.com/myokit/myokit/issues/38) and may even be broken [#692](https://github.com/myokit/myokit/issues/692).
-
 ### Back-burner
 
 Projects which are ongoing but not currently prioritised include
