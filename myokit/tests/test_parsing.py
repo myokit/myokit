@@ -731,15 +731,23 @@ class PhasedParseTest(unittest.TestCase):
              '[x]',
              't = 0 bind time',
              'a = inf + nan [mV]',
+             'b = -inf',
         )
         e = p(s).get('x.a').rhs()
         self.assertIsInstance(e, myokit.Plus)
         self.assertIsInstance(e[0], myokit.Number)
-        self.assertTrue(e[0].value() > 0)
+        self.assertGreater(e[0].value(), 0)
         self.assertTrue(math.isinf(e[0].value()))
         self.assertEqual(e[0].unit(), None)
         self.assertTrue(math.isnan(e[1].value()))
         self.assertEqual(e[1].unit(), myokit.units.mV)
+        e = p(s).get('x.b').rhs()
+        self.assertIsInstance(e, myokit.PrefixMinus)
+        self.assertLess(e.eval(), 0)
+        self.assertTrue(math.isinf(e.eval()))
+        self.assertIsInstance(e[0], myokit.Number)
+        self.assertGreater(e[0].value(), 0)
+        self.assertTrue(math.isinf(e[0].value()))
 
     def test_parse_unit(self):
         # Test :meth:`parse_unit` and :meth:`parse_unit_string`.
