@@ -5,6 +5,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import math
 import pickle
 import unittest
 
@@ -707,6 +708,66 @@ class NumberTest(unittest.TestCase):
         x = myokit.Number(0)
         self.assertTrue(x.is_number())
         self.assertTrue(x.is_number(0))
+
+    def test_nan_inf(self):
+        # Test nan and inf are represented correctly in code
+
+        # Create from float
+        x = myokit.Number(float('inf'))
+        self.assertTrue(math.isinf(x.eval()))
+        self.assertGreater(x.eval(), 0)
+        self.assertEqual(x.code(), 'infinity')
+
+        # Conversion via Python parsing
+        x = myokit.Number('inf')
+        self.assertTrue(math.isinf(x.eval()))
+        self.assertGreater(x.eval(), 0)
+        self.assertEqual(x.code(), 'infinity')
+
+        # Conversion via Python parsing, but with Myokit syntax
+        x = myokit.Number('infinity')
+        self.assertTrue(math.isinf(x.eval()))
+        self.assertGreater(x.eval(), 0)
+        self.assertEqual(x.code(), 'infinity')
+
+        # Create from float
+        x = myokit.Number(float('-inf'))
+        self.assertTrue(math.isinf(x.eval()))
+        self.assertLess(x.eval(), 0)
+        self.assertEqual(x.code(), '-infinity')
+
+        # Conversion via Python parsing
+        x = myokit.Number('-inf')
+        self.assertTrue(math.isinf(x.eval()))
+        self.assertLess(x.eval(), 0)
+        self.assertEqual(x.code(), '-infinity')
+
+        # Conversion via Python parsing, but with Myokit syntax
+        x = myokit.Number('-infinity')
+        self.assertTrue(math.isinf(x.eval()))
+        self.assertLess(x.eval(), 0)
+        self.assertEqual(x.code(), '-infinity')
+
+        # Create from float
+        x = myokit.Number(float('nan'))
+        self.assertTrue(math.isnan(x.eval()))
+        self.assertEqual(x.code(), 'nan')
+
+        # Conversion via Python parsing
+        x = myokit.Number('nan')
+        self.assertTrue(math.isnan(x.eval()))
+        self.assertEqual(x.code(), 'nan')
+
+        # Conversion via Myokit parsing
+        x = myokit.parse_expression('infinity')
+        self.assertIsInstance(x, myokit.Number)
+        self.assertTrue(math.isinf(x.eval()))
+        self.assertGreater(x.eval(), 0)
+        self.assertEqual(x.code(), 'infinity')
+        x = myokit.parse_expression('nan')
+        self.assertIsInstance(x, myokit.Number)
+        self.assertTrue(math.isnan(x.eval()))
+        self.assertEqual(x.code(), 'nan')
 
     def test_tree_str(self):
         # Test Number.tree_str()

@@ -400,6 +400,7 @@ class ModelBuildTest(unittest.TestCase):
         # Keywords
         self.assertRaises(myokit.InvalidNameError, m.add_component, 'and')
         self.assertRaises(myokit.InvalidNameError, m.add_component, 'bind')
+        self.assertRaises(myokit.InvalidNameError, m.add_component, 'infinity')
         # Test adding variable to component
         c1 = m.add_component('c1')
         # Duplicate
@@ -414,6 +415,7 @@ class ModelBuildTest(unittest.TestCase):
         # Keywords
         self.assertRaises(myokit.InvalidNameError, c0.add_variable, 'or')
         self.assertRaises(myokit.InvalidNameError, c0.add_variable, 'label')
+        self.assertRaises(myokit.InvalidNameError, c0.add_variable, 'nan')
 
         # Test adding variable to variable
         v1 = c0.add_variable('c0')

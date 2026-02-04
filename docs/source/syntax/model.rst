@@ -481,6 +481,15 @@ The arguments to a ``piecewise`` condition should be a condition followed by a
 number, followed by any number of condition-number pairs, finishing with a
 number.
 
+Predefined numbers
+==================
+Myokit has two predefined numbers: ``infinity`` and ``nan``. Both can appear in
+expressions::
+
+    x = infinity + nan
+
+where they will be interpreted as numbers (and so can have units too).
+
 .. _syntax/template_functions:
 
 User defined functions

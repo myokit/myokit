@@ -875,6 +875,11 @@ class Number(Expression):
             else:
                 # Turn e+15 into e15
                 self._str = self._str[:-3] + self._str[-2:]
+        elif self._str == 'inf':
+            self._str = 'infinity'
+        elif self._str == '-inf':
+            self._str = '-infinity'
+        # nan is fine
         if self._unit and self._unit != myokit.units.dimensionless:
             self._str += ' ' + str(self._unit)
 

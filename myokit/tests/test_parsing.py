@@ -6,6 +6,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import math
 import os
 import unittest
 
@@ -35,6 +36,12 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(next(s), (p.FLOAT, '3.E0', 1, 0))
         s = Tokenizer('.30')
         self.assertEqual(next(s), (p.FLOAT, '.30', 1, 0))
+
+        # Infinity and nan count as numbers
+        s = Tokenizer('infinity')
+        self.assertEqual(next(s), (p.INF, 'infinity', 1, 0))
+        s = Tokenizer('nan')
+        self.assertEqual(next(s), (p.NAN, 'nan', 1, 0))
 
         # Finished? Then should get a StopIteration
         self.assertEqual(s.peek()[0], p.EOL)
@@ -715,6 +722,31 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ParseError, 'not be a condition', p, code)
+
+    def test_parse_nan_inf(self):
+        # Nan and inf are recognised as numbers, and can have units
+        from myokit._parsing import parse_model as p
+
+        s = ('[[model]]',
+             '[x]',
+             't = 0 bind time',
+             'a = infinity + nan [mV]',
+             'b = -infinity')
+        e = p(s).get('x.a').rhs()
+        self.assertIsInstance(e, myokit.Plus)
+        self.assertIsInstance(e[0], myokit.Number)
+        self.assertGreater(e[0].value(), 0)
+        self.assertTrue(math.isinf(e[0].value()))
+        self.assertEqual(e[0].unit(), None)
+        self.assertTrue(math.isnan(e[1].value()))
+        self.assertEqual(e[1].unit(), myokit.units.mV)
+        e = p(s).get('x.b').rhs()
+        self.assertIsInstance(e, myokit.PrefixMinus)
+        self.assertLess(e.eval(), 0)
+        self.assertTrue(math.isinf(e.eval()))
+        self.assertIsInstance(e[0], myokit.Number)
+        self.assertGreater(e[0].value(), 0)
+        self.assertTrue(math.isinf(e[0].value()))
 
     def test_parse_unit(self):
         # Test :meth:`parse_unit` and :meth:`parse_unit_string`.

@@ -10,6 +10,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1165](https://github.com/myokit/myokit/pull/1165) Added partial support for `min` and `max` in MathML. For now, only the binary forms are supported, and the import converts to an `if` function.
   - [#1170](https://github.com/myokit/myokit/pull/1170) `Variable.set_initial_value` now accepts variables, automatically converting them to names.
   - [#1174](https://github.com/myokit/myokit/pull/1174) Added methods `is_integer_string` and `is_real_number_string` to `myokit.formats`.
+  - [#1179](https://github.com/myokit/myokit/pull/1179) Added parser support for `infinity` and `nan`, both of which are now reserved keywords.
 - Changed
   - [#1147](https://github.com/myokit/myokit/pull/1147) In imported CellML files, the `author` meta data field is now called `mmt_authors`, reflecting it indicates the author(s) of the mmt implementation (rather than the model authors).
   - [#1174](https://github.com/myokit/myokit/pull/1174) Renamed `cellml.v1.is_valid_identifier` to `cellml.v1.is_identifier` to match with `cellml.v2`.
