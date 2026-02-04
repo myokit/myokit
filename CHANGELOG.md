@@ -2,13 +2,11 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.39.1] - 2026-04-04
 - Added
   - [#1180](https://github.com/myokit/myokit/pull/1180) Myokit is now tested on Python 3.14.
-- Changed
-- Deprecated
-- Removed
 - Fixed
+  - [#1180](https://github.com/myokit/myokit/pull/1180) Configuration (`.ini`) parsing now works on Python 3.14.
 
 ## [1.39.0] - 2026-04-04
 - Added
