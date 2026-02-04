@@ -123,13 +123,12 @@ class HHModel:
             try:
                 state = self._model.get(str(state), myokit.Variable)
             except KeyError:
-                raise HHModelError('Unknown state: <' + str(state) + '>.')
+                raise HHModelError(f'Unknown state: <{state}>.')
             if not state.is_state():
                 raise HHModelError(
-                    'Variable <' + state.qname() + '> is not a state.')
+                    f'Variable <{state.qname()}> is not a state.')
             if state in self._states:
-                raise HHModelError(
-                    'State <' + state.qname() + '> was added twice.')
+                raise HHModelError(f'State <{state.qname()}> was added twice.')
             self._states.append(state)
         del states
 
@@ -144,14 +143,11 @@ class HHModel:
             try:
                 parameter = self._model.get(parameter, myokit.Variable)
             except KeyError:
-                raise HHModelError(
-                    'Unknown parameter: <' + str(parameter) + '>.')
+                raise HHModelError(f'Unknown parameter: <{parameter}>.')
             if not parameter.is_literal():
-                raise HHModelError(
-                    'Unsuitable parameter: <' + str(parameter) + '>.')
+                raise HHModelError(f'Unsuitable parameter: <{parameter}>.')
             if parameter in unique:
-                raise HHModelError(
-                    'Parameter listed twice: <' + str(parameter) + '>.')
+                raise HHModelError(f'Parameter listed twice: <{parameter}>.')
             unique.add(parameter)
             self._parameters.append(parameter)
         del unique
@@ -217,7 +213,7 @@ class HHModel:
         for state in self._states:
             if not has_inf_tau_form(state, self._membrane_potential):
                 raise HHModelError(
-                    'State `' + state.qname() + '` must have "inf-tau form" or'
+                    f'State `{state.qname()}` must have "inf-tau form" or'
                     ' "alpha-beta form". See'
                     ' `myokit.lib.hh.has_inf_tau_form()` and'
                     ' `myokit.lib.hh.has_alpha_beta_form()`.'
@@ -294,13 +290,9 @@ class HHModel:
             inf = w.ex(myokit.Name(inf))
             tau = w.ex(myokit.Name(tau))
             k = str(k)
-            f.append(
-                '_y[' + k + '] = ' + state.uname() + ' = '
-                + inf + ' + (_y0[' + k + '] - ' + inf
-                + ') * numpy.exp(-_t / ' + tau + ')')
-            f.append(
-                '_y[' + k + '][_t == 0] = ' + state.uname() + '[_t == 0] = '
-                + '_y0[' + k + ']')
+            f.append(f'_y[{k}] = {state.uname()} ='
+                     f' {inf} + (_y0[{k}] - {inf}) * numpy.exp(-_t / {tau})')
+            f.append(f'_y[{k}][_t == 0] = {state.uname()}[_t == 0] = _y0[{k}]')
 
         # Add current calculation
         if self._current is not None:
@@ -313,7 +305,6 @@ class HHModel:
         for i in range(1, len(f)):
             f[i] = '    ' + f[i]
         f = '\n'.join(f)
-        #print(f)
         local = {}
         exec(f, {'numpy': np}, local)
         self._function = local['_f']
@@ -331,7 +322,7 @@ class HHModel:
             k = str(k)
             inf, tau = get_inf_and_tau(state, self._membrane_potential)
             inf = inf.rhs().clone(expand=True, retain=self._inputs)
-            g.append('_y[' + str(k) + '] = ' + w.ex(inf))
+            g.append(f'_y[{k}] = {w.ex(inf)}')
 
         # Create python function from g
         g.append('return _y')
@@ -431,8 +422,7 @@ class HHModel:
                 raise HHModelError(
                     'The given component has more than one variable that could'
                     ' be a current: '
-                    + ', '.join(['<' + x.qname() + '>' for x in currents])
-                    + '.')
+                    + ', '.join([f'<{x.qname()}>' for x in currents]) + '.')
             try:
                 current = currents[0]
             except IndexError:
@@ -494,9 +484,8 @@ class HHModel:
         if parameters is not None:
             if len(parameters) != len(self._parameters):
                 raise ValueError(
-                    'Illegal parameter vector size: '
-                    + str(len(self._parameters)) + ' required, '
-                    + str(len(parameters)) + ' provided.')
+                    f'Illegal parameter vector size: f{len(self._parameters)}'
+                    f' required, {len(parameters)} provided.')
             inputs[1:] = [float(x) for x in parameters]
         return inputs
 
@@ -764,8 +753,7 @@ class AnalyticalSimulation:
                     log[key] = np.concatenate((
                         log[key], np.zeros(log_times.shape)))
             except KeyError:
-                raise ValueError(
-                    'Invalid log: missing entry for <' + str(key) + '>.')
+                raise ValueError(f'Invalid log: missing entry for <{key}>.')
 
         # Run simulation
         if self._protocol is None:
@@ -855,8 +843,7 @@ class AnalyticalSimulation:
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
         if np.any(state < 0) or np.any(state > 1):
-            raise ValueError(
-                'All states must be in the range [0, 1].')
+            raise ValueError('All states must be in the range [0, 1].')
         self._default_state = state
 
     def set_membrane_potential(self, v):
@@ -873,9 +860,8 @@ class AnalyticalSimulation:
         Changes the parameter values used in this simulation.
         """
         if len(parameters) != len(self._parameters):
-            raise ValueError(
-                'Wrong size parameter vector, expecting ('
-                + str(len(self._parameters)) + ') values.')
+            raise ValueError('Wrong size parameter vector, expecting'
+                             f' ({len(self._parameters)}) values.')
         self._parameters = np.array(parameters, copy=True, dtype=float)
 
     def set_state(self, state):
@@ -884,12 +870,10 @@ class AnalyticalSimulation:
         """
         state = np.array(state, copy=True, dtype=float)
         if len(state) != len(self._state):
-            raise ValueError(
-                'Wrong size state vector, expecing (' + str(len(self._state))
-                + ') values.')
+            raise ValueError('Wrong size state vector, expecting'
+                             f' ({len(self._state)}) values.')
         if np.any(state < 0) or np.any(state > 1):
-            raise ValueError(
-                'All states must be in the range [0, 1].')
+            raise ValueError('All states must be in the range [0, 1].')
         self._state = state
 
     def solve(self, times):
