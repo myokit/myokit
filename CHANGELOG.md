@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.39.1] - 2026-04-04
 - Added
   - [#1180](https://github.com/myokit/myokit/pull/1180) Myokit is now tested on Python 3.14.
