@@ -37,9 +37,9 @@ class TokenizerTest(unittest.TestCase):
         s = Tokenizer('.30')
         self.assertEqual(next(s), (p.FLOAT, '.30', 1, 0))
 
-        # Inf and nan count as numbers
-        s = Tokenizer('inf')
-        self.assertEqual(next(s), (p.INF, 'inf', 1, 0))
+        # Infinity and nan count as numbers
+        s = Tokenizer('infinity')
+        self.assertEqual(next(s), (p.INF, 'infinity', 1, 0))
         s = Tokenizer('nan')
         self.assertEqual(next(s), (p.NAN, 'nan', 1, 0))
 
@@ -730,8 +730,8 @@ class PhasedParseTest(unittest.TestCase):
         s = ('[[model]]',
              '[x]',
              't = 0 bind time',
-             'a = inf + nan [mV]',
-             'b = -inf')
+             'a = infinity + nan [mV]',
+             'b = -infinity')
         e = p(s).get('x.a').rhs()
         self.assertIsInstance(e, myokit.Plus)
         self.assertIsInstance(e[0], myokit.Number)

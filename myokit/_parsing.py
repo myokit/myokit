@@ -1184,7 +1184,7 @@ add_token('AS', 'as')           # Alias
 add_token('BIND', 'bind')       # External value
 add_token('LABEL', 'label')     # Special value
 add_token('UNIT', 'unit')       # Used to given Units a useful token.
-add_token('INF', 'inf')
+add_token('INF', 'infinity')
 add_token('NAN', 'nan')
 
 # Reserved keywords
@@ -1197,7 +1197,7 @@ KEYWORD_MAP = {
     'as': AS,
     'bind': BIND,
     'label': LABEL,
-    'inf': INF,
+    'infinity': INF,
     'nan': NAN,
 }
 KEYWORDS = KEYWORD_MAP.keys()
