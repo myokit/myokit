@@ -45,9 +45,9 @@ def _create(path):
         'compatibility',
         '# Optional settings to make Myokit work on tricky systems.')
     config.set('compatibility', '# Don\'t capture compiler output.')
-    config.set('compatibility', '#no_capture = True')
+    config.set('compatibility', '#no_capture', 'True')
     config.set('compatibility', '# Don\'t use the file-descriptor method.')
-    config.set('compatibility', '#no_fd_capture = True')
+    config.set('compatibility', '#no_fd_capture', 'True')
 
     # Date format
     config.add_section('time')
@@ -63,16 +63,16 @@ def _create(path):
     config.set('gui', '# Backend to use for graphical user interface.')
     config.set('gui', '# Valid options are pyqt6, pyqt5, pyside6 and pyside2.')
     config.set('gui', '# Leave unset for automatic selection.')
-    config.set('gui', '#backend = pyqt6')
-    config.set('gui', '#backend = pyqt5')
-    config.set('gui', '#backend = pyside6')
-    config.set('gui', '#backend = pyside2')
+    config.set('gui', '#backend', 'pyqt6')
+    config.set('gui', '#backend', 'pyqt5')
+    config.set('gui', '#backend', 'pyside6')
+    config.set('gui', '#backend', 'pyside2')
 
     # Locations of sundials library
     config.add_section('sundials')
     config.set(
-        'sundials', '# Location of sundials shared libary files'
-        ' (.so, .dll, or .dylib).')
+        'sundials',
+        '# Location of sundials shared libary files (.so, .dll, or .dylib).')
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
@@ -159,9 +159,9 @@ def _create(path):
         # All windowses
         c64 = 'C:\\Program Files\\'
         config.set('opencl', 'inc', ';'.join([
-            c64 + 'Intel\\OpenCL SDK\\6.3\\include',
-            c64 + 'AMD APP SDK\\2.9\\include',
-            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v11.8\\include',
+            f'{c64}Intel\\OpenCL SDK\\6.3\\include',
+            f'{c64}AMD APP SDK\\2.9\\include',
+            f'{c64}NVIDIA GPU Computing Toolkit\\CUDA\\v11.8\\include',
         ]))
     else:
         # Linux and mac
@@ -205,10 +205,9 @@ def _load():
             if m is not None:
                 x = m.start(1) - 1
                 raise ImportError(
-                    'Unsupported syntax found in ' + str(path) + ' on line '
-                    + str(1 + i) + ', character ' + str(x) + ', semicolons (;)'
-                    + ' must not be preceded by whitespace: ```'
-                    + line.strip() + '```.')
+                    f'Unsupported syntax found in {path} on line {i + 1},'
+                    f' character {x}, semicolons (;) must not be preceded by'
+                    f' whitespace: ```{line.strip()}```.')
         del lines, inline_comment
 
     # Create the config parser (no value allows comments)
@@ -230,7 +229,7 @@ def _load():
         elif x != '':
             warnings.warn(
                 'Invalid setting in myokit.ini. Expected values for no_capture'
-                ' are true, false, or not set (empty), but got: ' + x)
+                f' are true, false, or not set (empty), but got: {x}.')
 
     if config.has_option('compatibility', 'no_fd_capture'):
         x = config.get('compatibility', 'no_fd_capture').strip().lower()
@@ -241,8 +240,8 @@ def _load():
         elif x != '':
             warnings.warn(
                 'Invalid setting in myokit.ini. Expected values for'
-                ' no_fd_capture are true, false, or not set (empty), but got: '
-                + x)
+                ' no_fd_capture are true, false, or not set (empty), but'
+                f' got: {x}.')
 
     # Date format
     if config.has_option('time', 'date_format'):
@@ -282,7 +281,7 @@ def _load():
         elif x != '':
             warnings.warn(
                 'Invalid setting in myokit.ini. Expected values for backend'
-                ' are pyqt6, pyqt5, pyside6, or pyside2. Got: ' + x)
+                f' are pyqt6, pyqt5, pyside6, or pyside2, but got: {x}.')
 
     # Sundials libraries, header files, and version
     if config.has_option('sundials', 'lib'):
