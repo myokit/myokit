@@ -2,7 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.39.0] - 2026-04-04
 - Added
   - [#1143](https://github.com/myokit/myokit/pull/1143) Added `convert_ramps` argument AbfFile which, if set, will allow reading ramps as steps (instead of refusing to import the protocol entirely).
   - [#1152](https://github.com/myokit/myokit/pull/1152) Added `Simulation.crash_log()` to return the logged data up until a `SimulationError`.
@@ -17,7 +17,6 @@ This page lists the main changes made to Myokit in each release.
   - [#1176](https://github.com/myokit/myokit/pull/1176) Made MathML number parsing text-based, and slightly more stringent.
   - [#1177](https://github.com/myokit/myokit/pull/1177) The CellML 1.1 and 2.0 APIs now accept variables as initial values. The CellML 1 API now uses version 1.1 by default.
   - [#1177](https://github.com/myokit/myokit/pull/1177) The CellML 2.0 API will now raise an error if a `myokit.Number` with the wrong units is passed to `set_initial_value`.
-- Deprecated
 - Removed
   - [#1174](https://github.com/myokit/myokit/pull/1174) Removed `cellml.v2.is_integer_string`, `is_real_number_string` and `is_basic_real_number_string`.
 - Fixed
