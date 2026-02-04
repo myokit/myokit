@@ -731,8 +731,7 @@ class PhasedParseTest(unittest.TestCase):
              '[x]',
              't = 0 bind time',
              'a = inf + nan [mV]',
-             'b = -inf',
-        )
+             'b = -inf')
         e = p(s).get('x.a').rhs()
         self.assertIsInstance(e, myokit.Plus)
         self.assertIsInstance(e[0], myokit.Number)
