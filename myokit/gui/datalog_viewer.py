@@ -82,14 +82,16 @@ FILTER_ATF = 'ATF files (*.atf)'
 FILTER_CSV = 'CSV files (*.csv)'
 FILTER_MAT = 'Matlab files (*.mat)'
 FILTER_DAT = 'PatchMaster files (*.dat)'
-FILTER_TXT = 'Text files (*.txt)'
-FILTER_WCP = 'WCP files (*.wcp)'
+FILTER_TXT = 'Text files (numpy.loadtxt) (*.txt)'
+FILTER_WCP = 'WinWCP files (*.wcp)'
 FILTER_ZIP = 'Zipped DataLog files (*.zip)'
 FILTER_ANY = 'All files (*.*)'
-FILTER_ALL = 'Data files (*.abf *.csv *.dat *.mat *.pro *.txt *.wcp *.zip)'
+FILTER_ALL = \
+    'Data files (*.abf *.atf *.csv *.dat *.mat *.pro *.txt *.wcp *.zip)'
 FILTER_LIST = ';;'.join([
     FILTER_ALL,
     FILTER_ABF,
+    FILTER_ATF,
     FILTER_CSV,
     FILTER_DAT,
     FILTER_MAT,
@@ -539,8 +541,6 @@ class DataLogViewer(myokit.gui.MyokitApplication):
                 log = myokit.DataLog.load_csv(filename)
             else:
                 log = myokit.DataLog.load(filename)
-            if log.time_key is None:
-                raise Exception('Log must contain a suitable time variable.')
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
@@ -717,6 +717,7 @@ class SweepSourceTab(GraphTabWidget):
 
         # Create figure
         figure = matplotlib.figure.Figure()
+        figure.set_layout_engine('constrained')
         canvas = backend.FigureCanvasQTAgg(figure)
         canvas.setParent(widget)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
@@ -765,7 +766,6 @@ class SweepSourceTab(GraphTabWidget):
 
         # Create figure
         figure = matplotlib.figure.Figure()
-        figure.suptitle(self._abf.filename())
         canvas = backend.FigureCanvasQTAgg(figure)
         canvas.setParent(widget)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
@@ -788,7 +788,6 @@ class SweepSourceTab(GraphTabWidget):
 '''
 
     def _add_meta_tab(self, source):
-
         meta = source.meta_str(True)
         if meta:
             widget = QtWidgets.QTextEdit(self)
@@ -817,20 +816,20 @@ class AtfTab(GraphTabWidget):
         del self._atf
 
     def create_graph_tab(self, time, key):
-        """
-        Creates a widget displaying a graph.
-        """
+        """ Creates a widget displaying a graph. """
         widget = QtWidgets.QWidget(self)
 
         # Create figure
         figure = matplotlib.figure.Figure()
-        figure.suptitle(self._atf.filename())
+        figure.set_layout_engine('constrained')
         canvas = backend.FigureCanvasQTAgg(figure)
         canvas.setParent(widget)
         axes = figure.add_subplot(1, 1, 1)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
 
         # Draw lines
+        axes.set_xlabel(time)
+        axes.set_ylabel(key)
         axes.plot(self._atf[time], self._atf[key])
 
         # Create a layout
@@ -868,14 +867,15 @@ class CsvTab(GraphTabWidget):
         time = log.time_key()
         try:
             self._time = log.time()
+            self._time_label = time
         except myokit.InvalidDataLogError:
             if time is None:
+                self._time = list(range(log.length()))
+                self._time_label = 'Index'
+            else:
                 QtWidgets.QMessageBox.critical(
                     self, TITLE,
                     'Unable to load file: no time key set in this log.')
-                return
-            else:
-                raise
 
         # Check that time series aren't empty
         if log.length() == 0:
@@ -914,14 +914,15 @@ class CsvTab(GraphTabWidget):
 
         # Create figure
         figure = matplotlib.figure.Figure()
-        figure.suptitle(self._filename)
+        figure.set_layout_engine('constrained')
         canvas = backend.FigureCanvasQTAgg(figure)
         canvas.setParent(widget)
-        axes = figure.add_subplot(1, 1, 1)
-        axes.set_title(key)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
 
         # Draw lines
+        axes = figure.add_subplot(1, 1, 1)
+        axes.set_xlabel(self._time_label)
+        axes.set_ylabel(key)
         if indices is None:
             axes.plot(self._time, self._log[key])
         else:
@@ -984,7 +985,7 @@ class MatTab(GraphTabWidget):
             if data is None:
                 continue
             # Create tab
-            tab = self.create_graph_tab(time, data)
+            tab = self.create_graph_tab(time, data, key)
             self.addTab(tab, key)
 
         # Nothing that can be used? Show error
@@ -994,23 +995,26 @@ class MatTab(GraphTabWidget):
                 'Unable to load file: no usable data found.')
             return
 
-    def create_graph_tab(self, time, data):
+    def create_graph_tab(self, time, data, key):
         """
         Creates a widget displaying a time series.
         """
         widget = QtWidgets.QWidget(self)
         # Create figure
         figure = matplotlib.figure.Figure()
-        figure.suptitle(self._filename)
+        figure.set_layout_engine('constrained')
         canvas = backend.FigureCanvasQTAgg(figure)
         canvas.setParent(widget)
         axes = figure.add_subplot(1, 1, 1)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
-        # Draw line
+
+        # Draw lines
+        axes.set_ylabel(key)
         if time is None:
             axes.plot(data)
         else:
             axes.plot(time, data)
+
         # Create a layout
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(canvas)
@@ -1070,16 +1074,18 @@ class TxtTab(GraphTabWidget):
         widget = QtWidgets.QWidget(self)
         # Create figure
         figure = matplotlib.figure.Figure()
-        figure.suptitle(self._filename)
+        figure.set_layout_engine('constrained')
         canvas = backend.FigureCanvasQTAgg(figure)
         canvas.setParent(widget)
         axes = figure.add_subplot(1, 1, 1)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
-        # Draw line
+
+        # Draw lines
         if time is None:
             axes.plot(data)
         else:
             axes.plot(time, data)
+
         # Create a layout
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(canvas)
