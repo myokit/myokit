@@ -113,7 +113,8 @@ class DiffSLExporter(myokit.formats.Exporter):
                 self._convert_current_unit(var, helpers=helpers)
 
             # Convert potentials to mV
-            self._convert_potential_unit(vm)
+            if vm is not None:
+                self._convert_potential_unit(vm)
 
             # Convert time to ms
             if time.unit() != myokit.units.ms:
