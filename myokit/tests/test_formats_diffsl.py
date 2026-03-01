@@ -249,6 +249,45 @@ class DiffSLExporterTest(unittest.TestCase):
         e = myokit.formats.diffsl.DiffSLExporter()
         self.assertTrue(e.supports_model())
 
+    def test_non_cardiac_model(self):
+        # Tests exporting a non-cardiac model without membrane potential
+        # Regression test for issue #1185
+
+        # Create a simple pharmacokinetic model
+        pk_model = myokit.parse_model("""
+            [[model]]
+            pk.A1 = 100
+
+            [environment]
+            t = 0 bind time
+                in [s]
+
+            [pk]
+            dot(A1) = -CL * C1
+                in [mg]
+            V1 = 10 [L]
+                in [L]
+            C1 = A1 / V1
+                in [mg/L]
+            CL = 0.5 [L/s]
+                in [L/s]
+            """)
+
+        # Export should not crash
+        e = myokit.formats.diffsl.DiffSLExporter()
+        with TemporaryDirectory() as d:
+            path = d.path('pk_model.diffsl')
+            e.model(path, pk_model)
+
+            # Verify the file was created
+            with open(path, 'r') as f:
+                content = f.read()
+
+            # Basic sanity checks
+            self.assertIn('pkA1', content)
+            self.assertIn('G_i', content)
+            self.assertIn('F_i', content)
+
 
 class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     """Test conversion to DiffSL syntax."""
