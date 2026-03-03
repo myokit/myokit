@@ -325,8 +325,12 @@ def membrane_currents(model):
     i_ion = model.label('cellular_current')
     if i_ion is not None:
         e_currents = i_ion.rhs()
-    else:
+    elif vm is not None:
         e_currents = vm.rhs()
+    else:
+        # No membrane potential or cellular current found
+        # Return empty list for non-cardiac models
+        return []
     del i_ion
 
     # Assume that e_currents is an expression such as:
