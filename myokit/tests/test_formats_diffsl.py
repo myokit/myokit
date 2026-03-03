@@ -328,7 +328,9 @@ class DiffSLExporterTest(unittest.TestCase):
             self.assertIn('membraneV', out_content)
             self.assertIn('inaM', out_content)
             # Verify order: membraneV should appear before inaM
-            self.assertLess(out_content.index('membraneV'), out_content.index('inaM'))
+            self.assertLess(
+                out_content.index('membraneV'), out_content.index('inaM')
+            )
 
     def test_inputs_outputs_validation(self):
         # Tests validation of inputs and outputs parameters
@@ -342,13 +344,16 @@ class DiffSLExporterTest(unittest.TestCase):
 
             # Test 1: State variable cannot be input
             with self.assertRaisesRegex(
-                myokit.ExportError, 'Input variable membrane.V must be a constant'
+                myokit.ExportError,
+                'Input variable membrane.V must be a constant'
             ):
                 e.model(path, model, inputs=[model.get('membrane.V')])
 
-            # Test 2: Intermediate variable (non-const, non-state) cannot be input
+            # Test 2: Intermediate variable (non-const, non-state) cannot
+            # be input
             with self.assertRaisesRegex(
-                myokit.ExportError, 'Input variable ina.m.alpha must be a constant'
+                myokit.ExportError,
+                'Input variable ina.m.alpha must be a constant'
             ):
                 e.model(path, model, inputs=[model.get('ina.m.alpha')])
 
@@ -390,14 +395,16 @@ class DiffSLExporterTest(unittest.TestCase):
             other_model = myokit.load_model('example')
             with self.assertRaisesRegex(
                 myokit.ExportError,
-                'Input variable .* does not belong to the model being exported'
+                'Input variable .* does not belong to the model being '
+                'exported'
             ):
                 e.model(path, model, inputs=[other_model.get('membrane.C')])
 
             # Test 7: Output from different model
             with self.assertRaisesRegex(
                 myokit.ExportError,
-                'Output variable .* does not belong to the model being exported'
+                'Output variable .* does not belong to the model being '
+                'exported'
             ):
                 e.model(path, model, outputs=[other_model.get('membrane.V')])
 

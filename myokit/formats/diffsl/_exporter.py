@@ -129,7 +129,9 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         if output_qnames is None:
             # Use all states, sorted alphabetically by DiffSL name
-            outputs = sorted(model.states(), key=lambda x: self._var_name(x).swapcase())
+            outputs = sorted(
+                model.states(), key=lambda x: self._var_name(x).swapcase()
+            )
         else:
             outputs = [model.get(qname) for qname in output_qnames]
 
@@ -253,7 +255,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         special_vars.add(time)
         if pace is not None:
             special_vars.add(pace)
-        # Add input variables to special_vars so they're excluded from constants
+        # Add inputs to special_vars so they're excluded from constants
         for v in inputs:
             special_vars.add(v)
 

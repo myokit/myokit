@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:martinjrobins.github.io)",
+      "Bash(gh api repos/martinjrobins/diffsl/commits --jq '.[] | select\\(.commit.message | contains\\(\"\"F_i\"\"\\) or contains\\(\"\"G_i\"\"\\) or contains\\(\"\"M_i\"\"\\) or contains\\(\"\"syntax\"\"\\)\\) | {date: .commit.committer.date, message: .commit.message}' -L 20)",
+      "Bash(python -m pytest myokit/tests/test_formats_diffsl.py -v)",
+      "Bash(python3 -m pytest myokit/tests/test_formats_diffsl.py -v)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(pip install -e .)",
+      "Bash(python -m unittest myokit.tests.test_formats_diffsl -v)",
+      "Bash(gh issue view 1187 --repo myokit/myokit --json comments --jq '.comments[] | {author: .author.login, createdAt: .createdAt, body: .body}')",
+      "Bash(git add myokit/formats/diffsl/_exporter.py myokit/tests/test_formats_diffsl.py .gitignore)",
+      "Bash(git commit:*)",
+      "Bash(python -m unittest myokit.tests.test_formats_diffsl.DiffSLExporterTest -v)",
+      "Bash(python -m unittest myokit.tests.test_formats_diffsl.DiffSLExporterTest.test_inputs_and_outputs -v)",
+      "Bash(python -m unittest myokit.tests.test_formats_diffsl.DiffSLExporterTest.test_inputs_outputs_validation -v)",
+      "Bash(python -c \"import myokit; m = myokit.load_model\\(''example''\\); print\\([v.qname\\(\\) for v in m.variables\\(const=True, deep=True\\)][:10]\\)\")",
+      "Bash(git add myokit/formats/diffsl/_exporter.py myokit/tests/test_formats_diffsl.py)",
+      "Bash(gh issue view 1187 --repo myokit/myokit --json comments --jq '.comments[] | {author: .author.login, body: .body}')",
+      "Bash(python -m unittest myokit.tests.test_formats_diffsl.DiffSLExporterTest.test_get_state_index -v)",
+      "Bash(python -m pytest myokit/tests/test_formats_diffsl.py::DiffSLExporterTest -v)",
+      "Bash(python -c \":*)",
+      "Bash(git reset --soft HEAD~1)",
+      "Bash(git push -u origin worktree-fix-1187)",
+      "Bash(gh pr:*)"
+    ]
+  }
+}
