@@ -115,13 +115,6 @@ u_i {
   mmC = 0.9, /* mm.C */
 }
 
-dudt_i {
-  diffMbV = 0,
-  diffHhX = 0,
-  diffHhY = 0,
-  diffMmC = 0,
-}
-
 /* Variables: hh */
 hhI1 { 3.0 * hhX * hhY * (mbV / 1000.0 - 0.05) * 0.05 } /* hh.I1 [A/F] */
 
@@ -138,13 +131,6 @@ ttI3 { 4.0 * mmO * (mbV / 1000.0 + 0.02) } /* tt.I3 */
 
 /* Solve */
 F_i {
-  diffMbV,
-  diffHhX,
-  diffHhY,
-  diffMmC,
-}
-
-G_i {
   (hhI1 / 0.05 + mmI2 / 0.05 + ttI3) / mbC * 1000.0 / 1000.0,
   (hhXInf - hhX) / hhXTau / 1000.0,
   (hhYAlpha * (1.0 - hhY) - hhYBeta * hhY) / 1000.0,
@@ -285,8 +271,9 @@ class DiffSLExporterTest(unittest.TestCase):
 
             # Basic sanity checks
             self.assertIn('pkA1', content)
-            self.assertIn('G_i', content)
             self.assertIn('F_i', content)
+            self.assertNotIn('G_i', content)
+            self.assertNotIn('dudt_i', content)
 
 
 class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):

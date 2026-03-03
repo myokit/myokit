@@ -165,8 +165,8 @@ class DiffSLExporter(myokit.formats.Exporter):
         sorted_eqs = model.solvable_order()
 
         # Variables to be excluded from output or handled separately.
-        # State derivatives are handled in dudt_i, F_i and G_i; time is
-        # excluded from the output; pace is handled separately.
+        # State derivatives are handled in F_i; time is excluded from the
+        # output; pace is handled separately.
         time = model.time()
         pace = model.binding('pace')
         special_vars = set(v for v in model.states())
@@ -242,14 +242,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('}')
         export_lines.append('')
 
-        # Add state derivatives `dudt_i`
-        export_lines.append('dudt_i {')
-        for v in model.states():
-            lhs = var_name(v.lhs())
-            export_lines.append(f'{tab}{lhs} = 0,')
-        export_lines.append('}')
-        export_lines.append('')
-
         # Add remaining variables
         todo_vars = (
             set(model.variables(const=False, deep=True, state=False))
@@ -275,14 +267,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Add `F_i`
         export_lines.append('/* Solve */')
         export_lines.append('F_i {')
-        for v in model.states():
-            lhs = var_name(v.lhs())
-            export_lines.append(f'{tab}{lhs},')
-        export_lines.append('}')
-        export_lines.append('')
-
-        # Add `G_i`
-        export_lines.append('G_i {')
         for v in model.states():
             rhs = e.ex(v.rhs())
             export_lines.append(f'{tab}{rhs},')
