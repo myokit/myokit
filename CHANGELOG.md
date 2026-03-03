@@ -9,6 +9,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1186](https://github.com/myokit/myokit/pull/1186) Fixed DiffSL exporter crash on non-cardiac models without membrane potential.
 
 ## [1.39.1] - 2026-04-04
 - Added
