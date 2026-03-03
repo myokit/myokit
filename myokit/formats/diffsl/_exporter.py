@@ -25,7 +25,8 @@ class DiffSLExporter(myokit.formats.Exporter):
     For details of the language, see https://martinjrobins.github.io/diffsl/
     """
 
-    def model(self, path, model, protocol=None, convert_units=True):
+    def model(self, path, model, protocol=None, convert_units=True,
+              inputs=None, outputs=None):
         """
         Exports a :class:`myokit.Model` in DiffSL format, writing the result to
         the file indicated by ``path``.
@@ -47,6 +48,15 @@ class DiffSLExporter(myokit.formats.Exporter):
         ``convert_units``
             If set to ``True`` (default), the method will attempt to convert to
             preferred units for voltage (mV), current (A/F), and time (ms).
+        ``inputs``
+            Optional list of model variables to include in the input parameter
+            list (in = [ ... ]). If ``None`` (default), an empty input list
+            will be generated. All input variables must be constants.
+        ``outputs``
+            Optional list of model variables to include in the output list
+            (out_i { ... }). If ``None`` (default), all state variables will
+            be included in alphabetical order. All output variables must be
+            time-varying (not constants).
         """
         # Raise exception if protocol is set
         if protocol is not None:
@@ -62,11 +72,65 @@ class DiffSLExporter(myokit.formats.Exporter):
                 'DiffSL export requires a valid model.'
             ) from e
 
-        # Prepare model for export
+        # Store qualified names of inputs/outputs before model prep
+        # and validate that they are appropriate for DiffSL export
+        if inputs is None:
+            input_qnames = []
+        else:
+            input_qnames = []
+            for v in inputs:
+                # Validate that the variable belongs to this model
+                if v.model() != model:
+                    raise myokit.ExportError(
+                        f'Input variable {v.qname()} does not belong to the '
+                        f'model being exported.'
+                    )
+                # Validate that inputs are constants
+                if not v.is_constant():
+                    raise myokit.ExportError(
+                        f'Input variable {v.qname()} must be a constant.'
+                    )
+                input_qnames.append(v.qname())
+
+        if outputs is None:
+            output_qnames = None  # Will use all states
+        else:
+            output_qnames = []
+            for v in outputs:
+                # Validate that the variable belongs to this model
+                if v.model() != model:
+                    raise myokit.ExportError(
+                        f'Output variable {v.qname()} does not belong to the '
+                        f'model being exported.'
+                    )
+                # Validate that outputs are not constants
+                if v.is_constant():
+                    raise myokit.ExportError(
+                        f'Output variable {v.qname()} must be time-varying. '
+                        f'Constant variables cannot be used as outputs.'
+                    )
+                output_qnames.append(v.qname())
+
+        # Prepare model for export (this clones the model)
         model = self._prep_model(model, convert_units)
 
+        # Create DiffSL-compatible variable names and store for introspection
+        self.var_to_name = self._create_diffsl_variable_names(model)
+
+        # Map inputs/outputs to the prepped model
+        if input_qnames:
+            inputs = [model.get(qname) for qname in input_qnames]
+        else:
+            inputs = []
+
+        if output_qnames is None:
+            # Use all states, sorted alphabetically by DiffSL name
+            outputs = sorted(model.states(), key=lambda x: self._var_name(x).swapcase())
+        else:
+            outputs = [model.get(qname) for qname in output_qnames]
+
         # Generate DiffSL model
-        diffsl_model = self._generate_diffsl(model)
+        diffsl_model = self._generate_diffsl(model, inputs, outputs)
 
         # Write DiffSL model to file
         with open(path, 'w') as f:
@@ -132,31 +196,43 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         return model
 
-    def _generate_diffsl(self, model):
+    def _var_name(self, e):
+        """
+        Get the DiffSL-compatible name for a variable or expression.
+
+        Arguments:
+
+        ``e``
+            A :class:`myokit.Variable`, :class:`myokit.Derivative`, or
+            :class:`myokit.LhsExpression`.
+        """
+        if isinstance(e, myokit.Derivative):
+            return self.var_to_name[e]
+        elif isinstance(e, myokit.LhsExpression):
+            return self.var_to_name[e.var()]
+        elif isinstance(e, myokit.Variable):
+            return self.var_to_name[e]
+        raise ValueError(  # pragma: no cover
+            'Not a variable or LhsExpression: ' + str(e)
+        )
+
+    def _generate_diffsl(self, model, inputs, outputs):
         """
         Generate a DiffSL model from a prepped Myokit model.
-        DiffSL inputs will be left empty, and outputs will be set to
-        state variables in alphabetical order.
+
+        Arguments:
+
+        ``model``
+            The prepared Myokit model.
+        ``inputs``
+            List of model variables to include in the input parameter list.
+        ``outputs``
+            List of model variables to include in the output list.
         """
-
-        # Create DiffSL-compatible variable names
-        var_to_name = self._create_diffsl_variable_names(model)
-
-        # Create a naming function
-        def var_name(e):
-            if isinstance(e, myokit.Derivative):
-                return var_to_name[e]
-            elif isinstance(e, myokit.LhsExpression):
-                return var_to_name[e.var()]
-            elif isinstance(e, myokit.Variable):
-                return var_to_name[e]
-            raise ValueError(  # pragma: no cover
-                'Not a variable or LhsExpression: ' + str(e)
-            )
 
         # Create an expression writer
         e = diffsl.DiffSLExpressionWriter()
-        e.set_lhs_function(var_name)
+        e.set_lhs_function(self._var_name)
 
         export_lines = []  # DiffSL export lines
         tab = '  '  # Tab character
@@ -185,10 +261,13 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('*/')
         export_lines.append('')
 
-        # Add empty input parameter list
+        # Add input parameter list
         export_lines.append('/* Input parameters */')
-        export_lines.append('/* E.g. in = [ varZero, varOne, varTwo ] */')
-        export_lines.append('in = [ ]')
+        if inputs:
+            input_names = ', '.join([self._var_name(v) for v in inputs])
+            export_lines.append(f'in = [ {input_names} ]')
+        else:
+            export_lines.append('in = [ ]')
         export_lines.append('')
 
         # Add pace
@@ -201,7 +280,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             )
             export_lines.append('*/')
 
-            lhs = var_name(pace)
+            lhs = self._var_name(pace)
             rhs = e.ex(pace.rhs())
             qname = pace.qname()
             unit = '' if pace.unit() is None else f' {pace.unit()}'
@@ -221,7 +300,7 @@ class DiffSLExporter(myokit.formats.Exporter):
                 export_lines.append(f'/* Constants: {component_label} */')
                 for eq in const_eqs:
                     v = eq.lhs.var()
-                    lhs = var_name(v)
+                    lhs = self._var_name(v)
                     rhs = e.ex(eq.rhs)
                     qname = v.qname()
                     unit = '' if v.unit() is None else f' {v.unit()}'
@@ -234,7 +313,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('/* Initial conditions */')
         export_lines.append('u_i {')
         for v in model.states():
-            lhs = var_name(v)
+            lhs = self._var_name(v)
             rhs = v.initial_value()
             qname = v.qname()
             unit = '' if v.unit() is None else f' {v.unit()}'
@@ -255,7 +334,7 @@ class DiffSLExporter(myokit.formats.Exporter):
                 export_lines.append(f'/* Variables: {component_label} */')
                 for eq in todo_eqs:
                     v = eq.lhs.var()
-                    lhs = var_name(v)
+                    lhs = self._var_name(v)
                     rhs = e.ex(eq.rhs)
                     qname = v.qname()
                     unit = '' if v.unit() is None else f' {v.unit()}'
@@ -273,12 +352,11 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('}')
         export_lines.append('')
 
-        # Output state variables in alphabetical order
+        # Output variables
         export_lines.append('/* Output */')
         export_lines.append('out_i {')
-        vars = list(model.states())
-        for v in sorted(vars, key=lambda x: var_name(x).swapcase()):
-            lhs = var_name(v)
+        for v in outputs:
+            lhs = self._var_name(v)
             export_lines.append(f'{tab}{lhs},')
         export_lines.append('}')
         export_lines.append('')
