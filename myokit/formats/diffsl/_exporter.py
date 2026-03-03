@@ -246,13 +246,16 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Variables to be excluded from output or handled separately.
         # State derivatives are handled in F_i; time is excluded from the
-        # output; pace is handled separately.
+        # output; pace is handled separately; inputs are in the in block.
         time = model.time()
         pace = model.binding('pace')
         special_vars = set(v for v in model.states())
         special_vars.add(time)
         if pace is not None:
             special_vars.add(pace)
+        # Add input variables to special_vars so they're excluded from constants
+        for v in inputs:
+            special_vars.add(v)
 
         # Add metadata
         export_lines.append('/*')
@@ -265,13 +268,19 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('*/')
         export_lines.append('')
 
-        # Add input parameter list
+        # Add input parameter block
         export_lines.append('/* Input parameters */')
         if inputs:
-            input_names = ', '.join([self._var_name(v) for v in inputs])
-            export_lines.append(f'in = [ {input_names} ]')
+            export_lines.append('in_i {')
+            for v in inputs:
+                lhs = self._var_name(v)
+                rhs = e.ex(v.rhs())
+                qname = v.qname()
+                unit = '' if v.unit() is None else f' {v.unit()}'
+                export_lines.append(f'{tab}{lhs} = {rhs}, /* {qname}{unit} */')
+            export_lines.append('}')
         else:
-            export_lines.append('in = [ ]')
+            export_lines.append('in_i { }')
         export_lines.append('')
 
         # Add pace
@@ -526,9 +535,8 @@ class DiffSLExporter(myokit.formats.Exporter):
             return None
 
         # Find the index using the variable's qualified name
-        qname = variable.qname()
         try:
-            return self._state_qnames.index(qname)
+            return self._state_qnames.index(variable.qname())
         except ValueError:
             return None
 
