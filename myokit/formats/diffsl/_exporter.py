@@ -115,7 +115,11 @@ class DiffSLExporter(myokit.formats.Exporter):
         model = self._prep_model(model, convert_units)
 
         # Create DiffSL-compatible variable names and store for introspection
-        self.var_to_name = self._create_diffsl_variable_names(model)
+        self._var_to_name = self._create_diffsl_variable_names(model)
+
+        # Store the state order (as qnames) for introspection
+        # This preserves the order from model.states()
+        self._state_qnames = [v.qname() for v in model.states()]
 
         # Map inputs/outputs to the prepped model
         if input_qnames:
@@ -207,11 +211,11 @@ class DiffSLExporter(myokit.formats.Exporter):
             :class:`myokit.LhsExpression`.
         """
         if isinstance(e, myokit.Derivative):
-            return self.var_to_name[e]
+            return self._var_to_name[e]
         elif isinstance(e, myokit.LhsExpression):
-            return self.var_to_name[e.var()]
+            return self._var_to_name[e.var()]
         elif isinstance(e, myokit.Variable):
-            return self.var_to_name[e]
+            return self._var_to_name[e]
         raise ValueError(  # pragma: no cover
             'Not a variable or LhsExpression: ' + str(e)
         )
@@ -492,6 +496,41 @@ class DiffSLExporter(myokit.formats.Exporter):
         ]
         guessed_currents = guess.membrane_currents(model)
         return [x for x in guessed_currents if x.unit() not in unmatch_units]
+
+    def get_state_index(self, variable):
+        """
+        Returns the index of a state variable in the DiffSL state vector.
+
+        This method can be called after :meth:`model()` to determine the
+        position of a state variable in the exported DiffSL state vector.
+
+        Arguments:
+
+        ``variable``
+            A :class:`myokit.Variable` from the model that was exported.
+
+        Returns the zero-based index of the variable in the state vector if it
+        is a state variable, or ``None`` if it is not a state variable.
+
+        Note: The state vector order in DiffSL follows the order returned by
+        :meth:`myokit.Model.states()` from the exported model.
+        """
+        if not hasattr(self, '_state_qnames'):
+            raise RuntimeError(
+                'get_state_index() can only be called after model() has been '
+                'called to export a model.'
+            )
+
+        # Check if the variable is a state
+        if not variable.is_state():
+            return None
+
+        # Find the index using the variable's qualified name
+        qname = variable.qname()
+        try:
+            return self._state_qnames.index(qname)
+        except ValueError:
+            return None
 
     def supports_model(self):
         """See :meth:`myokit.formats.Exporter.supports_model()`."""

@@ -393,6 +393,39 @@ class DiffSLExporterTest(unittest.TestCase):
             ):
                 e.model(path, model, outputs=[other_model.get('membrane.V')])
 
+    def test_get_state_index(self):
+        # Tests the get_state_index introspection method
+
+        # Load example model
+        model = myokit.load_model('example')
+
+        e = myokit.formats.diffsl.DiffSLExporter()
+        with TemporaryDirectory() as d:
+            path = d.path('test.diffsl')
+
+            # Test 1: Calling before model() raises error
+            with self.assertRaisesRegex(
+                RuntimeError, 'can only be called after model'
+            ):
+                e.get_state_index(model.get('membrane.V'))
+
+            # Export the model
+            e.model(path, model)
+
+            # Test 2: Get index for state variables
+            states = list(model.states())
+            for i, state in enumerate(states):
+                idx = e.get_state_index(state)
+                self.assertEqual(idx, i)
+
+            # Test 3: Non-state variable returns None
+            const_var = model.get('membrane.C')
+            self.assertIsNone(e.get_state_index(const_var))
+
+            # Test 4: Another non-state variable returns None
+            inter_var = model.get('ina.m.alpha')
+            self.assertIsNone(e.get_state_index(inter_var))
+
 
 class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     """Test conversion to DiffSL syntax."""
