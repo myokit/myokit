@@ -75,7 +75,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         # Store qualified names of inputs/outputs before model prep
         # and validate that they are appropriate for DiffSL export
         if inputs is None:
-            input_qnames = []
+            input_qnames = None  # Will use empty input list
         else:
             input_qnames = []
             for v in inputs:
@@ -122,10 +122,11 @@ class DiffSLExporter(myokit.formats.Exporter):
         self._state_qnames = [v.qname() for v in model.states()]
 
         # Map inputs/outputs to the prepped model
-        if input_qnames:
-            inputs = [model.get(qname) for qname in input_qnames]
-        else:
+        if input_qnames is None:
+            # Default to empty input list
             inputs = []
+        else:
+            inputs = [model.get(qname) for qname in input_qnames]
 
         if output_qnames is None:
             # Use all states, sorted alphabetically by DiffSL name
