@@ -19,5 +19,6 @@ env
 # DS Store
 .DS_Store
 
-# Ignore vs code config
+# Tools
 .vscode
+.claude
