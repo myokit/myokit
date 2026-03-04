@@ -14,9 +14,11 @@ __pycache__
 # Virtual environments
 venv
 env
+.venv
 
 # DS Store
 .DS_Store
 
-# Ignore vs code config
+# Tools
 .vscode
+.claude

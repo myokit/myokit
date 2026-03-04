@@ -6,6 +6,7 @@ This page lists the main changes made to Myokit in each release.
 - Added
   - [#1184](https://github.com/myokit/myokit/pull/1184) The DataLogViewer can now read CSVs without a time column.
 - Changed
+  - [#1188](https://github.com/myokit/myokit/pull/1188) Updated syntax used in DiffSL exporter, and added option to manually specify inputs and outputs.
 - Deprecated
 - Removed
 - Fixed
