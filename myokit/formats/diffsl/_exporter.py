@@ -213,9 +213,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             A :class:`myokit.Variable`, :class:`myokit.Derivative`, or
             :class:`myokit.LhsExpression`.
         """
-        if isinstance(e, myokit.Derivative):
-            return self._var_to_name[e]
-        elif isinstance(e, myokit.LhsExpression):
+        if isinstance(e, myokit.LhsExpression):
             return self._var_to_name[e.var()]
         elif isinstance(e, myokit.Variable):
             return self._var_to_name[e]
@@ -532,10 +530,6 @@ class DiffSLExporter(myokit.formats.Exporter):
                 'get_state_index() can only be called after model() has been '
                 'called to export a model.'
             )
-
-        # Check if the variable is a state
-        if not variable.is_state():
-            return None
 
         # Find the index using the variable's qualified name
         try:
