@@ -169,6 +169,14 @@ class DiffSLExporter(myokit.formats.Exporter):
         cm = guess.membrane_capacitance(model)  # Cm
         currents = self._guess_currents(model)
 
+        # Check for explicit time dependence
+        time_refs = list(time.refs_by())
+        if time_refs:
+            raise myokit.ExportError(
+                'DiffSL export does not support explicit time dependence:\n'
+                + '\n'.join([f'{v} = {v.rhs()}' for v in time_refs])
+            )
+
         if convert_units:
             # Convert currents to A/F
             helpers = [] if cm is None else [cm.rhs()]
@@ -241,7 +249,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         # State derivatives are handled in F_i; time is excluded from the
         # output; pace is handled separately; inputs are in the in block.
         time = model.time()
-        self._var_to_name[time] = 't'  # DiffSL built-in time variable
         pace = model.binding('pace')
         special_vars = set(v for v in model.states())
         special_vars.add(time)
