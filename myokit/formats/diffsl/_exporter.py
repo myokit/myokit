@@ -441,9 +441,6 @@ class DiffSLExporter(myokit.formats.Exporter):
             return ''.join(name_chars)
 
         var_to_name = collections.OrderedDict()
-        
-        time = model.time()
-        self._var_to_name[time] = 't'  # DiffSL built-in time variable
 
         # Store initial names for variables
         for var in model.variables(deep=True, sort=True):
@@ -487,6 +484,9 @@ class DiffSLExporter(myokit.formats.Exporter):
                     name = f'{root}{i}'
                 var_to_name[var] = name
                 name_to_var[name] = var
+
+        time = model.time()
+        var_to_name[time] = 't'  # DiffSL built-in time variable
 
         return var_to_name
 
