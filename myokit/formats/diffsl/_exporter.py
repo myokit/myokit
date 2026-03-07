@@ -241,7 +241,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         # State derivatives are handled in F_i; time is excluded from the
         # output; pace is handled separately; inputs are in the in block.
         time = model.time()
-        self._var_to_name[time] = 't'  # DiffSL built-in time variable
         pace = model.binding('pace')
         special_vars = set(v for v in model.states())
         special_vars.add(time)
@@ -442,6 +441,9 @@ class DiffSLExporter(myokit.formats.Exporter):
             return ''.join(name_chars)
 
         var_to_name = collections.OrderedDict()
+        
+        time = model.time()
+        self._var_to_name[time] = 't'  # DiffSL built-in time variable
 
         # Store initial names for variables
         for var in model.variables(deep=True, sort=True):
