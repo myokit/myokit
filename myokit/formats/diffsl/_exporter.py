@@ -85,8 +85,8 @@ class DiffSLExporter(myokit.formats.Exporter):
                         f'Input variable {v.qname()} does not belong to the '
                         f'model being exported.'
                     )
-                # Validate that inputs are constants
-                if not v.is_constant():
+                # Validate that inputs are constants (pace binding is allowed)
+                if not v.is_constant() and v.binding() != 'pace':
                     raise myokit.ExportError(
                         f'Input variable {v.qname()} must be a constant.'
                     )
@@ -276,8 +276,8 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append('in_i { }')
         export_lines.append('')
 
-        # Add pace
-        if pace is not None:
+        # Add pace (skipped if pace is provided as an explicit input)
+        if pace is not None and pace not in inputs:
             export_lines.append('/* Engine: pace */')
             export_lines.append('/* E.g.')
             export_lines.append('  -80 * (1 - sigmoid((t-100)*5000))')

@@ -347,6 +347,18 @@ dot(y) = -y * engine.time
                 out_content.index('membraneV'), out_content.index('inaM')
             )
 
+            # Test with engine.pace as an input
+            path = d.path('test_pace_input.diffsl')
+            e.model(path, model, inputs=[model.get('engine.pace')])
+            with open(path, 'r') as f:
+                content = f.read()
+            # pace should appear in in_i block
+            match = re.search(r'in_i\s*\{([^}]*)\}', content, re.DOTALL)
+            self.assertIsNotNone(match)
+            self.assertIn('enginePace', match.group(1))
+            # pace should not also appear in a separate variable block
+            self.assertNotIn('/* Engine: pace */', content)
+
     def test_inputs_outputs_validation(self):
         # Tests validation of inputs and outputs parameters
 
