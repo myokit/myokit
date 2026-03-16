@@ -176,16 +176,31 @@ class DiffSLExporterTest(unittest.TestCase):
             v.set_rhs(3)
             e.model(path, model)
 
-            # Test with explicit time dependence
-            t0 = model.get('membrane').add_variable('t0')
-            t0.set_rhs('0 + engine.time')
-            with self.assertRaisesRegex(myokit.ExportError, 'time dependence'):
-                e.model(path, model)
-
             # Test with invalid model
             v.set_rhs('2 * V')
             with self.assertRaisesRegex(myokit.ExportError, 'valid model'):
                 e.model(path, model)
+
+    def test_explicit_time_dependence(self):
+        # Tests that explicit time dependence (dot(y) = -y * t) is supported
+        m_td = myokit.parse_model("""
+[[model]]
+c.y = 1.0
+
+[engine]
+time = 0
+    bind time
+
+[c]
+dot(y) = -y * engine.time
+""")
+        e = myokit.formats.diffsl.DiffSLExporter()
+        with TemporaryDirectory() as d:
+            path = d.path('diffsl.model')
+            e.model(path, m_td)
+            with open(path) as f:
+                content = f.read()
+        self.assertRegex(content, r'F_i\s*\{\s*-cY\s*\*\s*t,\s*\}')
 
     def test_unit_conversion(self):
         # Tests exporting a model that requires unit conversion
@@ -331,6 +346,18 @@ class DiffSLExporterTest(unittest.TestCase):
             self.assertLess(
                 out_content.index('membraneV'), out_content.index('inaM')
             )
+
+            # Test with engine.pace as an input
+            path = d.path('test_pace_input.diffsl')
+            e.model(path, model, inputs=[model.get('engine.pace')])
+            with open(path, 'r') as f:
+                content = f.read()
+            # pace should appear in in_i block
+            match = re.search(r'in_i\s*\{([^}]*)\}', content, re.DOTALL)
+            self.assertIsNotNone(match)
+            self.assertIn('enginePace', match.group(1))
+            # pace should not also appear in a separate variable block
+            self.assertNotIn('/* Engine: pace */', content)
 
     def test_inputs_outputs_validation(self):
         # Tests validation of inputs and outputs parameters

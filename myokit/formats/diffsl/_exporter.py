@@ -85,8 +85,8 @@ class DiffSLExporter(myokit.formats.Exporter):
                         f'Input variable {v.qname()} does not belong to the '
                         f'model being exported.'
                     )
-                # Validate that inputs are constants
-                if not v.is_constant():
+                # Validate that inputs are constants (pace binding is allowed)
+                if not v.is_constant() and v.binding() != 'pace':
                     raise myokit.ExportError(
                         f'Input variable {v.qname()} must be a constant.'
                     )
@@ -168,14 +168,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         vm = guess.membrane_potential(model)  # Vm
         cm = guess.membrane_capacitance(model)  # Cm
         currents = self._guess_currents(model)
-
-        # Check for explicit time dependence
-        time_refs = list(time.refs_by())
-        if time_refs:
-            raise myokit.ExportError(
-                'DiffSL export does not support explicit time dependence:\n'
-                + '\n'.join([f'{v} = {v.rhs()}' for v in time_refs])
-            )
 
         if convert_units:
             # Convert currents to A/F
@@ -284,8 +276,8 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append('in_i { }')
         export_lines.append('')
 
-        # Add pace
-        if pace is not None:
+        # Add pace (skipped if pace is provided as an explicit input)
+        if pace is not None and pace not in inputs:
             export_lines.append('/* Engine: pace */')
             export_lines.append('/* E.g.')
             export_lines.append('  -80 * (1 - sigmoid((t-100)*5000))')
@@ -492,6 +484,9 @@ class DiffSLExporter(myokit.formats.Exporter):
                     name = f'{root}{i}'
                 var_to_name[var] = name
                 name_to_var[name] = var
+
+        time = model.time()
+        var_to_name[time] = 't'  # DiffSL built-in time variable
 
         return var_to_name
 
