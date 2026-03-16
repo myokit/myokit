@@ -222,7 +222,7 @@ check_cvode_flag(int flag)
 #if SUNDIALS_VERSION_MAJOR >= 7
 /*
  * Check sundials error code (Sundials 7 and above)
- *  sunerr   : The SunErroCode to check
+ *  code     : The SUNErrCode to check
  *  funcname : The name of the function that returned the flag
  */
 int
@@ -295,6 +295,9 @@ SUNLinearSolver sundense_solver;    /* Linear solver object */
 #endif
 #if SUNDIALS_VERSION_MAJOR >= 6
 SUNContext sundials_context; /* A sundials context to run in (for profiling etc.) */
+#endif
+#if SUNDIALS_VERSION_MAJOR >= 7
+SUNLogger sundials_logger;
 #endif
 
 UserData udata;      /* UserData struct, used to pass in parameters */
@@ -718,6 +721,9 @@ sim_init(PyObject *self, PyObject *args)
     #if SUNDIALS_VERSION_MAJOR >= 6
     sundials_context = NULL;
     #endif
+    #if SUNDIALS_VERSION_MAJOR >= 7
+    sundials_logger = NULL;
+    #endif
 
     /* Check input arguments     01234567890123456 */
     if (!PyArg_ParseTuple(args, "ddOOOOOOOdOOidOOi",
@@ -837,9 +843,30 @@ sim_init(PyObject *self, PyObject *args)
     #elif SUNDIALS_VERSION_MAJOR >= 6
     flag_cvode = SUNContext_Create(NULL, &sundials_context);
     if (check_sundials_flag(flag_cvode, "SUNContext_Create")) return sim_clean();
+    #endif
+    #if SUNDIALS_VERSION_MAJOR >= 6
     #ifdef MYOKIT_DEBUG_PROFILING
     benchmarker_print("CP Created sundials context.");
     #endif
+    #endif
+
+    /*
+     * Set error handler and warning logging: Sundials 7 and later */
+     */
+    #if SUNDIALS_VERSION_MAJOR >= 7
+    /* Clear default error handler and push the custom one */
+    sunerr = SUNContext_ClearErrHandlers(sundials_context);
+    if (check_sundials_error(sunerr, "SUNContext_ClearErrHandlers")) return sim_clean();
+    sunerr = SUNContext_PushErrHandler(sundials_context, ErrorHandler, NULL);
+    if (check_sundials_error(sunerr, "SUNContext_PushErrHandler")) return sim_clean();
+
+    /* Disable default warning and error logging streams */
+    sunerr = SUNContext_GetLogger(sundials_context, &sundials_logger);
+    if (check_sundials_error(sunerr, "SUNContext_GetLogger")) return sim_clean();
+    sunerr = SUNLogger_SetWarningFilename(sundials_logger, "");
+    if (check_cvode_related_flag(flag_cvode, "SUNLogger_SetWarningFilename")) return sim_clean();
+    sunerr = SUNLogger_SetErrorFilename(sundials_logger, "");
+    if (check_cvode_related_flag(flag_cvode, "SUNLogger_SetErrorFilename")) return sim_clean();
     #endif
 
     /*
@@ -1150,11 +1177,8 @@ sim_init(PyObject *self, PyObject *args)
         #endif
         if (cvode_mem == NULL) return sim_cleanx(PyExc_Exception, "Unable to allocate CVODE memory.");
 
-        /* Set error and warning-message handler */
-        #if SUNDIALS_VERSION_MAJOR >= 7
-        sunerr = SUNContext_PushErrHandler(sundials_context, ErrorHandler, NULL);
-        if (check_sundials_error(sunerr, "SUNContext_PushErrHandler")) return sim_clean();
-        #else
+        /* Set error and warning-message handler: Sundials 6 and earlier */
+        #if SUNDIALS_VERSION_MAJOR < 7
         flag_cvode = CVodeSetErrHandlerFn(cvode_mem, ErrorHandler, NULL);
         if (check_cvode_related_flag(flag_cvode, "CVodeSetErrHandlerFn")) return sim_clean();
         #endif
