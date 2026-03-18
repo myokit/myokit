@@ -17,7 +17,7 @@ class CellMLExporter(myokit.formats.Exporter):
     def __init__(self):
         super().__init__()
 
-    def model(self, path, model, protocol=None, version='1.0'):
+    def model(self, path, model, protocol=None, version='1.1'):
         """
         Writes a CellML model to the given filename.
 
@@ -38,7 +38,7 @@ class CellMLExporter(myokit.formats.Exporter):
         # Load API and writer
         if version in ('1.0', '1.1'):
             import myokit.formats.cellml.v1 as cellml
-        elif version in ('2.0'):
+        elif version in ('2.0', ):
             import myokit.formats.cellml.v2 as cellml
         else:   # pragma: no cover
             raise ValueError(
@@ -63,10 +63,10 @@ class CellMLExporter(myokit.formats.Exporter):
 
 class CellML1Exporter(CellMLExporter):
     """
-    This:class:`Exporter <myokit.formats.Exporter>` creates a CellML 1.0 model.
+    This:class:`Exporter <myokit.formats.Exporter>` creates a CellML 1.1 model.
     """
     def model(self, path, model, protocol=None):
-        super().model(path, model, protocol, '1.0')
+        super().model(path, model, protocol, '1.1')
 
 
 class CellML2Exporter(CellMLExporter):

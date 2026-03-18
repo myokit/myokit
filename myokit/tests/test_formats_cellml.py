@@ -85,6 +85,13 @@ class CellMLExporterTest(unittest.TestCase):
         t.set_binding('time')
         t.set_rhs(0)
 
+        # Default version
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            e.model(path, model)
+            with open(path, 'r') as f:
+                self.assertIn('cellml/1.1#', f.read())
+
         # Write to 1.0 model
         with TemporaryDirectory() as d:
             path = d.path('test.cellml')
@@ -120,7 +127,7 @@ class CellMLExporterTest(unittest.TestCase):
             path = d.path('test.cellml')
             e.model(path, model)
             with open(path, 'r') as f:
-                self.assertIn('cellml/1.0#', f.read())
+                self.assertIn('cellml/1.1#', f.read())
 
         # Write to 2.0 model
         e = formats.exporter('cellml2')
