@@ -996,8 +996,7 @@ class Model(ObjectWithMetaData, VarProvider):
             return self._bindings[binding]
         except KeyError:
             raise myokit.IncompatibleModelError(
-                self.name(),
-                'No variable found with binding "' + str(binding) + '".')
+                self.name(), f'No variable found with binding "{binding}".')
 
     def check_units(self, mode=myokit.UNIT_TOLERANT):
         """
@@ -1353,7 +1352,7 @@ class Model(ObjectWithMetaData, VarProvider):
 
     def evaluate_derivatives(
             self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
-            ignore_errors=False):
+            ignore_errors=False, ignore_unbound_inputs=True):
         """
         Evaluates and returns the values of all state variable derivatives.
         The values are returned in a list sorted in the same order as the
@@ -1367,15 +1366,23 @@ class Model(ObjectWithMetaData, VarProvider):
             by :meth:``map_to_state()``.
         ``inputs=None``
             To set the values of external inputs, a dictionary mapping binding
-            labels to values can be passed in as ``inputs``.
+            labels to values can be passed in as ``inputs``. Inputs for
+            bindings not present in the model are silently ignored unless
+            ``ignore_unbound_inputs=False``.
         ``precision``
             To assist in finding the origins of numerical errors, the equations
             can be evaluated using single-precision floating point. To do this,
             set ``precision=myokit.SINGLE_PRECISION``.
-        ``ignore_errors``
+        ``ignore_errors=False``
             By default, the evaluation routine raises
             :class:`myokit.NumericalError` exceptions for invalid operations.
-            To return ``NaN`` instead, set ``ignore_errors=True``.
+            To return vector containing ``nan``s instead, set
+            ``ignore_errors=True``.
+        ``ignore_unbound_inputs=True``
+            By default, bindings specified in ``inputs`` but not set in the
+            model are silently ignored. To raise a
+            :class:`IncompatibleModelError` instead (see :meth:`bindingx`) set
+            ``ignore_unbound_inputs=False``.
 
         """
         values = {}
@@ -1393,6 +1400,10 @@ class Model(ObjectWithMetaData, VarProvider):
                 var = self._bindings.get(label)
                 if var is not None:
                     values[myokit.Name(var)] = float(value)
+                elif not ignore_unbound_inputs:
+                    raise myokit.IncompatibleModelError(
+                        self.name(),
+                        f'No variable found with binding "{label}".')
 
         # Get solvable order
         order = self.solvable_order()

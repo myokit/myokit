@@ -497,6 +497,16 @@ class ModelTest(unittest.TestCase):
             model.evaluate_derivatives(inputs={'pace': 10, 'time': 20}),
             [1, 4, 40])
 
+        # Unknown inputs
+        self.assertIsNone(model.binding('hello'))
+        self.assertEqual(
+            model.evaluate_derivatives(inputs={'pace': 10, 'hello': 12}),
+            [1, 4, 21])
+        self.assertRaisesRegex(
+            myokit.IncompatibleModelError, 'binding "hello"',
+            model.evaluate_derivatives, inputs={'hello': 12},
+            ignore_unbound_inputs=False)
+
         # Deprecated name
         with WarningCollector() as w:
             self.assertEqual(

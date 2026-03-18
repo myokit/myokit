@@ -569,14 +569,16 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     gc.collect()
 
 
-def step(model, initial=None, reference=None, ignore_errors=False):
+def step(model, state=None, inputs=None, reference=None, ignore_errors=False):
     """
     Evaluates the state derivatives in a model and compares the results with a
     list of reference values, if given.
 
     The ``model`` should be given as a valid :class:`myokit.Model`. The state
-    values to start from can be given as ``initial``, which should be any item
-    that can be converted to a valid state using ``model.map_to_state``.
+    values to start from can be given as ``state``, which should be any item
+    that can be converted to a valid state using ``model.map_to_state``. An
+    optional dictionary mapping binding labels to values can be given as
+    ``inputs``.
 
     The values can be compared to reference output given as a list
     ``reference``. Alternatively, if ``reference`` is a model the two models'
@@ -589,16 +591,16 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     Returns a string indicating the results.
     """
     # Get initial state
-    if initial is None:
-        initial = model.initial_values(as_floats=True)
+    if state is None:
+        state = model.initial_values(as_floats=True)
     else:
         # Convert initial values etc to floats. Will also be performed by
         # evaluate_derivatives, but done here for the printing code below.
-        initial = model.map_to_state(initial)
+        state = model.map_to_state(state)
 
     # Get evaluation at initial state
     values = model.evaluate_derivatives(
-        state=initial, ignore_errors=ignore_errors)
+        state=state, inputs=inputs, ignore_errors=ignore_errors)
 
     # Log settings
     fmat = myokit.SFDOUBLE
@@ -621,14 +623,14 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     if not reference:
         # Default output: intial value and derivative
         for r, v in enumerate(model.states()):
-            log.append(f.format(v.qname(), initial[r], values[r]))
+            log.append(f.format(v.qname(), state[r], values[r]))
     else:
         # Comparing output
 
         # Reference should be a state evaluation, or a model
         if isinstance(reference, myokit.Model):
             reference = reference.evaluate_derivatives(
-                state=initial, ignore_errors=ignore_errors)
+                state=state, inputs=inputs, ignore_errors=ignore_errors)
 
         h = ' ' * (w + 28)
         i = h + ' ' * 20
@@ -639,7 +641,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
         for r, v in enumerate(model.states()):
             x = values[r]
             y = reference[r]
-            log.append(f.format(v.qname(), initial[r], x))
+            log.append(f.format(v.qname(), state[r], x))
             xx = fmat.format(x)
             yy = fmat.format(y)
             line = g.format(y)

@@ -343,7 +343,7 @@ class AuxTest(unittest.TestCase):
         # For whatever reason, CI gives slightly different final 3 digits some
         # times.
         state = [-80, 1e-7, 0.1, 0.9, 0.9, 0.1, 0.9, 0.1]
-        x = myokit.step(m1, initial=state).splitlines()
+        x = myokit.step(m1, state=state).splitlines()
         y = [
             'Evaluating state vector derivatives...',
             '-' * 79,
@@ -403,7 +403,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(len(x), len(y))
 
         # Test comparison against another model, with an initial state
-        x = myokit.step(m1, reference=m2, initial=state).splitlines()
+        x = myokit.step(m1, reference=m2, state=state).splitlines()
         y = [
             'Evaluating state vector derivatives...',
             '-' * 79,
@@ -526,9 +526,38 @@ class AuxTest(unittest.TestCase):
             self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
+        # Test setting inputs
+        p = m1.get('c').add_variable('p', rhs=0, binding='pace')
+        m1.get('c.x').set_rhs('3 * c.t')
+        m1.get('c.y').set_rhs('c.p + c.t')
+        x = myokit.step(m1).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name  Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'c.x    1.00000000000000000e+00   0.00000000000000000e+00',
+            'c.y    1.00000000000000000e+00   0.00000000000000000e+00',
+            '-' * 79,
+        ]
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
+        self.assertEqual(len(x), len(y))
+        y[4:6] = ['c.x    1.00000000000000000e+00   6.00000000000000000e+00',
+                  'c.y    1.00000000000000000e+00   2.50000000000000000e+00']
+        x = myokit.step(m1, inputs={'time': 2, 'pace': 0.5}).splitlines()
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
+        # Non-existent / unbound are ignored
+        y[4:6] = ['c.x    1.00000000000000000e+00   6.00000000000000000e+00',
+                  'c.y    1.00000000000000000e+00   2.00000000000000000e+00']
+        x = myokit.step(m1, inputs={'time': 2, 'hello': 0.5}).splitlines()
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
+
         # No issues when passing initial state from a model
         # See https://github.com/myokit/myokit/pull/1083
-        myokit.step(m1, reference=m2, initial=m1.initial_values())
+        myokit.step(m1, reference=m2, state=m1.initial_values())
 
     def test_strfloat(self):
         # Deprecated alias of myokit.float.str

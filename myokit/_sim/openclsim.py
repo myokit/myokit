@@ -502,7 +502,9 @@ class SimulationOpenCL(myokit.CModule):
                         ifirst = bisect(ar, 0, ifirst)
                         if ifirst == 0:
                             break
-                return ifirst, kfirst
+                # Oddly, this line (but not the ones above) is sometimes listed
+                # as missed by cover testing:
+                return ifirst, kfirst   # pragma: no cover
 
         else:
 
