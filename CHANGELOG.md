@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.39.2] - 2026-03-18
 - Added
   - [#1184](https://github.com/myokit/myokit/pull/1184) The DataLogViewer can now read CSVs without a time column.
