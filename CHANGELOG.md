@@ -7,11 +7,12 @@ This page lists the main changes made to Myokit in each release.
   - [#1184](https://github.com/myokit/myokit/pull/1184) The DataLogViewer can now read CSVs without a time column.
 - Changed
   - [#1188](https://github.com/myokit/myokit/pull/1188) Updated syntax used in DiffSL exporter, and added option to manually specify inputs and outputs.
+  - [#1194](https://github.com/myokit/myokit/pull/1194) Updated the CellML exporter and CellML 1 exporter to use version 1.1 by default (replacing 1.0).
 - Deprecated
 - Removed
 - Fixed
   - [#1186](https://github.com/myokit/myokit/pull/1186) Fixed DiffSL exporter crash on non-cardiac models without membrane potential.
-  - [#1190](https://github.com/myokit/myokit/pull/1190) Fixed handling of explicit time dependence in DiffSL exporter.
+  - [#1190](https://github.com/myokit/myokit/pull/1190) Fixed DiffSL exporter to allow explicit time dependence.
 
 ## [1.39.1] - 2026-04-04
 - Added
