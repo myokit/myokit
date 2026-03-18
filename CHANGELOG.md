@@ -8,6 +8,8 @@ This page lists the main changes made to Myokit in each release.
 - Changed
   - [#1188](https://github.com/myokit/myokit/pull/1188) Updated syntax used in DiffSL exporter, and added option to manually specify inputs and outputs.
   - [#1194](https://github.com/myokit/myokit/pull/1194) Updated the CellML exporter and CellML 1 exporter to use version 1.1 by default (replacing 1.0).
+  - [#1195](https://github.com/myokit/myokit/pull/1195) The method `myokit.step` now takes an argument `state` instead of `initial`, and has a new argument `inputs` that allows values of bound variables to be supplied.
+  - [#1195](https://github.com/myokit/myokit/pull/1195) The method `Model.evaluate_derivatives` will now raise an exception if unknown inputs are specified and the new argument `ignore_unbound_inputs` is set to True. 
 - Deprecated
 - Removed
 - Fixed
