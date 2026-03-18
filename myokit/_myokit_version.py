@@ -6,7 +6,7 @@
 #
 
 # True if this is a release, False for a development version
-__release__ = False
+__release__ = True
 
 # Version as a tuple (major, minor, revision)
 #  - Changes to major are rare

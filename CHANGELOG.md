@@ -2,7 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.39.2] - 2026-03-18
 - Added
   - [#1184](https://github.com/myokit/myokit/pull/1184) The DataLogViewer can now read CSVs without a time column.
 - Changed
@@ -10,19 +10,17 @@ This page lists the main changes made to Myokit in each release.
   - [#1194](https://github.com/myokit/myokit/pull/1194) Updated the CellML exporter and CellML 1 exporter to use version 1.1 by default (replacing 1.0).
   - [#1195](https://github.com/myokit/myokit/pull/1195) The method `myokit.step` now takes an argument `state` instead of `initial`, and has a new argument `inputs` that allows values of bound variables to be supplied.
   - [#1195](https://github.com/myokit/myokit/pull/1195) The method `Model.evaluate_derivatives` will now raise an exception if unknown inputs are specified and the new argument `ignore_unbound_inputs` is set to True. 
-- Deprecated
-- Removed
 - Fixed
   - [#1186](https://github.com/myokit/myokit/pull/1186) Fixed DiffSL exporter crash on non-cardiac models without membrane potential.
   - [#1190](https://github.com/myokit/myokit/pull/1190) Fixed DiffSL exporter to allow explicit time dependence.
 
-## [1.39.1] - 2026-04-04
+## [1.39.1] - 2026-02-04
 - Added
   - [#1180](https://github.com/myokit/myokit/pull/1180) Myokit is now tested on Python 3.14.
 - Fixed
   - [#1180](https://github.com/myokit/myokit/pull/1180) Configuration (`.ini`) parsing now works on Python 3.14.
 
-## [1.39.0] - 2026-04-04
+## [1.39.0] - 2026-02-04
 - Added
   - [#1143](https://github.com/myokit/myokit/pull/1143) Added `convert_ramps` argument AbfFile which, if set, will allow reading ramps as steps (instead of refusing to import the protocol entirely).
   - [#1152](https://github.com/myokit/myokit/pull/1152) Added `Simulation.crash_log()` to return the logged data up until a `SimulationError`.
