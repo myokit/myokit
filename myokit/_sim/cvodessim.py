@@ -656,7 +656,8 @@ class Simulation(myokit.CModule):
         if self._sensitivities:
             self._s_state = [list(x) for x in self._s_default_state]
 
-    def run(self, duration, log=None, log_interval=None, log_times=None,
+    def run(self, duration, log=None,
+            log_interval=None, log_times=None, log_before_step=False,
             sensitivities=None, apd_variable=None, apd_threshold=None,
             progress=None, msg='Running simulation'):
         """
@@ -722,6 +723,10 @@ class Simulation(myokit.CModule):
             An optional sequence (e.g. a list or a numpy array) of
             pre-determined logging times. Must be ``None`` if ``log_interval``
             is used. If both are ``None`` every step is logged.
+        ``log_before_event=False``
+            An optional setting to log points just before every event in a
+            protocol. Can only be used if ``log_interval`` and ``log_times``
+            are both ``False``.
         ``sensitivities``
             An optional list-of-lists to append the calculated sensitivities
             to.
@@ -754,13 +759,13 @@ class Simulation(myokit.CModule):
         """
         duration = float(duration)
         output = self._run(
-            duration, log, log_interval, log_times, sensitivities,
-            apd_variable, apd_threshold, progress, msg)
+            duration, log, log_interval, log_times, log_before_event,
+            sensitivities, apd_variable, apd_threshold, progress, msg)
         self._time += duration
         return output
 
-    def _run(self, duration, log, log_interval, log_times, sensitivities,
-             apd_variable, apd_threshold, progress, msg):
+    def _run(self, duration, log, log_interval, log_times, log_before_event,
+             sensitivities, apd_variable, apd_threshold, progress, msg):
 
         # Create benchmarker for profiling and realtime logging
         # Note: When adding profiling messages, write them in past tense so
@@ -800,6 +805,14 @@ class Simulation(myokit.CModule):
         if log_times is not None:
             if len(log_times) == 0:
                 log_times = None
+
+        # Log just before events?
+        if log_before_event:
+            log_before_event = 1
+            if log_times is not None or log_interval > 0:
+                raise ValueError(
+                    'The argument `log_before_event=True` can not be used if'
+                    ' a `log_interval` or `log_times` are set.')
 
         # List of sensitivity matrices
         if self._sensitivities:
@@ -893,6 +906,8 @@ class Simulation(myokit.CModule):
                 log_interval,
                 # 10. A list of predetermind logging times, or None
                 log_times,
+                # 11. Boolean/int: 1 if we are logging before pacing events
+                log_before_event,
                 # 11. A list to store calculated sensitivities in
                 sensitivities,
                 # 12. The state variable index for root finding (only used if

@@ -361,6 +361,7 @@ double tmax;    /* The final simulation time */
  * Logging
  */
 int dynamic_logging;    /* True if logging every point. */
+int log_before_event;   /* True if logging just before every protocol event */
 PyObject* log_dict;     /* The log dict (DataLog) */
 PyObject* sens_list;    /* Sensitivity logging list */
 
@@ -720,7 +721,7 @@ sim_init(PyObject *self, PyObject *args)
     #endif
 
     /* Check input arguments     01234567890123456 */
-    if (!PyArg_ParseTuple(args, "ddOOOOOOOdOOidOOi",
+    if (!PyArg_ParseTuple(args, "ddOOOOOOOdOiOidOOi",
             &tmin,              /*  0. Float: initial time */
             &tmax,              /*  1. Float: final time */
             &state_py,          /*  2. List: initial and final state */
@@ -732,12 +733,13 @@ sim_init(PyObject *self, PyObject *args)
             &log_dict,          /*  8. DataLog */
             &log_interval,      /*  9. Float: log interval, or 0 */
             &log_times,         /* 10. List of logging times, or None */
-            &sens_list,         /* 11. List to store sensitivities in */
-            &rf_index,          /* 12. Int: root-finding state variable */
-            &rf_threshold,      /* 13. Float: root-finding threshold */
-            &rf_list,           /* 14. List to store roots in or None */
-            &benchmarker,       /* 15. myokit.tools.Benchmarker object */
-            &log_realtime       /* 16. Int: 1 if logging real time */
+            &log_before_event,  /* 11. Int: 1 if logging before every event */
+            &sens_list,         /* 12. List to store sensitivities in */
+            &rf_index,          /* 13. Int: root-finding state variable */
+            &rf_threshold,      /* 14. Float: root-finding threshold */
+            &rf_list,           /* 15. List to store roots in or None */
+            &benchmarker,       /* 16. myokit.tools.Benchmarker object */
+            &log_realtime       /* 17. Int: 1 if logging real time */
     )) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         return 0;
@@ -777,11 +779,11 @@ sim_init(PyObject *self, PyObject *args)
        This _only_ holds for list and tuple.
     5. When you return a newly created reference from a function, you pass on
        the ownership of that reference to the calling function. This means you
-       don't have to call DECREF on the return value of a function.
+       do not have to call DECREF on the return value of a function.
     6. References passed _into_ your function as arguments are _borrowed_:
-       Their refcount doesn't change and you don't have to increase or decrease
-       it. The object they point to is guaranteed to exist for as long as your
-       function runs.
+       Their refcount does not change and you do not have to increase or
+       decrease it. The object they point to is guaranteed to exist for as long
+       as your function runs.
 
     Result:
     A. The log and protocol objects passed to this function are borrowed
@@ -908,7 +910,7 @@ sim_init(PyObject *self, PyObject *args)
         return sim_cleanx(PyExc_TypeError, "'state_py' must be a list.");
     }
     for (i=0; i<model->n_states; i++) {
-        val = PyList_GetItem(state_py, i);    /* Don't decref! */
+        val = PyList_GetItem(state_py, i);    /* Do not decref! */
         if (!PyFloat_Check(val)) {
             return sim_cleanx(PyExc_ValueError, "Item %d in state vector is not a float.", i);
         }
@@ -930,12 +932,12 @@ sim_init(PyObject *self, PyObject *args)
             return sim_cleanx(PyExc_TypeError, "'s_state_py' must be a list.");
         }
         for (i=0; i<model->ns_independents; i++) {
-            val = PyList_GetItem(s_state_py, i); /* Don't decref */
+            val = PyList_GetItem(s_state_py, i); /* Do not decref */
             if (!PyList_Check(val)) {
                 return sim_cleanx(PyExc_ValueError, "Item %d in state sensitivity matrix is not a list.", i);
             }
             for (j=0; j<model->n_states; j++) {
-                ret = PyList_GetItem(val, j);    /* Don't decref! */
+                ret = PyList_GetItem(val, j);    /* Do not decref! */
                 if (!PyFloat_Check(ret)) {
                     return sim_cleanx(PyExc_ValueError, "Item %d, %d in state sensitivity matrix is not a float.", i, j);
                 }
@@ -969,7 +971,7 @@ sim_init(PyObject *self, PyObject *args)
         return sim_cleanx(PyExc_TypeError, "'literals' must be a list.");
     }
     for (i=0; i<model->n_literals; i++) {
-        val = PyList_GetItem(literals, i);    /* Don't decref */
+        val = PyList_GetItem(literals, i);    /* Do not decref */
         if (!PyFloat_Check(val)) {
             return sim_cleanx(PyExc_ValueError, "Item %d in literal vector is not a float.", i);
         }
@@ -1001,7 +1003,7 @@ sim_init(PyObject *self, PyObject *args)
             return sim_cleanx(PyExc_TypeError, "'parameters' must be a list.");
         }
         for (i=0; i<model->n_parameters; i++) {
-            val = PyList_GetItem(parameters, i);    /* Don't decref */
+            val = PyList_GetItem(parameters, i);    /* Do not decref */
             if (!PyFloat_Check(val)) {
                 return sim_cleanx(PyExc_ValueError, "Item %d in parameter vector is not a float.", i);
             }
@@ -1029,8 +1031,8 @@ sim_init(PyObject *self, PyObject *args)
 
         /*
          * Add in values for parameters and initial values
-         * Note that the initial values in the user data don't have any effect,
-         * so their value isn't important (outside of the scaling set below).
+         * Note that the initial values in the user data do not have any effect,
+         * so their value is not important (outside of the scaling set below).
          */
         for (i=0; i<model->ns_independents; i++) {
             udata->p[i] = *model->s_independents[i];
@@ -1098,6 +1100,10 @@ sim_init(PyObject *self, PyObject *args)
                 t_proposed = ESys_GetNextTime(epacing, &flag_epacing);
                 pacing[i] = ESys_GetLevel(epacing, &flag_epacing);
                 tnext = fmin(t_proposed, tnext);
+
+                if (log_before_event) {
+                    tnext = fmax(t, ESys_before(tnext));
+                }
 
                 #if defined(MYOKIT_DEBUG_PROFILING)
                 benchmarker_print("CP Created event-based pacing system.");
@@ -1705,6 +1711,9 @@ sim_step(PyObject *self, PyObject *args)
                     tnext = fmin(tnext, t_proposed);
                     pacing[i] = ESys_GetLevel(epacing, NULL);
                 }
+            }
+            if (log_before_event) {
+                tnext = fmax(t, ESys_before(tnext));
             }
 
             /* Dynamic logging: Log every visited point */
