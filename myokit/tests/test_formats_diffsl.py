@@ -147,6 +147,19 @@ out_i {
 """
 
 
+def _extract_block_entries(testcase, content, block_name):
+    """Extract entries from a DiffSL block like ``pace_i { ... }``."""
+    pattern = r'%s\s*\{([^}]*)\}' % re.escape(block_name)
+    match = re.search(pattern, content, re.DOTALL)
+    testcase.assertIsNotNone(match)
+    entries = [
+        ln.strip().rstrip(',')
+        for ln in match.group(1).strip().splitlines()
+        if ln.strip()
+    ]
+    return entries
+
+
 class DiffSLExporterTest(unittest.TestCase):
     """Tests DiffSL export."""
 
@@ -204,23 +217,11 @@ class DiffSLExporterTest(unittest.TestCase):
         # pace_i has one extra phase compared to transitions:
         # phases = [t=100 up, t=105 down, t=200 up, t=205 down] -> 4 boundaries
         # pace_i entries: phase-0 baseline + 4 transitions = 5 entries
-        pace_match = re.search(r'pace_i\s*\{([^}]*)\}', content, re.DOTALL)
-        self.assertIsNotNone(pace_match)
-        pace_entries = [
-            ln.strip().rstrip(',')
-            for ln in pace_match.group(1).strip().splitlines()
-            if ln.strip()
-        ]
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(len(pace_entries), 5)
 
         # stop_i must contain 4 boundary conditions
-        stop_match = re.search(r'stop_i\s*\{([^}]*)\}', content, re.DOTALL)
-        self.assertIsNotNone(stop_match)
-        stop_entries = [
-            ln.strip()
-            for ln in stop_match.group(1).strip().splitlines()
-            if ln.strip()
-        ]
+        stop_entries = _extract_block_entries(self, content, 'stop_i')
         self.assertEqual(len(stop_entries), 4)
 
         # The boundary times for a level-1 event [100, 105) and [200, 205):
@@ -276,23 +277,11 @@ class DiffSLExporterTest(unittest.TestCase):
         # Occurrences within [0, 250): starts at 0, 100, 200 -> 3 occurrences
         # Each occurrence has a rising and falling edge -> 6 boundaries total
         # pace_i: 1 (baseline) + 6 boundaries = 7 entries
-        pace_match = re.search(r'pace_i\s*\{([^}]*)\}', content, re.DOTALL)
-        self.assertIsNotNone(pace_match)
-        pace_entries = [
-            ln.strip()
-            for ln in pace_match.group(1).strip().splitlines()
-            if ln.strip()
-        ]
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(len(pace_entries), 7)
 
         # stop_i must list 6 boundary times
-        stop_match = re.search(r'stop_i\s*\{([^}]*)\}', content, re.DOTALL)
-        self.assertIsNotNone(stop_match)
-        stop_entries = [
-            ln.strip()
-            for ln in stop_match.group(1).strip().splitlines()
-            if ln.strip()
-        ]
+        stop_entries = _extract_block_entries(self, content, 'stop_i')
         self.assertEqual(len(stop_entries), 6)
 
     def test_protocol_finite_periodic(self):
@@ -313,13 +302,7 @@ class DiffSLExporterTest(unittest.TestCase):
                 content = f.read()
 
         # 2 occurrences × 2 edges = 4 boundaries; pace_i = 5 entries
-        pace_match = re.search(r'pace_i\s*\{([^}]*)\}', content, re.DOTALL)
-        self.assertIsNotNone(pace_match)
-        pace_entries = [
-            ln.strip()
-            for ln in pace_match.group(1).strip().splitlines()
-            if ln.strip()
-        ]
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(len(pace_entries), 5)
 
         self.assertIn('t - 10.0', content)
@@ -369,13 +352,7 @@ class DiffSLExporterTest(unittest.TestCase):
         # Only baseline phase is present (pace=0 throughout [0, 100)).
         self.assertIn('pace_i', content)
         self.assertIn('stop_i', content)
-        match = re.search(r'pace_i\s*\{([^}]*)\}', content, re.DOTALL)
-        self.assertIsNotNone(match)
-        entries = [
-            ln.strip().rstrip(',')
-            for ln in match.group(1).strip().splitlines()
-            if ln.strip()
-        ]
+        entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(entries, ['0.0'])
 
     def test_protocol_mixed_events(self):
@@ -403,13 +380,7 @@ class DiffSLExporterTest(unittest.TestCase):
 
         # One-off [0, 1) + periodic [24, 25), [48, 49) within final_time=72
         # 3 occurrences × 2 edges = 6 boundaries; pace_i = 7 entries
-        pace_match = re.search(r'pace_i\s*\{([^}]*)\}', content, re.DOTALL)
-        self.assertIsNotNone(pace_match)
-        pace_entries = [
-            ln.strip()
-            for ln in pace_match.group(1).strip().splitlines()
-            if ln.strip()
-        ]
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(len(pace_entries), 7)
 
     def test_explicit_time_dependence(self):
