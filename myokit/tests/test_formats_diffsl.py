@@ -163,9 +163,6 @@ def _extract_block_entries(testcase, content, block_name):
 class DiffSLExporterTest(unittest.TestCase):
     """Tests DiffSL export."""
 
-class DiffSLExporterTest(unittest.TestCase):
-    """Tests DiffSL export."""
-
     def test_diffsl_exporter(self):
         # Tests exporting a model
 
@@ -229,7 +226,6 @@ class DiffSLExporterTest(unittest.TestCase):
         self.assertIn('t - 105.0', content)
         self.assertIn('t - 200.0', content)
         self.assertIn('t - 205.0', content)
-
 
     def test_protocol_periodic_requires_final_time(self):
         # Tests that any protocol without final_time raises ExportError.
