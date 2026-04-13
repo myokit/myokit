@@ -19,12 +19,6 @@ class DiffSLExporter(myokit.formats.Exporter):
     This :class:`Exporter <myokit.formats.Exporter>` generates a DiffSL
     implementation of a Myokit model.
 
-    When a :class:`myokit.Protocol` is supplied the exporter generates a
-    hybrid ODE model using DiffSL's ``N``/``stop``/``reset`` constructs.  All
-    protocol events (including periodic ones) are flattened into a finite list
-    of one-off transitions, so ``final_time`` must be provided whenever a
-    protocol is used.
-
     For details of the DiffSL language, see
     https://martinjrobins.github.io/diffsl/
     """
