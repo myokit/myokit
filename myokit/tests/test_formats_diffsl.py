@@ -351,6 +351,31 @@ class DiffSLExporterTest(unittest.TestCase):
         entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(entries, ['0.0'])
 
+    def test_protocol_active_at_final_time(self):
+        # Tests that a terminal boundary is added when pacing is still active
+        # at final_time.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        # Event is active on [90, 110), so it is still on at final_time=100.
+        p = myokit.Protocol()
+        p.schedule(level=1, start=90, duration=20)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(path, model, protocol=p, final_time=100)
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        # Boundaries should be: t=90 goes to level 1, t=100 returns to 0.
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
+        stop_entries = _extract_block_entries(self, content, 'stop_i')
+
+        self.assertEqual(pace_entries, ['0.0', '1.0', '0.0'])
+        self.assertEqual(stop_entries, ['t - 90.0', 't - 100.0'])
+
     def test_protocol_mixed_events(self):
         # Tests a mixed protocol: one-off + periodic events together.
 
