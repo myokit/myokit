@@ -6,6 +6,7 @@
 #
 import collections
 import warnings
+import math
 
 import myokit
 import myokit.formats
@@ -66,14 +67,13 @@ class DiffSLExporter(myokit.formats.Exporter):
         """
         # Validate protocol / final_time combination
         if protocol is not None:
-            import math
             if final_time is None:
                 raise myokit.ExportError(
                     'A final_time must be provided when exporting with a '
                     'protocol so events can be expanded to a finite list of '
                     'transitions.'
                 )
-            if final_time is not None:
+            else:
                 final_time = float(final_time)
                 if not math.isfinite(final_time) or final_time <= 0:
                     raise myokit.ExportError(
@@ -434,7 +434,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('}')
         export_lines.append('')
 
-        # --- Hybrid protocol blocks (emitted when a protocol is supplied) ---
+        # Hybrid protocol blocks (emitted when a protocol is supplied)
         if phases is not None:
             # phases: [(t_boundary, level_after), ...] sorted by t_boundary.
             #

@@ -8,6 +8,7 @@
 import itertools
 import re
 import unittest
+import math
 
 import myokit
 import myokit.formats
@@ -324,7 +325,6 @@ class DiffSLExporterTest(unittest.TestCase):
             with self.assertRaisesRegex(myokit.ExportError, 'final_time'):
                 e.model(path, model, protocol=p, final_time=0)
 
-            import math
             with self.assertRaisesRegex(myokit.ExportError, 'final_time'):
                 e.model(path, model, protocol=p, final_time=math.inf)
 
