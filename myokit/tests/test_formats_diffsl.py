@@ -8,6 +8,7 @@
 import itertools
 import re
 import unittest
+import math
 
 import myokit
 import myokit.formats
@@ -147,6 +148,19 @@ out_i {
 """
 
 
+def _extract_block_entries(testcase, content, block_name):
+    """Extract entries from a DiffSL block like ``pace_i { ... }``."""
+    pattern = r'%s\s*\{([^}]*)\}' % re.escape(block_name)
+    match = re.search(pattern, content, re.DOTALL)
+    testcase.assertIsNotNone(match)
+    entries = [
+        ln.strip().rstrip(',')
+        for ln in match.group(1).strip().splitlines()
+        if ln.strip()
+    ]
+    return entries
+
+
 class DiffSLExporterTest(unittest.TestCase):
     """Tests DiffSL export."""
 
@@ -162,10 +176,6 @@ class DiffSLExporterTest(unittest.TestCase):
             # Test with simple model
             e.model(path, model)
 
-            # Test with protocol set
-            with self.assertRaisesRegex(ValueError, 'input protocol'):
-                e.model(path, model, protocol='-80 + 120*heaviside(t-10)')
-
             # Test with extra bound variables
             model.get('membrane.C').set_binding('hello')
             e.model(path, model)
@@ -180,6 +190,219 @@ class DiffSLExporterTest(unittest.TestCase):
             v.set_rhs('2 * V')
             with self.assertRaisesRegex(myokit.ExportError, 'valid model'):
                 e.model(path, model)
+
+    def test_protocol_one_off_events(self):
+        # Tests exporting a model with one-off (non-periodic) protocol events.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p = myokit.Protocol()
+        p.schedule(level=1, start=100, duration=5)   # single dose at t=100
+        p.schedule(level=1, start=200, duration=5)   # single dose at t=200
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(path, model, protocol=p, final_time=300)
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        # Hybrid blocks must be present
+        self.assertIn('pace_i', content)
+        self.assertIn('stop_i', content)
+
+        # pace_i has one extra phase compared to transitions:
+        # phases = [t=100 up, t=105 down, t=200 up, t=205 down] -> 4 boundaries
+        # pace_i entries: phase-0 baseline + 4 transitions = 5 entries
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
+        self.assertEqual(len(pace_entries), 5)
+
+        # stop_i must contain 4 boundary conditions
+        stop_entries = _extract_block_entries(self, content, 'stop_i')
+        self.assertEqual(len(stop_entries), 4)
+
+        # The boundary times for a level-1 event [100, 105) and [200, 205):
+        self.assertIn('t - 100.0', content)
+        self.assertIn('t - 105.0', content)
+        self.assertIn('t - 200.0', content)
+        self.assertIn('t - 205.0', content)
+
+    def test_protocol_periodic_requires_final_time(self):
+        # Tests that any protocol without final_time raises ExportError.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p = myokit.Protocol()
+        p.schedule(level=1, start=0, duration=5, period=100)  # indefinite
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            with self.assertRaisesRegex(
+                myokit.ExportError, 'final_time'
+            ):
+                e.model(path, model, protocol=p)
+
+        # Also true for non-periodic protocols
+        p2 = myokit.Protocol()
+        p2.schedule(level=1, start=10, duration=5)
+        with TemporaryDirectory() as d:
+            path = d.path('protocol2.diffsl')
+            with self.assertRaisesRegex(
+                myokit.ExportError, 'final_time'
+            ):
+                e.model(path, model, protocol=p2)
+
+    def test_protocol_periodic_with_final_time(self):
+        # Tests that a periodic protocol is correctly expanded to final_time.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        # Indefinite: period=100, duration=5, start=0
+        p = myokit.Protocol()
+        p.schedule(level=1, start=0, duration=5, period=100)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(path, model, protocol=p, final_time=250)
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        # Occurrences within [0, 250): starts at 0, 100, 200 -> 3 occurrences
+        # Each occurrence has a rising and falling edge -> 6 boundaries total
+        # pace_i: 1 (baseline) + 6 boundaries = 7 entries
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
+        self.assertEqual(len(pace_entries), 7)
+
+        # stop_i must list 6 boundary times
+        stop_entries = _extract_block_entries(self, content, 'stop_i')
+        self.assertEqual(len(stop_entries), 6)
+
+    def test_protocol_finite_periodic(self):
+        # Tests that a finitely recurring periodic event is expanded correctly.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        # Fires exactly 2 times: at t=10 and t=110
+        p = myokit.Protocol()
+        p.schedule(level=1, start=10, duration=5, period=100, multiplier=2)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(path, model, protocol=p, final_time=500)
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        # 2 occurrences × 2 edges = 4 boundaries; pace_i = 5 entries
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
+        self.assertEqual(len(pace_entries), 5)
+
+        self.assertIn('t - 10.0', content)
+        self.assertIn('t - 15.0', content)
+        self.assertIn('t - 110.0', content)
+        self.assertIn('t - 115.0', content)
+
+    def test_protocol_invalid_final_time(self):
+        # Tests that invalid final_time values raise ExportError.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p = myokit.Protocol()
+        p.schedule(level=1, start=0, duration=5, period=100)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+
+            with self.assertRaisesRegex(myokit.ExportError, 'final_time'):
+                e.model(path, model, protocol=p, final_time=-1)
+
+            with self.assertRaisesRegex(myokit.ExportError, 'final_time'):
+                e.model(path, model, protocol=p, final_time=0)
+
+            with self.assertRaisesRegex(myokit.ExportError, 'final_time'):
+                e.model(path, model, protocol=p, final_time=math.inf)
+
+    def test_protocol_empty_after_expansion(self):
+        # Tests export when protocol has no non-zero events before final_time.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        # Event starts at t=500, final_time=100 -> no occurrences
+        p = myokit.Protocol()
+        p.schedule(level=1, start=500, duration=5, period=100)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(path, model, protocol=p, final_time=100)
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        # Only baseline phase is present (pace=0 throughout [0, 100)).
+        self.assertIn('pace_i', content)
+        self.assertIn('stop_i', content)
+        entries = _extract_block_entries(self, content, 'pace_i')
+        self.assertEqual(entries, ['0.0'])
+
+    def test_protocol_active_at_final_time(self):
+        # Tests that a terminal boundary is added when pacing is still active
+        # at final_time.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        # Event is active on [90, 110), so it is still on at final_time=100.
+        p = myokit.Protocol()
+        p.schedule(level=1, start=90, duration=20)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(path, model, protocol=p, final_time=100)
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        # Boundaries should be: t=90 goes to level 1, t=100 returns to 0.
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
+        stop_entries = _extract_block_entries(self, content, 'stop_i')
+
+        self.assertEqual(pace_entries, ['0.0', '1.0', '0.0'])
+        self.assertEqual(stop_entries, ['t - 90.0', 't - 100.0'])
+
+    def test_protocol_mixed_events(self):
+        # Tests a mixed protocol: one-off + periodic events together.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p = myokit.Protocol()
+        # One-off loading dose at t=0
+        p.schedule(level=2, start=0, duration=1)
+        # Periodic maintenance dose, start=24, period=24, indefinite
+        p.schedule(level=1, start=24, duration=1, period=24)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(path, model, protocol=p, final_time=72)
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        # Hybrid blocks must be present
+        self.assertIn('pace_i', content)
+        self.assertIn('stop_i', content)
+
+        # One-off [0, 1) + periodic [24, 25), [48, 49) within final_time=72
+        # 3 occurrences × 2 edges = 6 boundaries; pace_i = 7 entries
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
+        self.assertEqual(len(pace_entries), 7)
 
     def test_explicit_time_dependence(self):
         # Tests that explicit time dependence (dot(y) = -y * t) is supported
