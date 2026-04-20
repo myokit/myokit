@@ -355,6 +355,19 @@ class DiffSLExporterTest(unittest.TestCase):
             ):
                 e.model(path, model, protocol=[p, object()], final_time=10)
 
+    def test_protocol_invalid_type(self):
+        # Tests that non-sequence protocol values raise ExportError.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            with self.assertRaisesRegex(
+                myokit.ExportError, 'protocol must be None'
+            ):
+                e.model(path, model, protocol=object(), final_time=10)
+
     def test_protocol_empty_sequence_matches_no_protocol(self):
         # Tests that an empty protocol sequence is treated as no protocol.
 
