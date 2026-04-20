@@ -147,6 +147,23 @@ out_i {
 }
 """
 
+multi_protocol_model = """
+[[model]]
+c.x = 1
+
+[engine]
+time = 0 [ms]
+    in [ms]
+    bind time
+pace = 0
+    bind pace
+dose = 0
+    bind dose
+
+[c]
+dot(x) = 2 * engine.pace + 3 * engine.dose - x
+"""
+
 
 def _extract_block_entries(testcase, content, block_name):
     """Extract entries from a DiffSL block like ``pace_i { ... }``."""
@@ -227,6 +244,27 @@ class DiffSLExporterTest(unittest.TestCase):
         self.assertIn('t - 105.0', content)
         self.assertIn('t - 200.0', content)
         self.assertIn('t - 205.0', content)
+
+    def test_protocol_single_binding_rewrites_bound_variable(self):
+        # Tests that a single protocol is normalized to the pace binding and
+        # that the bound variable reads the hybrid schedule.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p = myokit.Protocol()
+        p.schedule(level=1, start=100, duration=5)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(path, model, protocol=p, final_time=200)
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        self.assertIn('enginePace { pace_i[N] }', content)
+        self.assertIn('pace_i', content)
+        self.assertIn('stop_i', content)
 
     def test_protocol_periodic_requires_final_time(self):
         # Tests that any protocol without final_time raises ExportError.
@@ -403,6 +441,166 @@ class DiffSLExporterTest(unittest.TestCase):
         # 3 occurrences × 2 edges = 6 boundaries; pace_i = 7 entries
         pace_entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(len(pace_entries), 7)
+
+    def test_protocol_multiple_bindings(self):
+        # Tests exporting multiple protocol-driven bindings with a shared
+        # hybrid phase timeline.
+
+        model = myokit.parse_model(multi_protocol_model)
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        pace = myokit.Protocol()
+        pace.schedule(level=1, start=10, duration=2)
+
+        dose = myokit.Protocol()
+        dose.schedule(level=4, start=20, duration=3)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(
+                path,
+                model,
+                protocol={'pace': pace, 'dose': dose},
+                final_time=30,
+            )
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        self.assertIn('enginePace { pace_i[N] }', content)
+        self.assertIn('engineDose { dose_i[N] }', content)
+        self.assertEqual(
+            _extract_block_entries(self, content, 'pace_i'),
+            ['0.0', '1.0', '0.0', '0.0', '0.0'],
+        )
+        self.assertEqual(
+            _extract_block_entries(self, content, 'dose_i'),
+            ['0.0', '0.0', '0.0', '4.0', '0.0'],
+        )
+        self.assertEqual(
+            _extract_block_entries(self, content, 'stop_i'),
+            ['t - 10.0', 't - 12.0', 't - 20.0', 't - 23.0'],
+        )
+
+    def test_protocol_multiple_bindings_merge_simultaneous_changes(self):
+        # Tests that simultaneous changes across bindings are merged into a
+        # single hybrid boundary.
+
+        model = myokit.parse_model(multi_protocol_model)
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        pace = myokit.Protocol()
+        pace.schedule(level=1, start=10, duration=2)
+
+        dose = myokit.Protocol()
+        dose.schedule(level=2, start=10, duration=4)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(
+                path,
+                model,
+                protocol={'pace': pace, 'dose': dose},
+                final_time=20,
+            )
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        self.assertEqual(
+            _extract_block_entries(self, content, 'stop_i'),
+            ['t - 10.0', 't - 12.0', 't - 14.0'],
+        )
+        self.assertEqual(
+            _extract_block_entries(self, content, 'pace_i'),
+            ['0.0', '1.0', '0.0', '0.0'],
+        )
+        self.assertEqual(
+            _extract_block_entries(self, content, 'dose_i'),
+            ['0.0', '2.0', '2.0', '0.0'],
+        )
+
+    def test_protocol_multiple_bindings_initial_and_terminal_levels(self):
+        # Tests initial non-zero levels at t=0 and terminal reset at
+        # final_time for multiple bindings.
+
+        model = myokit.parse_model(multi_protocol_model)
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        pace = myokit.Protocol()
+        pace.schedule(level=1, start=0, duration=5)
+
+        dose = myokit.Protocol()
+        dose.schedule(level=2, start=0, duration=20)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(
+                path,
+                model,
+                protocol={'pace': pace, 'dose': dose},
+                final_time=10,
+            )
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        self.assertEqual(
+            _extract_block_entries(self, content, 'pace_i'),
+            ['0.0', '1.0', '0.0', '0.0'],
+        )
+        self.assertEqual(
+            _extract_block_entries(self, content, 'dose_i'),
+            ['0.0', '2.0', '2.0', '0.0'],
+        )
+        self.assertEqual(
+            _extract_block_entries(self, content, 'stop_i'),
+            ['t - 0.0', 't - 5.0', 't - 10.0'],
+        )
+
+    def test_protocol_invalid_binding_name(self):
+        # Tests that unknown protocol binding keys raise ExportError.
+
+        model = myokit.parse_model(multi_protocol_model)
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p = myokit.Protocol()
+        p.schedule(level=1, start=10, duration=2)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            with self.assertRaisesRegex(
+                myokit.ExportError, 'No variable found with binding "unknown"'
+            ):
+                e.model(
+                    path,
+                    model,
+                    protocol={'unknown': p},
+                    final_time=20,
+                )
+
+    def test_protocol_input_conflict(self):
+        # Tests that protocol-driven bindings cannot also be explicit inputs.
+
+        model = myokit.parse_model(multi_protocol_model)
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p = myokit.Protocol()
+        p.schedule(level=1, start=10, duration=2)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            with self.assertRaisesRegex(
+                myokit.ExportError,
+                'cannot be both an input and be driven by protocol binding',
+            ):
+                e.model(
+                    path,
+                    model,
+                    protocol={'dose': p},
+                    inputs=[model.get('engine.dose')],
+                    final_time=20,
+                )
 
     def test_explicit_time_dependence(self):
         # Tests that explicit time dependence (dot(y) = -y * t) is supported

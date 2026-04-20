@@ -7,6 +7,7 @@
 import collections
 import warnings
 import math
+from collections import abc
 
 import myokit
 import myokit.formats
@@ -43,11 +44,12 @@ class DiffSLExporter(myokit.formats.Exporter):
         ``model``
             The :class:`myokit.Model` to export.
         ``protocol``
-            An optional :class:`myokit.Protocol` that defines a pacing or
-            dosing schedule.  When given, the exporter generates a hybrid ODE
-            model using DiffSL's ``N``, ``stop``, and ``reset`` constructs.
-            All events are expanded to one-off transitions; periodic events
-            require ``final_time`` to be set.
+            An optional :class:`myokit.Protocol` or ``dict`` mapping binding
+            names to :class:`myokit.Protocol` objects that define pacing or
+            dosing schedules. When given, the exporter generates a hybrid ODE
+            model using DiffSL's ``N`` and ``stop`` constructs. All events are
+            expanded to one-off transitions; periodic events require
+            ``final_time`` to be set.
         ``convert_units``
             If set to ``True`` (default), the method will attempt to convert to
             preferred units for voltage (mV), current (A/F), and time (ms).
@@ -65,8 +67,12 @@ class DiffSLExporter(myokit.formats.Exporter):
             (but not including) this time. Must be a finite positive number.
             Ignored when ``protocol`` is ``None``.
         """
+        # Normalize protocols to a binding -> Protocol mapping
+        protocols = self._normalize_protocols(protocol)
+        protocol_bindings = set(protocols)
+
         # Validate protocol / final_time combination
-        if protocol is not None:
+        if protocols:
             if final_time is None:
                 raise myokit.ExportError(
                     'A final_time must be provided when exporting with a '
@@ -88,8 +94,16 @@ class DiffSLExporter(myokit.formats.Exporter):
                 'DiffSL export requires a valid model.'
             ) from e
 
+        # Validate any requested protocol bindings against the model
+        for label in protocol_bindings:
+            if model.binding(label) is None:
+                raise myokit.ExportError(
+                    f'No variable found with binding "{label}".'
+                )
+
         # Store qualified names of inputs/outputs before model prep
         # and validate that they are appropriate for DiffSL export
+        allowed_bound_inputs = protocol_bindings if protocols else {'pace'}
         if inputs is None:
             input_qnames = None  # Will use empty input list
         else:
@@ -101,10 +115,18 @@ class DiffSLExporter(myokit.formats.Exporter):
                         f'Input variable {v.qname()} does not belong to the '
                         f'model being exported.'
                     )
-                # Validate that inputs are constants (pace binding is allowed)
-                if not v.is_constant() and v.binding() != 'pace':
+                # Validate that inputs are constants (bound inputs are allowed)
+                if (
+                    not v.is_constant()
+                    and v.binding() not in allowed_bound_inputs
+                ):
                     raise myokit.ExportError(
                         f'Input variable {v.qname()} must be a constant.'
+                    )
+                if v.binding() in protocol_bindings:
+                    raise myokit.ExportError(
+                        f'Input variable {v.qname()} cannot be both an input '
+                        f'and be driven by protocol binding "{v.binding()}".'
                     )
                 input_qnames.append(v.qname())
 
@@ -128,7 +150,8 @@ class DiffSLExporter(myokit.formats.Exporter):
                 output_qnames.append(v.qname())
 
         # Prepare model for export (this clones the model)
-        model = self._prep_model(model, convert_units)
+        bindings_to_keep = list(protocols) if protocols else ['pace']
+        model = self._prep_model(model, convert_units, bindings_to_keep)
 
         # Create DiffSL-compatible variable names and store for introspection
         self._var_to_name = self._create_diffsl_variable_names(model)
@@ -152,75 +175,88 @@ class DiffSLExporter(myokit.formats.Exporter):
         else:
             outputs = [model.get(qname) for qname in output_qnames]
 
+        # Collect preserved bound variables after model prep
+        bound_variables = collections.OrderedDict(
+            (label, model.binding(label))
+            for label in bindings_to_keep
+            if model.binding(label) is not None
+        )
+
         # Expand protocol to hybrid phase boundaries (if supplied)
         phases = None
-        if protocol is not None:
-            phases = self._expand_protocol(protocol, final_time)
+        if protocols:
+            phases = self._expand_protocols(protocols, final_time)
 
         # Generate DiffSL model
-        diffsl_model = self._generate_diffsl(model, inputs, outputs, phases)
+        diffsl_model = self._generate_diffsl(
+            model, inputs, outputs, bound_variables, phases
+        )
 
         # Write DiffSL model to file
         with open(path, 'w') as f:
             f.write(diffsl_model)
 
-    def _expand_protocol(self, protocol, final_time):
+    def _expand_protocols(self, protocols, final_time):
         """
-        Expand a :class:`myokit.Protocol` directly into hybrid phase
-        boundaries ``(t_boundary, level_after)``.
+        Expand one or more :class:`myokit.Protocol` objects directly into
+        hybrid phase boundaries ``(t_boundary, levels_after)``.
 
-        Expansion is performed by stepping a :class:`myokit.PacingSystem`
-        through its event boundaries until the expansion horizon is reached.
+        Expansion is performed by stepping one :class:`myokit.PacingSystem`
+        per binding through its event boundaries until the expansion horizon is
+        reached.
 
-        Returns a list of ``(t_boundary, level_after)`` tuples in ascending
-        order of ``t_boundary``.
+        Returns a list of ``(t_boundary, levels_after)`` tuples in ascending
+        order of ``t_boundary``, where ``levels_after`` is a tuple aligned with
+        the insertion order of ``protocols``.
 
-        If pacing is already non-zero at ``t = 0``, a boundary ``(0.0, level)``
-        is included. If pacing remains non-zero at ``final_time``, a terminal
-        boundary ``(final_time, 0.0)`` is appended.
+        If any protocol is already non-zero at ``t = 0``, a boundary
+        ``(0.0, levels)`` is included. If any protocol remains non-zero at
+        ``final_time``, a terminal boundary ``(final_time, zeros)`` is
+        appended.
         """
         horizon = float(final_time)
-
-        pacing = myokit.PacingSystem(protocol)
-        current_level = pacing.pace()
+        pacings = [
+            myokit.PacingSystem(protocol) for protocol in protocols.values()
+        ]
+        current_levels = [float(pacing.pace()) for pacing in pacings]
         phases = []
 
-        # Immediate transition at t=0 if pace starts non-zero.
-        if current_level != 0:
-            phases.append((0.0, current_level))
+        # Immediate transition at t=0 if any pace starts non-zero.
+        if any(level != 0 for level in current_levels):
+            phases.append((0.0, tuple(current_levels)))
 
         # Step through all pacing boundaries up to the horizon.
         while True:
-            t_next = pacing.next_time()
+            t_next = min(pacing.next_time() for pacing in pacings)
             if t_next >= horizon:
                 break
-            old_level = current_level
-            current_level = pacing.advance(t_next)
-            if current_level != old_level:
-                phases.append((t_next, current_level))
+            for i, pacing in enumerate(pacings):
+                if abs(pacing.next_time() - t_next) <= 1e-6:
+                    current_levels[i] = float(pacing.advance(t_next))
+            phases.append((t_next, tuple(current_levels)))
 
-        # Ensure return to baseline at final_time if pace remains active.
-        if current_level != 0:
-            phases.append((horizon, 0.0))
+        # Ensure return to baseline at final_time if any pace remains active.
+        if any(level != 0 for level in current_levels):
+            phases.append((horizon, tuple(0.0 for _ in current_levels)))
 
         return phases
 
-    def _prep_model(self, model, convert_units):
+    def _prep_model(self, model, convert_units, bindings_to_keep=None):
         """
         Prepare the model for export to DiffSL.
         """
+        if bindings_to_keep is None:
+            bindings_to_keep = ['pace']
+
         # Rewrite model so that any Markov models have a 1-sum(...) state
         # This also clones the model, so that changes can be made
         model = markov.convert_markov_models_to_compact_form(model)
 
-        # Remove all model bindings apart from time and pace
-        _ = myokit._prepare_bindings(
-            model,
-            {
-                'time': 't',
-                'pace': 'pace',
-            },
-        )
+        # Remove all model bindings apart from time and requested bindings
+        labels = collections.OrderedDict([('time', 't')])
+        for label in bindings_to_keep:
+            labels[label] = label
+        _ = myokit._prepare_bindings(model, labels)
 
         # Remove hardcoded stimulus protocol, if any
         guess.remove_embedded_protocol(model)
@@ -275,7 +311,8 @@ class DiffSLExporter(myokit.formats.Exporter):
             'Not a variable or LhsExpression: ' + str(e)
         )
 
-    def _generate_diffsl(self, model, inputs, outputs, phases=None):
+    def _generate_diffsl(self, model, inputs, outputs, bound_variables,
+                         phases=None):
         """
         Generate a DiffSL model from a prepped Myokit model.
 
@@ -287,11 +324,13 @@ class DiffSLExporter(myokit.formats.Exporter):
             List of model variables to include in the input parameter list.
         ``outputs``
             List of model variables to include in the output list.
+        ``bound_variables``
+            Ordered mapping of binding labels to preserved bound variables.
         ``phases``
-            Optional list of ``(t_boundary, level_after)`` tuples produced by
-            :meth:`_expand_protocol`. When provided, hybrid
-            ``pace_i``/``stop`` blocks are appended and the model
-            is expected to reference ``pace_i[N]`` for the current pace level.
+            Optional list of ``(t_boundary, levels_after)`` tuples produced by
+            :meth:`_expand_protocols`. When provided, hybrid schedule
+            ``*_i``/``stop_i`` blocks are appended and bound variables are
+            expected to reference ``*_i[N]`` for the current phase level.
         """
 
         # Create an expression writer
@@ -306,13 +345,13 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Variables to be excluded from output or handled separately.
         # State derivatives are handled in F_i; time is excluded from the
-        # output; pace is handled separately; inputs are in the in block.
+        # output; bound variables are handled separately; inputs are in the in
+        # block.
         time = model.time()
-        pace = model.binding('pace')
         special_vars = set(v for v in model.states())
         special_vars.add(time)
-        if pace is not None:
-            special_vars.add(pace)
+        for variable in bound_variables.values():
+            special_vars.add(variable)
         # Add inputs to special_vars so they're excluded from constants
         for v in inputs:
             special_vars.add(v)
@@ -343,20 +382,34 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append('in_i { }')
         export_lines.append('')
 
-        # Add pace (skipped if pace is provided as an explicit input)
-        if pace is not None and pace not in inputs:
-            export_lines.append('/* Engine: pace */')
-            export_lines.append('/* E.g.')
-            export_lines.append('  -80 * (1 - sigmoid((t-100)*5000))')
-            export_lines.append(
-                '  -120 * (sigmoid((t-100)*5000) - sigmoid((t-200)*5000))'
+        # Add preserved bound variables (unless provided as explicit inputs)
+        protocol_schedule_names = None
+        if phases is not None:
+            protocol_schedule_names = self._create_protocol_schedule_names(
+                bound_variables.keys()
             )
-            export_lines.append('*/')
+        for label, variable in bound_variables.items():
+            if variable in inputs:
+                continue
 
-            lhs = self._var_name(pace)
-            rhs = e.ex(pace.rhs())
-            qname = pace.qname()
-            unit = '' if pace.unit() is None else f' {pace.unit()}'
+            if label == 'pace' and phases is None:
+                export_lines.append('/* Engine: pace */')
+                export_lines.append('/* E.g.')
+                export_lines.append('  -80 * (1 - sigmoid((t-100)*5000))')
+                export_lines.append(
+                    '  -120 * (sigmoid((t-100)*5000) - sigmoid((t-200)*5000))'
+                )
+                export_lines.append('*/')
+            else:
+                export_lines.append(f'/* Bound variable: {label} */')
+
+            lhs = self._var_name(variable)
+            if protocol_schedule_names is None:
+                rhs = e.ex(variable.rhs())
+            else:
+                rhs = f'{protocol_schedule_names[label]}_i[N]'
+            qname = variable.qname()
+            unit = '' if variable.unit() is None else f' {variable.unit()}'
             export_lines.append(f'{lhs} {{ {rhs} }} /* {qname}{unit} */')
             export_lines.append('')
 
@@ -442,21 +495,25 @@ class DiffSLExporter(myokit.formats.Exporter):
             #   N = 0           before the first boundary
             #   N = k (k >= 1) after boundary index k-1 fires
             #
-            # pace_i[N] gives the pace level active in phase N.
-            # Phase 0 starts at t=0 (pace = 0, before any event).
+            # schedule_i[N] gives the binding level active in phase N.
+            # Phase 0 starts at t=0 (all bindings = 0, before any event).
             # Phase k (k >= 1) is entered when stop element k-1 crosses zero.
+            labels = list(bound_variables)
 
-            # Collect pace levels: phase 0 is baseline (0.0), then one per
-            # boundary transition.
-            pace_levels = [0.0] + [lev for _, lev in phases]
-
-            # Emit pace level vector indexed by N
-            export_lines.append('/* Protocol: pace level per model index N */')
-            export_lines.append('pace_i {')
-            for lev in pace_levels:
-                export_lines.append(f'{tab}{lev},')
-            export_lines.append('}')
-            export_lines.append('')
+            # Emit one level vector per binding, indexed by N
+            for i, label in enumerate(labels):
+                level_name = protocol_schedule_names[label]
+                levels = [
+                    0.0
+                ] + [phase_levels[i] for _, phase_levels in phases]
+                export_lines.append(
+                    f'/* Protocol: {label} level per model index N */'
+                )
+                export_lines.append(f'{level_name}_i {{')
+                for level in levels:
+                    export_lines.append(f'{tab}{level},')
+                export_lines.append('}')
+                export_lines.append('')
 
             # Emit stop conditions: stop[k] = t - t_{k+1}
             # When element k crosses zero the solver stops and N is set to k.
@@ -470,6 +527,36 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append('')
 
         return '\n'.join(export_lines)
+
+    def _normalize_protocols(self, protocol):
+        """
+        Normalize a protocol specification to an ordered binding map.
+        """
+        if protocol is None:
+            return collections.OrderedDict()
+
+        if isinstance(protocol, myokit.Protocol):
+            return collections.OrderedDict([('pace', protocol)])
+
+        if not isinstance(protocol, abc.Mapping):
+            raise myokit.ExportError(
+                'protocol must be a myokit.Protocol or a dict mapping binding'
+                ' names to myokit.Protocol objects.'
+            )
+
+        protocols = collections.OrderedDict()
+        for label, value in protocol.items():
+            if not isinstance(label, str):
+                raise myokit.ExportError(
+                    'Protocol dictionary keys must be binding names.'
+                )
+            if not isinstance(value, myokit.Protocol):
+                raise myokit.ExportError(
+                    'Protocol dictionary values must be myokit.Protocol'
+                    ' instances.'
+                )
+            protocols[label] = value
+        return protocols
 
     def _convert_current_unit(self, var, helpers=None):
         """
@@ -519,36 +606,15 @@ class DiffSLExporter(myokit.formats.Exporter):
          - Any conflicts are resolved in a final step by appending a number.
         """
 
-        # Convert name to a DiffSL-compatible variable name
-        def convert_name(name):
-            # Remove unsupported chars like '_' and '.', and stagger case.
-            # Preserves existing staggered case in names e.g.
-            # voltage_clamp.R_seal_MOhm -> voltageClampRSealMOhm
-            # voltageClamp.RSealMOhm -> voltageClampRSealMOhm
-            name_chars = []
-            caps_flag = False
-            for ch in name:
-                if ch.isalpha():
-                    if caps_flag:
-                        name_chars.append(ch.upper())
-                        caps_flag = False
-                    else:
-                        name_chars.append(ch)
-                elif ch.isdigit():
-                    name_chars.append(ch)
-                    caps_flag = True
-                else:
-                    caps_flag = True
-
-            return ''.join(name_chars)
-
         var_to_name = collections.OrderedDict()
 
         # Store initial names for variables
         for var in model.variables(deep=True, sort=True):
-            var_to_name[var] = convert_name(var.qname())
+            var_to_name[var] = self._convert_name(var.qname())
             if var.is_state():
-                var_to_name[var.lhs()] = convert_name('diff_' + var.qname())
+                var_to_name[var.lhs()] = self._convert_name(
+                    'diff_' + var.qname()
+                )
 
         # Check for conflicts with known keywords
         from . import keywords
@@ -591,6 +657,56 @@ class DiffSLExporter(myokit.formats.Exporter):
         var_to_name[time] = 't'  # DiffSL built-in time variable
 
         return var_to_name
+
+    def _create_protocol_schedule_names(self, labels):
+        """
+        Create DiffSL-compatible schedule names for protocol bindings.
+        """
+        from . import keywords
+
+        reserved = set(self._var_to_name.values())
+        reserved.update(keywords)
+        reserved.update(['N', 'reset', 'stop'])
+
+        names = collections.OrderedDict()
+        used = set()
+        for label in labels:
+            root = self._convert_name(label)
+            if not root:
+                root = 'protocol'
+            name = root
+            i = 1
+            while name in reserved or name in used:
+                name = f'{root}{i}'
+                i += 1
+            names[label] = name
+            used.add(name)
+        return names
+
+    def _convert_name(self, name):
+        """
+        Convert a name to a DiffSL-compatible identifier fragment.
+        """
+        # Remove unsupported chars like '_' and '.', and stagger case.
+        # Preserves existing staggered case in names e.g.
+        # voltage_clamp.R_seal_MOhm -> voltageClampRSealMOhm
+        # voltageClamp.RSealMOhm -> voltageClampRSealMOhm
+        name_chars = []
+        caps_flag = False
+        for ch in name:
+            if ch.isalpha():
+                if caps_flag:
+                    name_chars.append(ch.upper())
+                    caps_flag = False
+                else:
+                    name_chars.append(ch)
+            elif ch.isdigit():
+                name_chars.append(ch)
+                caps_flag = True
+            else:
+                caps_flag = True
+
+        return ''.join(name_chars)
 
     def _guess_currents(self, model):
         """

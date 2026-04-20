@@ -11,6 +11,12 @@ Myokit provides export of models to the `DiffSL language <https://martinjrobins.
 **Protocol export** generates a *hybrid* ODE model using DiffSL's ``N`` and
 ``stop`` constructs, see the `DiffSL hybrid ODE documentation <https://martinjrobins.github.io/diffsl/odes.html>`_.
 
+The ``protocol`` argument can be either a single :class:`myokit.Protocol`
+for the ``pace`` binding or a ``dict`` mapping binding names to protocols.
+When multiple bindings are provided, Myokit expands them to a shared phase
+timeline with one emitted ``*_i`` schedule block per binding and one shared
+``stop_i`` block for the transition times.
+
 Periodic protocol events are expanded to an explicit list of one-off dose transitions. If a protocol is provided, a ``final_time`` must be passed to
 :meth:`DiffSLExporter.model` so this expansion is always finite.
 
@@ -28,4 +34,3 @@ Exporters and expression writers
 
 .. autoclass:: DiffSLExpressionWriter
     :inherited-members:
-
