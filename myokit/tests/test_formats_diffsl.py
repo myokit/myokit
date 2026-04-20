@@ -293,7 +293,10 @@ class DiffSLExporterTest(unittest.TestCase):
         # Initial phase is active at t=0, then 5 more transitions follow.
         pace_entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(len(pace_entries), 6)
-        self.assertEqual(pace_entries, ['1.0', '0.0', '1.0', '0.0', '1.0', '0.0'])
+        self.assertEqual(
+            pace_entries,
+            ['1.0', '0.0', '1.0', '0.0', '1.0', '0.0']
+        )
 
         # stop_i includes the sentinel at index 0 plus 5 future transitions.
         stop_entries = _extract_block_entries(self, content, 'stop_i')
@@ -394,7 +397,10 @@ class DiffSLExporterTest(unittest.TestCase):
         self.assertIn('stop_i', content)
         entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(entries, ['0.0'])
-        self.assertEqual(_extract_block_entries(self, content, 'stop_i'), ['1.0'])
+        self.assertEqual(
+            _extract_block_entries(self, content, 'stop_i'),
+            ['1.0']
+        )
 
     def test_protocol_active_at_final_time(self):
         # Tests that a terminal boundary is added when pacing is still active

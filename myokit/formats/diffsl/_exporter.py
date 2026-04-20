@@ -254,7 +254,9 @@ class DiffSLExporter(myokit.formats.Exporter):
                 phases.append((offset + t_boundary, level_after, False))
 
             if i + 1 < len(expanded):
-                phases.append((offset + final_time, expanded[i + 1][0][1], True))
+                phases.append(
+                    (offset + final_time, expanded[i + 1][0][1], True)
+                )
 
         terminal_time = len(protocols) * final_time
         if len(protocols) > 1 or phases[-1][1] != 0:
