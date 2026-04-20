@@ -521,7 +521,7 @@ class DiffSLExporterTest(unittest.TestCase):
 
         self.assertEqual(
             pace_entries,
-            ['0.0', '1.0', '0.0', '2.0', '0.0', '3.0', '0.0', '0.0']
+            ['0.0', '1.0', '0.0', '2.0', '0.0', '3.0', '0.0']
         )
         self.assertEqual(
             stop_entries,
@@ -533,12 +533,11 @@ class DiffSLExporterTest(unittest.TestCase):
                 't - 53.0',
                 't - 70.0',
                 't - 74.0',
-                't - 100.0',
             ]
         )
         self.assertEqual(
             reset_flags,
-            ['0.0', '0.0', '0.0', '1.0', '0.0', '0.0', '0.0', '0.0']
+            ['0.0', '0.0', '0.0', '1.0', '0.0', '0.0', '0.0']
         )
 
         u0_entries = _extract_block_entries(self, content, 'u0_i')
