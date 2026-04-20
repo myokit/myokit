@@ -161,6 +161,14 @@ def _extract_block_entries(testcase, content, block_name):
     return entries
 
 
+def _extract_block_content(testcase, content, block_name):
+    """Extract raw content from a DiffSL block like ``reset_i { ... }``."""
+    pattern = r'%s\s*\{([^}]*)\}' % re.escape(block_name)
+    match = re.search(pattern, content, re.DOTALL)
+    testcase.assertIsNotNone(match)
+    return match.group(1)
+
+
 class DiffSLExporterTest(unittest.TestCase):
     """Tests DiffSL export."""
 
@@ -211,16 +219,18 @@ class DiffSLExporterTest(unittest.TestCase):
         # Hybrid blocks must be present
         self.assertIn('pace_i', content)
         self.assertIn('stop_i', content)
+        self.assertIn('reset_i', content)
+        self.assertIn('enginePace { pace_i[N] }', content)
 
-        # pace_i has one extra phase compared to transitions:
-        # phases = [t=100 up, t=105 down, t=200 up, t=205 down] -> 4 boundaries
-        # pace_i entries: phase-0 baseline + 4 transitions = 5 entries
+        # pace_i contains one level per phase, starting with the initial phase.
         pace_entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(len(pace_entries), 5)
+        self.assertEqual(pace_entries, ['0.0', '1.0', '0.0', '1.0', '0.0'])
 
-        # stop_i must contain 4 boundary conditions
+        # stop_i index 0 is a sentinel to keep the initial phase at N = 0.
         stop_entries = _extract_block_entries(self, content, 'stop_i')
-        self.assertEqual(len(stop_entries), 4)
+        self.assertEqual(len(stop_entries), 5)
+        self.assertEqual(stop_entries[0], '1.0')
 
         # The boundary times for a level-1 event [100, 105) and [200, 205):
         self.assertIn('t - 100.0', content)
@@ -254,6 +264,14 @@ class DiffSLExporterTest(unittest.TestCase):
             ):
                 e.model(path, model, protocol=p2)
 
+        # Also true for multiple protocols
+        with TemporaryDirectory() as d:
+            path = d.path('protocol3.diffsl')
+            with self.assertRaisesRegex(
+                myokit.ExportError, 'final_time'
+            ):
+                e.model(path, model, protocol=[p, p2])
+
     def test_protocol_periodic_with_final_time(self):
         # Tests that a periodic protocol is correctly expanded to final_time.
 
@@ -272,14 +290,15 @@ class DiffSLExporterTest(unittest.TestCase):
                 content = f.read()
 
         # Occurrences within [0, 250): starts at 0, 100, 200 -> 3 occurrences
-        # Each occurrence has a rising and falling edge -> 6 boundaries total
-        # pace_i: 1 (baseline) + 6 boundaries = 7 entries
+        # Initial phase is active at t=0, then 5 more transitions follow.
         pace_entries = _extract_block_entries(self, content, 'pace_i')
-        self.assertEqual(len(pace_entries), 7)
+        self.assertEqual(len(pace_entries), 6)
+        self.assertEqual(pace_entries, ['1.0', '0.0', '1.0', '0.0', '1.0', '0.0'])
 
-        # stop_i must list 6 boundary times
+        # stop_i includes the sentinel at index 0 plus 5 future transitions.
         stop_entries = _extract_block_entries(self, content, 'stop_i')
         self.assertEqual(len(stop_entries), 6)
+        self.assertEqual(stop_entries[0], '1.0')
 
     def test_protocol_finite_periodic(self):
         # Tests that a finitely recurring periodic event is expanded correctly.
@@ -298,7 +317,7 @@ class DiffSLExporterTest(unittest.TestCase):
             with open(path, 'r') as f:
                 content = f.read()
 
-        # 2 occurrences × 2 edges = 4 boundaries; pace_i = 5 entries
+        # 2 occurrences × 2 edges = 4 boundaries; initial phase + 4 transitions
         pace_entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(len(pace_entries), 5)
 
@@ -328,6 +347,31 @@ class DiffSLExporterTest(unittest.TestCase):
             with self.assertRaisesRegex(myokit.ExportError, 'final_time'):
                 e.model(path, model, protocol=p, final_time=math.inf)
 
+            with self.assertRaisesRegex(
+                myokit.ExportError, 'Each item in protocol'
+            ):
+                e.model(path, model, protocol=[p, object()], final_time=10)
+
+    def test_protocol_empty_sequence_matches_no_protocol(self):
+        # Tests that an empty protocol sequence is treated as no protocol.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        with TemporaryDirectory() as d:
+            path1 = d.path('no_protocol.diffsl')
+            path2 = d.path('empty_protocol_list.diffsl')
+
+            e.model(path1, model)
+            e.model(path2, model, protocol=[], final_time=10)
+
+            with open(path1, 'r') as f:
+                content1 = f.read()
+            with open(path2, 'r') as f:
+                content2 = f.read()
+
+        self.assertEqual(content1, content2)
+
     def test_protocol_empty_after_expansion(self):
         # Tests export when protocol has no non-zero events before final_time.
 
@@ -350,6 +394,7 @@ class DiffSLExporterTest(unittest.TestCase):
         self.assertIn('stop_i', content)
         entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(entries, ['0.0'])
+        self.assertEqual(_extract_block_entries(self, content, 'stop_i'), ['1.0'])
 
     def test_protocol_active_at_final_time(self):
         # Tests that a terminal boundary is added when pacing is still active
@@ -374,7 +419,7 @@ class DiffSLExporterTest(unittest.TestCase):
         stop_entries = _extract_block_entries(self, content, 'stop_i')
 
         self.assertEqual(pace_entries, ['0.0', '1.0', '0.0'])
-        self.assertEqual(stop_entries, ['t - 90.0', 't - 100.0'])
+        self.assertEqual(stop_entries, ['1.0', 't - 90.0', 't - 100.0'])
 
     def test_protocol_mixed_events(self):
         # Tests a mixed protocol: one-off + periodic events together.
@@ -398,11 +443,126 @@ class DiffSLExporterTest(unittest.TestCase):
         # Hybrid blocks must be present
         self.assertIn('pace_i', content)
         self.assertIn('stop_i', content)
+        self.assertIn('enginePace { pace_i[N] }', content)
 
         # One-off [0, 1) + periodic [24, 25), [48, 49) within final_time=72
-        # 3 occurrences × 2 edges = 6 boundaries; pace_i = 7 entries
+        # Initial phase is the loading dose, then 5 more transitions follow.
         pace_entries = _extract_block_entries(self, content, 'pace_i')
-        self.assertEqual(len(pace_entries), 7)
+        self.assertEqual(len(pace_entries), 6)
+
+    def test_protocol_list_with_single_protocol(self):
+        # Tests that protocol=[p] behaves like protocol=p.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p = myokit.Protocol()
+        p.schedule(level=1, start=100, duration=5)
+
+        with TemporaryDirectory() as d:
+            path1 = d.path('protocol_single.diffsl')
+            path2 = d.path('protocol_list.diffsl')
+
+            e.model(path1, model, protocol=p, final_time=200)
+            e.model(path2, model, protocol=[p], final_time=200)
+
+            with open(path1, 'r') as f:
+                content1 = f.read()
+            with open(path2, 'r') as f:
+                content2 = f.read()
+
+        self.assertEqual(content1, content2)
+
+    def test_protocol_multiple_protocols(self):
+        # Tests that multiple protocols are sequenced across windows with
+        # reset-to-initial boundaries.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p1 = myokit.Protocol()
+        p1.schedule(level=1, start=10, duration=5)
+
+        p2 = myokit.Protocol()
+        p2.schedule(level=2, start=0, duration=3)
+        p2.schedule(level=3, start=20, duration=4)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocols.diffsl')
+            e.model(path, model, protocol=[p1, p2], final_time=50)
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        self.assertIn('enginePace { pace_i[N] }', content)
+
+        pace_entries = _extract_block_entries(self, content, 'pace_i')
+        stop_entries = _extract_block_entries(self, content, 'stop_i')
+        reset_flags = _extract_block_entries(self, content, 'resetFlag_i')
+
+        self.assertEqual(
+            pace_entries,
+            ['0.0', '1.0', '0.0', '2.0', '0.0', '3.0', '0.0', '0.0']
+        )
+        self.assertEqual(
+            stop_entries,
+            [
+                '1.0',
+                't - 10.0',
+                't - 15.0',
+                't - 50.0',
+                't - 53.0',
+                't - 70.0',
+                't - 74.0',
+                't - 100.0',
+            ]
+        )
+        self.assertEqual(
+            reset_flags,
+            ['0.0', '0.0', '0.0', '1.0', '0.0', '0.0', '0.0', '0.0']
+        )
+
+        u0_entries = _extract_block_entries(self, content, 'u0_i')
+        self.assertEqual(
+            u0_entries,
+            ['-84.5286', '0.0017', '0.9832', '0.995484', '3e-6', '1',
+             '0.0057', '0.0002']
+        )
+
+        reset_content = _extract_block_content(self, content, 'reset_i')
+        self.assertIn(
+            'resetFlag_i[N] * u0_i',
+            reset_content,
+        )
+        self.assertIn(
+            '(1.0 - resetFlag_i[N]) * u_i',
+            reset_content,
+        )
+
+    def test_protocol_multiple_protocols_rejects_pace_input(self):
+        # Tests that pace cannot be exported as an input when protocols drive
+        # the hybrid model.
+
+        model = myokit.load_model('example')
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        p1 = myokit.Protocol()
+        p1.schedule(level=1, start=10, duration=5)
+        p2 = myokit.Protocol()
+        p2.schedule(level=2, start=10, duration=5)
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocols.diffsl')
+            with self.assertRaisesRegex(
+                myokit.ExportError, 'pace input cannot be provided explicitly'
+            ):
+                e.model(
+                    path,
+                    model,
+                    protocol=[p1, p2],
+                    final_time=50,
+                    inputs=[model.get('engine.pace')],
+                )
 
     def test_explicit_time_dependence(self):
         # Tests that explicit time dependence (dot(y) = -y * t) is supported

@@ -43,11 +43,13 @@ class DiffSLExporter(myokit.formats.Exporter):
         ``model``
             The :class:`myokit.Model` to export.
         ``protocol``
-            An optional :class:`myokit.Protocol` that defines a pacing or
-            dosing schedule.  When given, the exporter generates a hybrid ODE
-            model using DiffSL's ``N``, ``stop``, and ``reset`` constructs.
-            All events are expanded to one-off transitions; periodic events
-            require ``final_time`` to be set.
+            An optional :class:`myokit.Protocol` or sequence of
+            protocols that defines a pacing or dosing schedule. When given,
+            the exporter generates a hybrid ODE model using DiffSL's ``N``,
+            ``stop``, and ``reset`` constructs. A single protocol is expanded
+            into one-off transitions; multiple protocols are solved
+            sequentially for one window of ``final_time`` each, resetting the
+            state to the model's initial condition between windows.
         ``convert_units``
             If set to ``True`` (default), the method will attempt to convert to
             preferred units for voltage (mV), current (A/F), and time (ms).
@@ -61,12 +63,16 @@ class DiffSLExporter(myokit.formats.Exporter):
             be included in alphabetical order. All output variables must be
             time-varying (not constants).
         ``final_time``
-            Required when ``protocol`` is provided. Events are expanded up to
-            (but not including) this time. Must be a finite positive number.
-            Ignored when ``protocol`` is ``None``.
+            Required when ``protocol`` is provided. For a single protocol,
+            events are expanded up to (but not including) this time. For a
+            sequence of protocols, each protocol is expanded over
+            ``[0, final_time)`` before being offset into its own window. Must
+            be a finite positive number. Ignored when ``protocol`` is
+            ``None``.
         """
         # Validate protocol / final_time combination
-        if protocol is not None:
+        protocols = self._normalize_protocols(protocol)
+        if protocols is not None:
             if final_time is None:
                 raise myokit.ExportError(
                     'A final_time must be provided when exporting with a '
@@ -95,6 +101,11 @@ class DiffSLExporter(myokit.formats.Exporter):
         else:
             input_qnames = []
             for v in inputs:
+                if protocols is not None and v.binding() == 'pace':
+                    raise myokit.ExportError(
+                        'The pace input cannot be provided explicitly when '
+                        'exporting with protocol-driven hybrid DiffSL output.'
+                    )
                 # Validate that the variable belongs to this model
                 if v.model() != model:
                     raise myokit.ExportError(
@@ -154,8 +165,8 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Expand protocol to hybrid phase boundaries (if supplied)
         phases = None
-        if protocol is not None:
-            phases = self._expand_protocol(protocol, final_time)
+        if protocols is not None:
+            phases = self._create_hybrid_schedule(protocols, final_time)
 
         # Generate DiffSL model
         diffsl_model = self._generate_diffsl(model, inputs, outputs, phases)
@@ -164,30 +175,52 @@ class DiffSLExporter(myokit.formats.Exporter):
         with open(path, 'w') as f:
             f.write(diffsl_model)
 
+    def _normalize_protocols(self, protocol):
+        """
+        Normalize a protocol argument to ``None`` or a non-empty list of
+        :class:`myokit.Protocol` objects.
+        """
+        if protocol is None:
+            return None
+
+        if isinstance(protocol, myokit.Protocol):
+            return [protocol]
+
+        if not isinstance(protocol, collections.abc.Sequence):
+            raise myokit.ExportError(
+                'protocol must be None, a myokit.Protocol, or a non-empty '
+                'sequence of myokit.Protocol objects.'
+            )
+
+        protocols = list(protocol)
+        if not protocols:
+            return None
+
+        for item in protocols:
+            if not isinstance(item, myokit.Protocol):
+                raise myokit.ExportError(
+                    'Each item in protocol must be a myokit.Protocol.'
+                )
+        return protocols
+
     def _expand_protocol(self, protocol, final_time):
         """
-        Expand a :class:`myokit.Protocol` directly into hybrid phase
+        Expand a :class:`myokit.Protocol` directly into protocol-local phase
         boundaries ``(t_boundary, level_after)``.
 
         Expansion is performed by stepping a :class:`myokit.PacingSystem`
         through its event boundaries until the expansion horizon is reached.
 
         Returns a list of ``(t_boundary, level_after)`` tuples in ascending
-        order of ``t_boundary``.
-
-        If pacing is already non-zero at ``t = 0``, a boundary ``(0.0, level)``
-        is included. If pacing remains non-zero at ``final_time``, a terminal
-        boundary ``(final_time, 0.0)`` is appended.
+        order of ``t_boundary``. The first entry is always ``(0.0,
+        initial_level)`` where ``initial_level`` is the pacing level at
+        ``t = 0``.
         """
         horizon = float(final_time)
 
         pacing = myokit.PacingSystem(protocol)
-        current_level = pacing.pace()
-        phases = []
-
-        # Immediate transition at t=0 if pace starts non-zero.
-        if current_level != 0:
-            phases.append((0.0, current_level))
+        initial_level = current_level = float(pacing.pace())
+        phases = [(0.0, initial_level)]
 
         # Step through all pacing boundaries up to the horizon.
         while True:
@@ -195,13 +228,37 @@ class DiffSLExporter(myokit.formats.Exporter):
             if t_next >= horizon:
                 break
             old_level = current_level
-            current_level = pacing.advance(t_next)
+            current_level = float(pacing.advance(t_next))
             if current_level != old_level:
                 phases.append((t_next, current_level))
 
-        # Ensure return to baseline at final_time if pace remains active.
-        if current_level != 0:
-            phases.append((horizon, 0.0))
+        return phases
+
+    def _create_hybrid_schedule(self, protocols, final_time):
+        """
+        Create a global hybrid phase schedule for one or more protocols.
+
+        Returns a list of ``(start_time, pace_level, reset_to_initial)``
+        tuples ordered by phase index.
+        """
+        expanded = [
+            self._expand_protocol(protocol, final_time)
+            for protocol in protocols
+        ]
+        phases = [(0.0, expanded[0][0][1], False)]
+
+        for i, boundaries in enumerate(expanded):
+            offset = i * final_time
+
+            for t_boundary, level_after in boundaries[1:]:
+                phases.append((offset + t_boundary, level_after, False))
+
+            if i + 1 < len(expanded):
+                phases.append((offset + final_time, expanded[i + 1][0][1], True))
+
+        terminal_time = len(protocols) * final_time
+        if len(protocols) > 1 or phases[-1][1] != 0:
+            phases.append((terminal_time, 0.0, False))
 
         return phases
 
@@ -288,10 +345,10 @@ class DiffSLExporter(myokit.formats.Exporter):
         ``outputs``
             List of model variables to include in the output list.
         ``phases``
-            Optional list of ``(t_boundary, level_after)`` tuples produced by
-            :meth:`_expand_protocol`. When provided, hybrid
-            ``pace_i``/``stop`` blocks are appended and the model
-            is expected to reference ``pace_i[N]`` for the current pace level.
+            Optional list of ``(start_time, pace_level, reset_to_initial)``
+            tuples produced by :meth:`_create_hybrid_schedule`. When
+            provided, hybrid ``pace_i``/``stop_i``/``reset_i`` blocks are
+            appended and the bound pace variable is emitted as ``pace_i[N]``.
         """
 
         # Create an expression writer
@@ -354,7 +411,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append('*/')
 
             lhs = self._var_name(pace)
-            rhs = e.ex(pace.rhs())
+            rhs = 'pace_i[N]' if phases is not None else e.ex(pace.rhs())
             qname = pace.qname()
             unit = '' if pace.unit() is None else f' {pace.unit()}'
             export_lines.append(f'{lhs} {{ {rhs} }} /* {qname}{unit} */')
@@ -393,6 +450,14 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append(f'{tab}{lhs} = {rhs}, /* {qname}{unit} */')
         export_lines.append('}')
         export_lines.append('')
+
+        if phases is not None:
+            export_lines.append('/* Initial condition vector for resets */')
+            export_lines.append('u0_i {')
+            for v in model.states():
+                export_lines.append(f'{tab}{v.initial_value()},')
+            export_lines.append('}')
+            export_lines.append('')
 
         # Add remaining variables
         todo_vars = (
@@ -436,21 +501,19 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         # Hybrid protocol blocks (emitted when a protocol is supplied)
         if phases is not None:
-            # phases: [(t_boundary, level_after), ...] sorted by t_boundary.
+            # phases: [(start_time, pace_level, reset_to_initial), ...]
+            # ordered by phase index.
             #
             # DiffSL hybrid convention used here:
-            #   N = 0           before the first boundary
-            #   N = k (k >= 1) after boundary index k-1 fires
+            #   N = 0           in the initial phase
+            #   N = k (k >= 1) after stop element k fires
             #
             # pace_i[N] gives the pace level active in phase N.
-            # Phase 0 starts at t=0 (pace = 0, before any event).
-            # Phase k (k >= 1) is entered when stop element k-1 crosses zero.
+            # Phase k is entered when stop element k crosses zero.
 
-            # Collect pace levels: phase 0 is baseline (0.0), then one per
-            # boundary transition.
-            pace_levels = [0.0] + [lev for _, lev in phases]
+            pace_levels = [lev for _, lev, _ in phases]
+            reset_flags = [1.0 if reset else 0.0 for _, _, reset in phases]
 
-            # Emit pace level vector indexed by N
             export_lines.append('/* Protocol: pace level per model index N */')
             export_lines.append('pace_i {')
             for lev in pace_levels:
@@ -458,15 +521,32 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append('}')
             export_lines.append('')
 
-            # Emit stop conditions: stop[k] = t - t_{k+1}
-            # When element k crosses zero the solver stops and N is set to k.
             export_lines.append(
-                '/* Protocol: stop conditions (stop[k] = t - t_{k+1}) */'
+                '/* Protocol: reset mode per phase (1 = reset to u0_i) */'
+            )
+            export_lines.append('resetFlag_i {')
+            for flag in reset_flags:
+                export_lines.append(f'{tab}{flag},')
+            export_lines.append('}')
+            export_lines.append('')
+
+            export_lines.append(
+                '/* Protocol: stop conditions (stop[k] enters phase k) */'
             )
             export_lines.append('stop_i {')
-            for t_boundary, _ in phases:
+            export_lines.append(f'{tab}1.0,')
+            for t_boundary, _, _ in phases[1:]:
                 export_lines.append(f'{tab}t - {t_boundary},')
             export_lines.append('}')
+            export_lines.append('')
+
+            export_lines.append(
+                '/* Protocol: reset state on window boundaries */'
+            )
+            export_lines.append(
+                'reset_i { resetFlag_i[N] * u0_i +'
+                ' (1.0 - resetFlag_i[N]) * u_i }'
+            )
             export_lines.append('')
 
         return '\n'.join(export_lines)
