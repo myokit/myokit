@@ -183,13 +183,13 @@ class DiffSLExporter(myokit.formats.Exporter):
         )
 
         # Expand protocol to hybrid phase boundaries (if supplied)
-        phases = None
+        protocol_data = None
         if protocols:
-            phases = self._expand_protocols(protocols, final_time)
+            protocol_data = self._expand_protocols(protocols, final_time)
 
         # Generate DiffSL model
         diffsl_model = self._generate_diffsl(
-            model, inputs, outputs, bound_variables, phases
+            model, inputs, outputs, bound_variables, protocol_data
         )
 
         # Write DiffSL model to file
@@ -198,32 +198,30 @@ class DiffSLExporter(myokit.formats.Exporter):
 
     def _expand_protocols(self, protocols, final_time):
         """
-        Expand one or more :class:`myokit.Protocol` objects directly into
-        hybrid phase boundaries ``(t_boundary, levels_after)``.
+        Expand one or more :class:`myokit.Protocol` objects into an initial
+        level vector and hybrid phase boundaries
+        ``(t_boundary, levels_after)``.
 
         Expansion is performed by stepping one :class:`myokit.PacingSystem`
         per binding through its event boundaries until the expansion horizon is
         reached.
 
-        Returns a list of ``(t_boundary, levels_after)`` tuples in ascending
-        order of ``t_boundary``, where ``levels_after`` is a tuple aligned with
-        the insertion order of ``protocols``.
+        Returns a tuple ``(initial_levels, phases)`` where ``initial_levels``
+        is the level vector active at ``t = 0`` and ``phases`` is a list of
+        ``(t_boundary, levels_after)`` tuples in ascending order of
+        ``t_boundary``. Level vectors are aligned with the insertion order of
+        ``protocols``.
 
-        If any protocol is already non-zero at ``t = 0``, a boundary
-        ``(0.0, levels)`` is included. If any protocol remains non-zero at
-        ``final_time``, a terminal boundary ``(final_time, zeros)`` is
-        appended.
+        If any protocol remains non-zero at ``final_time``, a terminal
+        boundary ``(final_time, zeros)`` is appended.
         """
         horizon = float(final_time)
         pacings = [
             myokit.PacingSystem(protocol) for protocol in protocols.values()
         ]
         current_levels = [float(pacing.pace()) for pacing in pacings]
+        initial_levels = tuple(current_levels)
         phases = []
-
-        # Immediate transition at t=0 if any pace starts non-zero.
-        if any(level != 0 for level in current_levels):
-            phases.append((0.0, tuple(current_levels)))
 
         # Step through all pacing boundaries up to the horizon.
         while True:
@@ -239,7 +237,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         if any(level != 0 for level in current_levels):
             phases.append((horizon, tuple(0.0 for _ in current_levels)))
 
-        return phases
+        return initial_levels, phases
 
     def _prep_model(self, model, convert_units, bindings_to_keep=None):
         """
@@ -312,7 +310,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         )
 
     def _generate_diffsl(self, model, inputs, outputs, bound_variables,
-                         phases=None):
+                         protocol_data=None):
         """
         Generate a DiffSL model from a prepped Myokit model.
 
@@ -326,8 +324,8 @@ class DiffSLExporter(myokit.formats.Exporter):
             List of model variables to include in the output list.
         ``bound_variables``
             Ordered mapping of binding labels to preserved bound variables.
-        ``phases``
-            Optional list of ``(t_boundary, levels_after)`` tuples produced by
+        ``protocol_data``
+            Optional tuple ``(initial_levels, phases)`` produced by
             :meth:`_expand_protocols`. When provided, hybrid schedule
             ``*_i``/``stop_i`` blocks are appended and bound variables are
             expected to reference ``*_i[N]`` for the current phase level.
@@ -382,12 +380,46 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append('in_i { }')
         export_lines.append('')
 
-        # Add preserved bound variables (unless provided as explicit inputs)
+        phases = None
+        initial_levels = None
         protocol_schedule_names = None
-        if phases is not None:
+        if protocol_data is not None:
+            initial_levels, phases = protocol_data
             protocol_schedule_names = self._create_protocol_schedule_names(
                 bound_variables.keys()
             )
+
+        # Hybrid protocol blocks must be defined before bound variables use
+        # their tensors.
+        if phases is not None:
+            # phases: [(t_boundary, level_after), ...] sorted by t_boundary.
+            #
+            # DiffSL hybrid convention used here:
+            #   N = 0           at t=0 with the initial protocol levels
+            #   N = k (k >= 1) after boundary index k-1 fires
+            #
+            # schedule_i[N] gives the binding level active in phase N.
+            # Phase 0 starts at t=0 and may already be non-zero.
+            # Phase k (k >= 1) is entered when stop element k-1 crosses zero.
+            labels = list(bound_variables)
+
+            # Emit one level vector per binding, indexed by N
+            for i, label in enumerate(labels):
+                level_name = protocol_schedule_names[label]
+                levels = [initial_levels[i]]
+                levels.extend(phase_levels[i] for _, phase_levels in phases)
+                export_lines.append(
+                    f'/* Protocol: {label} level per model index N */'
+                )
+                export_lines.append(f'{level_name}_i {{')
+                for level in levels:
+                    export_lines.append(f'{tab}{level},')
+                export_lines.append('}')
+                export_lines.append('')
+
+            export_lines.append('')
+
+        # Add preserved bound variables (unless provided as explicit inputs)
         for label, variable in bound_variables.items():
             if variable in inputs:
                 continue
@@ -487,40 +519,15 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('}')
         export_lines.append('')
 
-        # Hybrid protocol blocks (emitted when a protocol is supplied)
+        # Emit stop conditions at the end of the file.
         if phases is not None:
-            # phases: [(t_boundary, level_after), ...] sorted by t_boundary.
-            #
-            # DiffSL hybrid convention used here:
-            #   N = 0           before the first boundary
-            #   N = k (k >= 1) after boundary index k-1 fires
-            #
-            # schedule_i[N] gives the binding level active in phase N.
-            # Phase 0 starts at t=0 (all bindings = 0, before any event).
-            # Phase k (k >= 1) is entered when stop element k-1 crosses zero.
-            labels = list(bound_variables)
-
-            # Emit one level vector per binding, indexed by N
-            for i, label in enumerate(labels):
-                level_name = protocol_schedule_names[label]
-                levels = [
-                    0.0
-                ] + [phase_levels[i] for _, phase_levels in phases]
-                export_lines.append(
-                    f'/* Protocol: {label} level per model index N */'
-                )
-                export_lines.append(f'{level_name}_i {{')
-                for level in levels:
-                    export_lines.append(f'{tab}{level},')
-                export_lines.append('}')
-                export_lines.append('')
-
-            # Emit stop conditions: stop[k] = t - t_{k+1}
-            # When element k crosses zero the solver stops and N is set to k.
+            # stop[0] is a positive sentinel because N starts at 0 and the
+            # solver should never trigger on the initial phase.
             export_lines.append(
                 '/* Protocol: stop conditions (stop[k] = t - t_{k+1}) */'
             )
             export_lines.append('stop_i {')
+            export_lines.append(f'{tab}1.0,')
             for t_boundary, _ in phases:
                 export_lines.append(f'{tab}t - {t_boundary},')
             export_lines.append('}')

@@ -235,9 +235,10 @@ class DiffSLExporterTest(unittest.TestCase):
         pace_entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(len(pace_entries), 5)
 
-        # stop_i must contain 4 boundary conditions
+        # stop_i must contain the initial sentinel plus 4 boundary conditions
         stop_entries = _extract_block_entries(self, content, 'stop_i')
-        self.assertEqual(len(stop_entries), 4)
+        self.assertEqual(len(stop_entries), 5)
+        self.assertEqual(stop_entries[0], '1.0')
 
         # The boundary times for a level-1 event [100, 105) and [200, 205):
         self.assertIn('t - 100.0', content)
@@ -309,15 +310,17 @@ class DiffSLExporterTest(unittest.TestCase):
             with open(path, 'r') as f:
                 content = f.read()
 
-        # Occurrences within [0, 250): starts at 0, 100, 200 -> 3 occurrences
-        # Each occurrence has a rising and falling edge -> 6 boundaries total
-        # pace_i: 1 (baseline) + 6 boundaries = 7 entries
+        # Occurrences within [0, 250): starts at 0, 100, 200 -> 2 occurrences
+        # One for the initial phase, plus 2 up/down transitions
+        # per occurrence = 5 entries. Plus the final boundary at final_time=250
+        # makes 6 entries.
         pace_entries = _extract_block_entries(self, content, 'pace_i')
-        self.assertEqual(len(pace_entries), 7)
+        self.assertEqual(len(pace_entries), 6)
 
-        # stop_i must list 6 boundary times
+        # stop_i contains one initial positive entry plus 5 boundary times
         stop_entries = _extract_block_entries(self, content, 'stop_i')
         self.assertEqual(len(stop_entries), 6)
+        self.assertEqual(stop_entries[0], '1.0')
 
     def test_protocol_finite_periodic(self):
         # Tests that a finitely recurring periodic event is expanded correctly.
@@ -388,6 +391,10 @@ class DiffSLExporterTest(unittest.TestCase):
         self.assertIn('stop_i', content)
         entries = _extract_block_entries(self, content, 'pace_i')
         self.assertEqual(entries, ['0.0'])
+        self.assertEqual(
+            _extract_block_entries(self, content, 'stop_i'),
+            ['1.0'],
+        )
 
     def test_protocol_active_at_final_time(self):
         # Tests that a terminal boundary is added when pacing is still active
@@ -412,7 +419,7 @@ class DiffSLExporterTest(unittest.TestCase):
         stop_entries = _extract_block_entries(self, content, 'stop_i')
 
         self.assertEqual(pace_entries, ['0.0', '1.0', '0.0'])
-        self.assertEqual(stop_entries, ['t - 90.0', 't - 100.0'])
+        self.assertEqual(stop_entries, ['1.0', 't - 90.0', 't - 100.0'])
 
     def test_protocol_mixed_events(self):
         # Tests a mixed protocol: one-off + periodic events together.
@@ -437,10 +444,13 @@ class DiffSLExporterTest(unittest.TestCase):
         self.assertIn('pace_i', content)
         self.assertIn('stop_i', content)
 
-        # One-off [0, 1) + periodic [24, 25), [48, 49) within final_time=72
-        # 3 occurrences × 2 edges = 6 boundaries; pace_i = 7 entries
+        # One-off [0, 1) + periodic [24, 25), [48, 49) within final_time=72.
+        # The initial active phase is phase 0, so the first transition at t=0
+        # is not emitted as a boundary.
         pace_entries = _extract_block_entries(self, content, 'pace_i')
-        self.assertEqual(len(pace_entries), 7)
+        self.assertEqual(len(pace_entries), 6)
+        stop_entries = _extract_block_entries(self, content, 'stop_i')
+        self.assertEqual(stop_entries[0], '1.0')
 
     def test_protocol_multiple_bindings(self):
         # Tests exporting multiple protocol-driven bindings with a shared
@@ -479,7 +489,7 @@ class DiffSLExporterTest(unittest.TestCase):
         )
         self.assertEqual(
             _extract_block_entries(self, content, 'stop_i'),
-            ['t - 10.0', 't - 12.0', 't - 20.0', 't - 23.0'],
+            ['1.0', 't - 10.0', 't - 12.0', 't - 20.0', 't - 23.0'],
         )
 
     def test_protocol_multiple_bindings_merge_simultaneous_changes(self):
@@ -509,7 +519,7 @@ class DiffSLExporterTest(unittest.TestCase):
 
         self.assertEqual(
             _extract_block_entries(self, content, 'stop_i'),
-            ['t - 10.0', 't - 12.0', 't - 14.0'],
+            ['1.0', 't - 10.0', 't - 12.0', 't - 14.0'],
         )
         self.assertEqual(
             _extract_block_entries(self, content, 'pace_i'),
@@ -547,15 +557,15 @@ class DiffSLExporterTest(unittest.TestCase):
 
         self.assertEqual(
             _extract_block_entries(self, content, 'pace_i'),
-            ['0.0', '1.0', '0.0', '0.0'],
+            ['1.0', '0.0', '0.0'],
         )
         self.assertEqual(
             _extract_block_entries(self, content, 'dose_i'),
-            ['0.0', '2.0', '2.0', '0.0'],
+            ['2.0', '2.0', '0.0'],
         )
         self.assertEqual(
             _extract_block_entries(self, content, 'stop_i'),
-            ['t - 0.0', 't - 5.0', 't - 10.0'],
+            ['1.0', 't - 5.0', 't - 10.0'],
         )
 
     def test_protocol_invalid_binding_name(self):
