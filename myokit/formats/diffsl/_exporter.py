@@ -440,7 +440,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('u_i {')
         for v in model.states():
             lhs = self._var_name(v)
-            rhs = v.initial_value()
+            rhs = e.ex(v.initial_value())
             qname = v.qname()
             unit = '' if v.unit() is None else f' {v.unit()}'
             export_lines.append(f'{tab}{lhs} = {rhs}, /* {qname}{unit} */')

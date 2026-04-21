@@ -110,7 +110,7 @@ mbC { 20.0 } /* mb.C [pF] */
 
 /* Initial conditions */
 u_i {
-  mbV = -0.08 * 1000 [1 (0.001)], /* mb.V [mV] */
+  mbV = -0.08 * 1000.0, /* mb.V [mV] */
   hhX = 0.1, /* hh.x */
   hhY = 0.9, /* hh.y */
   mmC = 0.9, /* mm.C */
@@ -622,6 +622,29 @@ dot(y) = -y * engine.time
             with open(path) as f:
                 content = f.read()
         self.assertRegex(content, r'F_i\s*\{\s*-cY\s*\*\s*t,\s*\}')
+
+    def test_expression_initial_value(self):
+        # Tests that expression-valued state initial conditions are exported.
+
+        model = myokit.parse_model("""
+[[model]]
+c.x = c.k / 2
+
+[engine]
+time = 0
+    bind time
+
+[c]
+dot(x) = -x
+k = 6
+""")
+        e = myokit.formats.diffsl.DiffSLExporter()
+        with TemporaryDirectory() as d:
+            path = d.path('diffsl.model')
+            e.model(path, model)
+            with open(path) as f:
+                content = f.read()
+        self.assertIn('cX = cK / 2.0,', content)
 
     def test_unit_conversion(self):
         # Tests exporting a model that requires unit conversion
