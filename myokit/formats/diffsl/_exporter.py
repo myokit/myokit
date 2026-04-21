@@ -6,6 +6,7 @@
 #
 import collections
 import warnings
+import math
 
 import myokit
 import myokit.formats
@@ -19,14 +20,12 @@ class DiffSLExporter(myokit.formats.Exporter):
     This :class:`Exporter <myokit.formats.Exporter>` generates a DiffSL
     implementation of a Myokit model.
 
-    Only the model definition is exported. No inputs are provided, there is
-    no protocol defined, and only state variables are output.
-
-    For details of the language, see https://martinjrobins.github.io/diffsl/
+    For details of the DiffSL language, see
+    https://martinjrobins.github.io/diffsl/
     """
 
     def model(self, path, model, protocol=None, convert_units=True,
-              inputs=None, outputs=None):
+              inputs=None, outputs=None, final_time=None):
         """
         Exports a :class:`myokit.Model` in DiffSL format, writing the result to
         the file indicated by ``path``.
@@ -44,7 +43,11 @@ class DiffSLExporter(myokit.formats.Exporter):
         ``model``
             The :class:`myokit.Model` to export.
         ``protocol``
-            Not implemented!
+            An optional :class:`myokit.Protocol` that defines a pacing or
+            dosing schedule.  When given, the exporter generates a hybrid ODE
+            model using DiffSL's ``N``, ``stop``, and ``reset`` constructs.
+            All events are expanded to one-off transitions; periodic events
+            require ``final_time`` to be set.
         ``convert_units``
             If set to ``True`` (default), the method will attempt to convert to
             preferred units for voltage (mV), current (A/F), and time (ms).
@@ -57,12 +60,25 @@ class DiffSLExporter(myokit.formats.Exporter):
             (out_i { ... }). If ``None`` (default), all state variables will
             be included in alphabetical order. All output variables must be
             time-varying (not constants).
+        ``final_time``
+            Required when ``protocol`` is provided. Events are expanded up to
+            (but not including) this time. Must be a finite positive number.
+            Ignored when ``protocol`` is ``None``.
         """
-        # Raise exception if protocol is set
+        # Validate protocol / final_time combination
         if protocol is not None:
-            raise ValueError(
-                'DiffSL export does not support an input protocol.'
-            )
+            if final_time is None:
+                raise myokit.ExportError(
+                    'A final_time must be provided when exporting with a '
+                    'protocol so events can be expanded to a finite list of '
+                    'transitions.'
+                )
+            else:
+                final_time = float(final_time)
+                if not math.isfinite(final_time) or final_time <= 0:
+                    raise myokit.ExportError(
+                        'final_time must be a finite positive number.'
+                    )
 
         # Check model validity
         try:
@@ -136,12 +152,58 @@ class DiffSLExporter(myokit.formats.Exporter):
         else:
             outputs = [model.get(qname) for qname in output_qnames]
 
+        # Expand protocol to hybrid phase boundaries (if supplied)
+        phases = None
+        if protocol is not None:
+            phases = self._expand_protocol(protocol, final_time)
+
         # Generate DiffSL model
-        diffsl_model = self._generate_diffsl(model, inputs, outputs)
+        diffsl_model = self._generate_diffsl(model, inputs, outputs, phases)
 
         # Write DiffSL model to file
         with open(path, 'w') as f:
             f.write(diffsl_model)
+
+    def _expand_protocol(self, protocol, final_time):
+        """
+        Expand a :class:`myokit.Protocol` directly into hybrid phase
+        boundaries ``(t_boundary, level_after)``.
+
+        Expansion is performed by stepping a :class:`myokit.PacingSystem`
+        through its event boundaries until the expansion horizon is reached.
+
+        Returns a list of ``(t_boundary, level_after)`` tuples in ascending
+        order of ``t_boundary``.
+
+        If pacing is already non-zero at ``t = 0``, a boundary ``(0.0, level)``
+        is included. If pacing remains non-zero at ``final_time``, a terminal
+        boundary ``(final_time, 0.0)`` is appended.
+        """
+        horizon = float(final_time)
+
+        pacing = myokit.PacingSystem(protocol)
+        current_level = pacing.pace()
+        phases = []
+
+        # Immediate transition at t=0 if pace starts non-zero.
+        if current_level != 0:
+            phases.append((0.0, current_level))
+
+        # Step through all pacing boundaries up to the horizon.
+        while True:
+            t_next = pacing.next_time()
+            if t_next >= horizon:
+                break
+            old_level = current_level
+            current_level = pacing.advance(t_next)
+            if current_level != old_level:
+                phases.append((t_next, current_level))
+
+        # Ensure return to baseline at final_time if pace remains active.
+        if current_level != 0:
+            phases.append((horizon, 0.0))
+
+        return phases
 
     def _prep_model(self, model, convert_units):
         """
@@ -213,7 +275,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             'Not a variable or LhsExpression: ' + str(e)
         )
 
-    def _generate_diffsl(self, model, inputs, outputs):
+    def _generate_diffsl(self, model, inputs, outputs, phases=None):
         """
         Generate a DiffSL model from a prepped Myokit model.
 
@@ -225,6 +287,11 @@ class DiffSLExporter(myokit.formats.Exporter):
             List of model variables to include in the input parameter list.
         ``outputs``
             List of model variables to include in the output list.
+        ``phases``
+            Optional list of ``(t_boundary, level_after)`` tuples produced by
+            :meth:`_expand_protocol`. When provided, hybrid
+            ``pace_i``/``stop`` blocks are appended and the model
+            is expected to reference ``pace_i[N]`` for the current pace level.
         """
 
         # Create an expression writer
@@ -366,6 +433,41 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append(f'{tab}{lhs},')
         export_lines.append('}')
         export_lines.append('')
+
+        # Hybrid protocol blocks (emitted when a protocol is supplied)
+        if phases is not None:
+            # phases: [(t_boundary, level_after), ...] sorted by t_boundary.
+            #
+            # DiffSL hybrid convention used here:
+            #   N = 0           before the first boundary
+            #   N = k (k >= 1) after boundary index k-1 fires
+            #
+            # pace_i[N] gives the pace level active in phase N.
+            # Phase 0 starts at t=0 (pace = 0, before any event).
+            # Phase k (k >= 1) is entered when stop element k-1 crosses zero.
+
+            # Collect pace levels: phase 0 is baseline (0.0), then one per
+            # boundary transition.
+            pace_levels = [0.0] + [lev for _, lev in phases]
+
+            # Emit pace level vector indexed by N
+            export_lines.append('/* Protocol: pace level per model index N */')
+            export_lines.append('pace_i {')
+            for lev in pace_levels:
+                export_lines.append(f'{tab}{lev},')
+            export_lines.append('}')
+            export_lines.append('')
+
+            # Emit stop conditions: stop[k] = t - t_{k+1}
+            # When element k crosses zero the solver stops and N is set to k.
+            export_lines.append(
+                '/* Protocol: stop conditions (stop[k] = t - t_{k+1}) */'
+            )
+            export_lines.append('stop_i {')
+            for t_boundary, _ in phases:
+                export_lines.append(f'{tab}t - {t_boundary},')
+            export_lines.append('}')
+            export_lines.append('')
 
         return '\n'.join(export_lines)
 
