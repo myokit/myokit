@@ -49,7 +49,8 @@ class DiffSLExporter(myokit.formats.Exporter):
             dosing schedules. When given, the exporter generates a hybrid ODE
             model using DiffSL's ``N`` and ``stop`` constructs. All events are
             expanded to one-off transitions; periodic events require
-            ``final_time`` to be set.
+            ``final_time`` to be set. Protocol entries whose binding names are
+            not present in the model are ignored.
         ``convert_units``
             If set to ``True`` (default), the method will attempt to convert to
             preferred units for voltage (mV), current (A/F), and time (ms).
@@ -67,9 +68,17 @@ class DiffSLExporter(myokit.formats.Exporter):
             (but not including) this time. Must be a finite positive number.
             Ignored when ``protocol`` is ``None``.
         """
+        # Check model validity
+        try:
+            model.validate()
+        except myokit.MyokitError as e:
+            raise myokit.ExportError(
+                'DiffSL export requires a valid model.'
+            ) from e
+
         # Normalize protocols to a binding -> Protocol mapping
-        protocols = self._normalize_protocols(protocol)
-        protocol_bindings = set(protocols)
+        protocols = self._normalize_protocols(protocol, model)
+        protocol_bindings = set(protocols.keys())
 
         # Validate protocol / final_time combination
         if protocols:
@@ -85,21 +94,6 @@ class DiffSLExporter(myokit.formats.Exporter):
                     raise myokit.ExportError(
                         'final_time must be a finite positive number.'
                     )
-
-        # Check model validity
-        try:
-            model.validate()
-        except myokit.MyokitError as e:
-            raise myokit.ExportError(
-                'DiffSL export requires a valid model.'
-            ) from e
-
-        # Validate any requested protocol bindings against the model
-        for label in protocol_bindings:
-            if model.binding(label) is None:
-                raise myokit.ExportError(
-                    f'No variable found with binding "{label}".'
-                )
 
         # Store qualified names of inputs/outputs before model prep
         # and validate that they are appropriate for DiffSL export
@@ -535,7 +529,7 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         return '\n'.join(export_lines)
 
-    def _normalize_protocols(self, protocol):
+    def _normalize_protocols(self, protocol, model):
         """
         Normalize a protocol specification to an ordered binding map.
         """
@@ -543,7 +537,10 @@ class DiffSLExporter(myokit.formats.Exporter):
             return collections.OrderedDict()
 
         if isinstance(protocol, myokit.Protocol):
-            return collections.OrderedDict([('pace', protocol)])
+            protocols = collections.OrderedDict()
+            if model.binding('pace') is not None:
+                protocols['pace'] = protocol
+            return protocols
 
         if not isinstance(protocol, abc.Mapping):
             raise myokit.ExportError(
@@ -562,7 +559,8 @@ class DiffSLExporter(myokit.formats.Exporter):
                     'Protocol dictionary values must be myokit.Protocol'
                     ' instances.'
                 )
-            protocols[label] = value
+            if model.binding(label) is not None:
+                protocols[label] = value
         return protocols
 
     def _convert_current_unit(self, var, helpers=None):

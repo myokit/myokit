@@ -568,8 +568,8 @@ class DiffSLExporterTest(unittest.TestCase):
             ['1.0', 't - 5.0', 't - 10.0'],
         )
 
-    def test_protocol_invalid_binding_name(self):
-        # Tests that unknown protocol binding keys raise ExportError.
+    def test_protocol_unknown_binding_name(self):
+        # Tests that unknown protocol binding keys are ignored.
 
         model = myokit.parse_model(multi_protocol_model)
         e = myokit.formats.diffsl.DiffSLExporter()
@@ -577,17 +577,45 @@ class DiffSLExporterTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(level=1, start=10, duration=2)
 
+        unknown = myokit.Protocol()
+        unknown.schedule(level=5, start=15, duration=2)
+
         with TemporaryDirectory() as d:
             path = d.path('protocol.diffsl')
-            with self.assertRaisesRegex(
-                myokit.ExportError, 'No variable found with binding "unknown"'
-            ):
-                e.model(
-                    path,
-                    model,
-                    protocol={'unknown': p},
-                    final_time=20,
-                )
+            e.model(
+                path,
+                model,
+                protocol={'pace': p, 'unknown': unknown},
+                final_time=20,
+            )
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        self.assertIn('enginePace { pace_i[N] }', content)
+        self.assertNotIn('unknown_i', content)
+        self.assertEqual(
+            _extract_block_entries(self, content, 'pace_i'),
+            ['0.0', '1.0', '0.0'],
+        )
+        self.assertEqual(
+            _extract_block_entries(self, content, 'stop_i'),
+            ['1.0', 't - 10.0', 't - 12.0'],
+        )
+
+        with TemporaryDirectory() as d:
+            path = d.path('protocol.diffsl')
+            e.model(
+                path,
+                model,
+                protocol={'unknown': unknown},
+            )
+
+            with open(path, 'r') as f:
+                content = f.read()
+
+        self.assertNotIn('unknown_i', content)
+        self.assertNotIn('stop_i', content)
 
     def test_protocol_input_conflict(self):
         # Tests that protocol-driven bindings cannot also be explicit inputs.
