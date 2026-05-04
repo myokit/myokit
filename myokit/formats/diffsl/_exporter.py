@@ -513,7 +513,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append('}')
         export_lines.append('')
 
-        # Emit stop conditions at the end of the file.
+        # Emit stop and reset conditions at the end of the file.
         if phases is not None:
             # stop[0] is a positive sentinel because N starts at 0 and the
             # solver should never trigger on the initial phase.
@@ -526,6 +526,14 @@ class DiffSLExporter(myokit.formats.Exporter):
                 export_lines.append(f'{tab}t - {t_boundary},')
             export_lines.append('}')
             export_lines.append('')
+
+            # diffsol requires a reset for a hybrid model
+            # so just put in a unit reset that leaves the
+            # state unchanged at the boundary.
+            export_lines.append(
+                '/* Protocol: reset conditions (reset = u) */'
+            )
+            export_lines.append('reset_i { u_i }')
 
         return '\n'.join(export_lines)
 
