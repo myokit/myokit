@@ -55,8 +55,9 @@ class DiffSLExporter(myokit.formats.Exporter):
             An optional :class:`myokit.Protocol` or ``dict`` mapping binding
             names to :class:`myokit.Protocol` objects that define pacing or
             dosing schedules. If a map is not given then the binding name is
-            assumed to be `pace`. When given, the exporter generates a hybrid ODE
-            model using DiffSL's ``N`` and ``stop`` constructs. All events are
+            assumed to be `pace`. When given, the exporter generates a
+            hybrid ODE model using DiffSL's ``N`` and ``stop`` constructs.
+            All events are
             expanded to one-off transitions; periodic events require
             ``final_time`` to be set. Protocol entries whose binding names are
             not present in the model are ignored.
@@ -81,7 +82,9 @@ class DiffSLExporter(myokit.formats.Exporter):
         try:
             model.validate()
         except myokit.MyokitError as e:
-            raise myokit.ExportError("DiffSL export requires a valid model.") from e
+            raise myokit.ExportError(
+                "DiffSL export requires a valid model."
+            ) from e
 
         # Normalize protocols to a binding -> Protocol mapping
         protocols = self._normalize_protocols(protocol, model)
@@ -116,7 +119,10 @@ class DiffSLExporter(myokit.formats.Exporter):
                         f"model being exported."
                     )
                 # Validate that inputs are constants (bound inputs are allowed)
-                if not v.is_constant() and v.binding() not in protocol_bindings:
+                if (
+                    not v.is_constant()
+                    and v.binding() not in protocol_bindings
+                ):
                     raise myokit.ExportError(
                         f"Input variable {v.qname()} must be a constant."
                     )
@@ -166,7 +172,10 @@ class DiffSLExporter(myokit.formats.Exporter):
 
         if output_qnames is None:
             # Use all states, sorted alphabetically by DiffSL name
-            outputs = sorted(model.states(), key=lambda x: self._var_name(x).swapcase())
+            outputs = sorted(
+                model.states(),
+                key=lambda x: self._var_name(x).swapcase(),
+            )
         else:
             outputs = [model.get(qname) for qname in output_qnames]
 
@@ -211,7 +220,10 @@ class DiffSLExporter(myokit.formats.Exporter):
         boundary ``(final_time, zeros)`` is appended.
         """
         horizon = float(final_time)
-        pacings = [myokit.PacingSystem(protocol) for protocol in protocols.values()]
+        pacings = [
+            myokit.PacingSystem(protocol)
+            for protocol in protocols.values()
+        ]
         current_levels = [float(pacing.pace()) for pacing in pacings]
         initial_levels = tuple(current_levels)
         phases = []
@@ -402,7 +414,9 @@ class DiffSLExporter(myokit.formats.Exporter):
                 level_name = protocol_schedule_names[label]
                 levels = [initial_levels[i]]
                 levels.extend(phase_levels[i] for _, phase_levels in phases)
-                export_lines.append(f"/* Protocol: {label} level per model index N */")
+                export_lines.append(
+                    f"/* Protocol: {label} level per model index N */"
+                )
                 export_lines.append(f"{level_name}_i {{")
                 for level in levels:
                     export_lines.append(f"{tab}{level},")
@@ -429,11 +443,14 @@ class DiffSLExporter(myokit.formats.Exporter):
             export_lines.append("")
 
         # Add constants
-        const_vars = (
-            set(model.variables(const=True, deep=True, state=False)) - special_vars
-        )
+        const_vars = set(
+            model.variables(const=True, deep=True, state=False)
+        ) - special_vars
         for component_label, eq_list in sorted_eqs.items():
-            const_eqs = [eq for eq in eq_list.equations() if eq.lhs.var() in const_vars]
+            const_eqs = [
+                eq for eq in eq_list.equations()
+                if eq.lhs.var() in const_vars
+            ]
             if const_eqs:
                 export_lines.append(f"/* Constants: {component_label} */")
                 for eq in const_eqs:
@@ -442,7 +459,9 @@ class DiffSLExporter(myokit.formats.Exporter):
                     rhs = e.ex(eq.rhs)
                     qname = v.qname()
                     unit = "" if v.unit() is None else f" {v.unit()}"
-                    export_lines.append(f"{lhs} {{ {rhs} }} /* {qname}{unit} */")
+                    export_lines.append(
+                        f"{lhs} {{ {rhs} }} /* {qname}{unit} */"
+                    )
                 export_lines.append("")
 
         # Add initial conditions `u_i`
@@ -458,11 +477,14 @@ class DiffSLExporter(myokit.formats.Exporter):
         export_lines.append("")
 
         # Add remaining variables
-        todo_vars = (
-            set(model.variables(const=False, deep=True, state=False)) - special_vars
-        )
+        todo_vars = set(
+            model.variables(const=False, deep=True, state=False)
+        ) - special_vars
         for component_label, eq_list in sorted_eqs.items():
-            todo_eqs = [eq for eq in eq_list.equations() if eq.lhs.var() in todo_vars]
+            todo_eqs = [
+                eq for eq in eq_list.equations()
+                if eq.lhs.var() in todo_vars
+            ]
             if todo_eqs:
                 export_lines.append(f"/* Variables: {component_label} */")
                 for eq in todo_eqs:
@@ -471,7 +493,9 @@ class DiffSLExporter(myokit.formats.Exporter):
                     rhs = e.ex(eq.rhs)
                     qname = v.qname()
                     unit = "" if v.unit() is None else f" {v.unit()}"
-                    export_lines.append(f"{lhs} {{ {rhs} }} /* {qname}{unit} */")
+                    export_lines.append(
+                        f"{lhs} {{ {rhs} }} /* {qname}{unit} */"
+                    )
                 export_lines.append("")
 
         # Add `F_i`
@@ -541,7 +565,8 @@ class DiffSLExporter(myokit.formats.Exporter):
                 )
             if not isinstance(value, myokit.Protocol):
                 raise myokit.ExportError(
-                    "Protocol dictionary values must be myokit.Protocol instances."
+                    "Protocol dictionary values must be"
+                    " myokit.Protocol instances."
                 )
             if model.binding(label) is not None:
                 protocols[label] = value
@@ -601,7 +626,9 @@ class DiffSLExporter(myokit.formats.Exporter):
         for var in model.variables(deep=True, sort=True):
             var_to_name[var] = self._convert_name(var.qname())
             if var.is_state():
-                var_to_name[var.lhs()] = self._convert_name("diff_" + var.qname())
+                var_to_name[var.lhs()] = self._convert_name(
+                    "diff_" + var.qname()
+                )
 
         # Check for conflicts with known keywords
         from . import keywords

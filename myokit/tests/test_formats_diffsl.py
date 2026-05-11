@@ -848,7 +848,9 @@ k = 6
             self.assertIn("membraneV", out_content)
             self.assertIn("inaM", out_content)
             # Verify order: membraneV should appear before inaM
-            self.assertLess(out_content.index("membraneV"), out_content.index("inaM"))
+            self.assertLess(
+                out_content.index("membraneV"), out_content.index("inaM")
+            )
 
             # Test with engine.pace as an input
             path = d.path("test_pace_input.diffsl")
@@ -869,20 +871,23 @@ k = 6
 
             # Test 1: State variable cannot be input
             with self.assertRaisesRegex(
-                myokit.ExportError, "Input variable membrane.V must be a constant"
+                myokit.ExportError,
+                "Input variable membrane.V must be a constant",
             ):
                 e.model(path, model, inputs=[model.get("membrane.V")])
 
             # Test 2: Intermediate variable (non-const, non-state) cannot
             # be input
             with self.assertRaisesRegex(
-                myokit.ExportError, "Input variable ina.m.alpha must be a constant"
+                myokit.ExportError,
+                "Input variable ina.m.alpha must be a constant",
             ):
                 e.model(path, model, inputs=[model.get("ina.m.alpha")])
 
             # Test 3: Constant cannot be output
             with self.assertRaisesRegex(
-                myokit.ExportError, "Output variable membrane.C must be time-varying"
+                myokit.ExportError,
+                "Output variable membrane.C must be time-varying",
             ):
                 e.model(path, model, outputs=[model.get("membrane.C")])
 
@@ -916,14 +921,16 @@ k = 6
             other_model = myokit.load_model("example")
             with self.assertRaisesRegex(
                 myokit.ExportError,
-                "Input variable .* does not belong to the model being exported",
+                "Input variable .* does not belong"
+                " to the model being exported",
             ):
                 e.model(path, model, inputs=[other_model.get("membrane.C")])
 
             # Test 7: Output from different model
             with self.assertRaisesRegex(
                 myokit.ExportError,
-                "Output variable .* does not belong to the model being exported",
+                "Output variable .* does not belong"
+                " to the model being exported",
             ):
                 e.model(path, model, outputs=[other_model.get("membrane.V")])
 
@@ -938,7 +945,9 @@ k = 6
             path = d.path("test.diffsl")
 
             # Test 1: Calling before model() raises error
-            with self.assertRaisesRegex(RuntimeError, "can only be called after model"):
+            with self.assertRaisesRegex(
+                RuntimeError, "can only be called after model"
+            ):
                 e.get_state_index(model.get("membrane.V"))
 
             # Export the model
@@ -1049,7 +1058,10 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         a, b, c = self.abc
         with WarningCollector():
             self.eq(Remainder(a, b), "(a - b * floor(a / b))")
-            self.eq(Remainder(Plus(a, c), b), "(a + c - b * floor((a + c) / b))")
+            self.eq(
+                Remainder(Plus(a, c), b),
+                "(a + c - b * floor((a + c) / b))",
+            )
             self.eq(Multiply(Remainder(a, b), c), "(a - b * floor(a / b)) * c")
             self.eq(Divide(c, Remainder(b, a)), "c / ((b - a * floor(b / a)))")
 
@@ -1148,7 +1160,10 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             "* (1 - heaviside(3.0 - 4.0) * heaviside(4.0 - 3.0))))",
         )
 
-        self.eq(Not(Less(Number(1), Number(2))), "(1 - (1 - heaviside(1.0 - 2.0)))")
+        self.eq(
+            Not(Less(Number(1), Number(2))),
+            "(1 - (1 - heaviside(1.0 - 2.0)))",
+        )
 
     def test_if_expressions(self):
         a, b, c, d = self.abcd
@@ -1244,7 +1259,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         self.eq(
             Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
-            self.w.ex(If(Equal(a, b), c, If(Equal(a, d), Number(3), Number(4)))),
+            self.w.ex(
+                If(Equal(a, b), c, If(Equal(a, d), Number(3), Number(4)))
+            ),
         )
 
         self.eq(
@@ -1260,7 +1277,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         def heaviside(x):
             return 1 if x >= 0 else 0
 
-        values = itertools.product([-10e9, -1, -1e-9, 0, 1e-9, 1, 10e9], repeat=4)
+        values = itertools.product(
+            [-10e9, -1, -1e-9, 0, 1e-9, 1, 10e9], repeat=4
+        )
 
         for a, b, c, d in values:
             # a == b
@@ -1306,7 +1325,10 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             # (a == b) and (c != d)
             result = int((a == b) and (c != d))
             expr = self.w.ex(
-                And(Equal(Number(a), Number(b)), NotEqual(Number(c), Number(d)))
+                And(
+                    Equal(Number(a), Number(b)),
+                    NotEqual(Number(c), Number(d)),
+                )
             )
             self.assertEqual(eval(expr), result)
 
@@ -1338,22 +1360,30 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
             # if(a > b, c, d)
             result = c if (a > b) else d
-            expr = self.w.ex(If(More(Number(a), Number(b)), Number(c), Number(d)))
+            expr = self.w.ex(
+                If(More(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # if(a >= b, c, d)
             result = c if (a >= b) else d
-            expr = self.w.ex(If(MoreEqual(Number(a), Number(b)), Number(c), Number(d)))
+            expr = self.w.ex(
+                If(MoreEqual(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # if(a < b, c, d)
             result = c if (a < b) else d
-            expr = self.w.ex(If(Less(Number(a), Number(b)), Number(c), Number(d)))
+            expr = self.w.ex(
+                If(Less(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # if(a <= b, c, d)
             result = c if (a <= b) else d
-            expr = self.w.ex(If(LessEqual(Number(a), Number(b)), Number(c), Number(d)))
+            expr = self.w.ex(
+                If(LessEqual(Number(a), Number(b)), Number(c), Number(d))
+            )
             self.assertEqual(eval(expr), result)
 
             # piecewise(a > b, c, d)
@@ -1366,7 +1396,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             # piecewise(a >= b, c, d)
             result = c if (a >= b) else d
             expr = self.w.ex(
-                Piecewise(MoreEqual(Number(a), Number(b)), Number(c), Number(d))
+                Piecewise(
+                    MoreEqual(Number(a), Number(b)), Number(c), Number(d)
+                )
             )
             self.assertEqual(eval(expr), result)
 
@@ -1380,7 +1412,9 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             # piecewise(a <= b, c, d)
             result = c if (a <= b) else d
             expr = self.w.ex(
-                Piecewise(LessEqual(Number(a), Number(b)), Number(c), Number(d))
+                Piecewise(
+                    LessEqual(Number(a), Number(b)), Number(c), Number(d)
+                )
             )
             self.assertEqual(eval(expr), result)
 
