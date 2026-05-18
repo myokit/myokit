@@ -640,6 +640,37 @@ class DiffSLExporterTest(unittest.TestCase):
         self.assertNotIn("unknown_i", content)
         self.assertNotIn("stop_i", content)
 
+    def test_protocol_invalid_type(self):
+        # Tests that invalid protocol argument types raise ExportError.
+
+        model = myokit.load_model("example")
+        e = myokit.formats.diffsl.DiffSLExporter()
+        p = myokit.Protocol()
+
+        with TemporaryDirectory() as d:
+            path = d.path("protocol.diffsl")
+
+            # protocol is not a Protocol or dict
+            with self.assertRaisesRegex(
+                myokit.ExportError,
+                "protocol must be a myokit.Protocol or a dict",
+            ):
+                e.model(path, model, protocol=42)
+
+            # dict key is not a string
+            with self.assertRaisesRegex(
+                myokit.ExportError,
+                "Protocol dictionary keys must be binding names",
+            ):
+                e.model(path, model, protocol={1: p}, final_time=100)
+
+            # dict value is not a Protocol
+            with self.assertRaisesRegex(
+                myokit.ExportError,
+                "Protocol dictionary values must be myokit.Protocol instances",
+            ):
+                e.model(path, model, protocol={"pace": 42}, final_time=100)
+
     def test_protocol_input_conflict(self):
         # Tests that protocol-driven bindings cannot also be explicit inputs.
 
