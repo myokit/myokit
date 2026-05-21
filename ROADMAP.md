@@ -38,7 +38,7 @@ Two major improvements are planned:
   - Provide compiled simulations for better performance during inference (relies on LLVM work described above).
   - Provide fast "analytic" parameter sensitivities for HH model simulations.
 
-### Back-burner
+## Back-burner
 
 Projects which are ongoing but not currently prioritised include
 
