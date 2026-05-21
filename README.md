@@ -75,12 +75,6 @@ Guidelines to help you do this are provided in [CONTRIBUTING.md](./CONTRIBUTING.
 A high-level plan for Myokit's future is provided in the [roadmap](./ROADMAP.md).
 
 
-### Meet the team!
-
-Myokit's development is driven by a [team](https://github.com/orgs/myokit/people) at the Universities of Nottingham, Oxford, and Macao, led by Michael Clerx (Nottingham).
-It is guided by an external advisory group composed of Jordi Heijman (Maastricht University), Trine Krogh-Madsen (Weill Cornell Medicine), and David Gavaghan (Oxford).
-
-
 ## Citing Myokit
 
 If you use Myokit in your research, please cite it using the information in our [CITATION file](https://github.com/myokit/myokit/blob/main/CITATION).

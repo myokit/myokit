@@ -55,7 +55,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             An optional :class:`myokit.Protocol` or ``dict`` mapping binding
             names to :class:`myokit.Protocol` objects that define pacing or
             dosing schedules. If a map is not given then the binding name is
-            assumed to be `pace`. When given, the exporter generates a
+            assumed to be ``pace``. When given, the exporter generates a
             hybrid ODE model using DiffSL's ``N`` and ``stop`` constructs.
             All events are
             expanded to one-off transitions; periodic events require
