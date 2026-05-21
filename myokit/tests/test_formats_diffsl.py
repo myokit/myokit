@@ -694,6 +694,118 @@ class DiffSLExporterTest(unittest.TestCase):
                     final_time=20,
                 )
 
+    def test_protocol_schedule_name_keyword_conflict(self):
+        # Tests that a protocol label whose converted name conflicts with a
+        # DiffSL keyword gets a numbered suffix
+
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        model = myokit.parse_model("""
+[[model]]
+c.y = 1.0
+
+[engine]
+time = 0 [ms] bind time
+sin = 0
+    bind sin
+
+[c]
+dot(y) = engine.sin - y
+""")
+        p = myokit.Protocol()
+        p.schedule(level=2, start=0, duration=10)
+
+        with TemporaryDirectory() as d:
+            path = d.path("protocol.diffsl")
+            e.model(path, model, protocol={"sin": p}, final_time=20)
+
+            with open(path, "r") as f:
+                content = f.read()
+
+        # "sin" conflicts with the DiffSL keyword, so it should be renamed to
+        # "sin1" and the schedule block should use "sin1_i"
+        self.assertIn("sin1_i", content)
+        self.assertNotIn("sin_i", content)
+        self.assertIn("sin1_i[N]", content)
+
+    def test_protocol_schedule_name_reserved_conflict(self):
+        # Tests that a protocol label whose converted name conflicts with a
+        # reserved name (N, reset, stop) gets a numbered suffix
+
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        model = myokit.parse_model("""
+[[model]]
+c.y = 1.0
+
+[engine]
+time = 0 [ms] bind time
+N = 0
+    bind N
+
+[c]
+dot(y) = engine.N - y
+""")
+        p = myokit.Protocol()
+        p.schedule(level=2, start=0, duration=10)
+
+        with TemporaryDirectory() as d:
+            path = d.path("protocol.diffsl")
+            e.model(path, model, protocol={"N": p}, final_time=20)
+
+            with open(path, "r") as f:
+                content = f.read()
+
+        # "N" conflicts with the reserved names, so it should be renamed
+        self.assertIn("N1_i", content)
+        self.assertNotIn("N_i", content)
+        self.assertIn("N1_i[N]", content)
+
+    def test_protocol_schedule_name_duplicate_root(self):
+        # Tests that two protocol labels whose converted roots collide get
+        # numbered suffixes.
+
+        e = myokit.formats.diffsl.DiffSLExporter()
+
+        model = myokit.parse_model("""
+[[model]]
+c.y = 1.0
+
+[engine]
+time = 0 [ms] bind time
+a = 0
+    bind a
+a_ = 0
+    bind a_
+
+[c]
+dot(y) = engine.a + engine.a_ - y
+""")
+        p1 = myokit.Protocol()
+        p1.schedule(level=1, start=0, duration=5)
+
+        p2 = myokit.Protocol()
+        p2.schedule(level=2, start=5, duration=10)
+
+        with TemporaryDirectory() as d:
+            path = d.path("protocol.diffsl")
+            e.model(
+                path,
+                model,
+                protocol={"a": p1, "a_": p2},
+                final_time=20,
+            )
+
+            with open(path, "r") as f:
+                content = f.read()
+
+        # Both "a" and "a_" convert to "a" via _convert_name.
+        # The first gets "a", the second triggers the while loop and gets "a1".
+        self.assertIn("a_i", content)
+        self.assertIn("a1_i", content)
+        self.assertIn("a_i[N]", content)
+        self.assertIn("a1_i[N]", content)
+
     def test_explicit_time_dependence(self):
         # Tests that explicit time dependence (dot(y) = -y * t) is supported
         m_td = myokit.parse_model("""
