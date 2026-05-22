@@ -675,8 +675,6 @@ class DiffSLExporter(myokit.formats.Exporter):
         used = set()
         for label in labels:
             root = self._convert_name(label)
-            if not root:
-                root = 'protocol'
             name = root
             i = 1
             while name in reserved or name in used:
