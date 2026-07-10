@@ -919,7 +919,8 @@ class AnalyticalSimulation:
         return list(self._state)
 
 
-def convert_hh_states_to_inf_tau_form(model, v=None):
+def convert_hh_states_to_inf_tau_form(
+        model, v=None, state_name_in_var_name=False):
     """
     Scans a :class:`myokit.Model` for Hodgkin-Huxley style states written in
     "alpha-beta form", and converts them to "inf-tau form".
@@ -942,6 +943,9 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
         potential. If not given, the method will search for a variable labelled
         ``membrane_potential``. An error is raised if no membrane potential
         variable can be found.
+    ``state_name_in_var_name``
+        By default, variables are called ``inf`` and ``tau``. Set this to
+        ``True`` to use e.g. ``m_inf`` instead.
 
     Returns an updated copy of the given model.
     """
@@ -971,9 +975,11 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
             # Create variabless for inf and tau
             a = myokit.Name(res[0])
             b = myokit.Name(res[1])
-            tau = x.add_variable_allow_renaming('tau')
+            n = f'{x.name()}_tau' if state_name_in_var_name else 'tau'
+            tau = x.add_variable_allow_renaming(n)
             tau.set_rhs(myokit.Divide(myokit.Number(1), myokit.Plus(a, b)))
-            inf = x.add_variable_allow_renaming('inf')
+            n = f'{x.name()}_inf' if state_name_in_var_name else 'inf'
+            inf = x.add_variable_allow_renaming(n)
             inf.set_rhs(myokit.Multiply(a, myokit.Name(tau)))
 
             # Update RHS expression for state

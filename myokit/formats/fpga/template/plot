@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+import matplotlib.pyplot as plt
+
+with open('result.golden.dat', 'r') as f:
+    v = [float(x) for x in f.readlines()]
+
+fig = plt.figure()
+ax = fig.add_subplot()
+ax.plot(v)
+plt.show()
+

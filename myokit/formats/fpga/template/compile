@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+gcc -Wall -lm model_main.cpp model.cpp -o run
