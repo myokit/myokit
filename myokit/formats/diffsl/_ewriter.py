@@ -9,7 +9,7 @@
 #
 import warnings
 
-from myokit import And, Equal, If, LessEqual, Log, MoreEqual, Not, Number
+from myokit import And, Equal, LessEqual, Log, MoreEqual, Not, Number
 from myokit.formats.ansic import CBasedExpressionWriter
 
 
@@ -125,21 +125,23 @@ class DiffSLExpressionWriter(CBasedExpressionWriter):
     # -- Conditional expressions
 
     def _ex_if(self, e):
-        _if = self.ex(e._i)
+        _condition = self.ex(e._i)
         _then = self.ex(e._t)
-        _not_if = self.ex(Not(e._i))
         _else = self.ex(e._e)
 
-        return f'({_if} * {_then} + {_not_if} * {_else})'
+        return f'piecewise({_condition} - 0.5, {_then}, {_else})'
 
     def _ex_piecewise(self, e):
-        # Convert piecewise to nested ifs
-        # e.g. piecewise(a, b, c, d, e) -> if(a, b, if(c, d, e))
         n = len(e._i)
+        parts = []
 
-        _nested_ifs = e._e[n]
+        for i in range(n):
+            _condition = self.ex(e._i[i])
+            _value = self.ex(e._e[i])
+            parts.append(f'{_condition} - 0.5')
+            parts.append(_value)
 
-        for i in range(n - 1, -1, -1):
-            _nested_ifs = If(e._i[i], e._e[i], _nested_ifs)
+        _fallback = self.ex(e._e[n])
+        parts.append(_fallback)
 
-        return self._ex_if(_nested_ifs)
+        return f'piecewise({", ".join(parts)})'

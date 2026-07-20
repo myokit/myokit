@@ -1313,58 +1313,52 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         self.eq(
             If(Equal(a, b), c, d),
-            "(heaviside(a - b) * heaviside(b - a) * c"
-            " + (1 - heaviside(a - b) * heaviside(b - a)) * d)",
+            "piecewise(heaviside(a - b) * heaviside(b - a) - 0.5, c, d)",
         )
 
         self.eq(
             If(Equal(a, b), c, Number(0)),
-            "(heaviside(a - b) * heaviside(b - a) * c"
-            " + (1 - heaviside(a - b) * heaviside(b - a)) * 0.0)",
+            "piecewise(heaviside(a - b) * heaviside(b - a) - 0.5, c, 0.0)",
         )
 
         self.eq(
             If(Equal(a, b), Number(0), d),
-            "(heaviside(a - b) * heaviside(b - a) * 0.0"
-            " + (1 - heaviside(a - b) * heaviside(b - a)) * d)",
+            "piecewise(heaviside(a - b) * heaviside(b - a) - 0.5, 0.0, d)",
         )
 
         self.eq(
             If(Equal(a, b), c, Number(1)),
-            "(heaviside(a - b) * heaviside(b - a) * c"
-            " + (1 - heaviside(a - b) * heaviside(b - a)) * 1.0)",
+            "piecewise(heaviside(a - b) * heaviside(b - a) - 0.5, c, 1.0)",
         )
 
         self.eq(
             If(Equal(a, b), Number(1), d),
-            "(heaviside(a - b) * heaviside(b - a) * 1.0"
-            " + (1 - heaviside(a - b) * heaviside(b - a)) * d)",
+            "piecewise(heaviside(a - b) * heaviside(b - a) - 0.5, 1.0, d)",
         )
 
         self.eq(
             If(NotEqual(a, b), c, d),
-            "((1 - heaviside(a - b) * heaviside(b - a)) * c"
-            " + (1 - (1 - heaviside(a - b) * heaviside(b - a))) * d)",
+            "piecewise((1 - heaviside(a - b) * heaviside(b - a)) - 0.5, c, d)",
         )
 
         self.eq(
             If(More(a, b), c, d),
-            "((1 - heaviside(b - a)) * c + (1 - (1 - heaviside(b - a))) * d)",
+            "piecewise((1 - heaviside(b - a)) - 0.5, c, d)",
         )
 
         self.eq(
             If(MoreEqual(a, b), c, d),
-            "(heaviside(a - b) * c + (1 - heaviside(a - b)) * d)",
+            "piecewise(heaviside(a - b) - 0.5, c, d)",
         )
 
         self.eq(
             If(Less(a, b), c, d),
-            "((1 - heaviside(a - b)) * c + (1 - (1 - heaviside(a - b))) * d)",
+            "piecewise((1 - heaviside(a - b)) - 0.5, c, d)",
         )
 
         self.eq(
             If(LessEqual(a, b), c, d),
-            "(heaviside(b - a) * c + (1 - heaviside(b - a)) * d)",
+            "piecewise(heaviside(b - a) - 0.5, c, d)",
         )
 
     def test_piecewise_expressions(self):
@@ -1402,16 +1396,14 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         self.eq(
             Piecewise(Equal(a, b), c, Equal(a, d), Number(3), Number(4)),
-            self.w.ex(
-                If(Equal(a, b), c, If(Equal(a, d), Number(3), Number(4)))
-            ),
+            "piecewise(heaviside(a - b) * heaviside(b - a) - 0.5, c, "
+            "heaviside(a - d) * heaviside(d - a) - 0.5, 3.0, 4.0)",
         )
 
         self.eq(
             Piecewise(Less(a, b), Number(0), Less(c, d), Number(0), Number(5)),
-            "((1 - heaviside(a - b)) * 0.0 "
-            "+ (1 - (1 - heaviside(a - b))) * ((1 - heaviside(c - d)) * 0.0 "
-            "+ (1 - (1 - heaviside(c - d))) * 5.0))",
+            "piecewise((1 - heaviside(a - b)) - 0.5, 0.0, "
+            "(1 - heaviside(c - d)) - 0.5, 0.0, 5.0)",
         )
 
     def test_heaviside_numerical(self):
@@ -1419,6 +1411,12 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
         def heaviside(x):
             return 1 if x >= 0 else 0
+
+        def piecewise(*args):
+            for i in range(0, len(args) - 1, 2):
+                if args[i] >= 0:
+                    return args[i + 1]
+            return args[-1]
 
         values = itertools.product(
             [-10e9, -1, -1e-9, 0, 1e-9, 1, 10e9], repeat=4

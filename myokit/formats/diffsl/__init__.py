@@ -50,6 +50,7 @@ keywords = [
     'log',
     'M',
     'out',
+    'piecewise',
     'pow',
     'sigmoid',
     'sin',
