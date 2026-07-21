@@ -1080,7 +1080,7 @@ class AnalyticalSimulation:
         times = np.asarray(times).reshape((len(times),))
 
         # Calculate state
-        x = P.dot(y0 * np.exp(times * E))
+        x = np.real_if_close(P.dot(y0 * np.exp(times * E)))
 
         # Calculate current and/or return
         if self._has_current:
