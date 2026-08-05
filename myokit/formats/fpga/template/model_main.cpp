@@ -15,6 +15,7 @@ float pace = 0.0f;
 // timing variables
 float dt = <?= float(sim_step) ?>f;
 float tSim = <?= float(sim_duration) ?>f;
+int n_iterations = int(tSim / dt);
 
 // Parameters
 <?
@@ -26,10 +27,9 @@ int main(int argc, char *argv[]){
 
     fp1 = fopen("result.golden.dat", "w");
 
-    // Just because I want an array with time and one with membrane potential
-    float* tArray = (float*)malloc(tSim/dt*sizeof(float));
-    float* Vm = (float*)malloc(tSim/dt*sizeof(float));
-    int k = 0;
+    // Time and membrane potential
+    float* tArray = (float*)malloc(n_iterations * sizeof(float));
+    float* Vm = (float*)malloc(n_iterations * sizeof(float));
     float t = 0;
     float t2 = 0;
 
@@ -37,20 +37,19 @@ int main(int argc, char *argv[]){
 for var in model.states():
     print(f'{tab}float Y_{var.index()} = {var.initial_value().eval()}f;')  # TODO, Comment
 ?>
-    while(t<tSim){
+    for(int i=0; i<n_iterations; i++) {
 <?
 if event is not None:
     print(f'{tab * 2}pace = (t2 >= {float(event.start())}f && t2 < {float(event.start() + event.duration())}f) ? 1.0f : 0.0f;')
 ?>
-        tArray[k] = t;
-
         <?= call ?>;
 
 <?
 for var in model.states():
     print(f'{tab * 2}Y_{var.index()} = SV_{var.index()};')
 ?>
-        Vm[k] = SV_<?= vm.index() ?>;
+        tArray[i] = t;
+        Vm[i] = SV_<?= vm.index() ?>;
 
         t = t+dt;
 <?
@@ -58,8 +57,7 @@ if event is not None:
     print(f'{tab * 2}t2 = t2 + dt;')
     print(f'{tab * 2}if(t2 > {float(sim_duration)}f) {{ t2 = t2 - {float(sim_duration)}f; }}')
 ?>
-        fprintf(fp1, "%5.4f\n", Vm[k]);
-        k++;
+        fprintf(fp1, "%5.4f\n", Vm[i]);
     }
 
     fclose(fp1);

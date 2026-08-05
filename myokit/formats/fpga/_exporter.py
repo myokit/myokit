@@ -43,6 +43,8 @@ class FPGAExporter(myokit.formats.TemplatedRunnableExporter):
             'model.hpp': 'model.hpp',
             'model.cpp': 'model.cpp',
             'model_main.cpp': 'model_main.cpp',
+            'compile': 'compile.sh',
+            'plot': 'plot.py',
         }
 
     def post_export_info(self):
