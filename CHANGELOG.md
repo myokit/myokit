@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#1203](https://github.com/myokit/myokit/pull/1203) CVODES now includes sensitivities in its error control.
 - Deprecated
 - Removed
 - Fixed
