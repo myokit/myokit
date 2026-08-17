@@ -34,6 +34,9 @@ import myokit
     #define realtype sunrealtype
     #define RCONST SUN_RCONST
 #endif
+#ifndef SUNTRUE
+    #define SUNTRUE 1
+#endif
 #include <nvector/nvector_serial.h>
 #include <cvodes/cvodes.h>
 #if SUNDIALS_VERSION_MAJOR >= 3
@@ -1240,6 +1243,17 @@ sim_init(PyObject *self, PyObject *args)
             /* Set sensitivity tolerances calculating method (using pbar) */
             flag_cvode = CVodeSensEEtolerances(cvode_mem);
             if (check_cvode_related_flag(flag_cvode, "CVodeSensEEtolerances")) return sim_clean();
+
+            /* Include the sensitivities in the local error test.
+               CVODES defaults errconS to SUNFALSE, which leaves the step size controlled by
+               the states alone: nothing then controls the sensitivity error, and because the
+               sensitivity RHS is difference-quotiented with a perturbation of
+               sqrt(max(rtol, uround))*pbar, tightening rtol both shrinks that perturbation
+               (more cancellation per evaluation) and takes more steps (more evaluations to
+               accumulate it). The result is that sensitivities get *less* accurate as
+               set_tolerance is tightened, while the states get more accurate -- see #1202. */
+            flag_cvode = CVodeSetSensErrCon(cvode_mem, SUNTRUE);
+            if (check_cvode_related_flag(flag_cvode, "CVodeSetSensErrCon")) return sim_clean();
 
             #ifdef MYOKIT_DEBUG_PROFILING
             benchmarker_print("CP CVODES sensitivity methods initialized.");
