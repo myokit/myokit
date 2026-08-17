@@ -34,6 +34,9 @@ import myokit
     #define realtype sunrealtype
     #define RCONST SUN_RCONST
 #endif
+#ifndef SUNTRUE
+    #define SUNTRUE 1
+#endif
 #include <nvector/nvector_serial.h>
 #include <cvodes/cvodes.h>
 #if SUNDIALS_VERSION_MAJOR >= 3
