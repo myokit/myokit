@@ -1485,6 +1485,25 @@ class ModelTest(unittest.TestCase):
         # Test float version
         self.assertEqual(m.initial_values(True), [2, 3, 6])
 
+        # The model is validated before evaluating non-literal initial values,
+        # but not again while it is unchanged
+        validate = m.validate
+        calls = []
+
+        def counting_validate(*args, **kwargs):
+            calls.append(1)
+            return validate(*args, **kwargs)
+
+        m.validate = counting_validate
+        m._reset_validation()
+        self.assertEqual(m.initial_values(True), [2, 3, 6])
+        self.assertEqual(m.initial_values(True), [2, 3, 6])
+        self.assertEqual(len(calls), 1)
+        p.set_rhs(4)
+        self.assertEqual(m.initial_values(True), [2, 3, 8])
+        self.assertEqual(len(calls), 2)
+        del m.validate
+
         # Test deprecated alias
         with WarningCollector() as w:
             self.assertEqual(m.state(), m.initial_values(True))

@@ -300,6 +300,25 @@ class VariableTest(unittest.TestCase):
         x.set_initial_value('1 + sqrt(c.p)')
         self.assertEqual(x.initial_value(True), 4)
 
+        # The model is validated before evaluating a non-literal initial
+        # value, but not again while it is unchanged
+        validate = m.validate
+        calls = []
+
+        def counting_validate(*args, **kwargs):
+            calls.append(1)
+            return validate(*args, **kwargs)
+
+        m.validate = counting_validate
+        self.assertEqual(x.initial_value(True), 4)
+        self.assertEqual(x.initial_value(True), 4)
+        self.assertEqual(len(calls), 0)
+        p.set_rhs(16)
+        self.assertEqual(x.initial_value(True), 5)
+        self.assertEqual(x.initial_value(True), 5)
+        self.assertEqual(len(calls), 1)
+        del m.validate
+
         # Test deprecated alias
         with WarningCollector() as w:
             self.assertEqual(x.state_value(), x.initial_value(True))

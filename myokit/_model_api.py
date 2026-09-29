@@ -2095,8 +2095,11 @@ class Model(ObjectWithMetaData, VarProvider):
         a list of floats by setting ``as_floats=True``.
         """
         if as_floats:
-            if any(not e.is_literal() for e in self._state_init):
-                self.validate()  # Check for cycles before evaluating
+            # Check for cycles before evaluating, unless validated since the
+            # last change
+            if not self._valid and any(
+                    not e.is_literal() for e in self._state_init):
+                self.validate()
             return [float(y) for y in self._state_init]
         return list(self._state_init)
 
@@ -4412,7 +4415,9 @@ class Variable(VarOwner):
         expr = model._state_init[self._index]
         if not as_float:
             return expr
-        if not expr.is_literal():
+        if not (expr.is_literal() or model.is_valid()):
+            # Check for cycles before evaluating, unless validated since the
+            # last change
             model.validate()
         return expr.eval()
 
