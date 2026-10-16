@@ -94,12 +94,6 @@ myokit.formats.cellml.v2
 - :meth:`myokit.formats.cellml.v2.write_file`
 - :meth:`myokit.formats.cellml.v2.write_string`
 
-myokit.formats.channelml
-------------------------
-- :class:`myokit.formats.channelml.ChannelMLError`
-- :class:`myokit.formats.channelml.ChannelMLImporter`
-- :meth:`myokit.formats.channelml.importers`
-
 myokit.formats.cpp
 ------------------------
 - :class:`myokit.formats.cpp.CppExpressionWriter`

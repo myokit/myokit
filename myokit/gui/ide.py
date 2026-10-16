@@ -67,7 +67,6 @@ FILTER_MMT = 'Myokit mmt files (*.mmt);;' + FILTER_ALL
 FILTER_ABF = 'Axon files (*.abf *.pro);; Axon Binary File (*.abf)' \
     + ';;Axon Protocol File (*.pro);;' + FILTER_ALL
 FILTER_CELLML = 'CellML file (*.cellml *.xml);;' + FILTER_ALL
-FILTER_CHANNELML = 'ChannelML file (*.channelml *.xml);;' + FILTER_ALL
 FILTER_HTML = 'HTML file (*.html *.htm);;' + FILTER_ALL
 FILTER_LATEX = 'Tex file (*.tex)' + FILTER_ALL
 FILTER_SBML = 'SBML file (*.sbml *.xml)' + FILTER_ALL
@@ -1792,14 +1791,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_import_abf.triggered.connect(
             self.action_import_abf_protocol)
         self._menu_convert.addAction(self._tool_import_abf)
-        # Convert > Import ChannelML
-        self._tool_import_channelml = QtGui.QAction(
-            'Import model from ChannelML', self)
-        self._tool_import_channelml.setStatusTip(
-            'Import a channel model from ChannelML.')
-        self._tool_import_channelml.triggered.connect(
-            lambda: self.action_import_model('channelml', FILTER_CHANNELML))
-        self._menu_convert.addAction(self._tool_import_channelml)
         # Convert > Import SBML
         self._tool_import_sbml = QtGui.QAction('Import model from SBML', self)
         self._tool_import_sbml.setStatusTip(
