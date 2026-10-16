@@ -4,9 +4,11 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1214](https://github.com/myokit/myokit/pull/1214) Myokit is now tested on Python 3.15.
 - Changed
   - [#1203](https://github.com/myokit/myokit/pull/1203) CVODES now includes sensitivities in its error control.
-  - [#1214](https://github.com/myokit/myokit/pull/1214) Myokit is now tested on Python 3.15.
+  - [X](https://github.com/myokit/myokit/pull/XXXXX) Project configuration is now mostly handled by `pyproject.toml`.
+  - [X](https://github.com/myokit/myokit/pull/XXXX) Development versions of Myokit now have a version ending in `dev0` (formerly ended in `dev`).
 - Deprecated
 - Removed
   - [#1206](https://github.com/myokit/myokit/pull/1206) Removed the unused `JacobianCalculator`, `JacobianTracer`, and `CppModule` classes.
