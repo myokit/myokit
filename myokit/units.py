@@ -16,6 +16,12 @@ def _add(name, unit, quantifiable=False, output=False):
     myokit.Unit.register(name, unit, quantifiable, output)
 
 
+
+def r(name, quantifiable=False, output=False):
+    """ Registers a unit with the myokit unit system. """
+    myokit.Unit.register(name, globals()[name], quantifiable, output)
+
+
 def _rep(name):
     unit = myokit.parse_unit(name)
     myokit.Unit.register_preferred_representation(name, unit)
@@ -25,32 +31,31 @@ def _rep(name):
 # SI myokit.Units
 #
 # Dimensionless
-_add('dimensionless', myokit.Unit())
+dimensionless = myokit.Unit(); r('dimensionless')
 # Angles
-_add('rad', dimensionless)
-_add('radian', dimensionless)
-_add('sr', dimensionless)
-_add('steradian', dimensionless)
+rad = dimensionless; r('rad')
+radian = dimensionless; r('radian')
+sr = dimensionless; r('sr')
+steradian = dimensionless; r('steradian')
 # Basic SI units
-_add('kg', myokit.Unit(
-    [1, 0, 0, 0, 0, 0, 0], 3), quantifiable=False, output=True)
-_add('m', myokit.Unit([0, 1, 0, 0, 0, 0, 0]), quantifiable=True, output=True)
-_add('s', myokit.Unit([0, 0, 1, 0, 0, 0, 0]), quantifiable=True, output=True)
-_add('A', myokit.Unit([0, 0, 0, 1, 0, 0, 0]), quantifiable=True, output=True)
-_add('K', myokit.Unit([0, 0, 0, 0, 1, 0, 0]), quantifiable=True, output=True)
-_add('cd', myokit.Unit([0, 0, 0, 0, 0, 1, 0]), quantifiable=True, output=True)
-_add('mol', myokit.Unit([0, 0, 0, 0, 0, 0, 1]), quantifiable=True, output=True)
+kg = myokit.Unit([1, 0, 0, 0, 0, 0, 0], 3); r('kg', True, True)
+m = myokit.Unit([0, 1, 0, 0, 0, 0, 0]); r('m', True, True)
+s = myokit.Unit([0, 0, 1, 0, 0, 0, 0]); r('s', True, True)
+A = myokit.Unit([0, 0, 0, 1, 0, 0, 0]); r('A', True, True)
+K = myokit.Unit([0, 0, 0, 0, 1, 0, 0]); r('K', True, True)
+cd = myokit.Unit([0, 0, 0, 0, 0, 1, 0]); r('cd', True, True)
+mol = myokit.Unit([0, 0, 0, 0, 0, 0, 1]); r('mol', True, True)
 # SI unit aliases
-_add('kilogram', kg)
-_add('metre', m)
-_add('meter', m)
-_add('second', s)
-_add('ampere', A)
-_add('Ampere', A)
-_add('kelvin', K)
-_add('Kelvin', K)
-_add('candela', cd)
-_add('mole', mol)
+kilogram = kg; r('kilogram')
+metre = m; r('metre')
+meter = m; r('meter')
+second = s; r('second')
+ampere = A; r('ampere')
+Ampere = A; r('Ampere')
+kelvin = K; r('kelvin')
+Kelvin = K; r('Kelvin')
+candela = cd; r('candela')
+mole = mol; r('mole')
 # Derived SI units
 # The SI units are added in lowercase, as specified by the SI
 # The SI units that are derived from names are also added capitalized, as this
