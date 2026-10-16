@@ -1,7 +1,69 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "myokit"
+version = "1.40.0.dev0"
+license = "BSD-3-Clause"
+license-files = ["LICENSE.txt"]
+readme = {file = "README.md", content-type = "text/markdown"}
+description = "A modeling and simulation tool for cardiac cellular electrophysiology"
+authors = [{name = "Myokit team", email = "michael@myokit.org"}]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "configparser",
+    "lxml",
+    "matplotlib>=2.2",
+    "numpy",
+    "setuptools>=64"
+]
+
+[project.optional-dependencies]
+dev = [
+    "coverage",     # Coverage checking
+    "flake8>=3",    # Style checking
+]
+docs = [
+    "sphinx>=1.7.4",    # To regenerate the documentation
+]
+optional = [
+    "scipy",    # Used to load matlab files in DataLogViewer, spline in DataLog
+    "sympy",    # Used only in sympy import/export
+]
+# GUI dependencies: Note that these are not BSD-license compatible
+gui = ["pyqt6", "sip"]      # Commercially license or GPL
+pyqt = ["pyqt6", "sip"]     # Commercially license or GPL
+pyside = ["pyside6"]        # Commercially license or LGPL
+
+[project.scripts]
+myokit = "myokit.__main__:main"
+
+[project.urls]
+Homepage = "https://myokit.org"
+Documentation = "https://docs.myokit.org/"
+Repository = "https://github.com/myokit/myokit"
+Issues = "https://github.com/myokit/myokit/issues"
+Changelog = "https://github.com/myokit/myokit/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = [""]
+include = ["myokit*"]
+#exclude = ["additional*"]`
+
+# Style settings for ruff, may be used in future!
 [tool.ruff]
 line-length = 79
 
