@@ -50,8 +50,6 @@ myokit
 - :meth:`myokit.format_path`
 - :class:`myokit.Function`
 - :class:`myokit.GenerationError`
-- :class:`myokit.JacobianCalculator`
-- :class:`myokit.JacobianTracer`
 - :class:`myokit.If`
 - :class:`myokit.IllegalAliasError`
 - :class:`myokit.IllegalReferenceError`
