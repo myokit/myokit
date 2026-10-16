@@ -12,6 +12,8 @@ This page lists the main changes made to Myokit in each release.
   - [#1207](https://github.com/myokit/myokit/pull/1207) Removed the `gtksourceview` syntax highlighting support.
   - [#1208](https://github.com/myokit/myokit/pull/1208) Removed the obsolete `ChannelML` support.
 - Fixed
+  - [#1160](https://github.com/myokit/myokit/pull/1160) The `PatchMasterFile` class can now handle dates as stored by Windows versions.
+
 
 ## [1.39.2] - 2026-03-18
 - Added
