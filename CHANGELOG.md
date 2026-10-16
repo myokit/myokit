@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1203](https://github.com/myokit/myokit/pull/1203) CVODES now includes sensitivities in its error control.
 - Deprecated
 - Removed
+  - [#1206](https://github.com/myokit/myokit/pull/1206) Removed the `JacobianCalculator`, `JacobianTracer`, and `CppModule` classes.
 - Fixed
 
 ## [1.39.2] - 2026-03-18

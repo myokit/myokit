@@ -42,7 +42,6 @@ of the state space.
     Protocol
     DataLog
     DataBlock
-    Jacobians
     RhsBenchmarker
     SimulationErrors
     LongSimulations

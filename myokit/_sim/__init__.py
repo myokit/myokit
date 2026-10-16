@@ -337,14 +337,6 @@ class CModule:
         return 'source.c'
 
 
-class CppModule(CModule):
-    """
-    Extends the :class:`CModule` class and adds C++ support.
-    """
-    def _source_file(self):
-        return 'source.cpp'
-
-
 def pid_hash():
     """
     Returns a positive integer hash that depends on the current time as well as
