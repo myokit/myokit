@@ -3031,7 +3031,7 @@ class Model(ObjectWithMetaData, VarProvider):
         if var.is_state():
             value = var.initial_value()
             out.append('Initial value = ' + value.code())
-            if not isinstance(value, myokit.Number):
+            if not isinstance(value, myokit.Number):                            # TODO: Bug???
                 out.append('              = ' + format_float(value))
             out.append(spacer)
         varname = var.lhs().code()
@@ -3475,8 +3475,8 @@ class Model(ObjectWithMetaData, VarProvider):
             self._valid = False
             raise myokit.MissingTimeVariableError()
         if time.binding() != 'time':    # pragma: no cover
-            # Added cover pragma: This can only happen if there is a bug
-            # somewhere!
+            # Added cover pragma: This can only happen if there is an API bug,
+            # or if someone has messed with the internals.
             self._valid = False
             raise myokit.IntegrityError(
                 'Invalid time variable set. Time variable must be bound to'
@@ -3548,36 +3548,31 @@ class Model(ObjectWithMetaData, VarProvider):
         def follow(lhs, var, trail, mark_used=True):
             if lhs in trail:
                 # Catch cycles
-                i = trail.index(lhs)
-                c = trail[i:]
+                c = trail[trail.index(lhs):]
                 c.append(lhs)
                 raise myokit.CyclicalDependencyError(c)
             if not var._used:
                 trail.append(lhs)
                 for d in var.rhs().references():
                     v = d.var()
-                    if not v.is_state() and d.is_derivative:
+                    if not v.is_state() and d.is_derivative:                    # TODO BUG
                         follow(d, v, trail, mark_used)
                 trail.pop()
                 if mark_used:
                     var._used = True
 
         # Follow all state variables (unless already visited), all bound
-        # variables and all used variables.
+        # variables and all labelled variables.
         used = [x for x in self._state_vars]
         used += [x for x in self._bindings.values()]
         used += [x for x in self._labels.values()]
 
         # Check for cycles
-        trail = []
-
         # Despite its "slow" is-in check, using a list for this purpose is
         # faster than using an OrderedDict. Tested this. It's probably because
         # the trail is usually quite short and hashing is slow.
         for var in used:
-            lhs = var.lhs()
-            trail = []
-            follow(lhs, var, trail)
+            follow(var.lhs(), var, [])
 
         # Check for unused variables
         to_remove = []
@@ -3592,9 +3587,7 @@ class Model(ObjectWithMetaData, VarProvider):
                     self._warn(myokit.UnusedVariableError(var))
                     # In this case, the unused variables should also be checked
                     # for cyclical references!
-                    lhs = var.lhs()
-                    trail = []
-                    follow(lhs, var, trail, False)
+                    follow(var.lhs(), var, [], False)
 
         # Remove unused variables (if enabled)
         for var in to_remove:

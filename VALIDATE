@@ -1,0 +1,37 @@
+# When sim is created:
+
+myokit/_sim/cable.py:        model.validate()
+myokit/_sim/fiber_tissue.py:        fiber_model.validate()
+myokit/_sim/fiber_tissue.py:        tissue_model.validate()
+myokit/_sim/jacobian.py:        model.validate()
+myokit/_sim/jacobian.py:        model.validate()
+myokit/_sim/rhs.py:        model.validate()
+myokit/_sim/openclsim.py:            model.validate()
+myokit/_sim/cvodessim.py:            model.validate()
+myokit/lib/hh.py:        self._model.validate(remove_unused_variables=True)
+myokit/lib/hh.py:        self._model.validate()
+myokit/lib/markov.py:        self._model.validate()
+
+# When exporting
+
+myokit/formats/cellml/v1/_api.py:        model.validate()
+myokit/formats/cellml/v2/_api.py:        model.validate()
+myokit/formats/easyml/_exporter.py:            model.validate()
+myokit/formats/easyml/_exporter.py:        model.validate(remove_unused_variables=True)
+myokit/formats/sbml/_api.py:        model.validate()
+myokit/formats/diffsl/_exporter.py:            model.validate()
+myokit/formats/__init__.py:        model.validate() <-- TemplatedRunnableExporter
+
+# After parsing
+
+myokit/_parsing.py:        model.validate()
+
+myokit/_model_api.py:                self.validate()  # Check for cycles before evaluating
+myokit/_model_api.py:        self.validate()
+myokit/_model_api.py:            c.validate()
+myokit/_model_api.py:            v.validate()
+myokit/_model_api.py:            self.model().validate()  # Model must be valid before evaluations
+myokit/_model_api.py:            model.validate()
+myokit/_model_api.py:            model.validate()
+myokit/_model_api.py:        self._rhs.validate()
+myokit/_model_api.py:            v.validate()
