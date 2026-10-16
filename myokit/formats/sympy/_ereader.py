@@ -14,6 +14,8 @@ class SymPyExpressionReader:
 
     Any variable names will be resolved against the given model. If no model is
     given, string names will be used instead of myokit Variable objects.
+
+    This class requires SymPy to be installed.
     """
     def __init__(self, model=None):
         self._model = model

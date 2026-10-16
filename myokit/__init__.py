@@ -52,12 +52,10 @@ del sys
 #
 # Version information
 #
-from ._myokit_version import (  # noqa
-    __release__,
-    __version__,
-    __version_tuple__,
-)
-
+import importlib.metadata  # noqa
+__version__ = importlib.metadata.version('myokit')
+__release__ = len(__version__.split('.')) == 3
+del importlib  # Not del importlib.metadata, which removes part of importlib!
 
 # Warn about development version
 if not __release__:     # pragma: no cover

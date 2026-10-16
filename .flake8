@@ -4,6 +4,7 @@ filename=
     test
 exclude=
     dev,
+    dist,
     .git,
     .github,
     myokit.egg-info,

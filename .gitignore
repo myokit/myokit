@@ -6,6 +6,7 @@ dev
 __pycache__
 
 # Ignore installation files
+dist
 *.egg-info
 
 # Jupyter notebooks

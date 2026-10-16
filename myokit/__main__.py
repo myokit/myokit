@@ -1664,7 +1664,7 @@ def test_in_repo():
     Returns ``True`` iff it thinks we're in the Myokit repo root directory.
     """
     import os
-    return os.path.isfile(os.path.join('myokit', '_myokit_version.py'))
+    return os.path.isfile(os.path.join('myokit', '__init__.py'))
 
 
 def test_mmt_files(path):
