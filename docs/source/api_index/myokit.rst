@@ -21,7 +21,6 @@ myokit
 - :class:`myokit.Component`
 - :class:`myokit.Condition`
 - :class:`myokit.Cos`
-- :class:`myokit.CppModule`
 - :class:`myokit.CyclicalDependencyError`
 - :class:`myokit.DataBlock1d`
 - :class:`myokit.DataBlock2d`

@@ -15,10 +15,6 @@ Back-end classes
     :private-members:
     :inherited-members:
 
-.. autoclass:: CppModule
-    :private-members:
-    :inherited-members:
-
 .. autoclass:: Compiler
 
 .. autofunction:: pid_hash

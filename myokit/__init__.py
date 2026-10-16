@@ -520,7 +520,6 @@ from ._datablock import (   # noqa
 # Simulations
 from ._sim import (  # noqa
     CModule,
-    CppModule,
     pid_hash,
 )
 from ._sim.compiler import (  # noqa
