@@ -9,6 +9,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
   - [#1206](https://github.com/myokit/myokit/pull/1206) Removed the `JacobianCalculator`, `JacobianTracer`, and `CppModule` classes.
+  - [#1207](https://github.com/myokit/myokit/pull/1207) Removed the `gtksourceview` syntax highlighting support.
 - Fixed
 
 ## [1.39.2] - 2026-03-18

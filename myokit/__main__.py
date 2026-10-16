@@ -523,13 +523,6 @@ def install_gnome_kde():
     from subprocess import call
     call(['update-mime-database', path])
 
-    # GtkSourceView file
-    print('Installing gtksourceview file for mmt syntax highlighting...')
-    path = os.path.join(
-        home, '.local', 'share', 'gtksourceview-3.0', 'language-specs')
-    name = 'myokit.lang'
-    place_file(path, name)
-
     print('Done')
 
 
