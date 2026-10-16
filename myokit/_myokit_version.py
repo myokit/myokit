@@ -19,6 +19,6 @@ __version_tuple__ = 1, 39, 3
 # String version of the version number
 __version__ = '.'.join([str(x) for x in __version_tuple__])
 if not __release__:  # pragma: no cover
-    __version_tuple__ += ('dev', )
-    __version__ += '.dev'
+    __version_tuple__ += ('dev0', )
+    __version__ += '.dev0'
 
