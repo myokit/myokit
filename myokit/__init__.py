@@ -52,7 +52,7 @@ del sys
 #
 # Version information
 #
-import importlib.metadata as md # noqa
+import importlib.metadata  # noqa
 __version__ = importlib.metadata.version('myokit')
 __release__ = len(__version__.split('.')) == 3
 del importlib  # Not del importlib.metadata, which removes part of importlib!
