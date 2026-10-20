@@ -25,6 +25,9 @@
 #include <CL/cl.h>
 #endif
 
+/* Compatibility */
+#define CL_TARGET_OPENCL_VERSION 200
+
 /* Maximum number of platforms/devices to check for. */
 #define MCL_MAX_PLATFORMS 255
 #define MCL_MAX_DEVICES 255
