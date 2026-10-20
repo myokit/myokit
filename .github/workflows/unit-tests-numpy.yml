@@ -31,7 +31,7 @@ jobs:
 
       - name: Install sundials
         run: |
-          sudo apt-get install libsundials-devel
+          sudo apt-get install libsundials-dev
 
       - name: Install Numpy 1.x
         run: |
