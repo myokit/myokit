@@ -1,8 +1,10 @@
 # Contributing to Myokit
 
-Contributions to Myokit are very welcome! To streamline our work, please have a look at the guidelines below.
+Contributions to Myokit are very welcome!
+This document explains how you can join in.
 
-We use [GIT](https://en.wikipedia.org/wiki/Git) and [GitHub](https://en.wikipedia.org/wiki/GitHub) to coordinate our work. When making any kind of update, try to follow the procedure below.
+We use [GIT](https://en.wikipedia.org/wiki/Git) and [GitHub](https://en.wikipedia.org/wiki/GitHub) to coordinate our work.
+When making any kind of contribution, please follow the procedure below.
 
 ### A. Discussing the proposed changes
 
@@ -48,9 +50,11 @@ You now have everything you need to start making changes!
 
 Thanks!
 
+## Use of chatbots or agents
 
-
-
+All communication in issues, PRs, email and otherwise, should be strictly human.
+Any posts to this GitHub page suspected to be computer generated may be deleted without warning.
+There are no restrictions on using agents or LLMs to prepare code, but the human submitting the code must take full responsibility for it, and is expected to have reviewed and understood the code, as well as the parts of Myokit that are being added to or modified.
 
 ## Project structure
 
