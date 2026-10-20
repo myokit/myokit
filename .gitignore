@@ -1,5 +1,6 @@
 # Ignore development files
 dev
+build
 
 # Ignore compiled .pyc files
 *.pyc
