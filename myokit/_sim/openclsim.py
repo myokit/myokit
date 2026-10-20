@@ -552,6 +552,7 @@ class SimulationOpenCL(myokit.CModule):
                             ifirst = i
                         if i == 0:  # pragma: no cover
                             break
+                print('We have hit this')
                 return ifirst, kfirst
 
         # Get the name of a time variable
