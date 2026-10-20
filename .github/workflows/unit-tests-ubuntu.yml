@@ -17,9 +17,9 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
-        sundials-version: ['v7.9.0']
     env:
       py-latest: '3.15'
+      sundials-version: 'v7.9.0'
 
     steps:
       - uses: actions/checkout@v7
@@ -35,14 +35,14 @@ jobs:
         run: |
           sudo .github/workflows/install-ubuntu-dependencies.sh
 
-      - name: Check out Sundials ${{ matrix.sundials-version }}
+      - name: Check out Sundials ${{ env.sundials-version }}
         uses: actions/checkout@v7
         with:
           repository: LLNL/sundials
           path: sundials
-          ref: ${{ matrix.sundials-version }}
+          ref: ${{ env.sundials-version }}
 
-      - name: Install Sundials ${{ matrix.sundials-version }}
+      - name: Install Sundials ${{ env.sundials-version }}
         run: |
           .github/workflows/install-sundials-manually.sh
 
@@ -66,13 +66,12 @@ jobs:
       - name: Run unit tests
         if: ${{ matrix.python-version != env.py-latest }}
         run: |
-          python -m myokit test
+          python -m myokit test unit
 
       - name: Run coverage tests
         if: ${{ matrix.python-version == env.py-latest }}
         run: |
-          # coverage run -m myokit test unit
-          python myokit/tests/test_simulation_opencl.py
+          coverage run -m myokit test unit
 
       - name: Submit report to codecov
         if: ${{ matrix.python-version == env.py-latest }}
