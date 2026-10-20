@@ -552,8 +552,10 @@ class SimulationOpenCL(myokit.CModule):
                             ifirst = i
                         if i == 0:  # pragma: no cover
                             break
-                print('We have hit this')
-                return ifirst, kfirst
+                # There is a weird coverage issue that marks "return ifirst,
+                # kfirst" as uncovered when running on github actions
+                res = ifirst, kfirst
+                return res
 
         # Get the name of a time variable
         time_var = self._model.time().qname()
