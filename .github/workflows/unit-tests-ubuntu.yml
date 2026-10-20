@@ -16,22 +16,35 @@ jobs:
     if: github.event.pull_request.draft == false
     strategy:
       matrix:
-        # All Python versions except latest, which is tested by coverage.
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
+        sundials-version: ['v7.9.0']
+    env:
+      py-latest: '3.15'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Configure Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
           cache-dependency-path: setup.py
 
-      - name: Install dependencies
+      - name: Install dependencies (except Sundials)
         run: |
           sudo .github/workflows/install-ubuntu-dependencies.sh
+
+      - name: Check out Sundials ${{ matrix.sundials-version }}
+        uses: actions/checkout@v7
+        with:
+          repository: LLNL/sundials
+          path: sundials
+          ref: ${{ matrix.sundials-version }}
+
+      - name: Install Sundials ${{ matrix.sundials-version }}
+        run: |
+          .github/workflows/install-sundials-manually.sh
 
       - name: Install Myokit
         run: |
@@ -40,12 +53,31 @@ jobs:
           python -m pip install .[optional]
           python .github/workflows/select-opencl-device.py
 
+      - name: Install codecov
+        if: ${{ matrix.python-version == env.py-latest }}
+        run: |
+          python -m pip install coverage codecov
+
       - name: Show Myokit info
         run: |
           python -m myokit system
           python -m myokit opencl
 
       - name: Run unit tests
+        if: ${{ matrix.python-version != env.py-latest }}
         run: |
-          python -m myokit test unit
+          python -m myokit test
+
+      - name: Run coverage tests
+        if: ${{ matrix.python-version == env.py-latest }}
+        run: |
+          # coverage run -m myokit test unit
+          python myokit/tests/test_simulation_opencl.py
+
+      - name: Submit report to codecov
+        if: ${{ matrix.python-version == env.py-latest }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |
+          codecov
 

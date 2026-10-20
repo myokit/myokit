@@ -14,20 +14,33 @@ jobs:
     name: unit-numpy
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
+    env:
+      sundials-version: 'v7.9.0'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Configure Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.15'
           cache: 'pip'
           cache-dependency-path: setup.py
 
       - name: Install dependencies
         run: |
           sudo .github/workflows/install-ubuntu-dependencies.sh
+
+      - name: Check out Sundials ${{ env.sundials-version }}
+        uses: actions/checkout@v7
+        with:
+          repository: LLNL/sundials
+          path: sundials
+          ref: ${{ env.sundials-version }}
+
+      - name: Install Sundials ${{ env.sundials-version }}
+        run: |
+          .github/workflows/install-sundials-manually.sh
 
       - name: Install Numpy 1.x
         run: |
