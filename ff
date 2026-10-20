@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+
+from importlib.metadata import distribution
+
+name = 'myokit'
+
+try:
+    dist = distribution(name)
+except ImportError:
+    raise ValueError(f"Package '{name}' is not installed.")
+
+# Modern PEP 639 maps license files to 'License-File' headers
+license_files = dist.metadata.get_all("License-File")
+
+
+# Example usage:
+# Replace "your_name" with the actual name defined in [project]
+#print(license_files)
+
+p = dist.locate_file('LICENSE.txt')
+print(p, type(p), p.is_file(), p.exists())
+
+print(p.read_text())
+
+print(dist.read_text('LICENSE.txt'))
+
+#print('\n'.join(dir(p)))
+
+#txt = dist.read_text('LICENSE.txt')
+
+#print(txt)

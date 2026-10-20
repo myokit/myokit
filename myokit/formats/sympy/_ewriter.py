@@ -17,7 +17,9 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
     This :class:`ExpressionWriter <myokit.formats.ExpressionWriter>` converts
     Myokit :class:`expressions <myokit.Expression>` to SymPy expressions.
 
-    The returned type is a SymPy object, not a string!
+    The returned type is a SymPy object, not a string.
+
+    This class requires SymPy to be installed.
     """
     def __init__(self):
         super().__init__()

@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=DataBlock Viewer
+Name[en_US]=DataBlock Viewer
+Comment=Viewer for Myokit DataBlock files
+Exec=<?=python?> -m myokit block %f
+Icon=<?=icons?>/icon-datablock-viewer.png
+#MimeType=

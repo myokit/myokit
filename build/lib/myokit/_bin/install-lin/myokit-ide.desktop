@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=Myokit IDE
+Name[en_US]=Myokit IDE
+Comment=Edits Myokit mmt files and runs simulations
+Exec=<?=python?> -m myokit ide %f
+Icon=<?=icons?>/icon-ide.png
+MimeType=text/x-myokit;text/x-cellml;

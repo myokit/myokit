@@ -1,0 +1,851 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+
+<!-- This model was downloaded from BioModels Database -->
+<!-- Mon Oct 15 08:27:19 BST 2012                      -->
+<!-- http://www.ebi.ac.uk/biomodels/                   -->
+
+<sbml xmlns="http://www.sbml.org/sbml/level2/version3" level="2" metaid="metaid_000001" version="3">
+  <model id="hhsa_1952" name="hodgkin-huxley squid-axon 1952" metaid="metaid_0000002">
+    <notes>
+      <body xmlns="http://www.w3.org/1999/xhtml">
+        <p>This is an implementation of the Hodgkin-Huxley model of the electrical behavior of the squid axon membrane from:      <br/>
+                <b>A quantitative description of membrane current and its application to conduction and excitation in nerve.</b>
+                <br/>
+          A. L. Hodgkin and A. F. Huxley. (1952 )      <em>Journal of Physiology</em>
+          119(4): pp 500-544; pmID:      <a href="http://www.ncbi.nlm.nih.gov/pubmed/12991237">12991237</a>
+          .      <br/>
+                </p>
+            <p>      <b>Abstract:</b>
+                <br/>
+          This article concludes a series of papers concerned with the flow of electric current through the surface membrane of a giant nerve fibre (Hodgkin,Huxley &amp; Katz, 1952; Hodgkin &amp; Huxley, 1952 a-c). Its general object is to discuss the results of the preceding papers (Part I), to put them into mathematical form (Part II) and to show that they will account for conduction and excitation in quantitative terms (Part III).      </p>
+            <p>This SBML model uses the same formalism as the one described in the paper, contrary to modern versions:      <br/>
+          * V describes the the membrane depolarisation relative to the resting potential of the membrane      <br/>
+          * opposing to modern practice, depolarization is      <em>negative</em>
+          , not      <em>positive</em>
+          , so the sign of V is different      <br/>
+          * inward transmembrane currents are considered positive (inward current positive), contrary to modern use      <br/>
+          The changeable parameters are the equilibrium potentials(      <em>E_R, E_K, E_L, E_Na</em>
+          ), the membrane depolarization (      <em>V</em>
+          ) and the initial sodium and potassium channel activation and inactivation coefficients (      <em>m,h,n</em>
+          ). The initial values of      <em>m,h,n</em>
+          for the model were calculated for      <em>V</em>
+          = 0 using the equations from the article:      <em>n        <sub>t=0</sub>
+            = α_n        <sub>V=0</sub>
+            /(α_n        <sub>V=0</sub>
+            + β_n        <sub>V=0</sub>
+            )        </em>
+          and equivalent expressions for      <em>h</em>
+          and      <em>m</em>
+          .      <br/>
+          For single excitations apply a negative membrane depolarization (V &lt; 0). To achieve oscillatory behavior either change the resting potential to a more positive value or apply a constant negative ionic current (I &lt; 0).      <br/>
+          Two assignments for parameters in the model, alpha_n and alpha_m, are not defined at V=-10 resp. -25 mV. We did not change this to keep the formulas similar to the original publication and as most integrators seem not to have any problem with it. The limits at V=-10 and -25 mV are 0.1 for alpha_n resp. 1 for alpha_m.      <br/>
+          We thank Mark W. Johnson for finding a bug in the model and his helpful comments.      </p>
+            <p>This model originates from BioModels Database: A Database of Annotated Published Models. It is copyright (c) 2005-2009 The BioModels Team.      <br/>
+          For more information see the      <a href="http://www.ebi.ac.uk/biomodels/legal.html" target="_blank">terms of use</a>
+          .      <br/>
+          To cite BioModels Database, please use      <a href="http://www.pubmedcentral.nih.gov/articlerender.fcgi?tool=pubmed&amp;pubmedid=16381960" target="_blank">Le Novère N., Bornstein B., Broicher A., Courtot M., Donizelli M., Dharuri H., Li L., Sauro H., Schilstra M., Shapiro B., Snoep J.L., Hucka M. (2006) BioModels Database: A Free, Centralized Database of Curated, Published, Quantitative Kinetic Models of Biochemical and Cellular Systems Nucleic Acids Res., 34: D689-D691.</a>
+                </p>
+            </body>
+
+    </notes>
+    <annotation>
+      <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:vCard="http://www.w3.org/2001/vcard-rdf/3.0#" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+        <rdf:Description rdf:about="#metaid_0000002">
+          <dc:creator>
+            <rdf:Bag>
+              <rdf:li rdf:parseType="Resource">
+                <vCard:N rdf:parseType="Resource">
+                  <vCard:Family>Schilstra</vCard:Family>
+                  <vCard:Given>Maria</vCard:Given>
+                </vCard:N>
+                <vCard:EMAIL>m.j.1.schilstra@herts.ac.uk</vCard:EMAIL>
+                <vCard:ORG rdf:parseType="Resource">
+                  <vCard:Orgname>SBML Team - Science and Technology Research Institute - University of Hertfordshire</vCard:Orgname>
+                </vCard:ORG>
+              </rdf:li>
+              <rdf:li rdf:parseType="Resource">
+                <vCard:N rdf:parseType="Resource">
+                  <vCard:Family>Lloyd</vCard:Family>
+                  <vCard:Given>Catherine</vCard:Given>
+                </vCard:N>
+                <vCard:EMAIL>c.lloyd@auckland.ac.nz</vCard:EMAIL>
+                <vCard:ORG rdf:parseType="Resource">
+                  <vCard:Orgname>University of Auckland</vCard:Orgname>
+                </vCard:ORG>
+              </rdf:li>
+              <rdf:li rdf:parseType="Resource">
+                <vCard:N rdf:parseType="Resource">
+                  <vCard:Family>Endler</vCard:Family>
+                  <vCard:Given>Lukas</vCard:Given>
+                </vCard:N>
+                <vCard:EMAIL>lukas@ebi.ac.uk</vCard:EMAIL>
+                <vCard:ORG rdf:parseType="Resource">
+                  <vCard:Orgname>EMBL-EBI</vCard:Orgname>
+                </vCard:ORG>
+              </rdf:li>
+            </rdf:Bag>
+          </dc:creator>
+          <dcterms:created rdf:parseType="Resource">
+            <dcterms:W3CDTF>2005-03-31T13:09:21Z</dcterms:W3CDTF>
+          </dcterms:created>
+          <dcterms:modified rdf:parseType="Resource">
+            <dcterms:W3CDTF>2011-02-02T23:00:36Z</dcterms:W3CDTF>
+          </dcterms:modified>
+          <bqmodel:is>
+            <rdf:Bag>
+              <rdf:li rdf:resource="urn:miriam:biomodels.db:BIOMD0000000020"/>
+            </rdf:Bag>
+          </bqmodel:is>
+          <bqmodel:is>
+            <rdf:Bag>
+              <rdf:li rdf:resource="urn:miriam:biomodels.db:MODEL6617668482"/>
+            </rdf:Bag>
+          </bqmodel:is>
+          <bqmodel:isDescribedBy>
+            <rdf:Bag>
+              <rdf:li rdf:resource="urn:miriam:pubmed:12991237"/>
+            </rdf:Bag>
+          </bqmodel:isDescribedBy>
+          <bqbiol:isVersionOf>
+            <rdf:Bag>
+              <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0019227"/>
+              <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0005248"/>
+              <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0005249"/>
+            </rdf:Bag>
+          </bqbiol:isVersionOf>
+          <bqbiol:occursIn>
+            <rdf:Bag>
+              <rdf:li rdf:resource="urn:miriam:taxonomy:6618"/>
+              <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0042757"/>
+            </rdf:Bag>
+          </bqbiol:occursIn>
+        </rdf:Description>
+      </rdf:RDF>
+    </annotation>
+      <listOfUnitDefinitions>
+      <unitDefinition id="time" name="millisecond" metaid="metaid_0000003">
+        <listOfUnits>
+          <unit scale="-3" metaid="_591697" kind="second"/>
+        </listOfUnits>
+      </unitDefinition>
+      <unitDefinition id="mV" name="mV" metaid="metaid_0000050">
+        <listOfUnits>
+          <unit scale="-3" metaid="_591709" kind="volt"/>
+        </listOfUnits>
+      </unitDefinition>
+    </listOfUnitDefinitions>
+    <listOfCompartments>
+      <compartment id="unit_compartment" name="unit_compartment" metaid="metaid_0000032" size="1"/>
+    </listOfCompartments>
+    <listOfParameters>
+      <parameter id="V" constant="false" name="V" metaid="metaid_0000010" value="0" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        membrane depolarisation</p>
+
+        </notes>
+</parameter>
+      <parameter id="V_neg" constant="false" name="V_neg" metaid="metaid_0001011" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        negative membrane depolarisation</p>
+
+        </notes>
+</parameter>
+      <parameter id="E" constant="false" name="E" metaid="metaid_0001010" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        transmembrane potential</p>
+
+        </notes>
+</parameter>
+      <parameter id="I" name="I" metaid="metaid_0000011" value="0">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        applied current</p>
+
+        </notes>
+</parameter>
+      <parameter id="i_Na" constant="false" name="i_Na" metaid="metaid_0000012">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        sodium current</p>
+
+        </notes>
+        <annotation>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+            <rdf:Description rdf:about="#metaid_0000012">
+              <bqbiol:isVersionOf>
+                <rdf:Bag>
+                  <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0005248"/>
+                </rdf:Bag>
+              </bqbiol:isVersionOf>
+            </rdf:Description>
+          </rdf:RDF>
+        </annotation>
+      </parameter>
+      <parameter id="i_K" constant="false" name="i_K" metaid="metaid_0000013">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        potassium current</p>
+
+        </notes>
+        <annotation>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+            <rdf:Description rdf:about="#metaid_0000013">
+              <bqbiol:isVersionOf>
+                <rdf:Bag>
+                  <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0008076"/>
+                </rdf:Bag>
+              </bqbiol:isVersionOf>
+            </rdf:Description>
+          </rdf:RDF>
+        </annotation>
+      </parameter>
+      <parameter id="i_L" constant="false" name="i_L" metaid="metaid_0000014">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        leakage current</p>
+
+        </notes>
+        <annotation>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+            <rdf:Description rdf:about="#metaid_0000014">
+              <bqbiol:isVersionOf>
+                <rdf:Bag>
+                  <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0022840"/>
+                </rdf:Bag>
+              </bqbiol:isVersionOf>
+            </rdf:Description>
+          </rdf:RDF>
+        </annotation>
+      </parameter>
+      <parameter id="m" constant="false" name="m" metaid="metaid_0000015" value="0.052932">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        sodium channel activation coefficient        <br/>
+                    <em>m          <sub>t=0</sub>
+              = α_m          <sub>V=0</sub>
+              /(α_m          <sub>V=0</sub>
+              + β_m          <sub>V=0</sub>
+              )          </em>
+                    </p>
+
+        </notes>
+</parameter>
+      <parameter id="h" constant="false" name="h" metaid="metaid_0000016" value="0.59612">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        sodium channel inactivation coefficient        <br/>
+                    <em>h          <sub>t=0</sub>
+              = α_h          <sub>V=0</sub>
+              /(α_h          <sub>V=0</sub>
+              + β_h          <sub>V=0</sub>
+              )          </em>
+                    </p>
+
+        </notes>
+</parameter>
+      <parameter id="n" constant="false" name="n" metaid="metaid_0000017" value="0.31768">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        potassium channel activation coefficient        <br/>
+                    <em>n          <sub>t=0</sub>
+              = α_n          <sub>V=0</sub>
+              /(α_n          <sub>V=0</sub>
+              + β_n          <sub>V=0</sub>
+              )          </em>
+                    </p>
+
+        </notes>
+</parameter>
+      <parameter id="E_R" name="E_R" metaid="metaid_0000018" value="-75" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        resting membrane potential</p>
+
+        </notes>
+</parameter>
+      <parameter id="Cm" name="Cm" metaid="metaid_0000019" value="1" sboTerm="SBO:0000258">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        membrane capacitance</p>
+
+        </notes>
+</parameter>
+      <parameter id="g_Na" name="g_Na" metaid="metaid_0000020" value="120" sboTerm="SBO:0000257">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        maximum sodium channel conductance</p>
+
+        </notes>
+</parameter>
+      <parameter id="g_K" name="g_K" metaid="metaid_0000021" value="36" sboTerm="SBO:0000257">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        maximum potassium channel conductance</p>
+
+        </notes>
+</parameter>
+      <parameter id="g_L" name="g_L" metaid="metaid_0000022" value="0.3" sboTerm="SBO:0000257">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        maximum leakage conductance</p>
+
+        </notes>
+</parameter>
+      <parameter id="E_Na" name="E_Na" metaid="metaid_0000023" value="-190" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        sodium equilibrium potential</p>
+
+        </notes>
+</parameter>
+      <parameter id="E_K" name="E_K" metaid="metaid_0000024" value="-63" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        potassium equilibrium potential</p>
+
+        </notes>
+</parameter>
+      <parameter id="E_L" name="E_L" metaid="metaid_0000025" value="-85.613" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        leakage equilibrium potential</p>
+
+        </notes>
+</parameter>
+      <parameter id="V_Na" constant="false" name="V_Na" metaid="metaid_0001023" value="-115" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        sodium potential displacement</p>
+
+        </notes>
+</parameter>
+      <parameter id="V_K" constant="false" name="V_K" metaid="metaid_0001024" value="12" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        potassium potential displacement</p>
+
+        </notes>
+</parameter>
+      <parameter id="V_L" constant="false" name="V_L" metaid="metaid_0001025" value="-10.613" sboTerm="SBO:0000259" units="mV">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        leakage potential displacement</p>
+
+        </notes>
+</parameter>
+      <parameter id="alpha_m" constant="false" name="alpha_m" metaid="metaid_0000026">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        auxiliary alpha_m</p>
+
+        </notes>
+</parameter>
+      <parameter id="beta_m" constant="false" name="beta_m" metaid="metaid_0000027">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        auxiliary beta_m</p>
+
+        </notes>
+</parameter>
+      <parameter id="alpha_h" constant="false" name="auxiliary alpha_h" metaid="metaid_0000028">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        membrane depolarisation</p>
+
+        </notes>
+</parameter>
+      <parameter id="beta_h" constant="false" name="beta_h" metaid="metaid_0000029">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        auxiliary beta_h</p>
+
+        </notes>
+</parameter>
+      <parameter id="alpha_n" constant="false" name="alpha_n" metaid="metaid_0000030">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        auxiliary alpha_n</p>
+
+        </notes>
+</parameter>
+      <parameter id="beta_n" constant="false" name="beta_n" metaid="metaid_0000031">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        auxiliary beta_n</p>
+
+        </notes>
+</parameter>
+    </listOfParameters>
+    <listOfRules>
+      <assignmentRule metaid="metaid_0001135" variable="V_neg">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        V_neg = -V</p>
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <ci> V </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000135" variable="E">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        E = V + E_R</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <ci> V </ci>
+            <ci> E_R </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000035" variable="V_L">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        V_L = E_L - E_R</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <ci> E_L </ci>
+            <ci> E_R </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000041" variable="beta_n">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        beta_n = 0.125 * exp[V / 80.0]</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <cn> 0.125 </cn>
+            <apply>
+              <exp/>
+              <apply>
+                <divide/>
+                <ci> V </ci>
+                <cn> 80 </cn>
+              </apply>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000038" variable="alpha_h">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        alpha_h = 0.07 * exp[V / 20.0]</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <cn> 0.07 </cn>
+            <apply>
+              <exp/>
+              <apply>
+                <divide/>
+                <ci> V </ci>
+                <cn> 20 </cn>
+              </apply>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000033" variable="V_Na">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        V_Na = E_Na - E_R</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <ci> E_Na </ci>
+            <ci> E_R </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000034" variable="V_K">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        V_K = E_K - E_R</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <ci> E_K </ci>
+            <ci> E_R </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000043" variable="i_K">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        i_K = g_K * n^4.0 * (V - V_K)</p>
+
+        </notes>
+        <annotation>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+            <rdf:Description rdf:about="#metaid_0000043">
+              <bqbiol:isVersionOf>
+                <rdf:Bag>
+                  <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0006813"/>
+                </rdf:Bag>
+              </bqbiol:isVersionOf>
+            </rdf:Description>
+          </rdf:RDF>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <ci> g_K </ci>
+            <apply>
+              <power/>
+              <ci> n </ci>
+              <cn> 4 </cn>
+            </apply>
+            <apply>
+              <minus/>
+              <ci> V </ci>
+              <ci> V_K </ci>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000042" variable="i_Na">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        i_Na = g_Na * m^3.0 * h * (V - V_Na)</p>
+
+        </notes>
+        <annotation>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+            <rdf:Description rdf:about="#metaid_0000042">
+              <bqbiol:isVersionOf>
+                <rdf:Bag>
+                  <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0006814"/>
+                </rdf:Bag>
+              </bqbiol:isVersionOf>
+            </rdf:Description>
+          </rdf:RDF>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <ci> g_Na </ci>
+            <apply>
+              <power/>
+              <ci> m </ci>
+              <cn> 3 </cn>
+            </apply>
+            <ci> h </ci>
+            <apply>
+              <minus/>
+              <ci> V </ci>
+              <ci> V_Na </ci>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000044" variable="i_L">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        i_L = g_L * (V - V_L)</p>
+
+        </notes>
+        <annotation>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+            <rdf:Description rdf:about="#metaid_0000044">
+              <bqbiol:isVersionOf>
+                <rdf:Bag>
+                  <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0006811"/>
+                </rdf:Bag>
+              </bqbiol:isVersionOf>
+            </rdf:Description>
+          </rdf:RDF>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <ci> g_L </ci>
+            <apply>
+              <minus/>
+              <ci> V </ci>
+              <ci> V_L </ci>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000037" variable="beta_m">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        beta_m = 4.0 * exp[V / 18.0]</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <cn> 4 </cn>
+            <apply>
+              <exp/>
+              <apply>
+                <divide/>
+                <ci> V </ci>
+                <cn> 18 </cn>
+              </apply>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000040" variable="alpha_n">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        alpha_n = 0.01 * (V + 10.0)/(exp[0.1 * (V + 10.0)] - 1.0)</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <apply>
+              <times/>
+              <cn> 0.01 </cn>
+              <apply>
+                <plus/>
+                <ci> V </ci>
+                <cn type="integer"> 10 </cn>
+              </apply>
+            </apply>
+            <apply>
+              <minus/>
+              <apply>
+                <exp/>
+                <apply>
+                  <divide/>
+                  <apply>
+                    <plus/>
+                    <ci> V </ci>
+                    <cn type="integer"> 10 </cn>
+                  </apply>
+                  <cn type="integer"> 10 </cn>
+                </apply>
+              </apply>
+              <cn type="integer"> 1 </cn>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000036" variable="alpha_m">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        alpha_m = 0.1 * (V + 25.0)/(exp[0.1 * (V + 25.0)] - 1.0)</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <apply>
+              <times/>
+              <cn> 0.1 </cn>
+              <apply>
+                <plus/>
+                <ci> V </ci>
+                <cn type="integer"> 25 </cn>
+              </apply>
+            </apply>
+            <apply>
+              <minus/>
+              <apply>
+                <exp/>
+                <apply>
+                  <divide/>
+                  <apply>
+                    <plus/>
+                    <ci> V </ci>
+                    <cn type="integer"> 25 </cn>
+                  </apply>
+                  <cn type="integer"> 10 </cn>
+                </apply>
+              </apply>
+              <cn type="integer"> 1 </cn>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule metaid="metaid_0000039" variable="beta_h">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        beta_h = 1.0 /(exp[0.1 * (V + 30.0)] + 1.0)</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <cn type="integer"> 1 </cn>
+            <apply>
+              <plus/>
+              <apply>
+                <exp/>
+                <apply>
+                  <divide/>
+                  <apply>
+                    <plus/>
+                    <ci> V </ci>
+                    <cn type="integer"> 30 </cn>
+                  </apply>
+                  <cn type="integer"> 10 </cn>
+                </apply>
+              </apply>
+              <cn type="integer"> 1 </cn>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <rateRule metaid="metaid_0000048" variable="V">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        dV/dt = (I - (i_Na + i_K + i_L))/Cm</p>
+
+        </notes>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <apply>
+              <minus/>
+              <ci> I </ci>
+              <apply>
+                <plus/>
+                <ci> i_Na </ci>
+                <ci> i_K </ci>
+                <ci> i_L </ci>
+              </apply>
+            </apply>
+            <ci> Cm </ci>
+          </apply>
+        </math>
+      </rateRule>
+      <rateRule metaid="metaid_0000045" variable="m">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        dm/dt = alpha_m * (1.0 - m) - beta_m * m</p>
+
+        </notes>
+        <annotation>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+            <rdf:Description rdf:about="#metaid_0000045">
+              <bqbiol:isPartOf>
+                <rdf:Bag>
+                  <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0005248"/>
+                </rdf:Bag>
+              </bqbiol:isPartOf>
+            </rdf:Description>
+          </rdf:RDF>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <apply>
+              <times/>
+              <ci> alpha_m </ci>
+              <apply>
+                <minus/>
+                <cn> 1 </cn>
+                <ci> m </ci>
+              </apply>
+            </apply>
+            <apply>
+              <times/>
+              <ci> beta_m </ci>
+              <ci> m </ci>
+            </apply>
+          </apply>
+        </math>
+      </rateRule>
+      <rateRule metaid="metaid_0000046" variable="h">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        dh/dt = alpha_h * (1.0 - h) - beta_h * h</p>
+
+        </notes>
+        <annotation>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+            <rdf:Description rdf:about="#metaid_0000046">
+              <bqbiol:isPartOf>
+                <rdf:Bag>
+                  <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0005248"/>
+                </rdf:Bag>
+              </bqbiol:isPartOf>
+            </rdf:Description>
+          </rdf:RDF>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <apply>
+              <times/>
+              <ci> alpha_h </ci>
+              <apply>
+                <minus/>
+                <cn> 1 </cn>
+                <ci> h </ci>
+              </apply>
+            </apply>
+            <apply>
+              <times/>
+              <ci> beta_h </ci>
+              <ci> h </ci>
+            </apply>
+          </apply>
+        </math>
+      </rateRule>
+      <rateRule metaid="metaid_0000047" variable="n">
+        <notes>
+          <p xmlns="http://www.w3.org/1999/xhtml">
+        dn/dt = alpha_n * (1.0 - n) - beta_n * n</p>
+
+        </notes>
+        <annotation>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqmodel="http://biomodels.net/model-qualifiers/" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+            <rdf:Description rdf:about="#metaid_0000047">
+              <bqbiol:isPartOf>
+                <rdf:Bag>
+                  <rdf:li rdf:resource="urn:miriam:obo.go:GO%3A0005249"/>
+                </rdf:Bag>
+              </bqbiol:isPartOf>
+            </rdf:Description>
+          </rdf:RDF>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <apply>
+              <times/>
+              <ci> alpha_n </ci>
+              <apply>
+                <minus/>
+                <cn> 1 </cn>
+                <ci> n </ci>
+              </apply>
+            </apply>
+            <apply>
+              <times/>
+              <ci> beta_n </ci>
+              <ci> n </ci>
+            </apply>
+          </apply>
+        </math>
+      </rateRule>
+    </listOfRules>
+  </model>
+</sbml>
