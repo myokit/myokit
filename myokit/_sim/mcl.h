@@ -18,6 +18,9 @@
 #include <string.h>
 #include <ctype.h>
 
+/* Compatibility */
+#define CL_TARGET_OPENCL_VERSION 200
+
 /* Load the opencl libraries. */
 #ifdef __APPLE__
 #include <OpenCL/cl.h>

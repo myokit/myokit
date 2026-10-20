@@ -63,7 +63,7 @@ typedef <?= ('float' if precision == myokit.SINGLE_PRECISION else 'double') ?> R
 void pyprint(const char* text)
 {
     PyObject *s, *o, *r;
-    s = PyImport_ImportModuleNoBlock("sys");
+    s = PyImport_ImportModule("sys");
     o = PyObject_GetAttrString(s, "stdout");
     r = PyObject_CallMethod(o, "write", "s", text);
     Py_XDECREF(r);

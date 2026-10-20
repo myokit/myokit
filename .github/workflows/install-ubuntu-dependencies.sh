@@ -16,6 +16,3 @@ apt-get install -y intel-oneapi-runtime-libs intel-oneapi-runtime-opencl;
 # Install OpenCL headers
 apt-get install -y opencl-headers ocl-icd-opencl-dev;
 
-# Install sundials
-apt-get install -y libsundials-dev;
-

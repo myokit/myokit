@@ -12,14 +12,14 @@ jobs:
 
   build-and-test:
     name: unit-numpy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.event.pull_request.draft == false
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Configure Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
           cache: 'pip'
@@ -28,6 +28,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo .github/workflows/install-ubuntu-dependencies.sh
+
+      - name: Install sundials
+        run: |
+          sudo apt-get install libsundials-dev
 
       - name: Install Numpy 1.x
         run: |
