@@ -18,15 +18,15 @@
 #include <string.h>
 #include <ctype.h>
 
+/* Compatibility */
+#define CL_TARGET_OPENCL_VERSION 200
+
 /* Load the opencl libraries. */
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
 #else
 #include <CL/cl.h>
 #endif
-
-/* Compatibility */
-#define CL_TARGET_OPENCL_VERSION 200
 
 /* Maximum number of platforms/devices to check for. */
 #define MCL_MAX_PLATFORMS 255
