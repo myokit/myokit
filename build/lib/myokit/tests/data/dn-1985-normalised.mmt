@@ -1,0 +1,432 @@
+[[model]]
+name: DN1985
+author: Michael Clerx
+desc: """
+    Di Francesco-Noble Purkinje Fibre Model 1985
+
+    Converted from CellML and annotated. Time units changed to milliseconds.
+    Current units changed to [uA/cm^2] which, with c = C/A = 1 [uF/cm^2] is
+    equivalent to [uA/cm^2].
+
+    --- Original CellML Metadata ---------------------------------------------
+
+    Di Francesco-Noble Purkinje Fibre Model 1985
+
+    Catherine Lloyd
+    Bioengineering Institute, University of Auckland
+
+    Model Status:
+    This model has been curated and unit-checked by Penny Noble of Oxford
+    University and is known to run in PCEnv and COR and reproduce the results
+    published in the paper it is based on.
+
+    Model Structure:
+    During the years that followed the formulation of the
+    McAllister-Noble-Tsien Purkinje fibre model in 1975 and the Beeler-Reuter
+    mammalian ventricular model in 1977, many experiments were performed which
+    provided a greater insight into the working of the ion channels in cardiac
+    tissue. D. Di Francesco and D. Noble (1985) constructed a new model of
+    cardiac electrical activity which sought to incorporate much of this new
+    data
+
+    The complete original paper reference is cited below:
+
+    A Model of the Cardiac Electrical Activity Incorporating Ionic Pumps and
+    Concentration Changes - Simulations of Ionic Currents and Concentration
+    Changes,
+    Di Francesco, D. and Noble, D.
+    Phil. Trans. R. Soc. Lond., B307, 353-398.
+    """
+# Initial values
+membrane.V     = -87
+if.y           = 0.2
+ik.x           = 0.01
+ito.s          = 1
+ina.m          = 0.01
+ina.h          = 0.8
+isi.d          = 0.005
+isi.f          = 1
+isi.f2         = 1
+sodium.Nai     = 8
+calcium.p      = 1
+calcium.Ca_up  = 2
+calcium.Ca_rel = 1
+calcium.Cai    = 5e-05
+potassium.Kc   = 4
+potassium.Ki   = 140
+
+#
+# External variables
+#
+[engine]
+time = 0 bind time
+pace = 0 bind pace
+step = 0 bind time_step
+
+#
+# Membrane potential
+# Page 359
+#
+[membrane]
+dot(V) = -(i_ion + i_stim + i_diff)
+    in [mV]
+    label membrane_potential
+i_stim = engine.pace * amplitude
+    in [uA/cm^2]
+    amplitude = -5 / cell.C
+i_diff = 0 bind diffusion_current
+    in [uA/cm^2]
+i_ion = (
+        + if.if
+        + ik.iK
+        + ik1.iK1
+        + ito.ito
+        + inab.iNab
+        + icab.iCab
+        + inak.ip
+        + inaca.iNaCa
+        + ina.iNa
+        + isi.isi
+        )
+    in [uA/cm^2]
+
+#
+# Physical constants
+#
+[phys]
+F = 9.64853399e4 [C/mol]
+R = 8314.472 [mJ/mol/K]
+T = 310 [K]
+RTF = R * T / F
+    in [mV]
+
+#
+# Cellular dimensions
+#
+[cell]
+pi = 3.14159265359
+length = 2 [um]
+radius = 0.05 [um]
+V = pi * radius ^ 2 * length
+    in [um^3]
+Veratio = 0.1
+Vi = V * (1 - Veratio)
+    in [um^3]
+Ve = V * 0.1
+    in [um^3]
+C = 0.0756 [uF]
+    desc: """
+    Membrane capacitance.
+    DiFrancesco & Noble used c = 1.2 [uF/cm^2] and A = 0.063 [cm^2] to arrive
+    at a capacitance of C = 0.0756 [uF]
+    """
+
+#
+# Hyperpolarising-activated current, if
+# Section a, page 359
+#
+[if]
+use membrane.V
+use nernst.EK, nernst.ENa
+if = ifNa + ifK
+    in [uA/cm^2]
+ifK = y * potassium.Kc / (potassium.Kc + Kmf) * gK * (V - EK)
+    in [uA/cm^2]
+ifNa = y * potassium.Kc / (potassium.Kc + Kmf) * gNa * (V - ENa)
+    in [uA/cm^2]
+Kmf = 45 [mmol/L]
+gK = 3e-3 / cell.C
+    in [mS/uF]
+    desc: K Conductance of if channels
+gNa = 3e-3 / cell.C
+    in [mS/uF]
+    desc: Na conductance of if channels
+dot(y) = alpha * (1 - y) - beta * y
+    alpha = 5e-5 * exp(-0.067 * (V + 52 - 10))
+    beta = if(abs(E0) < delta, 2.5e-3, 1e-3 * E0 / (1 - exp(-0.2 * E0)))
+        E0 = V + 42 [mV]
+        delta = 1e-8 [mV]
+
+#
+# Time-dependent Potassium current, IK
+# Section b, page 360
+#
+[ik]
+use membrane.V
+use potassium.Ki, potassium.Kc
+iK = x * iKmax * (Ki - Kc * exp(-V / phys.RTF)) / 140
+    in [uA/cm^2]
+iKmax = .18 / cell.C
+    in [uA/cm^2]
+dot(x) = alpha * (1 - x) - beta * x
+    alpha =   5e-4 * exp(0.0826 * (V + 50)) / (1 + exp(0.057 * (V + 50)))
+    beta  = 1.3e-3 * exp(-0.06 * (V + 20)) / (1 + exp(-0.04 * (V + 20)))
+
+#
+# Time independent Potassium current, IK1
+# Section c, page 361
+#
+[ik1]
+use membrane.V
+use potassium.Kc, nernst.EK
+iK1 = gK1 * Kc / (Kc + KmK1) * (V - EK) / (1 + exp(2 * (V + 10 - EK) / phys.RTF))
+    in [uA/cm^2]
+gK1 = .92 / cell.C
+    in [mS/uF]
+KmK1 = 210 [mmol/L]
+
+#
+# Transient outward Potassium current, Ito
+# Section d, page 362
+#
+[ito]
+use membrane.V
+use potassium.Kc, potassium.Ki, calcium.Cai
+ito = (s * gto * x
+         * (0.2 + Kc / (Kmto + Kc))
+         * Cai / (KmCa + Cai)
+         * (Ki * exp(0.5 * V / phys.RTF) - Kc * exp(-0.5 * V / phys.RTF)))
+    in [uA/cm^2]
+KmCa = 0.0005 [mmol/L]
+Kmto = 10 [mmol/L]
+gto = 2.8e-4 / cell.C
+x = if(V == -10, 5, (V + 10) / (1 - exp(-0.2 * (V + 10))))
+dot(s) = alpha * (1 - s) - beta * s
+    alpha = 3.3e-5 * exp(-V / 17)
+    beta = 3.3e-2 / (1 + exp((V + 10) / -8))
+
+#
+# Background sodium current
+# Section e, page 363
+#
+[inab]
+use membrane.V
+iNab = gNab * (V - nernst.ENa)
+    in [uA/cm^2]
+gNab = 1.8e-4 / cell.C
+    in [mS/uF]
+
+#
+# Sodium potassium pump
+# Section f, page 364
+#
+[inak]
+use membrane.V
+ip = ip_max * potassium.Kc / (KmK + potassium.Kc) * sodium.Nai / (KmNa + sodium.Nai)
+    in [uA/cm^2]
+ip_max = .125 / cell.C
+    in [uA/cm^2]
+KmK = 1 [mmol/L]
+KmNa = 40 [mmol/L]
+
+#
+# Sodium-Calcium exchanger current, INaCa
+# Section g, page 364
+#
+[inaca]
+use membrane.V, phys.RTF
+use calcium.Cai, sodium.Nai, ext.Cao, ext.Nao
+iNaCa = KNaCa * (
+            exp(g1 * V / RTF) * Nai2 * Cao - exp(g2 * V / RTF) * Nao2 * Cai
+        ) / (
+            (1 + dNaCa * (Cai * Nao2 + Cao * Nai2)) * (1 + Cai / 0.0069)
+        )
+    in [uA/cm^2]
+    Nai2 = Nai ^ nNaCa
+    Nao2 = Nao ^ nNaCa
+    g1 = gamma * (nNaCa - 2)
+    g2 = (gamma - 1) * (nNaCa - 2)
+KNaCa = 2e-5 / cell.C
+    in [uA/cm^2]
+nNaCa = 3
+    desc: stoichiometry of exchange (3:1)
+dNaCa = 0.001
+gamma = 0.5
+
+#
+# Background Calcium current
+# Section g, page 366
+#
+[icab]
+use membrane.V
+iCab = gCab * (V - nernst.ECa)
+    in [uA/cm^2]
+gCab = 2e-5 / cell.C
+    in [mS/uF]
+
+#
+# Fast sodium current
+# Section h, page 366
+#
+[ina]
+use engine.step as dt
+use membrane.V
+iNa = gNa * m ^ 3 * h * (V - Emh)
+    in [uA/cm^2]
+gNa = .75 / cell.C
+    in [mS/uF]
+Emh = phys.RTF * log((ext.Nao + 0.12 * potassium.Kc) / (sodium.Nai + 0.12 * potassium.Ki))
+    in [mV]
+dot(m) = alpha * (1 - m) - beta * m
+    alpha = if(abs(E0) < delta, 2, 0.2 * E0 / (1 - exp(-0.1 * E0)))
+        E0 = V + 41 [mV]
+        delta = 1e-8 [mV]
+    beta = 8 * exp(-0.056 * (V + 66))
+dot(h) = alpha * (1 - h) - beta * h
+    alpha = .02 * exp(-0.125 * (V + 75))
+    beta = 2 / (320 * exp(-0.1 * (V + 75)) + 1)
+
+#
+# Second inward current, Isi
+# Section i, page 367
+#
+[isi]
+use phys.RTF
+use membrane.V
+use calcium.Cai, potassium.Ki, sodium.Nai
+use ext.Cao, ext.Nao, potassium.Kc
+isi = isiCa + isiK + isiNa
+    in [uA/cm^2]
+isiCa = 4 * dff * (Cai * exp(100 / RTF) - Cao * dca) * dcai
+    in [uA/cm^2]
+isiK =  0.01 * dff * (Ki  * exp( 50 / RTF) -  Kc * dkn) * dkni
+    in [uA/cm^2]
+isiNa = 0.01 * dff * (Nai * exp( 50 / RTF) - Nao * dkn) * dkni
+    in [uA/cm^2]
+dff = Psi * (V - 50) * d * f * f2
+Psi = 1.5e-2 / cell.C
+dkn = exp(-1 * (V - 50) / RTF)
+dca = exp(-2 * (V - 50) / RTF)
+dkni = 1 / (RTF * (1 - dkn))
+dcai = 1 / (RTF * (1 - dca))
+dot(d) = alpha * (1 - d) - beta * d
+    alpha = if(abs(E0) < delta, 0.12, 3e-2 * E0 / (1 - exp(-1 * E0 / 4)))
+    beta = if(abs(E0) < delta, 0.12, 1.2e-2 * E0 / (exp(E0 / 10) - 1))
+    E0 = V + 19 [mV]
+    delta = 1e-7 [mV]
+dot(f2) = alpha - f2 * (alpha + beta)
+    Kmf2 = 1e-3 [mmol/L]
+    alpha = 5e-3 [mS/F]
+    beta = calcium.Cai * alpha / Kmf2
+dot(f) = alpha * (1 - f) - beta * f
+    E0 = V + 34 [mV]
+    alpha = if(abs(E0) < delta, 2.5e-2, 6.25e-3 * E0 / (exp(E0 / 4) - 1))
+    beta = 5e-2 / (1 + exp(-1 * (V + 34) / 4))
+    delta = 1e-7 [mV]
+
+#
+# Intracellular calcium
+# Section k, page 370
+#
+[calcium]
+use membrane.V
+dot(Ca_rel) = (itr - irel) * r
+    in [mmol/L]
+    r = cell.C / (2 * Vrel * phys.F)
+dot(Ca_up) = (iup - itr) * r
+    in [mmol/L]
+    r = cell.C / (2 * Vup * phys.F)
+Ca_upmax = 5 [mmol/L]
+dot(Cai) = -i * r
+    in [mmol/L]
+    r = cell.C / (2 * cell.Vi * phys.F)
+i = isi.isiCa + icab.iCab - inaca.iNaCa * fNaCa - irel #+ iup
+    in [uA/cm^2]
+fNaCa = 2 / (inaca.nNaCa - 2)
+KmCa = 0.001 [mmol/L]
+Vrel = cell.Vi * 0.02 [um^3]
+Vup = cell.Vi * 0.05 [um^3]
+irel = g * Vrel * phys.F / (1 * taurel) * Ca_rel * Cai2 / (Cai2 + Km2)
+    Cai2 = Cai * Cai
+    Km2 = KmCa * KmCa
+    in [uA/cm^2]
+itr = g * Vrel * phys.F / (1 * taurep) * p * (Ca_up - Ca_rel)
+    in [uA/cm^2]
+iup = g * cell.Vi * phys.F / (tauup * Ca_upmax) * Cai * (Ca_upmax - Ca_up)
+    in [uA/cm^2]
+g = 2e-3 / cell.C
+dot(p) = alpha * (1 - p) - beta * p
+    alpha = if(V == -34, 2.5e-3, 6.25e-4 * (V + 34) / (exp((V + 34) / 4) - 1))
+    beta = 5e-3 / (1 + exp((V + 34) / -4))
+taurel = 0.05 [s]
+taurep = 2 [s]
+tauup = 0.025 [s]
+
+#
+# Potassium concentrations
+# Section l, page 372
+# Section m, page 373
+#
+[potassium]
+use membrane.V
+dot(Ki) = -i * ri
+    desc: Intracellular Potassium concentration
+    in [mmol/L]
+dot(Kc) = -pf * (Kc - Kb) + i * rc
+    desc: Cleft Potassium concentration
+    in [mmol/L]
+    pf = 0.7 [S/F]
+Kb = 4 [mmol/L]
+    desc: Bulk Potassium concentration
+i = ik1.iK1 + ik.iK + if.ifK + isi.isiK + ito.ito - 2 * inak.ip
+    in [uA/cm^2]
+ri = cell.C / (cell.Vi * phys.F)
+rc = cell.C / (cell.Ve * phys.F)
+
+#
+# Intracellular Sodium concentrations
+# Page 369
+#
+[sodium]
+use membrane.V
+dot(Nai) = -i * r
+    in [mmol/L]
+i = ina.iNa + inab.iNab + if.ifNa + isi.isiNa + inak.ip * 3 + inaca.iNaCa * fNaCa
+    in [uA/cm^2]
+r = cell.C / (cell.Vi * phys.F)
+fNaCa = inaca.nNaCa / (inaca.nNaCa - 2)
+
+#
+# Reversal potentials
+#
+[nernst]
+EK = phys.RTF * log(potassium.Kc / potassium.Ki)
+    in [mV]
+ENa = phys.RTF * log(ext.Nao / sodium.Nai)
+    in [mV]
+ECa = 0.5 * phys.RTF * log(ext.Cao / calcium.Cai)
+    in [mV]
+
+#
+# External concentrations
+#
+[ext]
+Cao = 2 [mmol/L]
+Nao = 140 [mmol/L]
+
+[[protocol]]
+# Level  Start    Length   Period   Multiplier
+0        10       0.5      1000     0
+
+[[script]]
+import matplotlib.pyplot as plt
+import myokit
+
+# Get model and protocol, create simulation
+m = get_model()
+p = get_protocol()
+s = myokit.Simulation(m, p)
+
+# Run simulation
+d = s.run(10000)
+
+# Get the time variable and the first state variable's name
+tvar = m.time().qname()
+svar = next(m.states()).qname()
+
+# Display the results
+plt.figure()
+plt.plot(d[tvar], d[svar])
+plt.title(svar + ' against ' + tvar)
+plt.show()
+

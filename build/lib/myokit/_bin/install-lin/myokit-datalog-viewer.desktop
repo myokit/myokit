@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=DataLog Viewer
+Name[en_US]=DataLog Viewer
+Comment=Viewer for Myokit DataLog files
+Exec=<?=python?> -m myokit log %f
+#Icon=<?=icons?>/icon-datalog-viewer.png
+MimeType=text/x-abf;text/x-wcp;

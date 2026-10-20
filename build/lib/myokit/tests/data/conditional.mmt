@@ -1,0 +1,121 @@
+[[model]]
+name: Tran2009
+# Initial values
+membrane.V         = -84.3801107371
+ca_slow_inward.d   = 0.00302126301779861
+ca_slow_inward.f   = 0.999967936476325
+k_time_dependent.x = 0.0417603108167287
+
+# Simulation engine variables
+[engine]
+time = 0 bind time
+pace = 0 bind pace
+
+[ions]
+Ki = 145 : Internal K+ concentration
+Ko = 5.4 : External K+ concentration
+
+[modification]
+alpha = 1.0 : Change to yDot[d] (default: 1 = no change)
+beta = 1.0 : Change to yDot[f] (default: 1 = no change)
+gamma = 2.5 : Change to yDot[x] (default: 1 = no change)
+gBarSi = 0.15 : GBarSI (EAD free value from LRd: 0.09)
+
+[test]
+use membrane.V
+z = if(V < 0, 10, 12)
+x = piecewise(
+    V < -50, 10 - 7,
+    V < 0, 2 * 4 - 6,
+    1)
+y = piecewise(
+    V < 0, 2 * 4 - 6,
+    1)
+
+[membrane]
+C = 1
+stim_amplitude = -73 [uA/cm^2]
+I_stim = engine.pace * stim_amplitude
+dot(V) = (-1 / C) * (
+        I_stim +
+        ca_slow_inward.i_si +
+        k_time_dependent.i_K +
+        k_time_independent.i_K1 +
+        k_plateau.i_Kp +
+        background_current.i_b)
+    desc: The membrane potential
+
+[physics]
+R = 8314 : Gas constant
+T = 310 : The temperature
+F = 96484.6 : Faraday's constant
+RTF = R*T/F
+
+[ca_slow_inward]
+use membrane.V as V
+E_si = 80
+i_si = modification.gBarSi * d * f * (V - E_si)
+dot(d) = (alpha * (1 - d) - beta * d) / modification.alpha
+    alpha = 0.095 * exp(-0.01 * (V - 5)) / (1 + exp(-0.072 * (V - 5)))
+    beta  = 0.07 * exp(-0.017 * (V + 44)) / (1 + exp(0.05 * (V + 44)))
+dot(f) = (alpha * (1 - f) - beta * f) / modification.beta
+    alpha = 0.012 * exp(-0.008 * (V + 28)) / (1 + exp(0.15 * (V + 28)))
+    beta  = 0.0065 * exp(-0.02 * (V + 30)) / (1 + exp(-0.2 * (V + 30)))
+
+[k_time_dependent]
+use membrane.V as V
+E_K = -77
+g_K = 0.282 * sqrt(ions.Ko / 5.4)
+xi = piecewise(
+        V < -100, 1,
+        2.837 * (exp(0.04 * (V + 77)) - 1) / ((V + 77) * exp(0.04 * (V + 35)))
+        )
+i_K = g_K * x * xi * (V - E_K)
+dot(x) = (alpha * (1 - x) - beta * x) / modification.gamma
+    alpha = 0.0005 * exp(0.083 * (V + 50)) / (1 + exp(0.057 * (V + 50)))
+    beta  = 0.0013 * exp(-0.06 * (V + 20)) / (1 + exp(-0.04 * (V + 20)))
+
+[k_time_independent]
+use membrane.V as V
+E_K1 = physics.RTF * log(ions.Ko / ions.Ki)
+g_K1 = 0.6047 * sqrt(ions.Ko / 5.4)
+i_K1 = g_K1 * (alpha / (alpha + beta)) * (V - E_K1)
+    alpha = 1.02 / (1 + exp(0.2385 * (V - E_K1 - 59.215)))
+    beta = (0.49124 * exp(0.08032 * (V - E_K1 + 5.476)) + exp(0.06175 * (V - E_K1 - 594.31))) / (1 + exp(-0.5143 * (V - E_K1 + 4.753)))
+
+[k_plateau]
+use membrane.V as V
+g_Kp = 0.0183
+E_Kp = k_time_independent.E_K1
+i_Kp = g_Kp * Kp * (V - E_Kp)
+    Kp = 1 / (1 + exp((7.488 - V) / 5.98))
+
+[background_current]
+E_b = -59.87
+g_b = 0.03921
+i_b = g_b * (membrane.V - E_b)
+
+[[protocol]]
+# Level  Start    Length   Period   Multiplier
+1.0      100.0    2.0      1000.0   0
+
+[[script]]
+import myokit
+from pylab import *
+
+# Get model, protocol, simulation
+m = get_model()
+p = get_protocol()
+s = myokit.Simulation(m, p)
+
+# Run simulation
+bcl = 1000
+s.pre(50*bcl)
+d = s.run(20*bcl)
+
+# Display the result
+t = d['engine.time']
+v = d['membrane.V']
+plot(t, v)
+title('Membrane potential')
+show()

@@ -1,0 +1,211 @@
+[[model]]
+name: Clancy-1999-fitting
+author: Michael Clerx
+desc: """
+Clancy 1999 SCN5A model suitable for parameter fitting.
+"""
+# Initial conditions
+ina.C3 = 0.99
+ina.C2 = 0.01
+ina.C1 = 0
+ina.O  = 0
+ina.IF = 0
+ina.IS = 0
+ina_ref.C3 = 0.99
+ina_ref.C2 = 0.01
+ina_ref.C1 = 0
+ina_ref.O  = 0
+ina_ref.IF = 0
+ina_ref.IS = 0
+
+#
+# Simulation engine variables
+#
+[engine]
+time = 0 bind time
+
+#
+# Membrane potential
+#
+[membrane]
+V = -40 bind pace
+    label membrane_potential
+    in [mV]
+
+#
+# Wild-type model from Clancy & Rudy 1999
+#
+[ina]
+desc:"""
+Wild-type channel from Clancy 1999
+The equations were rewritten to have independent parameters.
+"""
+use membrane.V
+p1 = 0.1027 / 3.802
+p2 = 0.20 / 3.802
+p3 = 0.23 / 3.802
+p4 = 0.25 / 3.802
+p5 = 1 / 17
+p6 = 1 / 15
+p7 = 1 / 12
+p8 = 1 / 150
+a11 = 1 / (p1 * exp(-V * p5) + p2 * exp(-V * p8))
+a12 = 1 / (p1 * exp(-V * p6) + p3 * exp(-V * p8))
+a13 = 1 / (p1 * exp(-V * p7) + p4 * exp(-V * p8))
+q1 = 1 / 20.3
+q2 = 0.1917
+q3 = 0.2 * exp(5 / 20.3)
+q4 = 0.22 * exp(10 / 20.3)
+b11 = q2 * exp(-V * q1)
+b12 = q3 * exp(-V * q1)
+b13 = q4 * exp(-V * q1)
+r1 = 9.178
+r2 = 1 / 29.68
+r3 = 3.7933e-10
+r4 = 1 / 5.2
+r5 = 0.0084
+r6 = 0.00002
+r7 = 1 / 100
+a2 = r1 * exp(V * r2)
+b2 = (a3 * a2 * a13) / (b3 * b13)
+a3 = r3 * exp(-V * r4)
+b3 = r5 + r6 * V
+a4 = a2 * r7
+b4 = a3
+# Transition rates
+dot(C3) = -C3 * (a11           ) + C2 * b11
+dot(C2) = -C2 * (a12 + b11     ) + C1 * b12 + C3 * a11
+dot(C1) = -C1 * (a13 + b12 + b3) + O  * b13 + C2 * a12 + IF * a3
+dot(IF) = -IF * (a4  + b2  + a3) + IS * b4  + O  * a2  + C1 * b3
+dot(IS) = -IS * (b4            ) + IF * a4
+dot(O)  = -O  * (a2  + b13     ) + C1 * a13 + IF * b2
+i = gmax * O * (V - E)
+gmax = 18.5 [mS/cm^2]
+E = 81 [mV]
+
+#
+# Wild-type model from Clancy & Rudy 1999
+#
+[ina_ref]
+desc:"""
+Wild-type channel from Clancy 1999
+
+                      IF - IS
+                    /  |
+        C3 - C2 - C1 - O
+
+[1] Linking a genetic defect to its cellular phenotype
+    Colleen E. Clancy and Yoram Rudy
+    1999, Nature
+
+[2] http://www.cwru.edu/med/CBRTC/LRdOnline/markovina1999.htm
+
+Note: The equations given in "Box 1" of the Nature publication appear to be
+      incorrect. The first equation is missing a "-", and alpha3 contains a
+      term 3.7933e-9, which is 3.7933e-10 in the version published online.
+
+Max conductance : 18.5 [mS/cm^2]
+
+Based on data from the following sources:
+
+[3] Multiple-mechanisms of Na+ channel-linked long-QT syndrome.
+    Dumaine, et al.
+    1996, Circulation Research
+[4] Multiple effects of the KPQ deletion on gating of human cardiac Na+
+    channels expressed in mammalian cells.
+    Chandra, Starmer & Grant
+    1998, Am. J. Physiol
+[5] Molecular mechanism for an inherited cardiac arrhythmia.
+    Bennett, Yazawa, Makita, George
+    1995, Nature
+
+The midpoints of activation and inactivation correspond to those given in [4].
+"""
+use membrane.V
+use ina.E, ina.gmax
+a11 = 3.802/(0.1027 * exp(-V / 17.0) + 0.20 * exp(-V / 150))
+a12 = 3.802/(0.1027 * exp(-V / 15.0) + 0.23 * exp(-V / 150))
+a13 = 3.802/(0.1027 * exp(-V / 12.0) + 0.25 * exp(-V / 150))
+b11 = 0.1917 * exp(V        / -20.3)
+b12 = 0.2    * exp((V -  5) / -20.3)
+b13 = 0.22   * exp((V - 10) / -20.3)
+a2 = 9.178 * exp(V / 29.68)
+b2 = (a3*a2*a13)/(b3*b13)
+a3 = 3.7933e-10 * exp(-V / 5.2) # 3.7933e-7 * exp(-V / 7.7)
+b3 = 0.0084 + 0.00002 * V
+a4 = a2 / 100
+b4 = a3
+# Transition rates
+dot(C3) = -C3 * (a11           ) + C2 * b11
+dot(C2) = -C2 * (a12 + b11     ) + C1 * b12 + C3 * a11
+dot(C1) = -C1 * (a13 + b12 + b3) + O  * b13 + C2 * a12 + IF * a3
+dot(O)  = -O  * (a2  + b13     ) + C1 * a13 + IF * b2
+dot(IF) = -IF * (a4  + b2  + a3) + IS * b4  + O  * a2  + C1 * b3
+dot(IS) = -IS * (b4            ) + IF * a4
+i = gmax * O * (V - E)
+p = 1e-4
+
+[[protocol]]
+# Level  Start    Length   Period   Multiplier
+1.0      10.0      0.5      1000.0   0
+
+[[script]]
+#
+# Quick script to test if the parameter rewrites are ok.
+#
+import myokit
+import myokit.pacing as pacing
+import numpy as np
+import matplotlib.pyplot as plt
+
+m = get_model()
+
+# Pre-pace at holding potential
+vhold = -140
+vm = m.get('membrane.V')
+vm.set_rhs(vhold)
+vm.set_binding(None)
+s = myokit.Simulation(m)
+s.pre(100000)
+m.set_state(s.state())
+vm.set_binding('pace')
+
+# Protocol times: prep, step, post, full
+tprep = 2800
+tstep = 15
+tpost = 0
+tfull = tprep + tstep + tpost
+
+# Step voltages
+vlo = -140
+vhi =  100
+res = 10
+v = np.arange(vlo, vhi + res, res)
+p = pacing.steptrain(v, vhold, tprep, tstep, tpost)
+t = p.characteristic_time()
+
+# Run simulation
+s = myokit.Simulation(m, p)
+d = s.run(t)
+d = d.npview()
+
+# Split & trim logs
+logs = d.split_periodic(tfull, adjust=True)
+for log in logs:
+    log.trim_left(tprep, adjust=True)
+
+# Plot signals
+plt.figure()
+for k, log in enumerate(logs):
+    ls = '-' if k % 2 == 0 else '--'
+    plt.plot(log['engine.time'], log['ina.i'], linestyle=ls)
+    plt.plot(log['engine.time'], log['ina_ref.i'], linestyle=ls)
+plt.figure()
+for k, log in enumerate(logs):
+    ls = '-' if k % 2 == 0 else '--'
+    e = (log['ina.i'] - log['ina_ref.i']) / log['ina.i']
+    plt.plot(log['engine.time'], np.abs(e), linestyle=ls)
+
+# Display plots
+plt.show()
+

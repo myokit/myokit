@@ -1,0 +1,41 @@
+[[model]]
+ikr.c = 1
+ikr.i = 0
+ikr.ic = 0
+ikr.o = 0
+
+[engine]
+time = 0 bind time
+pace = 0 bind pace
+
+[membrane]
+V = engine.pace
+    label membrane_potential
+
+[nernst]
+EK = -88 [mV]
+
+[ikr]
+use membrane.V
+IKr = p11 * o * (V - nernst.EK)
+dot(c) = k34 * o + a2 * ic - (k12 + k910) * c
+dot(i) = k12 * ic + k56 * o - (k34 + k78) * i
+dot(ic) = k910 * c + k34 * i - (a2 + k12) * ic
+dot(o) = k12 * c + k78 * i - (k34 + k56) * o
+k12 = p1 * exp(p2 * V)
+k34 = p3 * exp(-p4 * V)
+k56 = p5 * exp(p6 * V)
+k78 = p7 * exp(-p8 * V)
+k910 = p9 * exp(p10 * V)
+a2 = (p9 * p7 / p5) * exp((p10 - p8 - p6) * V)
+p1 = 2.26e-4 [1/ms]
+p2 = 0.0699 [1/mV]
+p3 = 3.45e-5 [1/ms]
+p4 = 0.05462 [1/mV]
+p5 = 0.0873 [1/ms]
+p6 = 8.91e-3 [1/mV]
+p7 = 5.15e-3 [1/ms]
+p8 = 0.03158 [1/mV]
+p9 = 0.0873 [1/ms]
+p10 = 8.91e-3 [1/mV]
+p11 = 0.1524 [mS]

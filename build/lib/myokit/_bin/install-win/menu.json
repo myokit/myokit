@@ -1,0 +1,34 @@
+<?
+# Pype template for a menuinst json file.
+#
+# Requires the variable 'icona' pointing to the Myokit icon directory
+#
+icons = icons.replace('\\', '/')
+?>
+{
+    "menu_name": "Myokit",
+    "menu_items":
+        [
+            {
+                "name": "DataLog viewer",
+                "script": "${PYTHON_SCRIPTS}/myokit.exe",
+                "scriptarguments": ["log"],
+                "workdir": "${PREFIX}",
+                "icon": "<?=icons?>/icon-ide.ico"
+            },
+            {
+                "name": "DataBlock viewer",
+                "script": "${PYTHON_SCRIPTS}/myokit.exe",
+                "scriptarguments": ["block"],
+                "workdir": "${PREFIX}",
+                "icon": "<?=icons?>/icon-datablock-viewer.ico"
+            },
+            {
+                "name": "Myokit IDE",
+                "script": "${PYTHON_SCRIPTS}/myokit.exe",
+                "scriptarguments": ["ide"],
+                "workdir": "${PREFIX}",
+                "icon": "<?=icons?>/icon-ide.ico"
+            }
+        ]
+}
