@@ -215,7 +215,7 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             'ite((a == b), c, ite((a == d), 3.0, 4.0))')
 
     def test_in_c(self):
-        """ Compile and test the values evaluated in C. """
+        # Compile and test the values evaluated in C
 
         class CTester():
             def __init__(self, parent):
