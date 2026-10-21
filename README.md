@@ -22,6 +22,8 @@ A list of changes introduced in each Myokit release is provided in the [Changelo
 For full installation details (on linux, mac, or windows), please see [https://myokit.org/install](https://myokit.org/install).
 A shorter installation guide for experienced users is given below.
 
+**Update: 2026-10-21. Users of Ubuntu 26 or newer, may run into an "mpi.h not found" error. This is an unfortunate result of changes to sundials and the way it is packaged by Ubuntu. A fix is planned (#1215) but this will take considerable time to implement. In the meantime, please use an older version of sundials, or install and compile the newest version manually.**
+
 To install Myokit, using PyQt5 for Myokit's GUI components, run:
 
     pip install myokit[pyqt]
