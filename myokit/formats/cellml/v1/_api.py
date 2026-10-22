@@ -980,7 +980,16 @@ class Model(AnnotatableElement):
 
     def myokit_model(self):
         """
-        Returns this model's :class:`myokit.Model` equivalent.
+        Converts this model to a :class:`myokit.Model`.
+
+        Conversion rules:
+
+        - The free variable (used in derivatives) is equated with time.
+        - CellML variables that do not define a value (including the free
+          variable) are set to zero, taking the variable unit.
+        - CellML initial values that are numbers take on the unit defined by
+          the variable.
+
         """
         # Make sure model is valid before starting
         self.validate()
@@ -1065,13 +1074,26 @@ class Model(AnnotatableElement):
                     # this is either known to be the free variable or assumed
                     # to be (if not explicitly set by the user).
 
+                    # Get equation from RHS or initial value
+                    # After this block, rhs may still be None
+                    rhs = variable.rhs()
+                    if rhs is None and not variable.is_state():
+                        # For states, always use the RHS
+                        # For others, try using the initial value
+                        rhs = variable.initial_value()
+                        if isinstance(rhs, myokit.Number):
+                            # Conversion rule: attach unit to initial value
+                            # This relies on -1 being parsed as a Number
+                            rhs = myokit.Number(
+                                rhs.eval(), variable.units().myokit_unit())
+
                     # Add equation
-                    rhs = variable.rhs_or_initial_value()
                     if variable.is_free() or rhs is None:
-                        # Use zero for free or undefined variables
+                        # Conversion rule: use zero for free or undefined vars
                         v.set_rhs(
                             myokit.Number(0, variable.units().myokit_unit()))
                         if variable.is_free():
+                            # Conversion rule: Free variable is time
                             v.set_binding('time')
                         else:
                             undefined_variables.append(v)
@@ -1590,9 +1612,7 @@ class Variable(AnnotatableElement):
         return self._component
 
     def initial_value(self):
-        """
-        Returns this variable's initial value, or ``None`` if it is not set.
-        """
+        """ Returns this variable's initial value, or ``None`` if not set. """
         return self._initial_value
 
     def is_local(self):
@@ -1641,15 +1661,23 @@ class Variable(AnnotatableElement):
 
     def rhs(self):
         """
-        Returns this variable's right-hand side expression, if set.
+        Returns this variable's right-hand side expression, or ``None`` if not
+        set.
         """
         return self._rhs
 
     def rhs_or_initial_value(self):
         """
+        Deprecated method: Returns the variable's RHS or its initial value.
+
         For non-states, returns this variable's RHS or its initial value if no
         RHS is set. For states always returns the RHS.
         """
+        # Deprecated since 2026-10-22
+        import warnings
+        warnings.warn(
+            'The method `rhs_or_initial_value` is deprecated. Please use'
+            ' `rhs()` or `initial_value` instead.')
         if self._is_state:
             return self._rhs
         if self._rhs is None and self._initial_value is not None:

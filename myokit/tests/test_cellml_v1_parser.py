@@ -537,7 +537,7 @@ class TestCellMLParser(unittest.TestCase):
         self.assertBad(
             '<import />', 'Imports are not supported', version='1.1')
 
-    def test_initial_value(self):
+    def test_initial_value_variable(self):
         # Test setting a variable as initial value, allowed in 1.1
 
         x = ('<component name="a">'
