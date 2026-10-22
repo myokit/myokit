@@ -15,6 +15,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1214](https://github.com/myokit/myokit/pull/1214) No longer testing on Python 3.8 or 3.9.
 - Fixed
   - [#1214](https://github.com/myokit/myokit/pull/1214) Myokit now specifies which version of OpenCL it is compatible with (2.0).
+  - [#1219](https://github.com/myokit/myokit/pull/1219) Fixed a CellML 1 import bug introduced in 1.39.0 that caused units for constants to be omitted from the generated Myokit code.
 
 ## [1.39.2] - 2026-03-18
 - Added
