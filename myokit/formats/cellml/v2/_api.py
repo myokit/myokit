@@ -291,6 +291,16 @@ class Model(AnnotatableElement):
     - Models that take derivatives with respect to more than one variable are
       not supported.
 
+    Major differences from CellML 1 API:
+
+    - Connections are now interpreted as each :class:`variables<Variable>`
+      being part of a :class:`connected variable sets<ConnectedVariableSet>`.
+    - A variable no longer has an RHS, but instead has a defining equation.
+      This may be set either on the variable itself, or on a different variable
+      in the connected set.
+    - Initial values are stored with units, which must match the units of the
+      defining variable.
+
     Arguments:
 
     ``name``
@@ -836,7 +846,16 @@ class Model(AnnotatableElement):
 
     def myokit_model(self):
         """
-        Returns this model's :class:`myokit.Model` equivalent.
+        Converts this model to a :class:`myokit.Model`.
+
+        Conversion rules:
+
+        - The variable returned by :meth:`variable_of_integration()` is equated
+          with time. If the method returns ``None``, the first free variable
+          found by iterating over all variables is selected.
+        - CellML variables that do not define a value (including the variable
+          of integration) are set to zero, taking the variable unit.
+
         """
         # Make sure model is valid before starting
         self.validate()
@@ -846,11 +865,11 @@ class Model(AnnotatableElement):
         # Get variable of integration (if any)
         voi = cmodel.variable_of_integration()
 
-        # All myokit variables need an RHS, so set one for each set of free
-        # variables.
+        # All myokit variables need an RHS, so set an initial value for each
+        # set of free variables.
+        # Conversion rule: free variables are set to 0
         if voi is not None:
             voi.set_initial_value(0)
-
         for component in cmodel:
             for variable in component:
                 if variable.is_free():
@@ -949,6 +968,7 @@ class Model(AnnotatableElement):
                             0 if init is None else init.clone(subst=var_map))
 
                     # Set time variable
+                    # Conversion rule: variable of integration is time
                     if variable is voi:
                         v.set_binding('time')
 

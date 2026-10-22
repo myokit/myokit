@@ -901,7 +901,7 @@ class TestCellML1ModelConversion(unittest.TestCase):
         self.assertEqual(
             mz.rhs(),
             myokit.Plus(myokit.Number(3, myokit.units.volt), myokit.Name(mx)))
-        self.assertEqual(mz2.rhs(), myokit.Number(4))
+        self.assertEqual(mz2.rhs(), myokit.Number(4, myokit.units.meter))
 
         # Check state
         self.assertTrue(mx.is_state())
@@ -930,41 +930,46 @@ class TestCellML1ModelConversion(unittest.TestCase):
         # Convert and test
         mm = m.myokit_model()
         mx, my, mz = mm.get('a.x'), mm.get('a.y'), mm.get('a.z')
-        self.assertEqual(mx.rhs(), myokit.Number(1))
+        self.assertEqual(mx.rhs(), myokit.Number(1, myokit.units.volt))
         self.assertEqual(my.rhs(), myokit.Name(mx))
         self.assertEqual(mz.rhs(), myokit.Number(2))
         self.assertEqual(mz.initial_value(), myokit.Name(my))
 
         # Initial value in other component
+        # [a]
+        # x in [m], in
+        # dot(y) = 12, init is x
+        # [b]
+        # z init 3 in [m], out
         m = cellml.Model('m')
         a = m.add_component('a')
         t = a.add_variable('t', 'dimensionless')
         m.set_free_variable(t)
-        ax = a.add_variable('x', 'volt', public_interface='in')
-        y = a.add_variable('y', 'volt')
+        ax = a.add_variable('x', 'meter', public_interface='in')
+        y = a.add_variable('y', 'meter')
         y.set_initial_value(myokit.Name(ax))
         y.set_is_state(True)
         y.set_rhs(myokit.Number(12))
         b = m.add_component('b')
-        bx = b.add_variable('x', 'volt', public_interface='out')
-        bx.set_initial_value(3)
-        m.add_connection(ax, bx)
+        bz = b.add_variable('z', 'meter', public_interface='out')
+        bz.set_initial_value(3)
+        m.add_connection(ax, bz)
 
         # Convert and test
         mm = m.myokit_model()
-        mx, my = mm.get('b.x'), mm.get('a.y')
-        self.assertEqual(mx.rhs(), myokit.Number(3))
+        mz, my = mm.get('b.z'), mm.get('a.y')
+        self.assertEqual(mz.rhs(), myokit.Number(3, myokit.units.m))
         self.assertEqual(my.rhs(), myokit.Number(12))
-        self.assertEqual(my.initial_value(), myokit.Name(mx))
+        self.assertEqual(my.initial_value(), myokit.Name(mz))
 
         # Missing initial values
         y.set_initial_value(None)
-        bx.set_initial_value(None)
+        bz.set_initial_value(None)
         with WarningCollector() as w:
             mm = m.myokit_model()
-        mx, my = mm.get('b.x'), mm.get('a.y')
+        mz, my = mm.get('b.z'), mm.get('a.y')
         self.assertEqual(my.initial_value(), myokit.Number(0))
-        self.assertEqual(mx.rhs(), myokit.Number(0, myokit.units.volt))
+        self.assertEqual(mz.rhs(), myokit.Number(0, myokit.units.meter))
 
     def test_c2m_pass_through_variables(self):
         # Test support for variables used only to pass a value through a
@@ -1286,23 +1291,27 @@ class TestCellML1Variable(unittest.TestCase):
     def test_rhs_or_initial_value(self):
         # Tests Variable.rhs_or_initial_value()
 
-        v = cellml.Model('m').add_component('c').add_variable('bert', 'meter')
-        self.assertIsNone(v.rhs_or_initial_value())
+        # Deprecated name
+        with WarningCollector() as w:
+            v = cellml.Model('m').add_component('c').add_variable(
+                'bert', 'meter')
+            self.assertIsNone(v.rhs_or_initial_value())
 
-        # Test initial value is returned (but with units stripped)
-        v.set_initial_value(myokit.Number(3, myokit.units.meter))
-        self.assertEqual(v.rhs_or_initial_value(), myokit.Number(3))
+            # Test initial value is returned (but with units stripped)
+            v.set_initial_value(myokit.Number(3, myokit.units.meter))
+            self.assertEqual(v.rhs_or_initial_value(), myokit.Number(3))
 
-        # RHS takes precedence over initial value
-        r = myokit.Number(18, myokit.units.meter)
-        v.set_rhs(r)
-        self.assertEqual(v.rhs_or_initial_value(), r)
-        v.set_rhs(None)
-        self.assertEqual(v.rhs_or_initial_value(), v.initial_value())
+            # RHS takes precedence over initial value
+            r = myokit.Number(18, myokit.units.meter)
+            v.set_rhs(r)
+            self.assertEqual(v.rhs_or_initial_value(), r)
+            v.set_rhs(None)
+            self.assertEqual(v.rhs_or_initial_value(), v.initial_value())
 
-        # State never returns initial value
-        v.set_is_state(True)
-        self.assertIsNone(v.rhs_or_initial_value())
+            # State never returns initial value
+            v.set_is_state(True)
+            self.assertIsNone(v.rhs_or_initial_value())
+        self.assertIn('deprecated', w.text())
 
     def test_set_and_get_rhs(self):
         # Tests Variable.set_rhs() and Variable.rhs()
