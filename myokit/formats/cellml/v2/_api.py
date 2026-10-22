@@ -856,11 +856,6 @@ class Model(AnnotatableElement):
         - CellML variables that do not define a value (including the variable
           of integration) are set to zero, taking the variable unit.
 
-
-        The free variable (used in derivatives) is equated with time.
-        - CellML initial values that are numbers take on the unit defined by
-          the variable.
-
         """
         # Make sure model is valid before starting
         self.validate()
