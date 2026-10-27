@@ -911,11 +911,6 @@ class Model(AnnotatableElement):
                 if ufrom != uto:
                     needs_conversion.add(variable)
 
-        print(self._voi in needs_conversion)
-        for var in self._voi._cset:
-            print(var, var.units())
-
-
         # Add components
         for component in cmodel:
             c = m.add_component(component.name())
