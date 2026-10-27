@@ -6,7 +6,6 @@ This page lists the main changes made to Myokit in each release.
 - Added
   - [#1214](https://github.com/myokit/myokit/pull/1214) Myokit is now tested on Python 3.15.
 - Changed
-  - [#1203](https://github.com/myokit/myokit/pull/1203) CVODES now includes sensitivities in its error control.
   - [#1211](https://github.com/myokit/myokit/pull/1211) Project configuration is now handled in `pyproject.toml` instead of `setup.py`.
   - [#1211](https://github.com/myokit/myokit/pull/1211) Development versions of Myokit now have a version number ending in `dev0` (formerly ended in `dev`).
 - Deprecated
