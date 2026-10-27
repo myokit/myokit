@@ -300,6 +300,8 @@ class Model(AnnotatableElement):
       in the connected set.
     - Initial values are stored with units, which must match the units of the
       defining variable.
+    - As is required in CellML 2, the API performs unit conversion between
+      components.
 
     Arguments:
 
@@ -908,6 +910,11 @@ class Model(AnnotatableElement):
                 uto = variable.units().myokit_unit()
                 if ufrom != uto:
                     needs_conversion.add(variable)
+
+        print(self._voi in needs_conversion)
+        for var in self._voi._cset:
+            print(var, var.units())
+
 
         # Add components
         for component in cmodel:

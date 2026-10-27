@@ -460,6 +460,8 @@ class Model(AnnotatableElement):
       not supported.
     - Models written as a DAE (e.g. ``1 + x = 2 + y``) are not supported.
     - cmeta:id support is limited to models, components, and variables.
+    - Units in Myokit's CellML 1 api are used only for validation: no unit
+      conversion is performed.
 
     Support notes for 1.1:
 
