@@ -840,12 +840,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except Exception:
             self.show_exception()
 
-    def action_license(self):
-        """
-        Displays this program's licensing information.
-        """
-        QtWidgets.QMessageBox.about(self, TITLE, myokit.LICENSE_HTML)
-
     def action_model_stats(self):
         """
         Gathers and displays some basic information about the current model.
@@ -2077,11 +2071,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_about.setStatusTip('View information about this program.')
         self._tool_about.triggered.connect(self.action_about)
         self._menu_help.addAction(self._tool_about)
-        # Help > License
-        self._tool_license = QtGui.QAction('&License', self)
-        self._tool_license.setStatusTip('View this program\'s license info.')
-        self._tool_license.triggered.connect(self.action_license)
-        self._menu_help.addAction(self._tool_license)
 
     def create_toolbar(self):
         """

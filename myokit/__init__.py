@@ -50,14 +50,12 @@ del sys
 
 
 #
-# Version information
+# Version information and licensing
 #
-from ._myokit_version import (  # noqa
-    __release__,
-    __version__,
-    __version_tuple__,
-)
-
+import importlib.metadata  # noqa
+__version__ = importlib.metadata.version('myokit')
+__release__ = len(__version__.split('.')) == 3
+del importlib
 
 # Warn about development version
 if not __release__:     # pragma: no cover
@@ -65,103 +63,9 @@ if not __release__:     # pragma: no cover
     warnings.warn(f'Using development version of Myokit ({__version__}).')
     del warnings
 
-
-#
-# Licensing
-#
-
 # Full license text
-LICENSE = """
-BSD 3-Clause License
-
-Copyright (c) 2011-2017 Maastricht University. All rights reserved.
-Copyright (c) 2017-2020 University of Oxford. All rights reserved.
- (University of Oxford means the Chancellor, Masters and Scholars of the
-  University of Oxford, having an administrative office at Wellington Square,
-  Oxford OX1 2JD, UK).
-Copyright (c) 2020-2026 University of Nottingham. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-* Neither the name of the copyright holder nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-""".strip()
-
-# Full license text, html
-LICENSE_HTML = """
-<h1>Myokit</h1>
-<p>
-    BSD 3-Clause License
-    <br />
-    <br />Copyright (c) 2011-2017 Maastricht University. All rights reserved.
-    <br />Copyright (c) 2017-2020 University of Oxford. All rights reserved.
-    <br />(University of Oxford means the Chancellor, Masters and Scholars of
-    the University of Oxford, having an administrative office at Wellington
-    Square, Oxford OX1 2JD, UK).
-    <br />Copyright (c) 2020-2026 University of Nottingham. All rights
-    reserved.</br></p>
-<p>
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are met:
-</p>
-<ul>
-    <li>
-        <p>
-            Redistributions of source code must retain the above copyright
-            notice, this list of conditions and the following disclaimer.
-        </p>
-    </li>
-    <li>
-        <p>
-            Redistributions in binary form must reproduce the above copyright
-            notice, this list of conditions and the following disclaimer in the
-            documentation and/or other materials provided with the
-            distribution.
-        </p>
-    </li>
-    <li>
-        <p>
-            Neither the name of the copyright holder nor the names of its
-            contributors may be used to endorse or promote products derived
-            from this software without specific prior written permission.
-        </p>
-    </li>
-</ul>
-<p>
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-    ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-    CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-    SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-    CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-    POSSIBILITY OF SUCH DAMAGE.
-</p>
-""".strip()
-
+# dist = importlib.metadata.distribution('myokit')
+# LICENSE = dist.read_text('licenses/LICENSE.txt').strip()
 
 #
 # Paths

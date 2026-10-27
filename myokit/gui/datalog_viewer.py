@@ -73,9 +73,6 @@ ABOUT = '<h1>' + TITLE + '</h1>' + """
 </p>
 """.replace('BACKEND', myokit.gui.backend).replace('PYTHON', sys.version)
 
-# License
-LICENSE = myokit.LICENSE_HTML
-
 # File filters
 FILTER_ABF = 'ABF files (*.abf *.pro)'
 FILTER_ATF = 'ATF files (*.atf)'
@@ -236,12 +233,6 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         tab = self._tabs.currentWidget()
         if tab:
             tab.last()
-
-    def action_license(self):
-        """
-        Displays this program's licensing information.
-        """
-        QtWidgets.QMessageBox.about(self, TITLE, LICENSE)
 
     def action_open(self):
         """
@@ -404,11 +395,6 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tool_about.setStatusTip('View information about this program.')
         self._tool_about.triggered.connect(self.action_about)
         self._menu_help.addAction(self._tool_about)
-        # Help > License
-        self._tool_license = QtGui.QAction('&License', self)
-        self._tool_license.setStatusTip('View this program\'s license info.')
-        self._tool_license.triggered.connect(self.action_license)
-        self._menu_help.addAction(self._tool_license)
 
     def create_toolbar(self):
         """

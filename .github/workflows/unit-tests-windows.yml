@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         # Selected python versions only
-        python-version: ['3.10', '3.14']
+        python-version: ['3.10', '3.15']
 
     steps:
       - uses: actions/checkout@v7
@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-          cache-dependency-path: setup.py
+          cache-dependency-path: pyproject.toml
 
       - name: Install Myokit
         run: |
