@@ -7,11 +7,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1214](https://github.com/myokit/myokit/pull/1214) Myokit is now tested on Python 3.15.
 - Changed
   - [#1203](https://github.com/myokit/myokit/pull/1203) CVODES now includes sensitivities in its error control.
-  - [X](https://github.com/myokit/myokit/pull/XXXXX) Project configuration is now mostly handled by `pyproject.toml`.
-  - [X](https://github.com/myokit/myokit/pull/XXXX) Development versions of Myokit now have a version ending in `dev0` (formerly ended in `dev`).
-  - [#1211](https://github.com/myokit/myokit/pull/1211) Now testing on Python 3.15
-- Changed
-  - [#1211](https://github.com/myokit/myokit/pull/1211) Project configuration is now handled by `pyproject.toml` instead of `setup.py`.
+  - [#1211](https://github.com/myokit/myokit/pull/1211) Project configuration is now handled in `pyproject.toml` instead of `setup.py`.
   - [#1211](https://github.com/myokit/myokit/pull/1211) Development versions of Myokit now have a version number ending in `dev0` (formerly ended in `dev`).
 - Deprecated
 - Removed
@@ -20,10 +16,9 @@ This page lists the main changes made to Myokit in each release.
   - [#1208](https://github.com/myokit/myokit/pull/1208) Removed the obsolete `ChannelML` support.
   - [#1214](https://github.com/myokit/myokit/pull/1214) No longer testing on Python 3.8 or 3.9.
 - Fixed
+  - [#1203](https://github.com/myokit/myokit/pull/1203) CVODES now includes sensitivities in its error control.
   - [#1214](https://github.com/myokit/myokit/pull/1214) Myokit now specifies which version of OpenCL it is compatible with (2.0).
   - [#1219](https://github.com/myokit/myokit/pull/1219) Fixed a CellML 1 import bug introduced in 1.39.0 that caused units for constants to be omitted from the generated Myokit code.
-- Fixed
-  - [#1203](https://github.com/myokit/myokit/pull/1203) CVODES now includes sensitivities in its error control.
 
 ## [1.39.2] - 2026-03-18
 - Added

@@ -47,9 +47,6 @@ ABOUT = f'<h1>{TITLE}</h1>' + f"""
 </p>
 """
 
-# License
-LICENSE = myokit.LICENSE_HTML
-
 # File filters
 FILTER_CSV = 'Comma separated file (*.txt *.csv)'
 FILTER_IMG = ';;'.join([
@@ -445,12 +442,6 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             fname = str(fname)
             d.save_csv(fname)
 
-    def action_license(self):
-        """
-        Displays this program's licensing information.
-        """
-        QtWidgets.QMessageBox.about(self, TITLE, LICENSE)
-
     def action_next_frame(self, e=None):
         """
         Move to next frame!
@@ -669,10 +660,6 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._tool_about.setStatusTip('View information about this program.')
         self._tool_about.triggered.connect(self.action_about)
         self._menu_help.addAction(self._tool_about)
-        self._tool_license = QtGui.QAction('&License', self)
-        self._tool_license.setStatusTip('View this program\'s license info.')
-        self._tool_license.triggered.connect(self.action_license)
-        self._menu_help.addAction(self._tool_license)
 
     def display_exception(self):
         """ Displays the last exception in a messagebox. """

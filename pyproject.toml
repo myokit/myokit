@@ -22,13 +22,13 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Scientific/Engineering :: Physics",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "configparser",
     "lxml",
     "matplotlib>=2.2",
     "numpy",
-    "setuptools>=64"
+    "setuptools>=77"
 ]
 
 [project.optional-dependencies]
