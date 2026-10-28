@@ -8,7 +8,6 @@ import myokit.formats.ansic
 
 from ._ewriter import CppExpressionWriter
 
-
 # Importers
 # Exporters
 # Expression writers

@@ -7,9 +7,9 @@
 import warnings
 
 import myokit
-from myokit.formats.sbml._writer import write_file
-import myokit.lib.guess
 import myokit.formats.sbml as sbml
+import myokit.lib.guess
+from myokit.formats.sbml._writer import write_file
 
 
 class SBMLExporter(myokit.formats.Exporter):

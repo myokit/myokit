@@ -4,10 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import warnings
+
 import myokit
 import myokit.lib.guess
-
-import warnings
 
 
 class CellMLExporter(myokit.formats.Exporter):

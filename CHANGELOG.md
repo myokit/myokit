@@ -8,16 +8,21 @@ This page lists the main changes made to Myokit in each release.
 - Changed
   - [#1211](https://github.com/myokit/myokit/pull/1211) Project configuration is now handled in `pyproject.toml` instead of `setup.py`.
   - [#1211](https://github.com/myokit/myokit/pull/1211) Development versions of Myokit now have a version number ending in `dev0` (formerly ended in `dev`).
+  - [#1223](https://github.com/myokit/myokit/pull/1223) The methods `cg_layers_dag` and `meg_dag` in `lib.deps` will now raise a `DiGraphError` instead of a generic `Exception` if the graph is cyclical.
+  - [#1223](https://github.com/myokit/myokit/pull/1223) The following calls now raise a `TypeError` instead of a `ValueError` if an incorrect type argument is passed in: `cellml.v1.Model.add_connection()`, `cellml.v1.Units()`, `cellml.v1.Variable.set_rhs()`, `cellml.v2.Model.add_connection()`, `cellml.v2.Units()`, `myokit.gui.run()`, `DataLog.prepare_log()`, `Expression.diff()`, `Expression.eval()`, `OpenCLSim.set_connections()`, `Unit.register_preferred_representation()`, `lib.hh.HHModel()`, `lib.hh.AnalyticalSimulation()`, `lib.hh.convert_hh_states_to_inf_tau_form()`, `lib.hh.get_rl_expression()`, `lib.markov.AnalyticalSimulation()`, `lib.markov.DiscreteSimulation()`.
 - Deprecated
 - Removed
   - [#1206](https://github.com/myokit/myokit/pull/1206) Removed the unused `JacobianCalculator`, `JacobianTracer`, and `CppModule` classes.
   - [#1207](https://github.com/myokit/myokit/pull/1207) Removed the `gtksourceview` syntax highlighting support.
   - [#1208](https://github.com/myokit/myokit/pull/1208) Removed the obsolete `ChannelML` support.
   - [#1214](https://github.com/myokit/myokit/pull/1214) No longer testing on Python 3.8 or 3.9.
+  - [#1223](https://github.com/myokit/myokit/pull/1223) Removed deprecated alias `R` for `ohm`.
 - Fixed
   - [#1203](https://github.com/myokit/myokit/pull/1203) CVODES now includes sensitivities in its error control.
   - [#1214](https://github.com/myokit/myokit/pull/1214) Myokit now specifies which version of OpenCL it is compatible with (2.0).
   - [#1219](https://github.com/myokit/myokit/pull/1219) Fixed a CellML 1 import bug introduced in 1.39.0 that caused units for constants to be omitted from the generated Myokit code.
+  - [#1223](https://github.com/myokit/myokit/pull/1223) The units of resistance are now rendered `ohm` instead of `Ohm`, and the parser will accept e.g. `[Mohm]`.
+  - [#1223](https://github.com/myokit/myokit/pull/1223) The units candela are now rendered as `cd`, not `lm`.
 
 ## [1.39.2] - 2026-03-18
 - Added

@@ -22,5 +22,6 @@ env
 .DS_Store
 
 # Tools
+.ruff_cache
 .vscode
 .claude

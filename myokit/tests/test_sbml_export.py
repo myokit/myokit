@@ -9,11 +9,9 @@ import unittest
 
 import myokit
 import myokit.formats
-
-import myokit.formats.sbml
+from myokit.formats import sbml
 from myokit.formats.sbml._api import Model
 from myokit.formats.sbml._writer import write_string
-import myokit.formats.sbml as sbml
 
 
 class TestSBMLExport(unittest.TestCase):
@@ -85,15 +83,11 @@ class TestSBMLExport(unittest.TestCase):
         sbml_str = write_string(model).decode("utf8")
         self.assertIn("<listOfUnitDefinitions>", sbml_str)
         self.assertIn('<unitDefinition id="my_unit">', sbml_str)
-        self.assertIn(
-            '<unit kind="ampere" exponent="1.0" multiplier="1.0"/>',
-            sbml_str
-        )
+        self.assertIn('<unit kind="ampere" exponent="1.0" multiplier="1.0"/>',
+                      sbml_str)
         self.assertIn('<unitDefinition id="my_unit2">', sbml_str)
-        self.assertIn(
-            '<unit kind="dimensionless" multiplier="2.0"/>',
-            sbml_str
-        )
+        self.assertIn('<unit kind="dimensionless" multiplier="2.0"/>',
+                      sbml_str)
 
     def test_list_of_compartments(self):
         # Test setting a list of compartments
@@ -105,14 +99,10 @@ class TestSBMLExport(unittest.TestCase):
         c.set_size_units(1e3 * myokit.units.metre ** 3)
         sbml_str = write_string(model).decode("utf8")
         self.assertIn("<listOfCompartments>", sbml_str)
-        self.assertIn(
-            '<compartment id="my_compartment" units="litre" spatialDimensions="3.0"/>',  # noqa: E501
-            sbml_str
-        )
-        self.assertIn(
-            '<compartment id="my_compartment2" units="m3_times_1e3"/>',
-            sbml_str
-        )
+        self.assertIn('<compartment id="my_compartment" units="litre"'
+                      ' spatialDimensions="3.0"/>', sbml_str)
+        self.assertIn('<compartment id="my_compartment2"'
+                      ' units="m3_times_1e3"/>', sbml_str)
         self.assertIn("<listOfUnitDefinitions>", sbml_str)
         self.assertIn('<unitDefinition id="m3_times_1e3">', sbml_str)
 
@@ -157,14 +147,11 @@ class TestSBMLExport(unittest.TestCase):
         p.set_value(myokit.Number(2))
         sbml_str = write_string(model).decode("utf8")
         self.assertIn("<listOfParameters>", sbml_str)
-        self.assertIn(
-            '<parameter id="my_parameter" constant="true" value="1.0"/>',
-            sbml_str
-        )
-        self.assertIn(
-            '<parameter id="my_parameter2" units="m_per_s_times_1e3" constant="true" value="2.0"/>',  # noqa: E501
-            sbml_str
-        )
+        self.assertIn('<parameter id="my_parameter" constant="true"'
+                      ' value="1.0"/>', sbml_str)
+        self.assertIn(            '<parameter id="my_parameter2"'
+                      ' units="m_per_s_times_1e3" constant="true"'
+                      ' value="2.0"/>', sbml_str)
         self.assertNotIn("<listOfRules>", sbml_str)
         self.assertNotIn("<listOfInitialAssignments>", sbml_str)
         self.assertIn("<listOfUnitDefinitions>", sbml_str)
@@ -173,26 +160,24 @@ class TestSBMLExport(unittest.TestCase):
     def test_list_of_parameters_const_depend(self):
         # Test setting a constant parameter that depends on another parameter
         model = Model()
-        p = model.add_parameter("my_parameter")
+        p = model.add_parameter('my_parameter')
         p.set_value(myokit.Number(1))
-        p = model.add_parameter("my_parameter2")
+        p = model.add_parameter('my_parameter2')
         p.set_initial_value(
-            myokit.Multiply(myokit.Name("my_parameter"), myokit.Number(2))
+            myokit.Multiply(myokit.Name('my_parameter'), myokit.Number(2))
         )
-        sbml_str = write_string(model).decode("utf8")
-        self.assertIn("<listOfParameters>", sbml_str)
-        self.assertIn(
-            '<parameter id="my_parameter" constant="true" value="1.0"/>',
-            sbml_str
-        )
-        self.assertIn(
-            '<parameter id="my_parameter2" constant="true"/>',  # noqa: E501
-            sbml_str
-        )
-        self.assertNotIn("<listOfRules>", sbml_str)
-        self.assertIn("<listOfInitialAssignments>", sbml_str)
+        sbml_str = write_string(model).decode('utf8')
+        self.assertIn('<listOfParameters>', sbml_str)
+        self.assertIn('<parameter id="my_parameter" constant="true"'
+                      ' value="1.0"/>', sbml_str)
+        self.assertIn('<parameter id="my_parameter2" constant="true"/>',
+                      sbml_str)
+        self.assertNotIn('<listOfRules>', sbml_str)
+        self.assertIn('<listOfInitialAssignments>', sbml_str)
         self.assertIn('<initialAssignment symbol="my_parameter2">', sbml_str)
-        self.assertIn("<times/>\n            <ci>my_parameter</ci>\n            <cn>2.0</cn>", sbml_str)  # noqa: E501
+        self.assertIn(
+            '<times/>\n            <ci>my_parameter</ci>'
+            '\n            <cn>2.0</cn>', sbml_str)
 
     def test_list_of_parameters_var(self):
         model = Model()
@@ -229,22 +214,18 @@ class TestSBMLExport(unittest.TestCase):
         s.set_value(myokit.Number(1), False)
         sbml_str = write_string(model).decode("utf8")
         self.assertIn("<listOfSpecies>", sbml_str)
-        self.assertIn(
-            '<species id="my_species" compartment="my_compartment" initialConcentration="2.0" constant="False" units="M" boundaryCondition="False"/>',  # noqa: E501
-            sbml_str,
-        )
-        self.assertIn(
-            '<species id="my_species2" compartment="my_compartment" initialAmount="2.0" constant="False" units="mole" boundaryCondition="False"/>',  # noqa: E501
-            sbml_str,
-        )
-        self.assertIn(
-            '<species id="my_species3" compartment="my_compartment" initialAmount="2.0" constant="False" boundaryCondition="False"/>',  # noqa: E501
-            sbml_str,
-        )
-        self.assertIn(
-            '<species id="my_species4" compartment="my_compartment" initialConcentration="2.0" constant="False" boundaryCondition="False"/>',  # noqa: E501
-            sbml_str,
-        )
+        self.assertIn('<species id="my_species" compartment="my_compartment"'
+                      ' initialConcentration="2.0" constant="False" units="M"'
+                      ' boundaryCondition="False"/>', sbml_str)
+        self.assertIn('<species id="my_species2" compartment="my_compartment"'
+                      ' initialAmount="2.0" constant="False" units="mole"'
+                      ' boundaryCondition="False"/>', sbml_str)
+        self.assertIn('<species id="my_species3" compartment="my_compartment"'
+                      ' initialAmount="2.0" constant="False"'
+                      ' boundaryCondition="False"/>', sbml_str)
+        self.assertIn('<species id="my_species4" compartment="my_compartment"'
+                      ' initialConcentration="2.0" constant="False"'
+                      ' boundaryCondition="False"/>', sbml_str)
         self.assertIn("<listOfRules>", sbml_str)
         self.assertIn('<rateRule variable="my_species">', sbml_str)
         self.assertIn("<cn>1.0</cn>", sbml_str)
@@ -268,16 +249,13 @@ class TestSBMLExport(unittest.TestCase):
         self.assertIn("<listOfReactants>", sbml_str)
         self.assertIn("<listOfProducts>", sbml_str)
         self.assertIn('<speciesReference species="my_species"/>', sbml_str)
-        self.assertIn('<speciesReference species="my_species" id="my_reaction_reactant"/>', sbml_str)  # noqa: E501
+        self.assertIn('<speciesReference species="my_species"'
+                      ' id="my_reaction_reactant"/>', sbml_str)
         self.assertIn("<listOfModifiers>", sbml_str)
-        self.assertIn(
-            '<modifierSpeciesReference species="my_species"/>',
-            sbml_str
-        )
-        self.assertIn(
-            '<modifierSpeciesReference species="my_species2" id="my_modifier"/>',  # noqa: E501
-            sbml_str
-        )
+        self.assertIn('<modifierSpeciesReference species="my_species"/>',
+                      sbml_str)
+        self.assertIn('<modifierSpeciesReference species="my_species2"'
+                      ' id="my_modifier"/>', sbml_str)
         self.assertIn("<kineticLaw>", sbml_str)
         self.assertIn("<cn>1.0</cn>", sbml_str)
 
@@ -312,20 +290,15 @@ class TestSBMLExport(unittest.TestCase):
         parameter_names = [v.sid() for v in s.parameters()]
         self.assertCountEqual(parameter_names, ['comp_var', 'comp2_var'])
         v2_sbml = s.parameter('comp2_var')
-        self.assertEqual(
-            v2_sbml.value(),
-            myokit.Name(v)
-        )
+        self.assertEqual(v2_sbml.value(), myokit.Name(v))
 
         # check that the equation is exported correctly to sbml string
         sbml_str = write_string(s).decode("utf8")
         self.assertIn('<rateRule variable="comp2_var">', sbml_str)
         self.assertIn('<ci>comp_var</ci>', sbml_str)
         self.assertIn('<rateRule variable="comp_var">', sbml_str)
-        self.assertIn(
-            '<ci>http://www.sbml.org/sbml/symbols/time</ci>',
-            sbml_str
-        )
+        self.assertIn('<ci>http://www.sbml.org/sbml/symbols/time</ci>',
+                      sbml_str)
 
     def test_variable_dependent_variables(self):
         m = myokit.Model()
@@ -346,3 +319,9 @@ class TestSBMLExport(unittest.TestCase):
         self.assertIn('<initialAssignment symbol="var">', sbml_str)
         self.assertNotIn('<initialAssignment symbol="var2">', sbml_str)
         self.assertIn('<assignmentRule variable="var2">', sbml_str)
+
+
+if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
+    unittest.main()

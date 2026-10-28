@@ -9,16 +9,43 @@ import unittest
 
 import myokit
 import myokit.formats.cuda
-
-from myokit import (
-    Number, PrefixPlus, PrefixMinus, Plus, Minus,
-    Multiply, Divide, Quotient, Remainder, Power, Sqrt,
-    Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
-    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
-    If, Piecewise,
-)
-
 import myokit.tests
+from myokit import (
+    Abs,
+    ACos,
+    And,
+    ASin,
+    ATan,
+    Ceil,
+    Cos,
+    Divide,
+    Equal,
+    Exp,
+    Floor,
+    If,
+    Less,
+    LessEqual,
+    Log,
+    Log10,
+    Minus,
+    More,
+    MoreEqual,
+    Multiply,
+    Not,
+    NotEqual,
+    Number,
+    Or,
+    Piecewise,
+    Plus,
+    Power,
+    PrefixMinus,
+    PrefixPlus,
+    Quotient,
+    Remainder,
+    Sin,
+    Sqrt,
+    Tan,
+)
 
 
 class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
@@ -156,31 +183,32 @@ class CudaExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_functions(self):
         a = self.a
-        self.eq(Sqrt(self.a), 'sqrtf(a)')
-        self.eq(Exp(self.a), 'expf(a)')
-        self.eq(Sin(self.a), 'sinf(a)')
-        self.eq(Cos(self.a), 'cosf(a)')
-        self.eq(Tan(self.a), 'tanf(a)')
-        self.eq(ASin(self.a), 'asinf(a)')
-        self.eq(ACos(self.a), 'acosf(a)')
-        self.eq(ATan(self.a), 'atanf(a)')
-        self.eq(Floor(self.a), 'floorf(a)')
-        self.eq(Ceil(self.a), 'ceilf(a)')
-        self.eq(Abs(self.a), 'fabsf(a)')
+        self.eq(Sqrt(a), 'sqrtf(a)')
+        self.eq(Exp(a), 'expf(a)')
+        self.eq(Sin(a), 'sinf(a)')
+        self.eq(Cos(a), 'cosf(a)')
+        self.eq(Tan(a), 'tanf(a)')
+        self.eq(ASin(a), 'asinf(a)')
+        self.eq(ACos(a), 'acosf(a)')
+        self.eq(ATan(a), 'atanf(a)')
+        self.eq(Floor(a), 'floorf(a)')
+        self.eq(Ceil(a), 'ceilf(a)')
+        self.eq(Abs(a), 'fabsf(a)')
 
     def test_functions_double(self):
+        a = self.a
         w = self._target(precision=myokit.DOUBLE_PRECISION)
-        self.assertEqual(w.ex(Sqrt(self.a)), 'sqrt(comp.a)')
-        self.assertEqual(w.ex(Exp(self.a)), 'exp(comp.a)')
-        self.assertEqual(w.ex(Sin(self.a)), 'sin(comp.a)')
-        self.assertEqual(w.ex(Cos(self.a)), 'cos(comp.a)')
-        self.assertEqual(w.ex(Tan(self.a)), 'tan(comp.a)')
-        self.assertEqual(w.ex(ASin(self.a)), 'asin(comp.a)')
-        self.assertEqual(w.ex(ACos(self.a)), 'acos(comp.a)')
-        self.assertEqual(w.ex(ATan(self.a)), 'atan(comp.a)')
-        self.assertEqual(w.ex(Floor(self.a)), 'floor(comp.a)')
-        self.assertEqual(w.ex(Ceil(self.a)), 'ceil(comp.a)')
-        self.assertEqual(w.ex(Abs(self.a)), 'fabs(comp.a)')
+        self.assertEqual(w.ex(Sqrt(a)), 'sqrt(comp.a)')
+        self.assertEqual(w.ex(Exp(a)), 'exp(comp.a)')
+        self.assertEqual(w.ex(Sin(a)), 'sin(comp.a)')
+        self.assertEqual(w.ex(Cos(a)), 'cos(comp.a)')
+        self.assertEqual(w.ex(Tan(a)), 'tan(comp.a)')
+        self.assertEqual(w.ex(ASin(a)), 'asin(comp.a)')
+        self.assertEqual(w.ex(ACos(a)), 'acos(comp.a)')
+        self.assertEqual(w.ex(ATan(a)), 'atan(comp.a)')
+        self.assertEqual(w.ex(Floor(a)), 'floor(comp.a)')
+        self.assertEqual(w.ex(Ceil(a)), 'ceil(comp.a)')
+        self.assertEqual(w.ex(Abs(a)), 'fabs(comp.a)')
 
     def test_conditions(self):
         # Inherited from c-based

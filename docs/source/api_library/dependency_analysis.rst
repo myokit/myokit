@@ -30,3 +30,5 @@ Internally, these functions make use of a tiny DiGraph class.
 .. autoclass:: Node
 
 .. autofunction:: plot_digraph
+
+.. autoclass:: DiGraphError

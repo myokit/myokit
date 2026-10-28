@@ -6,9 +6,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import myokit
-
 import sys
+
+import myokit
 
 # Globally shared numpy expression writer
 _numpywriter_ = None
@@ -130,8 +130,7 @@ def format_float_dict(d):
         'The method `myokit.format_float_dict` is deprecated.'
         ' It will be removed in future versions of Myokit.')
 
-    keys = [str(k) for k in d.keys()]
-    keys.sort()
+    keys = [str(k) for k in sorted(d)]
     n = max([len(k) for k in keys])
     return '\n'.join([
         k + ' ' * (n - len(k)) + ' = ' + myokit.float.str(d[k]) for k in keys])
@@ -163,7 +162,7 @@ class ModelComparison:
         self._diff = []
 
         # Live reporting
-        self._live = True if live else False
+        self._live = bool(live)
 
         # Compare models
         if live:
@@ -244,16 +243,12 @@ class ModelComparison:
         return iter(self._diff)
 
     def __len__(self):
-        """
-        Returns the length of the difference array.
-        """
+        """ Returns the length of the difference array. """
         return len(self._diff)
 
     def _meta(self, x1, x2):
-        """
-        Compares two objects' meta properties.
-        """
-        assert type(x1) == type(x2)
+        """ Compares two objects' meta properties. """
+        assert type(x1) is type(x2)
         if isinstance(x1, myokit.Model):
             name = ' in model'
         else:
@@ -277,9 +272,7 @@ class ModelComparison:
                     + '"')
 
     def _state(self, m1, m2):
-        """
-        Compares two models' states and initial values.
-        """
+        """ Compares two models' states and initial values. """
         s1 = iter([v.qname() for v in m1.states()])
         s2 = iter([v.qname() for v in m2.states()])
         c1 = m1.initial_values()
@@ -552,7 +545,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
                     'get_model': get_model,
                     'get_protocol': get_protocol,
                 }
-                exec(self.script, environment)
+                exec(self.script, environment)  # noqa: S102
             finally:
                 if oldstdout is not None:
                     sys.stdout = oldstdout
@@ -698,7 +691,7 @@ def step(model, state=None, inputs=None, reference=None, ignore_errors=False):
                     while pos < n and xx[pos] == yy[pos]:
                         line2 += ' '
                         pos += 1
-                    for pos in range(pos, n):
+                    for _ in range(pos, n):
                         line2 += '^'
                     log.append(line2)
                 else:

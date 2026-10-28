@@ -11,13 +11,12 @@ import unittest
 import numpy as np
 
 import myokit
-
 from myokit.tests import (
-    TemporaryDirectory,
     DIR_DATA,
     DIR_IO,
-    TestReporter,
     CancellingReporter,
+    TemporaryDirectory,
+    TestReporter,
     WarningCollector,
 )
 
@@ -1228,7 +1227,8 @@ class DataBlock2dTest(unittest.TestCase):
 
         # Won't work on non-square matrix
         b = myokit.DataBlock2d(1, 2, [1])
-        self.assertRaises(Exception, b.dominant_eigenvalues, 'x')
+        self.assertRaisesRegex(
+            Exception, 'square', b.dominant_eigenvalues, 'x')
 
         # Proper test
         b = myokit.DataBlock2d(3, 3, [1])
@@ -1252,7 +1252,7 @@ class DataBlock2dTest(unittest.TestCase):
 
         # Won't work on non-square matrix
         b = myokit.DataBlock2d(1, 2, [1])
-        self.assertRaises(Exception, b.eigenvalues, 'x')
+        self.assertRaisesRegex(Exception, 'square', b.eigenvalues, 'x')
 
         # Proper test
         b = myokit.DataBlock2d(3, 3, [1])
@@ -1274,7 +1274,8 @@ class DataBlock2dTest(unittest.TestCase):
 
         # Won't work on non-square matrix
         b = myokit.DataBlock2d(1, 2, [1])
-        self.assertRaises(Exception, b.largest_eigenvalues, 'x')
+        self.assertRaisesRegex(
+            Exception, 'square data blocks', b.largest_eigenvalues, 'x')
 
         # Proper test
         b = myokit.DataBlock2d(3, 3, [1])
@@ -1399,7 +1400,7 @@ class DataBlock2dTest(unittest.TestCase):
             path = d.path('test.csv')
             b.save_frame_csv(path, 'x', 0)
             with open(path, 'r') as f:
-                lines = [str(x) for x in f.readlines()]
+                lines = [str(x) for x in f]
             self.assertEqual(lines[0], '"x","y","value"\n')
             self.assertEqual(lines[1], '0,0,0\n')
             self.assertEqual(lines[2], '1,0,1\n')
@@ -1433,7 +1434,7 @@ class DataBlock2dTest(unittest.TestCase):
             path = d.path('test.csv')
             b.save_frame_grid(path, 'x', 0)
             with open(path, 'r') as f:
-                lines = [str(x) for x in f.readlines()]
+                lines = [str(x) for x in f]
             self.assertEqual(lines[0], '0 1\n')
             self.assertEqual(lines[1], '2 3\n')
             self.assertEqual(lines[2], '4 5')

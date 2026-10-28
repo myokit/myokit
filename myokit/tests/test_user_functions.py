@@ -2,13 +2,14 @@
 #
 # Tests the UserFunction class.
 #
+# ---> Further testing in test_model.py
+#
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import unittest
-import myokit
 
-# Further testing in test_model.py
+import myokit
 
 
 class UserFunctionTest(unittest.TestCase):

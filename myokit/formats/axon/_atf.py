@@ -4,12 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import collections
 import os
 import re
 
 import numpy as np
-
-from collections import OrderedDict
 
 import myokit
 
@@ -157,7 +156,7 @@ class AtfFile:
                 self._meta = '\n'.join(raw)
 
             # Read time-series data
-            self._data = OrderedDict()
+            self._data = collections.OrderedDict()
             line = f.readline().decode(_ENC).strip()
             line_index += 1
 

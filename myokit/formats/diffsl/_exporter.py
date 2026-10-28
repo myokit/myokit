@@ -5,9 +5,9 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
-import warnings
+import collections.abc
 import math
-from collections import abc
+import warnings
 
 import myokit
 import myokit.formats
@@ -348,7 +348,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         # output; bound variables are handled separately; inputs are in the in
         # block.
         time = model.time()
-        special_vars = set(v for v in model.states())
+        special_vars = set(model.states())
         special_vars.add(time)
         for variable in bound_variables.values():
             special_vars.add(variable)
@@ -541,7 +541,7 @@ class DiffSLExporter(myokit.formats.Exporter):
                 protocols['pace'] = protocol
             return protocols
 
-        if not isinstance(protocol, abc.Mapping):
+        if not isinstance(protocol, collections.abc.Mapping):
             raise myokit.ExportError(
                 'protocol must be a myokit.Protocol or a dict mapping binding'
                 ' names to myokit.Protocol objects.'

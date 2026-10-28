@@ -11,7 +11,6 @@ import unittest
 import numpy as np
 
 import myokit
-
 from myokit.tests import DIR_DATA
 
 # Extra output
@@ -238,7 +237,7 @@ class SimulationTest(PeriodicTest):
         for x in [5, 10, 15, 20, 25]:
             i = e.find_after(x)
             if not t[i] - t[i - 1] > 0.2:
-                raise Exception('Issue with test: use longer intervals!')
+                raise ValueError('Issue with test: use longer intervals!')
         del e, t, x, i
 
         # Now test if correct interpolated values are returned by periodic

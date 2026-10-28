@@ -13,13 +13,12 @@ import threading
 import timeit
 import traceback
 
-
 # Windows fix: On win7 with MinGW, when running distutils from Qt the
 # (deprecated) os.popen command fails. The docs suggest to replace calls to
 # popen with subprocess.Popen. The following wrapper implements this
 # dynamically.
 if platform.system() == 'Windows':  # pragma: no linux cover
-    import subprocess  # noqa
+    import subprocess
 
     def _ospop(command, mode='r', bufsize=0):
         if mode == 'r':
@@ -32,10 +31,10 @@ if platform.system() == 'Windows':  # pragma: no linux cover
             ).stdin
     os.popen = _ospop
 
-from setuptools import setup, Extension  # noqa
+from setuptools import Extension, setup
 
-import myokit       # noqa
-import myokit.pype  # noqa
+import myokit
+import myokit.pype
 
 
 def load_module(name, path):
@@ -184,7 +183,7 @@ class CModule:
                     # path method too.
                     try:
                         # Fail if add_dll_directory not present
-                        os.add_dll_directory
+                        os.add_dll_directory  # noqa: B018
 
                         # Add DLL paths
                         for path in libd:
@@ -216,10 +215,7 @@ class CModule:
                         name=name,
                         description='Temporary module',
                         ext_modules=[ext],
-                        script_args=[
-                            str('build_ext'),
-                            str('--inplace'),
-                        ])
+                        script_args=['build_ext', '--inplace'])
                 except (Exception, SystemExit) as e:  # pragma: no cover
                     error = e
                     trace = traceback.format_exc()
@@ -254,8 +250,7 @@ class CModule:
     def _debug_show(self, template, variables):  # pragma: no cover
         """ Processes ``template`` and prints the output to screen. """
         print('\n'.join([
-            '{:4d}'.format(1 + i) + ' ' + line
-            for i, line in enumerate(
+            f'{1 + i:4d} {line}' for i, line in enumerate(
                 self._export_inner(template, variables).splitlines())
         ]))
 
@@ -301,10 +296,10 @@ class CModule:
                 # temporary directory
                 if os.path.isdir(target):
                     line = 'Can\'t create output file. A directory exists at '
-                    line += format_path(target)
-                    raise IOError(line)
+                    line += myokit.tools.format_path(target)
+                    raise OSError(line)
             # Open output file
-            handle = open(target, 'w')
+            handle = open(target, 'w')  # noqa: SIM115
 
         # Create source
         p = myokit.pype.TemplateEngine()

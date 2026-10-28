@@ -12,9 +12,7 @@ import numpy as np
 
 import myokit
 import myokit.formats.wcp as wcp
-
 from myokit.tests import DIR_FORMATS, WarningCollector
-
 
 INFO = '''
 WinWCP file: wcp-file.wcp
@@ -200,7 +198,7 @@ class WcpTest(unittest.TestCase):
             self.assertEqual(w.channels(), w.channel_count())
         self.assertIn('deprecated', c.text())
         with WarningCollector() as c:
-            e = w.myokit_log()
+            w.myokit_log()
         self.assertIn('deprecated', c.text())
 
         # Unsupported da methods

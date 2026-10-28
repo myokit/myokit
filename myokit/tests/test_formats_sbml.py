@@ -6,6 +6,8 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import pathlib
+import tempfile
 import unittest
 
 import numpy as np
@@ -13,9 +15,7 @@ import numpy as np
 import myokit
 import myokit.formats
 import myokit.formats.sbml
-
-# from shared import DIR_FORMATS, WarningCollector
-from myokit.tests import DIR_FORMATS, WarningCollector, TemporaryDirectory
+from myokit.tests import DIR_FORMATS, WarningCollector
 
 
 class SBMLExporterTest(unittest.TestCase):
@@ -40,8 +40,8 @@ class SBMLExporterTest(unittest.TestCase):
         org_code = m1.code()
 
         # 1. Export without a protocol
-        with TemporaryDirectory() as d:
-            path = d.path('model.sbml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'model.sbml'
             with WarningCollector() as w:
                 e.model(path, m1)
             m2 = i.model(path)
@@ -50,8 +50,8 @@ class SBMLExporterTest(unittest.TestCase):
 
         # 2. Export with protocol, but without variable bound to pacing
         m1.get('engine.pace').set_binding(None)
-        with TemporaryDirectory() as d:
-            path = d.path('model.sbml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'model.sbml'
             with WarningCollector() as w:
                 e.model(path, m1, p1)
             m2 = i.model(path)
@@ -60,8 +60,8 @@ class SBMLExporterTest(unittest.TestCase):
 
         # 3. Export with protocol and variable bound to pacing
         m1.get('engine.pace').set_binding('pace')
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'model.sbml'
             with WarningCollector() as w:
                 e.model(path, m1, p1)
             m2 = i.model(path)

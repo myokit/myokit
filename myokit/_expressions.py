@@ -7,10 +7,10 @@
 #
 import io
 import math
+
 import numpy
 
 import myokit
-
 
 # Expression precedence levels
 FUNCTION_CALL = 70
@@ -322,7 +322,7 @@ class Expression:
         """
         # Check LHS
         if not isinstance(lhs, (Name, InitialValue)):
-            raise ValueError(
+            raise TypeError(
                 'Partial derivatives can only be taken with respect to a'
                 ' myokit.Name or myokit.InitialValue.')
 
@@ -354,7 +354,7 @@ class Expression:
         """
         try:
             unit1 = self.eval_unit(myokit.UNIT_TOLERANT)
-        except myokit.IncompatibleUnitError as e:
+        except myokit.IncompatibleUnitError:
             unit1 = None
         unit2 = lhs.var().unit()
 
@@ -370,7 +370,7 @@ class Expression:
         # Equality checking method, used by all expressions.
         if self is other:
             return True
-        elif type(self) != type(other):
+        elif type(self) is not type(other):
             return False
         else:
             # Compare cached polish expression (which uses ids)
@@ -399,10 +399,10 @@ class Expression:
             try:
                 subst = dict(subst)
             except TypeError:
-                raise ValueError('Argument `subst` must be dict or None.')
+                raise TypeError('Argument `subst` must be dict or None.')
             for k, v in subst.items():
                 if not isinstance(k, myokit.LhsExpression):
-                    raise ValueError(
+                    raise ValueError(  # noqa: TRY004
                         'All keys in `subst` must LhsExpression objects.')
                 if not isinstance(v, myokit.Expression):
                     try:
@@ -674,9 +674,9 @@ class Expression:
         # Create function
         local = {}
         if use_numpy:
-            exec(c, {'numpy': numpy}, local)
+            exec(c, {'numpy': numpy}, local)  # noqa: S102
         else:
-            exec(c, {'math': math}, local)
+            exec(c, {'math': math}, local)  # noqa: S102
 
         # Return
         return local['ex_pyfunc_generated']
@@ -789,14 +789,13 @@ class Expression:
             def walker(op):
                 yield op
                 for kid in op:
-                    for x in walker(kid):
-                        yield x
+                    yield from walker(kid)
             return walker(self)
 
         else:
 
-            if type(allowed_types) == type:
-                allowed_types = set([allowed_types])
+            if isinstance(allowed_types, type):
+                allowed_types = {allowed_types}
             else:
                 allowed_types = set(allowed_types)
 
@@ -804,8 +803,7 @@ class Expression:
                 if type(op) in allowed_types:
                     yield op
                 for kid in op:
-                    for x in walker(kid):
-                        yield x
+                    yield from walker(kid)
             return walker(self)
 
 
@@ -1008,7 +1006,7 @@ class Name(LhsExpression):
     def __init__(self, value):
         super().__init__()
         self._value = value
-        self._references = set([self])
+        self._references = {self}
         self._proper = isinstance(self._value, myokit.Variable)
 
     def bracket(self, op=None):
@@ -1094,7 +1092,7 @@ class Name(LhsExpression):
         return None
 
     def __eq__(self, other):
-        if type(other) != Name:
+        if type(other) is not Name:
             return False
         if self._proper:
             # Value is name? Then just check with is
@@ -1175,7 +1173,7 @@ class Derivative(LhsExpression):
                 self._token)
         self._op = op
         self._proper = self._op._proper
-        self._references = set([self])
+        self._references = {self}
 
     def bracket(self, op):
         """See :meth:`Expression.bracket()`."""
@@ -1303,7 +1301,7 @@ class PartialDerivative(LhsExpression):
 
         self._var1 = var1
         self._var2 = var2
-        self._references = set([self])
+        self._references = {self}
         self._has_partials = True
 
     def bracket(self, op=None):
@@ -1410,7 +1408,7 @@ class InitialValue(LhsExpression):
                                    ' variable name.', self._token)
 
         self._var = var
-        self._references = set([self])
+        self._references = {self}
         self._has_initials = True
 
     def bracket(self, op=None):
@@ -2115,7 +2113,7 @@ class Function(Expression):
     def __init__(self, *ops):
         super().__init__(ops)
         if self._nargs is not None:
-            if not len(ops) in self._nargs:
+            if len(ops) not in self._nargs:
                 raise myokit.IntegrityError(
                     f'Function ({self._fname}) created with wrong number of'
                     ' arguments ({len(ops)}, expecting '
@@ -2849,7 +2847,7 @@ class Piecewise(Function):
         self._i = [0] * m           # Conditions
         self._e = [0] * (m + 1)     # Expressions
         oper = iter(ops)
-        for i in range(0, m):
+        for i in range(m):
             self._i[i] = next(oper)
             self._e[i] = next(oper)
         self._e[m] = next(oper)

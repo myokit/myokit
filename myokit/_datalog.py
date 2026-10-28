@@ -5,6 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import array
+import collections
 import json
 import os
 import re
@@ -12,10 +13,7 @@ import sys
 
 import numpy as np
 
-from collections import OrderedDict
-
 import myokit
-
 
 # Function to split keys into dimension-key,qname-key pairs
 ID_NAME_PATTERN = re.compile(r'(\d+.)+')
@@ -39,7 +37,7 @@ little-endian.
 ENC = 'utf-8'
 
 
-class DataLog(OrderedDict):
+class DataLog(collections.OrderedDict):
     """
     A dictionary time-series, for example data logged during a simulation or
     experiment.
@@ -368,7 +366,7 @@ class DataLog(OrderedDict):
         Returns True if one of the variables in this DataLog has a ``NaN`` as
         its final logged value.
         """
-        for k, d in self.items():
+        for d in self.values():
             if len(d) > 0 and np.isnan(d[-1]):
                 return True
         return False
@@ -622,18 +620,18 @@ class DataLog(OrderedDict):
                 meta = json.loads(meta)
             except json.JSONDecodeError as e:   # pragma: no cover
                 raise myokit.DataLogReadError(
-                    'Invalid meta data JSON file: {e}.')
+                    f'Invalid meta data JSON file: {e}.')
             DataLog._load_meta_json(meta, log)
 
         # Get size of each entry on disk
         if data_size < 0:
             raise myokit.DataLogReadError(
-                'Invalid data size: ' + str(data_size) + '.')
+                f'Invalid data size: {data_size}.')
         try:
             data_size *= dsize[data_type]
         except KeyError:
             raise myokit.DataLogReadError(
-                'Invalid data type: "' + data_type + '".')
+                f'Invalid data type: "{data_type}".')
 
         # Parse read data
         fraction = 1 / len(fields)
@@ -899,7 +897,7 @@ class DataLog(OrderedDict):
                 p = '' if parent_str is None else f' inside "{parent_str}"'
                 raise myokit.DataLogReadError(
                     f'Invalid meta data file: missing "{key}"{p}.')
-            if type(value) != value_type:
+            if type(value) is not value_type:
                 raise myokit.DataLogReadError(
                     f'Invalid meta data file: expecting {key} of type'
                     f' {value_type}, found {type(value)}.')
@@ -960,7 +958,7 @@ class DataLog(OrderedDict):
         Parses a key used for __getitem__, __setitem__, __delitem__ and
         __contains__.
         """
-        if type(key) == tuple:
+        if type(key) is tuple:
             name = str(key[0])
             if len(key) == 2 and type(key[1]) not in [int, float]:
                 parts = [str(x) for x in key[1]]
@@ -1183,11 +1181,11 @@ class DataLog(OrderedDict):
 
         # Set precision
         if precision is None:
-            fmat = lambda x: str(x)
+            fmat = str
         elif precision == myokit.DOUBLE_PRECISION:
-            fmat = lambda x: myokit.SFDOUBLE.format(x)
+            fmat = myokit.SFDOUBLE.format
         elif precision == myokit.SINGLE_PRECISION:
-            fmat = lambda x: myokit.SFSINGLE.format(x)
+            fmat = myokit.SFSINGLE.format
         else:
             raise ValueError('Precision level not supported.')
 
@@ -1237,7 +1235,7 @@ class DataLog(OrderedDict):
 
             # Write data
             data = [iter(x) for x in data]
-            for i in range(0, n):
+            for i in range(n):
                 line = []
                 for d in data:
                     line.append(fmat(next(d)))
@@ -1362,7 +1360,7 @@ class DataLog(OrderedDict):
 
         # Create logs
         logs = []
-        for i in range(0, nlogs - 1):
+        for i in range(nlogs - 1):
             log = DataLog()
             log._time = self._time
 
@@ -1376,7 +1374,7 @@ class DataLog(OrderedDict):
 
             # Select sections of log and append
             for k, v in self.items():
-                d = self[k][imin:imax]
+                d = v[imin:imax]
                 # NumPy? Then copy data
                 if isinstance(d, np.ndarray):
                     d = np.array(d, copy=True, dtype=float)
@@ -1395,7 +1393,7 @@ class DataLog(OrderedDict):
 
         # Select sections of log and append
         for k, v in self.items():
-            d = self[k][imin:imax]
+            d = v[imin:imax]
             # NumPy? Then copy data
             if isinstance(d, np.ndarray):
                 d = np.array(d, copy=True, dtype=float)
@@ -1499,7 +1497,7 @@ class DataLog(OrderedDict):
                 raise myokit.InvalidDataLogError(
                     'Time must be non-decreasing.')
         if len(self) > 0:
-            n = set([len(v) for v in self.values()])
+            n = {len(v) for v in self.values()}
             if len(n) > 1:
                 raise myokit.InvalidDataLogError(
                     'All entries in a data log must have the same length.')
@@ -1920,7 +1918,7 @@ def prepare_log(
     # return it.
     #
 
-    if type(log) == int:
+    if type(log) is int:
 
         # Log argument given as flag
         flag = log
@@ -2100,12 +2098,11 @@ def prepare_log(
         if len(log) > 0:
             log[0]
     except Exception:
-        raise ValueError('Argument `log` has unexpected type. Expecting None,'
-                         ' integer flag, sequence of names, dict or DataLog.')
-
+        raise TypeError('Argument `log` has unexpected type. Expecting None,'
+                        ' integer flag, sequence of names, dict or DataLog.')
     if isinstance(log, str):
-        raise ValueError('String passed in as `log` argument, should be list'
-                         ' or other sequence containing strings.')
+        raise TypeError('String passed in as `log` argument, should be list'
+                        ' or other sequence containing strings.')
 
     # Time variable and unit
     time = model.time()
@@ -2215,13 +2212,12 @@ def _dimco(*dims):
     """
     def inner(dims, index, postfix):
         if index == 0:
-            for i in range(0, dims[index]):
+            for i in range(dims[index]):
                 yield (i,) + postfix
         else:
-            for i in range(0, dims[index]):
+            for i in range(dims[index]):
                 postfix2 = (i, ) + postfix
-                for y in inner(dims, index - 1, postfix2):
-                    yield y
+                yield from inner(dims, index - 1, postfix2)
     return inner(dims, n, ())
 
 

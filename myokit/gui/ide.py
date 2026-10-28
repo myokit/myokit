@@ -5,6 +5,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+# ruff: noqa: I001
 import configparser
 import gc
 import os
@@ -18,17 +19,14 @@ import myokit.formats
 import myokit.gui
 import myokit.lib.deps
 import myokit.lib.guess
+from myokit.gui import Qt, QtCore, QtGui, QtWidgets
 
-from myokit.gui import QtWidgets, QtGui, QtCore, Qt
-
-from . import source
-from . import explorer
-from . import progress
-from . import vargrapher
+from . import explorer, progress, source, vargrapher
 
 # Matplotlib imports
-# Matplotlib.pyplot must be imported _after_ myokit.gui has set the backend
+# Matplotlib must be imported _after_ myokit.gui has set the backend
 import matplotlib
+
 matplotlib.interactive(True)        # Allows plt.show()
 
 
@@ -556,7 +554,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                         e.model(filename, m, p)
                     else:
                         e.model(filename, m)
-                except myokit.ExportError as ex:
+                except myokit.ExportError:
                     pass
             for w in ws:
                 self._console.write('Warning: ' + str(w.message))
@@ -607,7 +605,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             with warnings.catch_warnings(record=True) as ws:
                 try:
                     e.runnable(path, m, p)
-                except myokit.ExportError as ex:
+                except myokit.ExportError:
                     pass
             for w in ws:
                 self._console.write('Warning: ' + str(w.message))
@@ -2142,7 +2140,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                     # set, this option is used.
                     self._path = path
             self._recent_files = []
-            for i in range(0, N_RECENT_FILES):
+            for i in range(N_RECENT_FILES):
                 opt = 'recent_' + str(i)
                 if config.has_option('files', opt):
                     filename = config.get('files', opt)
@@ -2330,10 +2328,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         if reply == sb.Yes:
             # Only allow quitting if save succesful
             return self.save_file(save_as=False)
-        elif reply == sb.No:
-            return True
-        else:
-            return False
+        return reply == sb.No
 
     def protocol(self, force=False, console=False, errors_in_console=False):
         """
@@ -2477,7 +2472,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self.update_window_title()
             # Inform user
             self.statusBar().showMessage('File saved as ' + str(self._file))
-        except IOError:
+        except OSError:
             self._tool_save.setEnabled(True)
             self._tool_save_as.setEnabled(True)
             self.statusBar().showMessage('Error saving file.')

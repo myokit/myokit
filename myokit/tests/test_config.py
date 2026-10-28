@@ -10,11 +10,9 @@ import sys
 import unittest
 
 import myokit
-
 from myokit.tests import TemporaryDirectory, WarningCollector
 
 debug = False
-
 
 # Simple test
 config_basic = """

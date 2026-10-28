@@ -12,10 +12,8 @@ import unittest
 import myokit
 import myokit.formats as formats
 import myokit.formats.cellml as cellml
-
 from myokit.formats.cellml import CellMLImporterError
-
-from myokit.tests import TemporaryDirectory, DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_FORMATS, TemporaryDirectory, WarningCollector
 
 # CellML dir
 DIR = os.path.join(DIR_FORMATS, 'cellml')

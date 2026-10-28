@@ -4,10 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from ._exporter import CudaKernelExporter, CudaKernelRLExporter
-from ._ewriter import CudaExpressionWriter
 from myokit.formats import ansic
 
+from ._ewriter import CudaExpressionWriter
+from ._exporter import CudaKernelExporter, CudaKernelRLExporter
 
 # Importers
 # Exporters

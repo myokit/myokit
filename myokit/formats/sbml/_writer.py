@@ -4,16 +4,18 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from typing import Tuple
 from lxml import etree
 
 import myokit
 from myokit._unit import Quantity
 from myokit.formats.mathml._ewriter import MathMLExpressionWriter
 from myokit.formats.sbml._api import (
-    Model, Compartment,
-    Parameter, Species,
-    Reaction, SpeciesReference
+    Compartment,
+    Model,
+    Parameter,
+    Reaction,
+    Species,
+    SpeciesReference,
 )
 
 
@@ -101,7 +103,7 @@ class SBMLWriter:
     def _parameter(
             parameter: Parameter,
             unit_to_str_map: dict
-    ) -> Tuple[etree.Element, etree.Element, etree.Element]:
+    ) -> tuple[etree.Element, etree.Element, etree.Element]:
         """
         returns the XML representation of this parameter as a tuple of
         (parameter, initial_assignment, rule).
@@ -193,7 +195,7 @@ class SBMLWriter:
         return reaction_xml
 
     @staticmethod
-    def _species(species: Species, unit_to_str_map: dict) -> Tuple[
+    def _species(species: Species, unit_to_str_map: dict) -> tuple[
         etree.Element, etree.Element
     ]:
         """

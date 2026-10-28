@@ -34,7 +34,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "coverage",     # Coverage checking
-    "flake8>=3",    # Style checking
+    "ruff>=0.17",   # Style checking
 ]
 docs = [
     "sphinx>=1.7.4",    # To regenerate the documentation
@@ -63,9 +63,73 @@ where = [""]
 include = ["myokit*"]
 #exclude = ["additional*"]`
 
-# Style settings for ruff, may be used in future!
+# Style checking
 [tool.ruff]
 line-length = 79
 
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.ruff.lint]
+extend-select = ["E501"]
+ignore = [
+    "B012",     # Don't allow `return` inside a `finally`
+    "B023",     # Whatever it is it gives false positives
+    "BLE001",   # Don't catch Exception
+    "C408",     # Disallow empty list(), dict() etc.
+    "E741",     # Allow ambiguous variable names
+    "FLY002",   # Avoid a static str.join()
+    "FURB167",  # Avoid shorthand regex flags
+    "FURB122",  # Avoid write() in a loop
+    "PLR0402",  # Use from x import y instead of alias
+    "PLR1704",  # No redefining function params
+    "PLR1730",  # Replace if with min/max
+    "PLW0127",  # No self-assignment
+    "RET501",   # No explicitly returning None
+    "RUF010",   # Don't use repr() inside f-string
+    "RUF012",   # No mutable class properties
+    "RUF046",   # Unnecessary cast to int
+    "RUF059",   # Unused unpacked variable
+    "S110",     # Try-except-pass
+    "SIM102",   # Collapsible if-statements
+    "SIM103",   # Return condition directly
+    "SIM114",   # Combine if branches
+    "TRY002",   # Don't raise Exception
+    "UP031",    # Replace %s style with {} style .format
+]
+exclude = [
+    "myokit/formats/python/template/*"
+]
+
+#[tool.ruff.lint.isort]
+#lines-after-imports = 2
+
+# Coverage reporting
+[tool.coverage.run]
+source = ["myokit"]
+omit = [
+    "myokit/gui/*",
+    "myokit/tests/*",
+    "myokit/__main__.py",
+    "myokit/lib/common.py",
+    "myokit/formats/heka/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "pragma: no linux cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "pass",
+    "except ImportError:",
+    "if False:",
+    "if __name__ == .__main__.:",
+    "if myokit.DEBUG_SG:",
+    "if myokit.DEBUG_WG:",
+    "if myokit.DEBUG_SC:",
+    "if myokit.DEBUG_SM:",
+    "if myokit.DEBUG_SP:",
+]
+

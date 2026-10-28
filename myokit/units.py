@@ -7,13 +7,25 @@
 import myokit
 
 
-def _add(name, unit, quantifiable=False, output=False):
+def _ra(name, *aliases, quantifiable=False, output=False):
     """
-    Adds the given unit to the local namespace and registers it with the myokit
-    unit system.
+    Registers a unit with the myokit unit system.
+
+    Any aliases will also be registered, using
+    ``quantifiable = output = False`` regardless of the setting for ``name``.
     """
-    globals()[name] = unit
-    myokit.Unit.register(name, unit, quantifiable, output)
+    myokit.Unit.register(name, globals()[name], quantifiable, output)
+    for alias in aliases:
+        myokit.Unit.register(alias, globals()[alias], False, False)
+
+
+def _rm(*names, quantifiable=False, output=False):
+    """
+    Registers multiple units with the given ``quantifiable`` and ``output``
+    settings.
+    """
+    for name in names:
+        myokit.Unit.register(name, globals()[name], quantifiable, output)
 
 
 def _rep(name):
@@ -24,160 +36,166 @@ def _rep(name):
 #
 # SI myokit.Units
 #
-# Dimensionless
-_add('dimensionless', myokit.Unit())
-# Angles
-_add('rad', dimensionless)
-_add('radian', dimensionless)
-_add('sr', dimensionless)
-_add('steradian', dimensionless)
-# Basic SI units
-_add('kg', myokit.Unit(
-    [1, 0, 0, 0, 0, 0, 0], 3), quantifiable=False, output=True)
-_add('m', myokit.Unit([0, 1, 0, 0, 0, 0, 0]), quantifiable=True, output=True)
-_add('s', myokit.Unit([0, 0, 1, 0, 0, 0, 0]), quantifiable=True, output=True)
-_add('A', myokit.Unit([0, 0, 0, 1, 0, 0, 0]), quantifiable=True, output=True)
-_add('K', myokit.Unit([0, 0, 0, 0, 1, 0, 0]), quantifiable=True, output=True)
-_add('cd', myokit.Unit([0, 0, 0, 0, 0, 1, 0]), quantifiable=True, output=True)
-_add('mol', myokit.Unit([0, 0, 0, 0, 0, 0, 1]), quantifiable=True, output=True)
-# SI unit aliases
-_add('kilogram', kg)
-_add('metre', m)
-_add('meter', m)
-_add('second', s)
-_add('ampere', A)
-_add('Ampere', A)
-_add('kelvin', K)
-_add('Kelvin', K)
-_add('candela', cd)
-_add('mole', mol)
+
+# Dimensionless and angles
+dimensionless = myokit.Unit()
+rad = radian = sr = steradian = dimensionless
+_ra('dimensionless', 'rad', 'radian', 'sr', 'steradian')
+
+# Basic SI units (and g) and aliases
+g = myokit.Unit([1, 0, 0, 0, 0, 0, 0])
+m = myokit.Unit([0, 1, 0, 0, 0, 0, 0])
+s = myokit.Unit([0, 0, 1, 0, 0, 0, 0])
+A = myokit.Unit([0, 0, 0, 1, 0, 0, 0])
+K = myokit.Unit([0, 0, 0, 0, 1, 0, 0])
+cd = myokit.Unit([0, 0, 0, 0, 0, 1, 0])
+mol = myokit.Unit([0, 0, 0, 0, 0, 0, 1])
+kg = kilogram = g * 1e3
+metre = meter = m
+second = s
+ampere = Ampere = A
+kelvin = Kelvin = K
+candela = cd
+mole = mol
+_ra('kg', 'kilogram', quantifiable=False, output=True)
+_ra('g', quantifiable=True, output=True)
+_ra('m', 'metre', 'meter', quantifiable=True, output=True)
+_ra('s', 'second', quantifiable=True, output=True)
+_ra('A', 'ampere', 'Ampere', quantifiable=True, output=True)
+_ra('K', 'kelvin', 'Kelvin', quantifiable=True, output=True)
+_ra('cd', 'candela', quantifiable=True, output=True)
+_ra('mol', 'mole', quantifiable=True, output=True)
+
 # Derived SI units
 # The SI units are added in lowercase, as specified by the SI
 # The SI units that are derived from names are also added capitalized, as this
 # is a common enough mistake...
-_add('Hz', 1 / s, quantifiable=True, output=True)
-_add('hertz', Hz)       # frequency
-_add('Hertz', Hz)
-_add('N', kg * m / s**2, quantifiable=True, output=True)
-_add('newton', N)       # force
-_add('Newton', N)
-_add('Pa', N / m**2, quantifiable=True, output=True)
-_add('pascal', Pa)      # pressure
-_add('Pascal', Pa)
-_add('J', N * m, quantifiable=True, output=True)
-_add('joule', J)        # energy
-_add('Joule', J)
-_add('W', J / s, quantifiable=True, output=True)
-_add('watt', W)         # power
-_add('Watt', W)
-_add('C', s * A, quantifiable=True, output=True)
-_add('coulomb', C)      # charge
-_add('Coulomb', C)
-_add('V', J / C, quantifiable=True, output=True)
-_add('volt', V)         # electric potential
-_add('Volt', V)
-_add('F', C / V, quantifiable=True, output=True)
-_add('farad', F)        # electric capacitance
-_add('Farad', F)
-_add('Ohm', V / A, quantifiable=True, output=True)
-_add('ohm', Ohm)        # electric resistance
-_add('R', Ohm, quantifiable=True)   # Legacy: Deprecated on May 26th 2020
-_add('S', 1 / R, quantifiable=True, output=True)
-_add('siemens', S)      # siemens (electric conductivity)
-_add('Siemens', S)
-_add('Wb', J / A, quantifiable=True, output=True)
-_add('weber', Wb)       # magnetic flux
-_add('Weber', Wb)
-_add('T', Wb / m**2, quantifiable=True, output=True)
-_add('tesla', T)        # magnetic flux
-_add('Tesla', T)
-_add('H', Wb / A, quantifiable=True, output=True)
-_add('henry', H)        # magnetic field strength
-_add('Henry', H)
-_add('lm', cd * sr, quantifiable=True, output=True)
-_add('lumen', lm)       # Luminous flux
-_add('lx', lm / m**2, quantifiable=True, output=True)
-_add('lux', lx)         # Illuminance
-_add('Bq', 1 / s, quantifiable=True, output=True)
-_add('becquerel', Bq)    # radioactive decays / s
-_add('Becquerel', Bq)
-_add('Gy', J / kg, quantifiable=True, output=True)
-_add('gray', Gy)        # absorbed dose of ionizing radiation
-_add('Gray', Gy)
-_add('Sv', J / kg, quantifiable=True, output=True)
-_add('sievert', Sv)     # equivalent dose of ionizing radiation
-_add('Sievert', Sv)
-_add('kat', mol / s, quantifiable=True, output=True)
-_add('katal', kat)      # catalytic activity
+Hz = hertz = Hertz = 1 / s
+N = newton = Newton = kg * m / s**2
+Pa = pascal = Pascal = N / m**2
+J = joule = Joule = N * m
+W = watt = Watt = J / s
+C = coulomb = Coulomb = s * A
+V = volt = Volt = J / C
+F = farad = Farad = C / V
+ohm = Ohm = V / A
+S = siemens = Siemens = 1 / ohm
+Wb = weber = Weber = J / A      # magnetic flux
+T = tesla = Tesla = Wb / m**2       # magnetic flux
+H = henry = Henry = Wb / A          # magnetic field strength
+lm = lumen = cd * sr                # Luminous flux
+lx = lux = lm / m**2                # Illuminance
+Bq = becquerel = Becquerel = 1 / s  # radioactive decays / s
+Gy = gray = Gray = J / kg           # absorbed dose of ionizing radiation
+Sv = sievert = Sievert = J / kg     # equivalent dose of ionizing radiation
+kat = katal = mol / s   # catalytic activity
+_ra('Hz', 'hertz', 'Hertz', quantifiable=True, output=True)
+_ra('N', 'newton', 'Newton', quantifiable=True, output=True)
+_ra('Pa', 'pascal', 'Pascal', quantifiable=True, output=True)
+_ra('J', 'joule', 'Joule', quantifiable=True, output=True)
+_ra('W', 'watt', 'Watt', quantifiable=True, output=True)
+_ra('C', 'coulomb', 'Coulomb', quantifiable=True, output=True)
+_ra('V', 'volt', 'Volt', quantifiable=True, output=True)
+_ra('F', 'farad', 'Farad', quantifiable=True, output=True)
+_ra('S', 'siemens', 'Siemens', quantifiable=True, output=True)
+_ra('Wb', 'weber', 'Weber', quantifiable=True, output=True)
+_ra('T', 'tesla', 'Tesla', quantifiable=True, output=True)
+_ra('H', 'henry', 'Henry', quantifiable=True, output=True)
+_ra('lm', 'lumen', quantifiable=True, output=False)
+_ra('lx', 'lux', quantifiable=True, output=True)
+_ra('Bq', 'becquerel', 'Becquerel', quantifiable=True, output=True)
+_ra('Gy', 'gray', 'Gray', quantifiable=True, output=True)
+_ra('Sv', 'sievert', 'Sievert', quantifiable=True, output=True)
+_ra('kat', 'katal', quantifiable=True, output=True)
+# For Ohm allow correct "ohm" and incorrect "Ohm" to be quantifiable
+_ra('ohm', quantifiable=True, output=True)
+_ra('Ohm', quantifiable=True)
+
 # Commonly quantified SI units
-_add('g', kg * 1e-3, quantifiable=True, output=True)
-_add('km', m * 1e3, output=True)
-_add('hm', m * 1e2, output=False)
-_add('dm', m * 1e-1, output=False)
-_add('cm', m * 1e-2, output=True)
-_add('mm', m * 1e-3, output=True)
-_add('um', m * 1e-6, output=True)
-_add('nm', m * 1e-9, output=True)
-_add('mmol', mol * 1e-3, output=True)
-_add('umol', mol * 1e-6, output=True)
-_add('nmol', mol * 1e-9, output=True)
-_add('ms', s * 1e-3, output=True)
-_add('us', s * 1e-6, output=True)
-_add('mV', V * 1e-3, output=True)
-_add('uV', V * 1e-6, output=True)
-_add('mA', A * 1e-3, output=True)
-_add('uA', A * 1e-6, output=True)
-_add('nA', A * 1e-9, output=True)
-_add('pA', A * 1e-12, output=True)
-_add('mF', F * 1e-3, output=True)
-_add('uF', F * 1e-6, output=True)
-_add('nF', F * 1e-9, output=True)
-_add('pF', F * 1e-12, output=True)
-_add('mS', S * 1e-3, output=True)
-_add('uS', S * 1e-6, output=True)
-_add('nS', S * 1e-9, output=True)
-_add('pS', S * 1e-12, output=True)
-_add('MOhm', Ohm * 1e6, output=True)
-_add('GOhm', Ohm * 1e9, output=True)
+km = m * 1e3
+hm = m * 1e2
+dm = m * 1e-1
+cm = m * 1e-2
+mm = m * 1e-3
+um = m * 1e-6
+nm = m * 1e-9
+_rm('km', 'cm', 'mm', 'um', 'nm', output=True)
+_rm('hm', 'dm')
+mmol = mol * 1e-3
+umol = mol * 1e-6
+nmol = mol * 1e-9
+_rm('mmol', 'umol', 'nmol', output=True)
+ms = s * 1e-3
+us = s * 1e-6
+_rm('ms', 'us', output=True)
+mV = V * 1e-3
+uV = V * 1e-6
+_rm('mV', 'uV', output=True)
+mA = A * 1e-3
+uA = A * 1e-6
+nA = A * 1e-9
+pA = A * 1e-12
+_rm('mA', 'uA', 'nA', 'pA', output=True)
+mF = F * 1e-3
+uF = F * 1e-6
+nF = F * 1e-9
+pF = F * 1e-12
+_rm('mF', 'uF', 'nF', 'pF', output=True)
+mS = S * 1e-3
+uS = S * 1e-6
+nS = S * 1e-9
+pS = S * 1e-12
+_rm('mS', 'uS', 'nS', 'pS', output=True)
+Mohm = MOhm = Ohm * 1e6
+Gohm = GOhm = Ohm * 1e9
+_ra('Mohm', 'MOhm', output=True)
+_ra('Gohm', 'GOhm', output=True)
 
 #
 # Common non-SI units
 #
-# Common time measures
-_add('minute', s * 60)
-_add('hour', minute * 60)
-_add('hr', hour)
-_add('h', hour)
-_add('day', hour * 24)
-_add('week', day * 7)
-_add('wk', week)
-_add('julian_year', day * 365.25)
-_add('year', julian_year)
-_add('yr', year)
+
+# Time
+minute = s * 60
+hour = hr = h = minute * 60
+day = hour * 24
+week = wk = day * 7
+year = yr = julian_year = day * 365.25
+_rm('minute', 'hour', 'hr', 'h', 'day', 'week', 'wk')
+_rm('year', 'yr', 'julian_year')
+
 # Distance
-_add('parsec', m * 30.857e15)
-_add('pc', parsec)
-_add('light_year', m * 9.4605284e15)    # based on julian year
-_add('ly', light_year)
-_add('angstrom', m / 1e10)
+parsec = pc = m * 30.857e15
+light_year = ly = m * 9.4605284e15  # based on julian year
+angstrom = m / 1e10
+_rm('parsec', 'pc', 'light_year', 'ly', 'angstrom')
+
 # Area
-_add('hectare', hm**2)      # ha
+hectare = hm**2
+_rm('hectare')
+
 # Volume
-_add('L', dm**3, quantifiable=True, output=True)
-_add('liter', L)
-_add('litre', L)
-_add('cc', cm**3)
+L = liter = litre = dm**3
+_ra('L', 'liter', 'litre', quantifiable=True, output=True)
+cc = cm**3
+_rm('cc')
+
 # Weight / Mass
-_add('Da', kg * 1.66053886e-27, quantifiable=True, output=True)
-_add('dalton', Da)
-_add('tonne', kg * 1e3)
+Da = dalton = kg * 1.66053886e-27
+_ra('Da', 'dalton', quantifiable=True, output=True)
+tonne = kg * 1e3
+_rm('tonne')
+
 # Pressure
-_add('bar', Pa * 1e5)
-_add('atm', 1.01325 * bar)
-_add('torr', atm / 760)     # Approx. equal to 1 mmHg
+bar = Pa * 1e5
+atm = 1.01325 * bar
+torr = atm / 760        # Approx. equal to 1 mmHg
+_rm('bar', 'atm', 'torr')
+
 # Concentration
-_add('M', mol / L, quantifiable=True, output=True)
-_add('molar', M)
+M = molar = mol / L
+_ra('M', 'molar', quantifiable=True, output=True)
+
 #
 # Imperial units (international version)
 #
@@ -187,48 +205,62 @@ _add('molar', M)
 # 0.9144 / 3 / 12', 0.0254 exactly, so you can build it from a 2.54cm inch as
 # well.
 #
-_add('inches', cm * 2.54)       # in, or "
-_add('thou', inches / 1000)
-_add('feet', inches * 12)       # ft, or '
-_add('yards', feet * 3)         # yd
-_add('chains', yards * 22)
-_add('furlongs', chains * 10)
-_add('miles', furlongs * 8)     # 8 * 10 * 22', 1760 yards
-_add('leagues', miles * 3)
-_add('nautical_miles', feet * 6080)
-_add('cables', nautical_miles / 10)
-_add('fathoms', cables / 100)   # commonly rounded to 6 foot
-# Surveying units:
-_add('rods', chains / 4)
-_add('links', rods / 25)
-_add('perches', rods * rods)
-_add('roods', furlongs * rods)
-_add('acres', furlongs * chains)
+
+# Distance
+inches = cm * 2.54      # in, or "
+thou = inches / 1000
+feet = inches * 12      # ft, or '
+yards = feet * 3        # yd
+chains = yards * 22
+furlongs = chains * 10
+miles = furlongs * 8    # 8 * 10 * 22 = 1760 yards
+leagues = miles * 3
+nautical_miles = feet * 6080
+cables = nautical_miles / 10
+fathoms = cables / 100  # commonly rounded to 6 foot
+_rm('inches', 'thou', 'feet', 'yards', 'chains', 'furlongs', 'miles',
+    'leagues', 'nautical_miles', 'cables', 'fathoms')
+
+# Surveying units
+rods = chains / 4
+links = rods / 25
+perches = rods * rods
+roods = furlongs * rods
+acres = furlongs * chains
+_rm('rods', 'links', 'perches', 'roods', 'acres')
+
 # Volumes
-_add('gallons', 4.54609 * litre)
-_add('quarts', gallons / 4)
-_add('pints', quarts / 2)
-_add('half_pints', pints / 2)
-_add('gills', pints / 4)
-_add('fluid_ounces', pints / 20)
-_add('floz', fluid_ounces)
+gallons = 4.54609 * litre
+quarts = gallons / 4
+pints = quarts / 2
+half_pints = pints / 2
+gills = pints / 4
+fluid_ounces = pints / 20
+floz = fluid_ounces
+_rm('gallons', 'quarts', 'pints', 'half_pints', 'gills', 'fluid_ounces',
+    'floz')
+
 # Mass (but not for precious metals)
-_add('pounds', 453.59237 * g)   # By definition
-_add('lb', pounds)
-_add('ounces', pounds / 16)
-_add('oz', ounces)
-_add('drachms', ounces / 16)
-_add('grains', pounds / 7000)   # Originally the weight of a grain of cereal
-_add('stones', pounds * 14)
-_add('quarters', stones * 2)            # 1/4 of a hundredweight
-_add('hundredweights', quarters * 4)    # 8 stone, 112 pounds
-_add('imp_tons', 20 * hundredweights)
+pounds = 453.59237 * g  # By definition
+lb = pounds
+ounces = pounds / 16
+oz = ounces
+drachms = ounces / 16
+grains = pounds / 7000  # Originally the weight of a grain of cereal
+stones = pounds * 14
+quarters = stones * 2           # 1/4 of a hundredweight
+hundredweights = quarters * 4   # 8 stone, 112 pounds
+imp_tons = 20 * hundredweights
+_rm('pounds', 'lb', 'ounces', 'oz', 'drachms', 'grains', 'stones', 'quarters',
+    'hundredweights', 'imp_tons')
+
+# Just for fun
 #
-# Not-so-common units
-#
-_add('dog_year', julian_year / 7)
-_add('forthnight', 14 * day)
-_add('smoot', (5 + 7 / 12) * feet)
+dog_year = julian_year / 7
+forthnight = 14 * day
+smoot = (5 + 7 / 12) * feet
+_rm('dog_year', 'forthnight', 'smoot')
+
 #
 # Preferred representation for (un)common electrophysiological units
 #

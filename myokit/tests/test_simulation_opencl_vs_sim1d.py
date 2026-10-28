@@ -11,8 +11,7 @@ import unittest
 import numpy as np
 
 import myokit
-
-from myokit.tests import OpenCL_DOUBLE_PRECISION, DIR_DATA
+from myokit.tests import DIR_DATA, OpenCL_DOUBLE_PRECISION
 
 # Show simulation output
 debug = False

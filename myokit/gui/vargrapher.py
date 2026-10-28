@@ -4,18 +4,18 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import myokit
-import myokit.gui
-
-from myokit.gui import QtGui, QtWidgets
-
+# ruff: noqa: I001
 import numpy as np
 
 # Matplotlib (must be imported _after_ gui has had chance to set backend)
+import myokit
+import myokit.gui
+from myokit.gui import QtGui, QtWidgets
+
 import matplotlib
 import matplotlib.figure
 from myokit.gui import matplotlib_backend as backend
-from mpl_toolkits.mplot3d import axes3d     # noqa
+from mpl_toolkits.mplot3d import axes3d  # noqa: F401
 
 
 # Constants

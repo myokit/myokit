@@ -10,10 +10,9 @@ import warnings
 from lxml import etree
 
 import myokit
-import myokit.formats.mathml
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v1
-
+import myokit.formats.mathml
 from myokit.formats.xml import split
 
 
@@ -98,7 +97,7 @@ class CellMLParser:
             self._ns, cellml.NS_CMETA, cellml.NS_RDF, cellml.NS_MATHML)
 
         # Check child elements
-        allowed = set([self._join(x) for x in children])
+        allowed = {self._join(x) for x in children}
         allowed.add(self._join('RDF', cellml.NS_RDF))
         if math:
             allowed.add(self._join('math', cellml.NS_MATHML))
@@ -204,7 +203,7 @@ class CellMLParser:
         import textwrap
 
         # Gather all text
-        def gather(element, text=[]):
+        def gather(element, text):
             """ Flatten and gather text. """
             if element.text is not None:
                 text.append(element.text)
@@ -215,7 +214,7 @@ class CellMLParser:
             return text
 
         # Gather text, replace whitespace
-        text = ' '.join(gather(element)).strip()
+        text = ' '.join(gather(element, [])).strip()
 
         # Replace all whitespace except newlines with a single space
         text = re.sub(r'[ \t\f\r]+', ' ', text)
@@ -307,7 +306,7 @@ class CellMLParser:
         a CellML model.
         """
         # Read string
-        import xml.etree.ElementTree as etree   # lxml makes this difficult
+        import xml.etree.ElementTree as etree
         try:
             root = etree.fromstring(text)
         except Exception as e:
@@ -878,8 +877,7 @@ class CellMLParser:
                 self._parse_math(math, component)
 
         # Check number of free variables
-        self._free_vars = set(
-            [x.var().value_source() for x in self._free_vars])
+        self._free_vars = {x.var().value_source() for x in self._free_vars}
         if len(self._free_vars) > 1:
             raise CellMLParsingError(
                 'Models that take derivatives with respect to more than one'
@@ -1165,8 +1163,7 @@ class CellMLParser:
 
             # Component units can shadow model units, so if known units are
             # found they will become 'unresolved' at this point.
-            if name in resolved:
-                resolved.remove(name)
+            resolved.discard(name)
 
             # Determine dependencies
             deps = set()

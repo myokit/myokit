@@ -86,13 +86,13 @@ class Unit:
     }
 
     # Mapping of SI quantifier symbols to their values
-    _si_quantifiers = dict((v, k) for k, v in _si_exponents.items())
+    _si_quantifiers = {v: k for k, v in _si_exponents.items()}
 
     def __init__(self, exponents=None, multiplier=0):
         if exponents is None:
             self._x = [0] * 7
             self._m = float(multiplier)
-        elif type(exponents) == Unit:
+        elif type(exponents) is Unit:
             # Clone
             self._x = list(exponents._x)
             self._m = exponents._m
@@ -383,7 +383,7 @@ class Unit:
         defining a new Unit.
         """
         e = []
-        for i in range(0, 7):
+        for i in range(7):
             u = Unit()
             u._x[i] = 1
             e.append(u)
@@ -543,7 +543,7 @@ class Unit:
         """
         # Overwrite existing entries without warning
         if not isinstance(unit, myokit.Unit):
-            raise ValueError(
+            raise TypeError(
                 'The second argument to register_preferred_representation must'
                 ' be a myokit.Unit')
         rep = str(rep)
@@ -614,8 +614,8 @@ class Unit:
             if m < 1e6:
                 m = str(m)
             else:
-                m = '{:<1.0e}'.format(m)
-            u += ' (' + m + ')'
+                m = f'{m:<1.0e}'
+            u += f' ({m})'
         return '[' + u + ']'
 
     def __str__(self):
@@ -623,7 +623,7 @@ class Unit:
         # Strategy 1: Try simple look-up (using hash based on _str() followed
         # by check of exponents in __eq__ for comparison
         try:
-            return '[' + Unit._preferred_representations[self] + ']'
+            return f'[{Unit._preferred_representations[self]}]'
         except KeyError:
             pass
 
@@ -631,7 +631,7 @@ class Unit:
         rep = None
         for unit, test in Unit._preferred_representations.items():
             if Unit.close(self, unit):
-                rep = '[' + test + ']'
+                rep = f'[{test}]'
                 break
 
         # Strategy 3: Try finding a representation for the exponent (without a
@@ -657,8 +657,8 @@ class Unit:
                     if m < 1e6:
                         m = str(m)
                     else:
-                        m = '{:<1.0e}'.format(m)
-                    rep = '[' + rep + ' (' + m + ')]'
+                        m = f'{m:<1.0e}'
+                    rep = f'[{rep} ({m})]'
 
         # Strategy 4: Build a new representation
         if rep is None:
@@ -764,16 +764,16 @@ class Quantity:
                     parts = value.split('[', 1)
                 except Exception:
                     raise ValueError(
-                        'Value of type ' + str(type(value))
-                        + ' could not be converted to myokit.Quantity.')
+                        f'Value of type {type(value)} could not be converted'
+                        ' to myokit.Quantity.')
 
                 # Very simple number-with-unit parsing
                 try:
                     self._value = float(parts[0])
                 except ValueError:
                     raise ValueError(
-                        'Failed to parse string "' + str(value)
-                        + '" as myokit.Quantity.')
+                        f'Failed to parse string "{value}" as'
+                        ' myokit.Quantity.')
                 self._unit = myokit.parse_unit(parts[1].strip()[:-1])
 
             # No unit set yet? Then check unit argument
@@ -802,8 +802,8 @@ class Quantity:
             other = Quantity(other)
         if self._unit != other._unit:
             raise myokit.IncompatibleUnitError(
-                'Cannot add quantities with units ' + self._unit.clarify()
-                + ' and ' + other._unit.clarify() + '.')
+                f'Cannot add quantities with units {self._unit.clarify()} and'
+                f' {other._unit.clarify()}.')
         return Quantity(self._value + other._value, self._unit)
 
     def cast(self, unit):

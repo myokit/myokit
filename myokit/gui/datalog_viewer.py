@@ -4,26 +4,25 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+# ruff: noqa: I001
 import configparser
 import gc
 import os
 import sys
 import traceback
 
-from myokit.gui import QtWidgets, QtGui, QtCore, Qt
-
 import myokit
 import myokit.gui
 import myokit.gui.progress
 import myokit.formats.axon
 import myokit.formats.wcp
+from myokit.gui import QtCore, Qt, QtWidgets, QtGui
+from myokit.gui import matplotlib_backend as backend
 
 # Matplotlib (must be imported _after_ gui has had chance to set backend)
 import matplotlib
 import matplotlib.figure
-from myokit.gui import matplotlib_backend as backend
 
-# NumPy
 import numpy as np
 
 # SciPy: Only used to load matlab files.
@@ -784,7 +783,6 @@ class SweepSourceTab(GraphTabWidget):
 
 class AbfTab(SweepSourceTab):
     """ A widget displaying an ABF file. """
-    pass
 
 
 class AtfTab(GraphTabWidget):
@@ -872,7 +870,7 @@ class CsvTab(GraphTabWidget):
         # Overlapping sweeps or neighboring cells?
         keys = []
         groups = {}
-        for key in log.keys():
+        for key in log:
             if key == time:
                 continue
             index, var = myokit.split_key(key)
@@ -945,7 +943,7 @@ class MatTab(GraphTabWidget):
         self._filename = filename
 
         # Find usable data
-        for key in mat.keys():
+        for key in mat:
             if key[:1] == '_':
                 continue
             time, data = None, None
@@ -1013,7 +1011,6 @@ class MatTab(GraphTabWidget):
 
 class PatchMasterTab(SweepSourceTab):
     """ A widget displaying a PatchMaster series. """
-    pass
 
 
 class TxtTab(GraphTabWidget):

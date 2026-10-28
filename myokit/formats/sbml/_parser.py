@@ -14,13 +14,12 @@ import warnings
 from lxml import etree
 
 import myokit
-import myokit.units
 import myokit.formats
 import myokit.formats.html
 import myokit.formats.mathml
 import myokit.formats.sbml
 import myokit.formats.xml
-
+import myokit.units
 
 # Namespaces
 NS_MATHML = 'http://www.w3.org/1998/Math/MathML'

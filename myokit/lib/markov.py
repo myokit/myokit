@@ -387,7 +387,7 @@ class LinearModel:
         globl = {'numpy': np, 'n': n}
         local = {}
 
-        exec(code, globl, local)
+        exec(code, globl, local)  # noqa: S102
         self._matrix_function = local['matrix_function']
 
         #
@@ -406,7 +406,7 @@ class LinearModel:
         code = head + '\n' + '\n'.join(['    ' + line for line in body])
         globl = {'numpy': np}
         local = {}
-        exec(code, globl, local)
+        exec(code, globl, local)  # noqa: S102
         self._rate_list_function = local['rate_list_function']
 
     def current(self):
@@ -690,14 +690,14 @@ class AnalyticalSimulation:
         super().__init__()
         # Check model
         if not isinstance(model, LinearModel):
-            raise ValueError('First parameter must be a `LinearModel`.')
+            raise TypeError('First parameter must be a `LinearModel`.')
         self._model = model
 
         # Check protocol
         if protocol is None:
             self._protocol = None
         elif not isinstance(protocol, myokit.Protocol):
-            raise ValueError('Protocol must be a myokit.Protocol object')
+            raise TypeError('Protocol must be a myokit.Protocol object')
         else:
             self._protocol = protocol.clone()
 
@@ -1157,14 +1157,14 @@ class DiscreteSimulation:
     def __init__(self, model, protocol=None, nchannels=100):
         # Check model
         if not isinstance(model, LinearModel):
-            raise ValueError('First parameter must be a `LinearModel`.')
+            raise TypeError('First parameter must be a `LinearModel`.')
         self._model = model
 
         # Check protocol
         if protocol is None:
             self._protocol = None
         elif not isinstance(protocol, myokit.Protocol):
-            raise ValueError('Protocol must be a myokit.Protocol object')
+            raise TypeError('Protocol must be a myokit.Protocol object')
         else:
             self._protocol = protocol.clone()
 
@@ -1590,7 +1590,7 @@ class MarkovModel:
         return AnalyticalSimulation(LinearModel.from_component(
             component, states, parameters, current, vm))
 
-    def __new__(self, model, states, parameters=None, current=None, vm=None):
+    def __new__(cls, model, states, parameters=None, current=None, vm=None):
         # Deprecated since 2016-01-25
         import warnings
         warnings.warn(
@@ -1665,7 +1665,7 @@ def _split_factor(term, variables):
     """
 
     # Check that the term references exactly one variable from ``variables``
-    names = set([myokit.Name(var) for var in variables])
+    names = {myokit.Name(var) for var in variables}
     refs = set(term.references())
     n_refs = len(names & refs)
     if n_refs != 1:
@@ -1736,17 +1736,17 @@ def _split_terms(expression, terms=None, positive=True):
     """
     if terms is None:
         terms = []
-    if type(expression) == myokit.Plus:
+    if type(expression) is myokit.Plus:
         a, b = expression
         _split_terms(a, terms, positive)
         _split_terms(b, terms, positive)
-    elif type(expression) == myokit.Minus:
+    elif type(expression) is myokit.Minus:
         a, b = expression
         _split_terms(a, terms, positive)
         _split_terms(b, terms, not positive)
-    elif type(expression) == myokit.PrefixPlus:
+    elif type(expression) is myokit.PrefixPlus:
         _split_terms(expression[0], terms, positive)
-    elif type(expression) == myokit.PrefixMinus:
+    elif type(expression) is myokit.PrefixMinus:
         _split_terms(expression[0], terms, not positive)
     else:
         if positive:
@@ -1922,11 +1922,9 @@ def convert_markov_models_to_full_ode_form(model):
 
         # Find 1-sum() state
         special = None
-        i_special = None
         for i, state in enumerate(states):
             if not state.is_state():
                 special = state
-                i_special = i
                 break
 
         # No special state: then no need to convert

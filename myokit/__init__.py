@@ -37,11 +37,12 @@ and then a myokit.Simulation which you can .run() to obtain simulated results.
 #  F    PY_RELEASE_LEVEL, A for alpha, B for beta, C for candidate, F for final
 #  0    PY_RELEASE_SERIAL, increments with every release
 #
-import sys  # noqa
+import sys
+
 if sys.hexversion < 0x03000000:  # pragma: no cover
     raise Exception('This version of Myokit does not support Python 2.')
 elif sys.hexversion < 0x03070000:  # pragma: no cover
-    import warnings  # noqa
+    import warnings
     warnings.warn(
         'Myokit is not tested on Python versions before 3.7. Detected'
         f' version {sys.version}.')
@@ -52,14 +53,15 @@ del sys
 #
 # Version information and licensing
 #
-import importlib.metadata  # noqa
+import importlib.metadata
+
 __version__ = importlib.metadata.version('myokit')
 __release__ = len(__version__.split('.')) == 3
-del importlib
+del importlib  # Do _not_ `del importlib.metadata`, that modifies importlib!
 
 # Warn about development version
 if not __release__:     # pragma: no cover
-    import warnings  # noqa
+    import warnings
     warnings.warn(f'Using development version of Myokit ({__version__}).')
     del warnings
 
@@ -72,7 +74,9 @@ if not __release__:     # pragma: no cover
 #
 
 # Myokit root
-import os, inspect  # noqa
+import inspect
+import os
+
 try:
     frame = inspect.currentframe()
     DIR_MYOKIT = os.path.abspath(os.path.dirname(inspect.getfile(frame)))
@@ -95,7 +99,7 @@ DIR_USER_OLD = os.path.join(os.path.expanduser('~'), '.myokit')
 
 if os.path.exists(DIR_USER_OLD):    # pragma: no cover
     if not os.path.exists(DIR_USER):
-        import shutil  # noqa
+        import shutil
         shutil.move(DIR_USER_OLD, DIR_USER)
         del shutil
 
@@ -371,8 +375,8 @@ from ._io import (  # noqa
     save_state_bin,
 )
 
-# Common units
-from . import units  # noqa, also loads all common unit names
+# Common units (registers all unit names)
+from . import units  # noqa
 
 # Auxillary functions
 from ._aux import (  # noqa
@@ -455,6 +459,7 @@ _simulation_progress = None
 #
 # Load settings
 #
-from . import _config   # noqa
+from . import _config
+
 del _config
 

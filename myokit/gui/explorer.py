@@ -4,9 +4,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+# ruff: noqa: I001
 import myokit
 import myokit.gui
-
 from myokit.gui import QtCore, QtGui, QtWidgets
 from myokit.gui import matplotlib_backend as backend
 from . import progress
@@ -167,7 +167,7 @@ class Explorer(QtWidgets.QDialog):
                 QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             # Create and run simulation
             out = self._sim_method()
-            if type(out) == str:
+            if type(out) is str:
                 self._stream.write(out)
                 return
             else:

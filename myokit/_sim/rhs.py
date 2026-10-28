@@ -155,7 +155,7 @@ class RhsBenchmarker(myokit.CModule):
         import numpy as np
         times = np.asarray(times)
         # Remove outliers twice
-        for i in range(0, 2):
+        for i in range(2):
             avg = np.mean(times)
             std = np.std(times)
             s3 = std * 3

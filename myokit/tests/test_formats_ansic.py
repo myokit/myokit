@@ -12,16 +12,43 @@ import unittest
 import myokit
 import myokit.formats.ansic
 import myokit.formats.cpp
-
-from myokit import (
-    Number, PrefixPlus, PrefixMinus, Plus, Minus,
-    Multiply, Divide, Quotient, Remainder, Power, Sqrt,
-    Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
-    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
-    If, Piecewise,
-)
-
 import myokit.tests
+from myokit import (
+    Abs,
+    ACos,
+    And,
+    ASin,
+    ATan,
+    Ceil,
+    Cos,
+    Divide,
+    Equal,
+    Exp,
+    Floor,
+    If,
+    Less,
+    LessEqual,
+    Log,
+    Log10,
+    Minus,
+    More,
+    MoreEqual,
+    Multiply,
+    Not,
+    NotEqual,
+    Number,
+    Or,
+    Piecewise,
+    Plus,
+    Power,
+    PrefixMinus,
+    PrefixPlus,
+    Quotient,
+    Remainder,
+    Sin,
+    Sqrt,
+    Tan,
+)
 
 
 class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
@@ -217,16 +244,16 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     def test_in_c(self):
         # Compile and test the values evaluated in C
 
-        class CTester():
+        class CTester:
             def __init__(self, parent):
                 self._parent = parent
                 self._m = myokit.Model()
                 self._c = self._m.add_component('c')
-                t = self._c.add_variable('time', rhs=0, binding='time')
+                self._c.add_variable('time', rhs=0, binding='time')
                 self._expected = []
 
             def add(self, expression, expected):
-                v = self._c.add_variable(
+                self._c.add_variable(
                     f'v{len(self._expected)}', rhs=expression, initial_value=0)
                 self._expected.append(float(expected))
 

@@ -32,7 +32,7 @@ class SymPyExpressionReader:
             if isinstance(e, Number):
                 action = self._ex_number
             else:
-                raise ValueError('Unsupported type: ' + str(type(e)))
+                raise ValueError('Unsupported type: ' + str(type(e)))  # noqa: TRY004
         return action(e)
 
     def set_model(self, model=None):
@@ -46,22 +46,32 @@ class SymPyExpressionReader:
         Creates and returns a mapping of sympy object types to handling
         methods.
         """
-        from sympy.core.symbol import Symbol
         from sympy.core.add import Add
-        from sympy.core.mul import Mul
         from sympy.core.mod import Mod
+        from sympy.core.mul import Mul
         from sympy.core.power import Pow
-        from sympy.functions.elementary.trigonometric import (
-            sin, cos, tan, asin, acos, atan)
-        from sympy.functions.elementary.exponential import exp, log
-        from sympy.functions.elementary.integers import floor, ceiling
-        from sympy.functions.elementary.complexes import Abs
-        from sympy.logic.boolalg import Not
         from sympy.core.relational import (
-            Equality, Unequality, StrictGreaterThan, StrictLessThan,
-            GreaterThan, LessThan)
-        from sympy.logic.boolalg import And, Or
+            Equality,
+            GreaterThan,
+            LessThan,
+            StrictGreaterThan,
+            StrictLessThan,
+            Unequality,
+        )
+        from sympy.core.symbol import Symbol
+        from sympy.functions.elementary.complexes import Abs
+        from sympy.functions.elementary.exponential import exp, log
+        from sympy.functions.elementary.integers import ceiling, floor
         from sympy.functions.elementary.piecewise import Piecewise
+        from sympy.functions.elementary.trigonometric import (
+            acos,
+            asin,
+            atan,
+            cos,
+            sin,
+            tan,
+        )
+        from sympy.logic.boolalg import And, Not, Or
 
         return {
             Symbol: self._ex_name,
@@ -113,7 +123,7 @@ class SymPyExpressionReader:
     def _ex_multiply(self, e):
         from sympy.core.numbers import NegativeOne
         a, b = e.as_two_terms()
-        if type(a) == NegativeOne:
+        if type(a) is NegativeOne:
             return myokit.PrefixMinus(self.ex(b))
         return myokit.Multiply(self.ex(a), self.ex(b))
 
@@ -187,7 +197,7 @@ class SymPyExpressionReader:
         return myokit.Or(*[self.ex(x) for x in e.args])
 
     def _ex_piecewise(self, e):
-        from sympy.logic.boolalg import BooleanTrue, BooleanFalse
+        from sympy.logic.boolalg import BooleanFalse, BooleanTrue
 
         args = []
         n = len(e.args) - 1
@@ -195,10 +205,10 @@ class SymPyExpressionReader:
             expr, cond = pair
             expr = self.ex(expr)
             cond_is_true = False
-            if type(cond) == BooleanTrue:
+            if type(cond) is BooleanTrue:
                 cond_is_true = True
                 cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
-            elif type(cond) == BooleanFalse:    # pragma: no cover
+            elif type(cond) is BooleanFalse:    # pragma: no cover
                 # Cover pragma: SymPy currently optimises out BooleanFalse
                 cond = myokit.Equal(myokit.Number(0), myokit.Number(1))
             else:

@@ -8,8 +8,7 @@
 import unittest
 
 import myokit
-
-from myokit.tests import TemporaryDirectory, OpenCL_FOUND
+from myokit.tests import OpenCL_FOUND, TemporaryDirectory
 
 
 @unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')

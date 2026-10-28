@@ -9,15 +9,43 @@ import unittest
 
 import myokit
 import myokit.formats.latex
-
-from myokit import (
-    Number, PrefixPlus, PrefixMinus, Plus, Minus,
-    Multiply, Divide, Quotient, Remainder, Power, Sqrt,
-    Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
-    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
-)
-
 import myokit.tests
+from myokit import (
+    Abs,
+    ACos,
+    And,
+    ASin,
+    ATan,
+    Ceil,
+    Cos,
+    Divide,
+    Equal,
+    Exp,
+    Floor,
+    # If,
+    Less,
+    LessEqual,
+    Log,
+    Log10,
+    Minus,
+    More,
+    MoreEqual,
+    Multiply,
+    Not,
+    NotEqual,
+    Number,
+    Or,
+    # Piecewise,
+    Plus,
+    Power,
+    PrefixMinus,
+    PrefixPlus,
+    Quotient,
+    Remainder,
+    Sin,
+    Sqrt,
+    Tan,
+)
 
 
 class LatexExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
@@ -45,7 +73,7 @@ class LatexExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('under_score', rhs=3)
-        t = c.add_variable('time', rhs=0, binding='time')
+        c.add_variable('time', rhs=0, binding='time')
         m.validate()
         self.eq(myokit.Name(v), r'\text{under\_score}')
 

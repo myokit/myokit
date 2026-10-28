@@ -9,7 +9,6 @@ from lxml import etree
 
 import myokit
 import myokit.formats
-
 from myokit.formats.xml import split
 
 

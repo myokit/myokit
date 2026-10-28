@@ -5,8 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 from ._exporter import XMLExporter
-from ._split import split   # noqa
-
+from ._split import split  # noqa: F401
 
 # Importers
 # Exporters

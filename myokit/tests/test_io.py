@@ -12,7 +12,6 @@ import unittest
 import numpy as np
 
 import myokit
-
 from myokit.tests import DIR_DATA, TemporaryDirectory
 
 

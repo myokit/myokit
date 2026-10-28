@@ -13,7 +13,6 @@ import re
 import unittest
 
 import myokit
-
 from myokit.tests import TemporaryDirectory, WarningCollector
 
 
@@ -632,14 +631,14 @@ class ModelTest(unittest.TestCase):
         # Test without arguments
         x = m.format_state_derivatives().splitlines()
         y = [
-'membrane.V = -84.5286                   dot = -5.68008003798848027e-02', # noqa
-'ina.m      = 0.0017                     dot = -4.94961486033834719e-03', # noqa
-'ina.h      = 0.9832                     dot =  9.02025299127830887e-06', # noqa
-'ina.j      = 0.995484                   dot = -3.70409866928434243e-04', # noqa
-'ica.d      = 3e-06                      dot =  3.68067721821794798e-04', # noqa
-'ica.f      = 1.0                        dot = -3.55010150519739432e-07', # noqa
-'ik.x       = 0.0057                     dot = -2.04613933160084307e-07', # noqa
-'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'  # noqa
+'membrane.V = -84.5286                   dot = -5.68008003798848027e-02',
+'ina.m      = 0.0017                     dot = -4.94961486033834719e-03',
+'ina.h      = 0.9832                     dot =  9.02025299127830887e-06',
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04',
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04',
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07',
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07',
+'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'
         ]
         for a, b in zip(x, y):
             self.assertTrue(almost_equal(a, b))
@@ -650,14 +649,14 @@ class ModelTest(unittest.TestCase):
         state1[2] = 536.46745856785678567845745637
         x = m.format_state_derivatives(state1).splitlines()
         y = [
-'membrane.V = -40                        dot =  3.03469590344436094e+07', # noqa
-'ina.m      = 2                          dot = -1.05478017767301395e+01', # noqa
-'ina.h      =  5.36467458567856738e+02   dot = -2.46776607600654586e+02', # noqa
-'ina.j      = 4                          dot = -3.72528160028099076e-01', # noqa
-'ica.d      = 5                          dot = -1.69660729614147049e-01', # noqa
-'ica.f      = 6                          dot = -6.23551094458582103e-02', # noqa
-'ik.x       = 7                          dot = -1.18521143826784449e-02', # noqa
-'ica.Ca_i   = 8                          dot = -5.52361267451130011e-01', # noqa
+'membrane.V = -40                        dot =  3.03469590344436094e+07',
+'ina.m      = 2                          dot = -1.05478017767301395e+01',
+'ina.h      =  5.36467458567856738e+02   dot = -2.46776607600654586e+02',
+'ina.j      = 4                          dot = -3.72528160028099076e-01',
+'ica.d      = 5                          dot = -1.69660729614147049e-01',
+'ica.f      = 6                          dot = -6.23551094458582103e-02',
+'ik.x       = 7                          dot = -1.18521143826784449e-02',
+'ica.Ca_i   = 8                          dot = -5.52361267451130011e-01',
         ]
         for a, b in zip(x, y):
             self.assertTrue(almost_equal(a, b))
@@ -725,14 +724,14 @@ class ModelTest(unittest.TestCase):
         m.get('ina.h').set_initial_value('ina.gNa / 20')
         x = m.format_state_derivatives().splitlines()
         y = [
-'membrane.V = -84.5286                   dot =  2.46843981754470434e+02', # noqa
-'ina.m      = 0.5                        dot = -8.68225658924664856e+01', # noqa
-'ina.h      = 0.8                        dot =  4.89677127030544446e-02', # noqa
-'ina.j      = 0.995484                   dot = -3.70409866928434243e-04', # noqa
-'ica.d      = 3e-06                      dot =  3.68067721821794798e-04', # noqa
-'ica.f      = 1.0                        dot = -3.55010150519739432e-07', # noqa
-'ik.x       = 0.0057                     dot = -2.04613933160084307e-07', # noqa
-'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'  # noqa
+'membrane.V = -84.5286                   dot =  2.46843981754470434e+02',
+'ina.m      = 0.5                        dot = -8.68225658924664856e+01',
+'ina.h      = 0.8                        dot =  4.89677127030544446e-02',
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04',
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04',
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07',
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07',
+'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'
         ]
         for a, b in zip(x, y):
             self.assertTrue(almost_equal(a, b))
@@ -2169,7 +2168,10 @@ class ModelTest(unittest.TestCase):
 
         # Test with nothing similar
         m = myokit.Model()
-        self.assertRaises(Exception, m.show_evaluation_of, 'Hello')
+        c  = m.add_component('c')
+        c.add_variable('t', rhs=0, binding='time')
+        e = m.show_evaluation_of('Hello')
+        self.assertIn('Variable not found, assuming <c.t>', e)
 
     def test_show_expressions_for(self):
         # Test :meth:`Model.show_expressions_for(variable)`.

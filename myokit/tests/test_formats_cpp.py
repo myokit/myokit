@@ -9,7 +9,6 @@ import unittest
 
 import myokit
 import myokit.formats.cpp
-
 import myokit.tests
 
 

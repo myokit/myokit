@@ -9,7 +9,6 @@ import os
 import unittest
 
 import myokit
-
 from myokit.tests import DIR_DATA, WarningCollector
 
 # Path to multi-model testing files

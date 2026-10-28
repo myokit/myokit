@@ -8,10 +8,9 @@ import array
 import os
 import sys
 
-import myokit
-
 import numpy as np
 
+import myokit
 
 # Readme file for DataBlock1d binary files
 README_SAVE_1D = """

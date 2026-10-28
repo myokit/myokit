@@ -151,11 +151,11 @@ This will tell other Python modules where to find Myokit, so that you can use `i
 For the Python bits, Myokit follows the [PEP8 recommendations](https://www.python.org/dev/peps/pep-0008/) for coding style.
 These are very common guidelines, and community tools have been developed to check how well projects implement them.
 
-We use [flake8](http://flake8.pycqa.org/en/latest/) to check our PEP8 adherence.
+We use [ruff](https://docs.astral.sh/ruff/) to check our PEP8 adherence.
 To try this on your system, navigate to the Myokit directory in a console and type
 
 ```
-$ flake8
+$ python -m ruff check
 ```
 
 ### Naming
@@ -295,13 +295,11 @@ Then have a look at `<your myokit path>/doc/build/html/index.html`.
 
 ## Infrastructure & configuration files
 
-- Installation happens using `setup.py`, but also information from `MANIFEST.in`.
-- Users can find the license in `LICENSE.txt` and a citable reference in `CITATION` ([syntax](https://www.software.ac.uk/blog/2016-10-06-encouraging-citation-software-introducing-citation-files)).
+- Packaging and installation is configured in `pyproject.toml` and `MANIFEST.in`.
+- Code style is checked using ruff, which is configured in `pyproject.toml`.
+- Coverage is tested using [coverage](https://coverage.readthedocs.io/), which is configured in `pyproject.toml`
 - Tests are run using Github Actions, and configured [here](./.github/workflows).
-- Coverage is tested using [codecov.io](https://docs.codecov.io/docs) which builds on [coverage](https://coverage.readthedocs.io/). 
-  Configuration file: `.coveragerc` ([syntax](https://coverage.readthedocs.io/en/latest/config.html)).
-- Documentation is built using [readthedocs](readthedocs.org) and [published here](https://myokit.readthedocs.io/).
-  Configuration file `.readthedocs.yaml`.
-- Code style is checked using flake8.
-  Configuration file: `.flake8` ([syntax](http://flake8.pycqa.org/en/latest/user/configuration.html)).
+- Coverage reporting from Github actions uses [codecov.io](https://docs.codecov.io/docs). 
+- Documentation is built using [readthedocs](readthedocs.org) and [published here](https://myokit.readthedocs.io/). It is configured in `.readthedocs.yaml`.
+- Users can find the license in `LICENSE.txt` and a citable reference in `CITATION` ([syntax](https://www.software.ac.uk/blog/2016-10-06-encouraging-citation-software-introducing-citation-files)).
 

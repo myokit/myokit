@@ -4,9 +4,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from ._exporter import MatlabExporter
 from ._ewriter import MatlabExpressionWriter
-
+from ._exporter import MatlabExporter
 
 # Importers
 # Exporters

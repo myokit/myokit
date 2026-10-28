@@ -203,9 +203,11 @@ class DiGraphTest(unittest.TestCase):
             ValueError, d.build_from_matrix, matrix, edges_only=True)
 
         # Test that megs and layering fail on cyclical graph
-        self.assertRaisesRegex(Exception, 'cyclical', d.cg_layers_dag)
+        self.assertRaisesRegex(
+            deps.DiGraphError, 'cyclical', d.cg_layers_dag)
         d.add_edge(1, 1)
-        self.assertRaisesRegex(Exception, 'self-referencing', d.meg_dag)
+        self.assertRaisesRegex(
+            deps.DiGraphError, 'self-referencing', d.meg_dag)
 
 
 if __name__ == '__main__':

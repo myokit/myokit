@@ -8,9 +8,7 @@
 #
 import myokit
 import myokit.gui
-
 from myokit.gui import Qt, QtCore, QtGui, QtWidgets
-
 
 # GUI components
 # Constants

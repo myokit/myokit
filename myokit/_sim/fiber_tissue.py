@@ -633,7 +633,7 @@ class FiberTissueSimulation(myokit.CModule):
             kfirst = kfirstf
             if ifirst is None:  # pragma: no cover
                 ifirst = 0
-                kfirst = next(iter(log.items()))[0]
+                kfirst = next(iter(logf.items()))[0]
             model = self._modelf
             log = logf
         else:
@@ -827,7 +827,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Create list of intermediary fiber variables that need to be logged
         inter_logf = []
         vars_checked = set()
-        for var in logf.keys():
+        for var in logf:
             var = myokit.split_key(var)[1]
             if var in vars_checked:
                 continue
@@ -839,7 +839,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Create list of intermediary tissue variables that need to be logged
         inter_logt = []
         vars_checked = set()
-        for var in logt.keys():
+        for var in logt:
             var = myokit.split_key(var)[1]
             if var in vars_checked:
                 continue

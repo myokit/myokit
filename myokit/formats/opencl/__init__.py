@@ -4,10 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from ._exporter import OpenCLExporter, OpenCLRLExporter
-from ._ewriter import OpenCLExpressionWriter
 from myokit.formats import ansic
 
+from ._ewriter import OpenCLExpressionWriter
+from ._exporter import OpenCLExporter, OpenCLRLExporter
 
 # Importers
 # Exporters

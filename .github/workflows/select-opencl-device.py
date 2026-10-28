@@ -4,7 +4,6 @@
 #
 import myokit
 
-
 if myokit.OpenCL.available():
 
     # Search for a device with float capabilities

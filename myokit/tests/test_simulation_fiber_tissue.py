@@ -11,10 +11,9 @@ import unittest
 import numpy as np
 
 import myokit
-
 from myokit.tests import (
-    CancellingReporter,
     DIR_DATA,
+    CancellingReporter,
     OpenCL_FOUND,
     WarningCollector,
 )
@@ -531,7 +530,6 @@ class FiberTissueSimulationTest(unittest.TestCase):
 
     def test_run_progress(self):
         # Tests running with a progress reporter.
-        pass
 
         # Run with a progress reporter
         with myokit.tools.capture() as c:

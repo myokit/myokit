@@ -4,11 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import myokit
 """
 This module contains factory methods to create Protocol objects
 programmatically.
 """
+
+import myokit
 
 
 def blocktrain(period, duration, offset=0, level=1.0, limit=0):

@@ -11,7 +11,6 @@ import re
 import unittest
 
 import myokit
-
 from myokit.tests import DIR_DATA, WarningCollector
 
 
@@ -451,42 +450,37 @@ class AuxTest(unittest.TestCase):
 
         x = myokit.step(m1, reference=ref).splitlines()
         y = [
-            'Evaluating state vector derivatives...',
-            '-' * 79,
-            'Name         Initial value             Derivative at t=0       ',
-            '-' * 79,
-            'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
-            '                                       -3.97224086575331760e-04'
-            ' <= 1 eps',
-            '',
-            'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
-            '                                       -1.56608433137725457e-09',
-            '',
-            'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
-            '                                        7.48738392280520054e-02'
-            ' ~ 5.8 eps',
-            '                                                      ^^^^^^^^^',
-            'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
-            '                                       -1.78891889478854579e-03',
-            '',
-            'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
-            '                                        3.06255006833574140e-04'
-            ' sign',
-            '                                       ^^^^^^^^^^^^^^^^^^^^^^^^',
-            'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
-            '                                       -5.11993904291850035e-06',
-            '',
-            'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
-            '                                        3.88374114688215880e-04'
-            ' X',
-            '                                        ^^^^^^^^^^^^^^^^^^^^^^^',
-            'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
-            '                                       -3.21682814207918156e-05'
-            ' exponent',
-            '                                                           ^^^^',
-            'Found (3) large mismatches between output and reference values.',
-            'Found (1) small mismatches.',
-            '-' * 79,
+'Evaluating state vector derivatives...',
+'-' * 79,
+'Name         Initial value             Derivative at t=0       ',
+'-' * 79,
+'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
+'                                       -3.97224086575331760e-04 <= 1 eps',
+'',
+'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
+'                                       -1.56608433137725457e-09',
+'',
+'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
+'                                        7.48738392280520054e-02 ~ 5.8 eps',
+'                                                      ^^^^^^^^^',
+'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
+'                                       -1.78891889478854579e-03',
+'',
+'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
+'                                        3.06255006833574140e-04 sign',
+'                                       ^^^^^^^^^^^^^^^^^^^^^^^^',
+'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
+'                                       -5.11993904291850035e-06',
+'',
+'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
+'                                        3.88374114688215880e-04 X',
+'                                        ^^^^^^^^^^^^^^^^^^^^^^^',
+'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
+'                                       -3.21682814207918156e-05 exponent',
+'                                                           ^^^^',
+'Found (3) large mismatches between output and reference values.',
+'Found (1) small mismatches.',
+'-' * 79,
         ]
         for a, b in zip(x, y):
             self.assertTrue(almost_equal(a, b))
@@ -527,7 +521,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(len(x), len(y))
 
         # Test setting inputs
-        p = m1.get('c').add_variable('p', rhs=0, binding='pace')
+        m1.get('c').add_variable('p', rhs=0, binding='pace')
         m1.get('c.x').set_rhs('3 * c.t')
         m1.get('c.y').set_rhs('c.p + c.t')
         x = myokit.step(m1).splitlines()

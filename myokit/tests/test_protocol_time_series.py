@@ -5,8 +5,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import unittest
 import pickle
+import unittest
 
 import myokit
 

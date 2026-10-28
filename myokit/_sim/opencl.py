@@ -86,7 +86,7 @@ class OpenCL(myokit.CModule):
         """
         try:
             info = OpenCL.info()
-        except Exception:   # pragma: no cover
+        except Exception:  # pragma: no cover
             return False
         for p in info.platforms:
             for d in p.devices:
@@ -119,7 +119,7 @@ class OpenCL(myokit.CModule):
         if not OpenCL.supported():  # pragma: no cover
             if formatted:
                 return 'No OpenCL support detected.'
-            return OpenCLInfo()
+            return OpenCLInfo([])
 
         info = OpenCLInfo(OpenCL._get_instance().info())
         if formatted:
@@ -267,7 +267,7 @@ class OpenCLInfo:
 
     ``OpenCLInfo`` objects are created and returned by :class:`myokit.OpenCL`.
     """
-    def __init__(self, mcl_info=[]):
+    def __init__(self, mcl_info):
         # mcl_info is a python object returned by mcl_device_info (mcl.h)
         self.platforms = tuple([OpenCLPlatformInfo(x) for x in mcl_info])
 

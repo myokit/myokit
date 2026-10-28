@@ -33,13 +33,11 @@ class ProgressReporter:
         An optional description of the job to run can be passed in at
         construction time as ``msg``.
         """
-        pass
 
     def exit(self):
         """
         Called when a job is finished and the progress reports should stop.
         """
-        pass
 
     def job(self, msg=None):
         """
@@ -57,7 +55,6 @@ class ProgressReporter:
         The return value of this update can be used to signal a job should be
         cancelled: Return ``True`` to keep going, ``False`` to cancel.
         """
-        pass
 
     class _Job:
         def __init__(self, parent, msg):

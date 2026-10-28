@@ -13,13 +13,12 @@ import unittest
 import numpy as np
 
 import myokit
-
 from myokit.tests import (
     DIR_DATA,
     DIR_IO,
+    CancellingReporter,
     TemporaryDirectory,
     TestReporter,
-    CancellingReporter,
     WarningCollector,
 )
 
@@ -297,14 +296,14 @@ class DataLogTest(unittest.TestCase):
 
         # Test without discarding remainder
         d2 = d.fold(30, discard_remainder=False)
-        self.assertEqual(set(d2.keys()), set([
-            'time', '0.x', '1.x', '2.x', '3.x']))
+        self.assertEqual(
+            set(d2.keys()), {'time', '0.x', '1.x', '2.x', '3.x'})
 
         # Test with discarding remainder
         d = d.npview()
         d2 = d.fold(30)
-        self.assertEqual(set(d2.keys()), set([
-            'time', '0.x', '1.x', '2.x']))
+        self.assertEqual(
+            set(d2.keys()), {'time', '0.x', '1.x', '2.x'})
         self.assertEqual(len(d2['time']), 30)
         self.assertEqual(len(d2['0.x']), 30)
         self.assertEqual(len(d2['1.x']), 30)
@@ -726,7 +725,7 @@ class DataLogTest(unittest.TestCase):
         # Test errory file, with comments etc., should work fine!
         path = os.path.join(DIR_IO, 'datalog.csv')
         d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
@@ -738,28 +737,28 @@ class DataLogTest(unittest.TestCase):
         # Test windows line endings
         path = os.path.join(DIR_IO, 'datalog-2-windows.csv')
         d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test old mac line endings
         path = os.path.join(DIR_IO, 'datalog-3-old-mac.csv')
         d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test empty lines at end
         path = os.path.join(DIR_IO, 'datalog-4-empty-lines.csv')
         d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test semicolons at end of each line
         path = os.path.join(DIR_IO, 'datalog-5-semicolons.csv')
         d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
@@ -772,21 +771,21 @@ class DataLogTest(unittest.TestCase):
         # Test empty lines between data
         path = os.path.join(DIR_IO, 'datalog-7-empty-lines-2.csv')
         d = myokit.DataLog.load_csv(path)
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == np.arange(1, 7)))
         self.assertTrue(np.all(d['v'] == 10 * (np.arange(1, 7))))
 
         # Test unquoted field names
         path = os.path.join(DIR_IO, 'datalog-8-unquoted-header.csv')
         d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test double-quoted field names
         path = os.path.join(DIR_IO, 'datalog-9-double-quoted-header.csv')
         d = myokit.DataLog.load_csv(path).npview()
-        self.assertEqual(set(d.keys()), set(['time', 'v"quote"']))
+        self.assertEqual(set(d.keys()), {'time', 'v"quote"'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v"quote"'] == 10 * (1 + np.arange(6))))
 
@@ -1069,7 +1068,6 @@ class DataLogTest(unittest.TestCase):
         # Empty log
         d = prepare_log({}, m)
         self.assertEqual(len(d), 0)
-        #
         d = prepare_log({'engine.time': []}, m)
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 1)
@@ -1154,9 +1152,9 @@ class DataLogTest(unittest.TestCase):
 
         # Argument `log` doesn't match any of the options
         self.assertRaisesRegex(
-            ValueError, 'unexpected type', prepare_log, IOError, m)
+            TypeError, 'unexpected type', prepare_log, OSError, m)
         self.assertRaisesRegex(
-            ValueError, 'String passed', prepare_log, 'membrane.V', m)
+            TypeError, 'String passed', prepare_log, 'membrane.V', m)
 
         # Unknown variable in list
         self.assertRaisesRegex(
@@ -1577,7 +1575,6 @@ class DataLogTest(unittest.TestCase):
         # Empty log
         d = prepare_log({}, m)
         self.assertEqual(len(d), 0)
-        #
         d = prepare_log({'1.0.engine.time': []}, m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 1)
@@ -1693,8 +1690,8 @@ class DataLogTest(unittest.TestCase):
         # Test saving in binary format.
 
         d = myokit.DataLog()
-        d['a.b'] = np.arange(0, 100, dtype=np.float32)
-        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
+        d['a.b'] = np.arange(100, dtype=np.float32)
+        d['c.d'] = np.sqrt(np.arange(100) * 1.2)
         d.meta['one'] = 1
         d.cmeta['a.b']['two'] = 2
 
@@ -1728,8 +1725,8 @@ class DataLogTest(unittest.TestCase):
         # Test saving with single precision
         d = myokit.DataLog()
         d.set_time_key('c.d')
-        d['a.b'] = np.arange(0, 100, dtype=np.float32)
-        d['c.d'] = np.sqrt(np.arange(0, 100, dtype=np.float32) * 1.2)
+        d['a.b'] = np.arange(100, dtype=np.float32)
+        d['c.d'] = np.sqrt(np.arange(100, dtype=np.float32) * 1.2)
         with TemporaryDirectory() as td:
             fname = td.path('test.bin')
             d.save(fname, precision=myokit.SINGLE_PRECISION)
@@ -1759,9 +1756,9 @@ class DataLogTest(unittest.TestCase):
         d = myokit.DataLog()
 
         # Note: a.b and e.f are both non-decreasing, could be taken for time!
-        d['a.b'] = np.arange(0, 100)
-        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
-        d['e.f'] = np.arange(0, 100) + 1
+        d['a.b'] = np.arange(100)
+        d['c.d'] = np.sqrt(np.arange(100) * 1.2)
+        d['e.f'] = np.arange(100) + 1
         with TemporaryDirectory() as td:
             fname = td.path('test.csv')
             d.save_csv(fname)
@@ -1881,9 +1878,9 @@ class DataLogTest(unittest.TestCase):
         # Test saving CSV with meta data
         d = myokit.DataLog()
         d.set_time_key('a.b')
-        d['a.b'] = np.arange(0, 100)
-        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
-        d['e.f'] = np.arange(0, 100) + 1
+        d['a.b'] = np.arange(100)
+        d['c.d'] = np.sqrt(np.arange(100) * 1.2)
+        d['e.f'] = np.arange(100) + 1
         d.meta['test'] = 'A nice sandwich'
         d.meta['number'] = 4
         d.meta['one:two'] = 5
@@ -2465,7 +2462,7 @@ class DataLogTest(unittest.TestCase):
         i = d.variable_info()
 
         # Check found variables
-        self.assertEqual(set(i.keys()), set(['v', 'w']))
+        self.assertEqual(set(i.keys()), {'v', 'w'})
 
         # Check if data is in a regular grid
         v = i['v']

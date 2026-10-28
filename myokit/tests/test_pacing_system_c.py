@@ -6,10 +6,8 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import unittest
-import numpy as np
 
 import myokit
-
 from myokit.tests.ansic_event_based_pacing import AnsicEventBasedPacing
 from myokit.tests.ansic_time_series_pacing import AnsicTimeSeriesPacing
 
@@ -121,37 +119,6 @@ class TimeSeriesPacingAnsicTest(unittest.TestCase):
     """
     def test_time_series_pacing_ansic(self):
         # Tests if the basics work
-
-        if False:
-            # Graphical test, just for playing with the pacing system
-            m, p, x = myokit.load('example')
-            s = myokit.Simulation(m, p)
-            d = s.run(500).npview()
-            # Get time and voltage
-            t = d.time()
-            v = d['membrane.V']
-            # Plot trace
-            import matplotlib.pyplot as plt
-            plt.figure()
-            plt.plot(t, v, 'x')
-            # Get some points halfway, 1/4 of the way, and 3/4 of the way
-            # between the known points
-            t2 = t[:-1] + 0.25 * (t[1:] - t[:-1])
-            t3 = t[:-1] + 0.5 * (t[1:] - t[:-1])
-            t4 = t[:-1] + 0.75 * (t[1:] - t[:-1])
-            t2 = np.concatenate((t2, t3, t4))
-            del t3, t4
-            # Get the pacing value at the points, measure how long it takes
-            pacing = AnsicFixedFormPacing(list(t), list(v))
-            b = myokit.tools.Benchmarker()
-            v2 = [pacing.pace(x) for x in t2]
-            print(b.time())
-            # Plot the new points
-            plt.plot(t2, v2, '.', color='green')
-            plt.show()
-            # Quite
-            import sys
-            sys.exit(1)
 
         # Test with small lists
         times = [0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 5, 7]

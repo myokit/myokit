@@ -4,10 +4,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from ._exporter import CellMLExporter, CellML1Exporter, CellML2Exporter
 from ._ewriter import CellMLExpressionWriter
-from ._importer import CellMLImporter, CellMLImporterError  # noqa
-
+from ._exporter import CellML1Exporter, CellML2Exporter, CellMLExporter
+from ._importer import CellMLImporter, CellMLImporterError  # noqa: F401
 
 # Namespaces
 NS_BQBIOL = 'http://biomodels.net/biology-qualifiers/'

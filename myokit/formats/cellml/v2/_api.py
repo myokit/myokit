@@ -9,9 +9,7 @@ import re
 import warnings
 
 import myokit
-
 from myokit.formats import is_integer_string, is_real_number_string
-
 
 # Data types
 _cellml_identifier = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
@@ -364,17 +362,17 @@ class Model(AnnotatableElement):
         """
         # Check both are variables, and from this model
         if not isinstance(variable_1, Variable):
-            raise ValueError('Argument variable_1 must be a'
-                             ' cellml.v2.Variable.')
+            raise TypeError(
+                'Argument variable_1 must be a cellml.v2.Variable.')
         if not isinstance(variable_2, Variable):
-            raise ValueError('Argument variable_2 must be a'
-                             ' cellml.v2.Variable.')
+            raise TypeError(
+                'Argument variable_2 must be a cellml.v2.Variable.')
         if variable_1._model is not self:
-            raise ValueError('Argument variable_1 must be a variable from this'
-                             ' model.')
+            raise ValueError(
+                'Argument variable_1 must be a variable from this model.')
         if variable_2._model is not self:
-            raise ValueError('Argument variable_2 must be a variable from this'
-                             ' model.')
+            raise ValueError(
+                'Argument variable_2 must be a variable from this model.')
 
         # Check variables are distinct.
         if variable_1 is variable_2:
@@ -672,8 +670,7 @@ class Model(AnnotatableElement):
                     used.add(u)
 
         # Remove 'None' from the set of used units
-        if None in used:
-            used.remove(None)
+        used.discard(None)
 
         # Add units to models, and store mapping from objects to names
         unit_map = dict(Units._si_units_r)
@@ -1129,7 +1126,7 @@ class Units:
 
         # Check and store Myokit unit
         if not isinstance(myokit_unit, myokit.Unit):
-            raise ValueError(
+            raise TypeError(
                 'The argument `myokit_unit` must be a myokit.Unit object.')
         self._myokit_unit = myokit_unit
 
@@ -1298,7 +1295,7 @@ class Units:
         'metre': myokit.units.m,
         'mole': myokit.units.mol,
         'newton': myokit.units.N,
-        'ohm': myokit.units.R,
+        'ohm': myokit.units.ohm,
         'pascal': myokit.units.Pa,
         'radian': myokit.units.radian,
         'second': myokit.units.s,

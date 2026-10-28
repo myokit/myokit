@@ -25,13 +25,13 @@ jobs:
           cache: 'pip'
           cache-dependency-path: pyproject.toml
 
-      - name: Install flake8
+      - name: Install ruff
         run: |
           python --version
           python -m pip install --upgrade pip
-          python -m pip install flake8
+          python -m pip install ruff
 
       - name: Run style checking
         run: |
-          python -m flake8 --version
-          python -m flake8
+          python -m ruff --version
+          python -m ruff check

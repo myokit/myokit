@@ -133,7 +133,7 @@ class PatchMasterFile:
         self._version = None
 
         # File handle
-        self._handle = f = open(self._filepath, 'rb')
+        self._handle = f = open(self._filepath, 'rb')  # noqa: SIM115
 
         # Check that this is a "bundle" file.
         sig = f.read(8).decode(_ENC)
@@ -172,7 +172,8 @@ class PatchMasterFile:
         self._time = r.time()
 
         # Number of valid bundle items
-        n_items = r.read('i')[0]  # Note: Unsigned would make more sense?
+        # Note: Unsigned would make more sense?
+        n_items = r.read('i')[0]  # noqa
 
         # Skip endianness and "reserved" bits
         f.seek(12, 1)  # 1 = offset from current position
@@ -449,14 +450,12 @@ class TreeNode:
 
         For arguments meanings, see :meth:`_read`.
         """
-        pass
 
     def _read_finalize(self):
         """
         Performs any initialization actions that require children to have
         already been set.
         """
-        pass
 
 
 #
@@ -534,9 +533,9 @@ class Group(TreeNode):
 
     def _read_properties(self, handle, reader):
         # See TreeNode._read_properties
-        mark = reader.read1('i')
+        mark = reader.read1('i')  # noqa
         self._label = reader.str(32)
-        text = reader.str(80)
+        text = reader.str(80)  # noqa
         self._number = reader.read1('i')
 
     def __str__(self):

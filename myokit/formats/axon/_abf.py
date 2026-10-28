@@ -148,7 +148,6 @@ import numpy as np
 import myokit
 import myokit.formats
 
-
 # Encoding for text parts of files
 _ENC = 'latin-1'
 
@@ -571,7 +570,8 @@ class AbfFile(myokit.formats.SweepSource):
             self._mode = h['protocol']['nOperationMode']
 
         if self._mode not in acquisition_modes:  # pragma: no cover
-            raise NotImplementedError(f'Unknown acquisition mode: {mode}')
+            raise NotImplementedError(
+                f'Unknown acquisition mode: {self._mode}')
 
         # Protocol files don't have A/D channels by definition
         if self._is_protocol_file:
@@ -718,7 +718,7 @@ class AbfFile(myokit.formats.SweepSource):
                         t = e['type']
                         if t == EPOCH_STEPPED:
                             use = True
-                        elif t == EPOCH_RAMPED and self._convert_ramps:  # pragma: no cover  # noqa
+                        elif t == EPOCH_RAMPED and self._convert_ramps:  # pragma: no cover  # noqa: E501
                             # Read ramp as step
                             use = True
                             warnings.warn(
@@ -1546,9 +1546,9 @@ def dict_to_string(out, name, d, tab=''):
     out.append(f'{tab}{"-" * m}  {name}  {"-" * m}')
     for n, v in d.items():
         n = str(n)
-        if type(v) == dict:
+        if type(v) is dict:
             dict_to_string(out, n, v, f'{tab}  ')
-        elif type(v) == list:
+        elif type(v) is list:
             list_to_string(out, n, v, tab)
         else:
             out.append(f'{tab}{n}: {v}')
@@ -1560,9 +1560,9 @@ def list_to_string(out, name, d, tab=''):
     """ Used by AbfFile.info(). """
     for index, item in enumerate(d):
         n = f'{name}[{index}]'
-        if type(item) == dict:
+        if type(item) is dict:
             dict_to_string(out, n, item, tab)
-        elif type(item) == list:    # pragma: no cover
+        elif type(item) is list:  # pragma: no cover
             # Cover pragma: Don't have appropriate test file
             list_to_string(out, n, item, tab)
         else:

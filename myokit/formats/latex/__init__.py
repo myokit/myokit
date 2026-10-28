@@ -4,8 +4,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from ._exporter import PdfExporter, PosterExporter
 from ._ewriter import LatexExpressionWriter
+from ._exporter import PdfExporter, PosterExporter
 
 _exporters = {
     'latex-article': PdfExporter,

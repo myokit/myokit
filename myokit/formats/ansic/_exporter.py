@@ -30,7 +30,7 @@ class AnsiCExporter(myokit.formats.TemplatedRunnableExporter):
         return '\n'.join((
             'To compile in gcc, use::',
             '',
-            '    gcc -Wall -lm -lsundials_cvode sim.c -o sim',    # noqa
+            '    gcc -Wall -lm -lsundials_cvode sim.c -o sim',
             '',
             'Example plot script::',
             '',

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Test module
 #
@@ -14,7 +13,6 @@ import unittest
 import warnings
 
 import myokit
-
 
 # The test directory
 DIR_TEST = os.path.abspath(os.path.dirname(__file__))

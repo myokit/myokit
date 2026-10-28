@@ -5,11 +5,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import collections
 import os
 import platform
 import tempfile
-
-from collections import OrderedDict
 
 import myokit
 
@@ -180,10 +179,10 @@ class Simulation(myokit.CModule):
             # means users can call `set_protocol` at a later time to set a
             # protocol.
             protocol = {'pace': None}
-        for label, protocol in protocol.items():
+        for label, proto in protocol.items():
             self._protocols.append(None)
             self._pacing_labels.append(label)
-            self.set_protocol(protocol, label)
+            self.set_protocol(proto, label)
 
         # Generate C Model code, get sensitivity and constants info
         cmodel = myokit.CModel(self._model, self._pacing_labels, sensitivities)
@@ -205,15 +204,15 @@ class Simulation(myokit.CModule):
             self._sensitivities = None
 
         # Ordered dicts mapping Variable objects to float values
-        self._literals = OrderedDict()
-        self._parameters = OrderedDict()
+        self._literals = collections.OrderedDict()
+        self._parameters = collections.OrderedDict()
         for var, eq in cmodel.literals.items():
             self._literals[var] = eq.rhs.eval()
         for var, eq in cmodel.parameters.items():
             self._parameters[var] = eq.rhs.eval()
 
         # Compile or load simulation
-        if type(path) == tuple:
+        if type(path) is tuple:
             path, self._sim = path
         else:
             self._create_simulation(cmodel.code, path)

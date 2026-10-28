@@ -4,10 +4,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from ._abf import AbfFile, Sweep, Channel  # noqa
-from ._atf import AtfFile, load_atf, save_atf  # noqa
+from ._abf import AbfFile, Channel, Sweep  # noqa: F401
+from ._atf import AtfFile, load_atf, save_atf  # noqa: F401
 from ._importer import AbfImporter
-
 
 # Importers
 _importers = {

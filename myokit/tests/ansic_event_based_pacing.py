@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Class for testing the event-based pacing system.
 #
@@ -8,9 +7,7 @@
 import os
 
 import myokit
-
 from myokit.tests import DIR_TEST
-
 
 # Location of C template
 SOURCE_FILE = 'ansic_event_based_pacing.c'

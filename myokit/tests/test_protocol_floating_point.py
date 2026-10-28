@@ -29,7 +29,6 @@
 import unittest
 
 import myokit
-
 from myokit.tests.ansic_event_based_pacing import AnsicEventBasedPacing
 
 
