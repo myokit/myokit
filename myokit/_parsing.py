@@ -4,13 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import collections
 import os
 import re
 
-from collections import OrderedDict
-
 import myokit
-
 from myokit import ParseError, ProtocolParseError
 
 
@@ -287,7 +285,7 @@ def expect(token, expected):
     """
     code, text, line, char = token
     # Expected token type can be integer or collection
-    if type(expected) == int:
+    if type(expected) is int:
         expected = [expected]
     if code in expected:
         return token
@@ -307,7 +305,7 @@ def unexpected_token(token, expected):
         got += ' "' + text + '"'
 
     # Parse expected token(s) or string
-    if type(expected) == int:
+    if type(expected) is int:
         expected = [expected]
     if not isinstance(expected, str):
         if len(expected) > 2:
@@ -343,7 +341,7 @@ def reg_token(info, token, obj):
 class ParseInfo:
     def __init__(self):
         self.model = None
-        self.initial_values = OrderedDict()
+        self.initial_values = collections.OrderedDict()
         self.initial_value_tokens = {}
         self.alias_map = {}
         self.user_functions = {}
@@ -635,7 +633,7 @@ def parse_variable(stream, info, parent):
             raise ParseError(
                 'Illegal lhs', line, char, 'Only variable names or the dot()'
                 ' function may appear on the left-hand side of an equation.')
-        if type(parent) != myokit.Component:  # pragma: no cover
+        if type(parent) is not myokit.Component:  # pragma: no cover
             # Cover pragma: Already caught by tokenizer
             raise ParseError(
                 'Illegal variable declaration', line, char,
@@ -672,7 +670,7 @@ def parse_variable(stream, info, parent):
 
     # Set initial value for states
     if is_state:
-        if not var.qname() in info.initial_values:
+        if var.qname() not in info.initial_values:
             raise ParseError(
                 'Missing initial value', line, char,
                 'No initial value was found for "' + var.qname() + '"')
@@ -951,7 +949,8 @@ def parse_protocol_from_stream(stream):
 
     # Handling "next" accuracy: after summing, times set using "next" will be
     # rounded to 9 digits precision.
-    round_next = lambda x: round(x, 9)
+    def round_next(x):
+        return round(x, 9)
 
     # Create protocol
     protocol = myokit.Protocol()
@@ -1048,9 +1047,7 @@ def parse_script_from_stream(stream, raw_stream):
             'Invalid segment header', token[2], token[3],
             'Expecting [[script]]')
     token = expect(stream.peek(), EOL)
-    raw = []
-    for line in raw_stream:
-        raw.append(line)
+    raw = list(raw_stream)
     expect(next(stream), EOL)
     return ''.join(raw)
 
@@ -1078,7 +1075,7 @@ def strip_expression_units(model_text, skip_literals=True):
     toks = []
     for var in m.variables(deep=True):
         rhs = var.rhs()
-        if skip_literals and type(rhs) == myokit.Number:
+        if skip_literals and type(rhs) is myokit.Number:
             continue
         for e in rhs.walk(allowed_types=myokit.Number):
             u = e.unit()
@@ -1128,64 +1125,67 @@ token_str = {}
 
 def add_token(name, nice):
     """
-    Defines a token in the global namespace of this module
+    Reserves a code for a token.
 
     Arguments:
+
     name
-        The variable name
+        The variable name.
     nice
-        A human-readable version of the variable name
+        A human-readable version of the variable name.
+
     """
     code = 10 + len(token_map)
-    globals()[name] = code
     token_map[code] = name
     token_str[code] = nice
+    return code
 
 
-add_token('EOL', 'End of line')
-add_token('EOF', 'End of file')
-add_token('INDENT', 'Indentation increase')
-add_token('DEDENT', 'Indentation decrease')
-add_token('WHITESPACE', 'Whitespace between tokens')
-add_token('NAME', 'Name (function, variable etc)')
-add_token('INTEGER', 'Integer')
-add_token('FLOAT', 'Float')
-add_token('TEXT', 'Text')
-add_token('FUNC_NAME', 'Function name')
-add_token('META_NAME', 'Meta property name')
-add_token('PAREN_OPEN', 'Left parentheses "("')
-add_token('PAREN_CLOSE', 'Right parentheses ")"')
-add_token('BRACKET_OPEN', 'Left bracket "["')
-add_token('BRACKET_CLOSE', 'Right bracket "]"')
-add_token('SEGMENT_HEADER', 'Segment header "[[segment_name]]"')
-add_token('EQUAL', 'Assignment "="')
-add_token('COLON', 'Colon ":"')
-add_token('DOT', 'Dot "."')
-add_token('COMMA', 'Comma ","')
-add_token('PLUS', 'Plus "+"')
-add_token('MINUS', 'Minus "-"')
-add_token('STAR', 'Star "*"')
-add_token('SLASH', 'Slash "/"')
-add_token('POWER', 'Power "^"')
-add_token('REMAINDER', 'Remainder "%"')
-add_token('QUOTIENT', 'Quotient "//"')
-add_token('EQEQUAL', 'Equality "=="')
-add_token('NOTEQUAL', 'Inequality "!="')
-add_token('MORE', 'More ">"')
-add_token('LESS', 'Less "<"')
-add_token('MOREEQUAL', 'More than or equal ">="')
-add_token('LESSEQUAL', 'Less than or equal "<="')
-add_token('AND', 'and')
-add_token('OR', 'or')
-add_token('NOT', 'not')
-add_token('IN', 'in')           # Unit
-add_token('USE', 'use')         # Alias
-add_token('AS', 'as')           # Alias
-add_token('BIND', 'bind')       # External value
-add_token('LABEL', 'label')     # Special value
-add_token('UNIT', 'unit')       # Used to given Units a useful token.
-add_token('INF', 'infinity')
-add_token('NAN', 'nan')
+EOL = add_token('EOL', 'End of line')
+EOF = add_token('EOF', 'End of file')
+INDENT = add_token('INDENT', 'Indentation increase')
+DEDENT = add_token('DEDENT', 'Indentation decrease')
+WHITESPACE = add_token('WHITESPACE', 'Whitespace between tokens')
+NAME = add_token('NAME', 'Name (function, variable etc)')
+INTEGER = add_token('INTEGER', 'Integer')
+FLOAT = add_token('FLOAT', 'Float')
+TEXT = add_token('TEXT', 'Text')
+FUNC_NAME = add_token('FUNC_NAME', 'Function name')
+META_NAME = add_token('META_NAME', 'Meta property name')
+PAREN_OPEN = add_token('PAREN_OPEN', 'Left parentheses "("')
+PAREN_CLOSE = add_token('PAREN_CLOSE', 'Right parentheses ")"')
+BRACKET_OPEN = add_token('BRACKET_OPEN', 'Left bracket "["')
+BRACKET_CLOSE = add_token('BRACKET_CLOSE', 'Right bracket "]"')
+SEGMENT_HEADER = add_token(
+    'SEGMENT_HEADER', 'Segment header "[[segment_name]]"')
+EQUAL = add_token('EQUAL', 'Assignment "="')
+COLON = add_token('COLON', 'Colon ":"')
+DOT = add_token('DOT', 'Dot "."')
+COMMA = add_token('COMMA', 'Comma ","')
+PLUS = add_token('PLUS', 'Plus "+"')
+MINUS = add_token('MINUS', 'Minus "-"')
+STAR = add_token('STAR', 'Star "*"')
+SLASH = add_token('SLASH', 'Slash "/"')
+POWER = add_token('POWER', 'Power "^"')
+REMAINDER = add_token('REMAINDER', 'Remainder "%"')
+QUOTIENT = add_token('QUOTIENT', 'Quotient "//"')
+EQEQUAL = add_token('EQEQUAL', 'Equality "=="')
+NOTEQUAL = add_token('NOTEQUAL', 'Inequality "!="')
+MORE = add_token('MORE', 'More ">"')
+LESS = add_token('LESS', 'Less "<"')
+MOREEQUAL = add_token('MOREEQUAL', 'More than or equal ">="')
+LESSEQUAL = add_token('LESSEQUAL', 'Less than or equal "<="')
+AND = add_token('AND', 'and')
+OR = add_token('OR', 'or')
+NOT = add_token('NOT', 'not')
+IN = add_token('IN', 'in')           # Unit
+USE = add_token('USE', 'use')         # Alias
+AS = add_token('AS', 'as')           # Alias
+BIND = add_token('BIND', 'bind')       # External value
+LABEL = add_token('LABEL', 'label')     # Special value
+UNIT = add_token('UNIT', 'unit')       # Used to given Units a useful token.
+INF = add_token('INF', 'infinity')
+NAN = add_token('NAN', 'nan')
 
 # Reserved keywords
 KEYWORD_MAP = {
@@ -1968,7 +1968,7 @@ def format_parse_error(ex, source=None):
         if isinstance(source, str) and os.path.isfile(source):
             # Re-open file, find line
             with open(source, 'r') as f:
-                for i in range(0, ex.line):
+                for i in range(ex.line):
                     line = next(f)
             line = line.rstrip()
         else:
@@ -2100,7 +2100,7 @@ class FunctionParser(NudParser):
             func = functions[name[1]]
             if func._nargs is not None:
                 # Allow number-of-arguments check to be bypassed
-                if not len(ops) in func._nargs:
+                if len(ops) not in func._nargs:
                     raise ParseError(
                         'Syntax error', name[2], name[3],
                         'Wrong number of arguments for function '
