@@ -6,11 +6,12 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import pathlib
+import tempfile
 import unittest
 
 import myokit
 import myokit.formats
-from myokit.tests import TemporaryDirectory
 
 
 class FormatsTest(unittest.TestCase):
@@ -106,17 +107,17 @@ class ExporterTest(unittest.TestCase):
 
         m, p, x = myokit.load('example')
         e = myokit.formats.exporter('ansic')
-        with TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d:
 
             # Create in new dir
-            path = d.path('new-dir')
+            path = pathlib.Path(d) / 'new-dir'
             e.runnable(path, m, p)
 
             # Create again, in same dir (should be ok)
             e.runnable(path, m, p)
 
             # Create at location of file: not allowed!
-            path = d.path('file')
+            path = pathlib.Path(d) / 'file'
             with open(path, 'w') as f:
                 f.write('Hello')
             self.assertRaisesRegex(
@@ -131,18 +132,18 @@ class ExporterTest(unittest.TestCase):
         m, p, x = myokit.load('example')
 
         # Create empty output directory as subdirectory of DIR_OUT
-        with TemporaryDirectory() as d:
-            path = d.path()
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d)
 
             # Simple export
-            dpath = os.path.join(path, 'runnable1')
+            dpath = path / 'runnable1'
             ret = e.runnable(dpath, m)
             self.assertIsNone(ret)
             self.assertTrue(os.path.isdir(dpath))
             self.assertTrue(len(os.listdir(dpath)) > 0)
 
             # Write to complex path
-            dpath = os.path.join(path, 'runnable2', 'nest', 'test')
+            dpath = path / 'runnable2' / 'nest' / 'test'
             ret = e.runnable(dpath, m, p)
             self.assertIsNone(ret)
             self.assertTrue(os.path.isdir(dpath))
@@ -155,15 +156,15 @@ class ExporterTest(unittest.TestCase):
             self.assertTrue(len(os.listdir(dpath)) > 0)
 
             # Path pointing to file
-            dpath = os.path.join(path, 'file')
+            dpath = path / 'file'
             with open(dpath, 'w') as f:
                 f.write('contents\n')
             self.assertRaisesRegex(
                 myokit.ExportError, 'file exists', e.runnable, dpath, m, p)
 
             # Directory exists where we're trying to write a file
-            dpath = os.path.join(path, 'runnable3')
-            fname = os.path.join(dpath, 'sim.c')
+            dpath = path / 'runnable3'
+            fname = dpath / 'sim.c'
             os.makedirs(fname)
             self.assertRaisesRegex(
                 myokit.ExportError, 'Directory exists',
@@ -175,11 +176,11 @@ class ExporterTest(unittest.TestCase):
 
             # 1. Normal operation
             e._dict = embedded
-            dpath = os.path.join(path, 'runnable4')
+            dpath = path / 'runnable4'
             ret = e.runnable(dpath, m, p)
             self.assertIsNone(ret)
-            self.assertTrue(os.path.isdir(dpath))
-            self.assertTrue(len(os.listdir(dpath)) > 0)
+            self.assertTrue(dpath.is_dir())
+            self.assertTrue(any(dpath.iterdir()))
 
             # 2. Try to create directory where file exists
             def embedded():

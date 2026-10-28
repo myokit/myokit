@@ -6,14 +6,16 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import pathlib
 import re
+import tempfile
 import unittest
 
 import myokit
 import myokit.formats as formats
 import myokit.formats.cellml as cellml
 from myokit.formats.cellml import CellMLImporterError
-from myokit.tests import DIR_FORMATS, TemporaryDirectory, WarningCollector
+from myokit.tests import DIR_FORMATS, WarningCollector
 
 # CellML dir
 DIR = os.path.join(DIR_FORMATS, 'cellml')
@@ -41,8 +43,8 @@ class CellMLExporterTest(unittest.TestCase):
         org_code = m1.code()
 
         # 1. Export without a protocol
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'model.cellml'
             with WarningCollector() as w:
                 e.model(path, m1)
             m2 = i.model(path)
@@ -51,8 +53,8 @@ class CellMLExporterTest(unittest.TestCase):
 
         # 2. Export with protocol, but without variable bound to pacing
         m1.get('engine.pace').set_binding(None)
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'model.cellml'
             with WarningCollector() as w:
                 e.model(path, m1, p1)
             m2 = i.model(path)
@@ -61,8 +63,8 @@ class CellMLExporterTest(unittest.TestCase):
 
         # 3. Export with protocol and variable bound to pacing
         m1.get('engine.pace').set_binding('pace')
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'model.cellml'
             with WarningCollector() as w:
                 e.model(path, m1, p1)
             m2 = i.model(path)
@@ -84,29 +86,29 @@ class CellMLExporterTest(unittest.TestCase):
         t.set_rhs(0)
 
         # Default version
-        with TemporaryDirectory() as d:
-            path = d.path('test.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.cellml'
             e.model(path, model)
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.1#', f.read())
 
         # Write to 1.0 model
-        with TemporaryDirectory() as d:
-            path = d.path('test.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.cellml'
             e.model(path, model, version='1.0')
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.0#', f.read())
 
         # Write to 1.1 model
-        with TemporaryDirectory() as d:
-            path = d.path('test.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.cellml'
             e.model(path, model, version='1.1')
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.1#', f.read())
 
         # Write to 2.0 model
-        with TemporaryDirectory() as d:
-            path = d.path('test.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.cellml'
             e.model(path, model, version='2.0')
             with open(path, 'r') as f:
                 self.assertIn('cellml/2.0#', f.read())
@@ -121,16 +123,16 @@ class CellMLExporterTest(unittest.TestCase):
 
         # Write to 1.0 model
         e = formats.exporter('cellml1')
-        with TemporaryDirectory() as d:
-            path = d.path('test.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.cellml'
             e.model(path, model)
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.1#', f.read())
 
         # Write to 2.0 model
         e = formats.exporter('cellml2')
-        with TemporaryDirectory() as d:
-            path = d.path('test.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.cellml'
             e.model(path, model)
             with open(path, 'r') as f:
                 self.assertIn('cellml/2.0#', f.read())
@@ -520,8 +522,8 @@ class CellMLImporterTest(unittest.TestCase):
              '</model>')
 
         # Write to disk and import
-        with TemporaryDirectory() as d:
-            path = d.path('test.celllml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.celllml'
             with open(path, 'w') as f:
                 f.write(x)
 
@@ -558,8 +560,8 @@ class CellMLImporterTest(unittest.TestCase):
              '</model>')
 
         # Write to disk and import
-        with TemporaryDirectory() as d:
-            path = d.path('test.celllml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.celllml'
             with open(path, 'w') as f:
                 f.write(x)
 

@@ -4,11 +4,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-# The TemporaryDirectory class was adapted from Pints
-# See: https://github.com/pints-team/pints
-#
 import os
-import tempfile
 import unittest
 import warnings
 
@@ -37,63 +33,6 @@ if OpenCL_FOUND:
         OpenCL_DOUBLE_PRECISION_CONNECTIONS = info.has_extension(
             'cl_khr_int64_base_atomics')
     del info
-
-
-class TemporaryDirectory:
-    """
-    ContextManager that provides a temporary directory to create temporary
-    files in. Deletes the directory and its contents when the context is
-    exited.
-    """
-    def __init__(self):
-        super().__init__()
-        self._dir = None
-
-    def __enter__(self):
-        self._dir = os.path.realpath(tempfile.mkdtemp())
-        return self
-
-    def path(self, path=None):
-        """
-        Returns an absolute path to a file or directory name inside this
-        temporary directory, that can be used to write to.
-
-        Example::
-
-            with pints.io.TemporaryDirectory() as d:
-                filename = d.path('test.txt')
-                with open(filename, 'w') as f:
-                    f.write('Hello')
-                with open(filename, 'r') as f:
-                    print(f.read())
-        """
-        if self._dir is None:
-            raise RuntimeError(
-                'TemporaryDirectory.path() can only be called from inside the'
-                ' context.')
-
-        if path is None:
-            return self._dir
-
-        path = os.path.realpath(os.path.join(self._dir, path))
-        if path[0:len(self._dir)] != self._dir:
-            raise ValueError(
-                'Relative path specified to location outside of temporary'
-                ' directory: ' + path)
-
-        return path
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        try:
-            myokit.tools.rmtree(self._dir)
-        finally:
-            self._dir = None
-
-    def __str__(self):
-        if self._dir is None:
-            return '<TemporaryDirectory, outside of context>'
-        else:
-            return self._dir
 
 
 class TestReporter(myokit.ProgressReporter):

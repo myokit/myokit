@@ -6,6 +6,8 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import pathlib
+import tempfile
 import unittest
 
 import numpy as np
@@ -15,7 +17,6 @@ from myokit.tests import (
     DIR_DATA,
     DIR_IO,
     CancellingReporter,
-    TemporaryDirectory,
     TestReporter,
     WarningCollector,
 )
@@ -82,8 +83,8 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertTrue(np.all(y[:, 2] == log['2.y']))
 
         # Test reading and writing
-        with TemporaryDirectory() as d:
-            fname = d.path('block1d.zip')
+        with tempfile.TemporaryDirectory() as d:
+            fname = pathlib.Path(d) / 'block1d.zip'
             b.save(fname)
             c = myokit.DataBlock1d.load(fname)
             # Test block contents
@@ -951,8 +952,8 @@ class DataBlock2dTest(unittest.TestCase):
                 self.assertTrue(np.all(y[:, yy, xx] == log['y', xx, yy]))
 
         # Test reading and writing
-        with TemporaryDirectory() as td:
-            fname = td.path('block2d.zip')
+        with tempfile.TemporaryDirectory() as d:
+            fname = pathlib.Path(d) / 'block2d.zip'
             b.save(fname)
             c = myokit.DataBlock2d.load(fname)
 
@@ -1396,8 +1397,8 @@ class DataBlock2dTest(unittest.TestCase):
         ])
         b.set2d('x', x)
 
-        with TemporaryDirectory() as d:
-            path = d.path('test.csv')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.csv'
             b.save_frame_csv(path, 'x', 0)
             with open(path, 'r') as f:
                 lines = [str(x) for x in f]
@@ -1430,8 +1431,8 @@ class DataBlock2dTest(unittest.TestCase):
         ])
         b.set2d('x', x)
 
-        with TemporaryDirectory() as d:
-            path = d.path('test.csv')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.csv'
             b.save_frame_grid(path, 'x', 0)
             with open(path, 'r') as f:
                 lines = [str(x) for x in f]

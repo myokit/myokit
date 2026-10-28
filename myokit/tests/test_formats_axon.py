@@ -6,6 +6,8 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import pathlib
+import tempfile
 import unittest
 
 import numpy as np
@@ -13,7 +15,7 @@ import numpy as np
 import myokit
 import myokit.formats
 import myokit.formats.axon as axon
-from myokit.tests import DIR_FORMATS, TemporaryDirectory, WarningCollector
+from myokit.tests import DIR_FORMATS, WarningCollector
 
 V1_INFO = '''
 Axon Binary File: abf-v1.abf
@@ -642,7 +644,7 @@ class AtfTest(unittest.TestCase):
     def test_write_read(self):
         # Test writing and reading an ATF file.
 
-        with TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d:
             # Create data log
             log = myokit.DataLog()
             log.set_time_key('time')
@@ -651,7 +653,7 @@ class AtfTest(unittest.TestCase):
             log['cost'] = np.cos(log['time'])
 
             # Write atf file
-            path = d.path('test.atf')
+            path = pathlib.Path(d) / 'test.atf'
             axon.save_atf(log, path)
 
             # Read atf file
@@ -799,7 +801,7 @@ class AtfTest(unittest.TestCase):
     def test_accessors(self):
         # Test various accessor methods of :class:`AtfFile`.
 
-        with TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d:
             # Create data log
             log = myokit.DataLog()
             log.set_time_key('time')
@@ -808,14 +810,14 @@ class AtfTest(unittest.TestCase):
             log['cost'] = np.cos(log['time'])
 
             # Write atf file
-            path = d.path('test.atf')
+            path = pathlib.Path(d) / 'test.atf'
             axon.save_atf(log, path)
 
             # Read atf file
             atf = myokit.formats.axon.AtfFile(path)
 
             # Test filename() and path()
-            self.assertEqual(atf.path(), path)
+            self.assertEqual(atf.path(), str(path))
             self.assertEqual(atf.filename(), 'test.atf')
 
             # Test iter and getitem

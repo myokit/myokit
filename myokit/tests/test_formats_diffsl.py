@@ -7,7 +7,9 @@
 #
 import itertools
 import math
+import pathlib
 import re
+import tempfile
 import unittest
 
 import myokit
@@ -50,7 +52,7 @@ from myokit import (
     Sqrt,
     Tan,
 )
-from myokit.tests import TemporaryDirectory, WarningCollector
+from myokit.tests import WarningCollector
 
 # Model that requires unit conversion
 units_model = """
@@ -212,8 +214,8 @@ class DiffSLExporterTest(unittest.TestCase):
         # Tests exporting a model
 
         model = myokit.load_model("example")
-        with TemporaryDirectory() as d:
-            path = d.path("diffsl.model")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'diffsl.model'
 
             e = myokit.formats.diffsl.DiffSLExporter()
 
@@ -245,8 +247,8 @@ class DiffSLExporterTest(unittest.TestCase):
         p.schedule(level=1, start=100, duration=5)  # single dose at t=100
         p.schedule(level=1, start=200, duration=5)  # single dose at t=200
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(path, model, protocol=p, final_time=300)
 
             with open(path, "r") as f:
@@ -283,8 +285,8 @@ class DiffSLExporterTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(level=1, start=100, duration=5)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(path, model, protocol=p, final_time=200)
 
             with open(path, "r") as f:
@@ -303,16 +305,16 @@ class DiffSLExporterTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(level=1, start=0, duration=5, period=100)  # indefinite
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             with self.assertRaisesRegex(myokit.ExportError, "final_time"):
                 e.model(path, model, protocol=p)
 
         # Also true for non-periodic protocols
         p2 = myokit.Protocol()
         p2.schedule(level=1, start=10, duration=5)
-        with TemporaryDirectory() as d:
-            path = d.path("protocol2.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol2.diffsl'
             with self.assertRaisesRegex(myokit.ExportError, "final_time"):
                 e.model(path, model, protocol=p2)
 
@@ -326,8 +328,8 @@ class DiffSLExporterTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(level=1, start=0, duration=5, period=100)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(path, model, protocol=p, final_time=250)
 
             with open(path, "r") as f:
@@ -355,8 +357,8 @@ class DiffSLExporterTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(level=1, start=10, duration=5, period=100, multiplier=2)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(path, model, protocol=p, final_time=500)
 
             with open(path, "r") as f:
@@ -380,8 +382,8 @@ class DiffSLExporterTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(level=1, start=0, duration=5, period=100)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
 
             with self.assertRaisesRegex(myokit.ExportError, "final_time"):
                 e.model(path, model, protocol=p, final_time=-1)
@@ -402,8 +404,8 @@ class DiffSLExporterTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(level=1, start=500, duration=5, period=100)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(path, model, protocol=p, final_time=100)
 
             with open(path, "r") as f:
@@ -430,8 +432,8 @@ class DiffSLExporterTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(level=1, start=90, duration=20)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(path, model, protocol=p, final_time=100)
 
             with open(path, "r") as f:
@@ -456,8 +458,8 @@ class DiffSLExporterTest(unittest.TestCase):
         # Periodic maintenance dose, start=24, period=24, indefinite
         p.schedule(level=1, start=24, duration=1, period=24)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(path, model, protocol=p, final_time=72)
 
             with open(path, "r") as f:
@@ -488,8 +490,8 @@ class DiffSLExporterTest(unittest.TestCase):
         dose = myokit.Protocol()
         dose.schedule(level=4, start=20, duration=3)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(
                 path,
                 model,
@@ -528,8 +530,8 @@ class DiffSLExporterTest(unittest.TestCase):
         dose = myokit.Protocol()
         dose.schedule(level=2, start=10, duration=4)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(
                 path,
                 model,
@@ -566,8 +568,8 @@ class DiffSLExporterTest(unittest.TestCase):
         dose = myokit.Protocol()
         dose.schedule(level=2, start=0, duration=20)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(
                 path,
                 model,
@@ -603,8 +605,8 @@ class DiffSLExporterTest(unittest.TestCase):
         unknown = myokit.Protocol()
         unknown.schedule(level=5, start=15, duration=2)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(
                 path,
                 model,
@@ -626,8 +628,8 @@ class DiffSLExporterTest(unittest.TestCase):
             ["1.0", "t - 10.0", "t - 12.0"],
         )
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(
                 path,
                 model,
@@ -647,8 +649,8 @@ class DiffSLExporterTest(unittest.TestCase):
         e = myokit.formats.diffsl.DiffSLExporter()
         p = myokit.Protocol()
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
 
             # protocol is not a Protocol or dict
             with self.assertRaisesRegex(
@@ -680,8 +682,8 @@ class DiffSLExporterTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(level=1, start=10, duration=2)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             with self.assertRaisesRegex(
                 myokit.ExportError,
                 "cannot be both an input and be driven by protocol binding",
@@ -715,8 +717,8 @@ dot(y) = engine.sin - y
         p = myokit.Protocol()
         p.schedule(level=2, start=0, duration=10)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(path, model, protocol={"sin": p}, final_time=20)
 
             with open(path, "r") as f:
@@ -749,8 +751,8 @@ dot(y) = engine.N - y
         p = myokit.Protocol()
         p.schedule(level=2, start=0, duration=10)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(path, model, protocol={"N": p}, final_time=20)
 
             with open(path, "r") as f:
@@ -787,8 +789,8 @@ dot(y) = engine.a + engine.a_ - y
         p2 = myokit.Protocol()
         p2.schedule(level=2, start=5, duration=10)
 
-        with TemporaryDirectory() as d:
-            path = d.path("protocol.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'protocol.diffsl'
             e.model(
                 path,
                 model,
@@ -820,8 +822,8 @@ time = 0
 dot(y) = -y * engine.time
 """)
         e = myokit.formats.diffsl.DiffSLExporter()
-        with TemporaryDirectory() as d:
-            path = d.path("diffsl.model")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'diffsl.model'
             e.model(path, m_td)
             with open(path) as f:
                 content = f.read()
@@ -843,8 +845,8 @@ dot(x) = -x
 k = 6
 """)
         e = myokit.formats.diffsl.DiffSLExporter()
-        with TemporaryDirectory() as d:
-            path = d.path("diffsl.model")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'diffsl.model'
             e.model(path, model)
             with open(path) as f:
                 content = f.read()
@@ -856,8 +858,8 @@ k = 6
         # Export model
         m = myokit.parse_model(units_model)
         e = myokit.formats.diffsl.DiffSLExporter()
-        with TemporaryDirectory() as d:
-            path = d.path("diffsl.model")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'diffsl.model'
             e.model(path, m)
             with open(path, "r") as f:
                 observed = f.read().strip().splitlines()
@@ -873,16 +875,16 @@ k = 6
         # Test warnings are raised if conversion fails
         m.get("mb.V").set_rhs("hh.I1 + mm.I2")
         m.get("mb").remove_variable(m.get("mb.C"))
-        with TemporaryDirectory() as d:
-            path = d.path("diffsl.model")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'diffsl.model'
             with WarningCollector() as c:
                 e.model(path, m)
             self.assertIn("Unable to convert hh.I1", c.text())
             self.assertIn("Unable to convert mm.I2", c.text())
 
         m.get("engine.time").set_unit(myokit.units.cm)
-        with TemporaryDirectory() as d:
-            path = d.path("diffsl.model")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'diffsl.model'
             with WarningCollector() as c:
                 e.model(path, m)
             self.assertIn("Unable to convert engine.time", c.text())
@@ -924,8 +926,8 @@ k = 6
 
         # Export should not crash
         e = myokit.formats.diffsl.DiffSLExporter()
-        with TemporaryDirectory() as d:
-            path = d.path("pk_model.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'pk_model.diffsl'
             e.model(path, pk_model)
 
             # Verify the file was created
@@ -945,9 +947,9 @@ k = 6
         model = myokit.load_model("example")
 
         e = myokit.formats.diffsl.DiffSLExporter()
-        with TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d:
             # Test with custom inputs
-            path = d.path("test_inputs.diffsl")
+            path = pathlib.Path(d) / 'test_inputs.diffsl'
             inputs = [model.get("membrane.C")]
             e.model(path, model, inputs=inputs)
             with open(path, "r") as f:
@@ -957,7 +959,7 @@ k = 6
             self.assertNotIn("membraneC {", content)
 
             # Test with custom outputs
-            path = d.path("test_outputs.diffsl")
+            path = pathlib.Path(d) / 'test_outputs.diffsl'
             outputs = [model.get("membrane.V"), model.get("ina.m")]
             e.model(path, model, outputs=outputs)
             with open(path, "r") as f:
@@ -979,7 +981,7 @@ k = 6
             self.assertIn("inaM", out_section[1])
 
             # Test with both custom inputs and outputs
-            path = d.path("test_both.diffsl")
+            path = pathlib.Path(d) / 'test_both.diffsl'
             e.model(path, model, inputs=inputs, outputs=outputs)
             with open(path, "r") as f:
                 content = f.read()
@@ -996,7 +998,7 @@ k = 6
             )
 
             # Test with engine.pace as an input
-            path = d.path("test_pace_input.diffsl")
+            path = pathlib.Path(d) / 'test_pace_input.diffsl'
             with self.assertRaisesRegex(
                 myokit.ExportError, "engine.pace must be a constant"
             ):
@@ -1009,8 +1011,8 @@ k = 6
         model = myokit.load_model("example")
 
         e = myokit.formats.diffsl.DiffSLExporter()
-        with TemporaryDirectory() as d:
-            path = d.path("test.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.diffsl'
 
             # Test 1: State variable cannot be input
             with self.assertRaisesRegex(
@@ -1084,8 +1086,8 @@ k = 6
         model = myokit.load_model("example")
 
         e = myokit.formats.diffsl.DiffSLExporter()
-        with TemporaryDirectory() as d:
-            path = d.path("test.diffsl")
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.diffsl'
 
             # Test 1: Calling before model() raises error
             with self.assertRaisesRegex(

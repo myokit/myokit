@@ -5,12 +5,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import pathlib
 import re
+import tempfile
 import unittest
 
 import myokit
 import myokit.formats.cellml.v2 as cellml
-from myokit.tests import TemporaryDirectory, WarningCollector
+from myokit.tests import WarningCollector
 
 
 class TestCellMLWriter(unittest.TestCase):
@@ -320,8 +322,8 @@ class TestCellMLWriter(unittest.TestCase):
         # Tests write_file
 
         m1 = cellml.Model('ernie')
-        with TemporaryDirectory() as d:
-            path = d.path('test.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.cellml'
             cellml.write_file(path, m1)
             m2 = cellml.parse_file(path)
 
