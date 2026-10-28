@@ -98,7 +98,7 @@ class HHModel:
         # Check input
         #
         if not isinstance(model, myokit.Model):
-            raise ValueError('First argument must be a myokit.Model.')
+            raise TypeError('First argument must be a myokit.Model.')
 
         # Check membrane potential variable is known, and is a qname
         if vm is None:
@@ -306,7 +306,7 @@ class HHModel:
             f[i] = '    ' + f[i]
         f = '\n'.join(f)
         local = {}
-        exec(f, {'numpy': np}, local)
+        exec(f, {'numpy': np}, local)  # noqa: S102
         self._function = local['_f']
 
         #
@@ -330,7 +330,7 @@ class HHModel:
             g[i] = '    ' + g[i]
         g = '\n'.join(g)
         local = {}
-        exec(g, {'numpy': np}, local)
+        exec(g, {'numpy': np}, local)  # noqa: S102
         self._steady_state_function = local['_g']
 
     def current(self):
@@ -577,14 +577,14 @@ class AnalyticalSimulation:
 
         # Check model
         if not isinstance(model, HHModel):
-            raise ValueError('First parameter must be a `HHModel`.')
+            raise TypeError('First parameter must be a `HHModel`.')
         self._model = model
 
         # Check protocol
         if protocol is None:
             self._protocol = None
         elif not isinstance(protocol, myokit.Protocol):
-            raise ValueError('Protocol must be a myokit.Protocol object')
+            raise TypeError('Protocol must be a myokit.Protocol object')
         else:
             self._protocol = protocol.clone()
 
@@ -947,7 +947,7 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
     """
     # Clone the model before editing
     if not isinstance(model, myokit.Model):
-        raise ValueError('Given `model` must be a myokit.Model.')
+        raise TypeError('Given `model` must be a myokit.Model.')
     model = model.clone()
 
     # Check membrane potential variable is known.
@@ -1148,7 +1148,7 @@ def get_inf_and_tau(x, v=None):
     xinf, xname = numer
     if not (isinstance(xinf, myokit.Name) and isinstance(xname, myokit.Name)):
         return None
-    if not xname == myokit.Name(x):
+    if xname != myokit.Name(x):
         return None
 
     # Check that inf and tau are not states
@@ -1241,7 +1241,7 @@ def get_rl_expression(x, dt, v=None):
     """
     # Test dt is an expression
     if not isinstance(dt, myokit.Expression):
-        raise ValueError('Argument `dt` must be a myokit.Expression.')
+        raise TypeError('Argument `dt` must be a myokit.Expression.')
 
     # Get x_inf and tau_x, if possible
     res = get_inf_and_tau(x, v)

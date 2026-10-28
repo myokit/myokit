@@ -5,15 +5,13 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import collections
 import os
 import platform
-
-from collections import OrderedDict
 
 import numpy as np
 
 import myokit
-
 
 # Location of C and OpenCL sources
 SOURCE_FILE = 'openclsim.c'
@@ -261,7 +259,7 @@ class SimulationOpenCL(myokit.CModule):
             self.set_paced_cells()
 
         # Scalar fields
-        self._fields = OrderedDict()
+        self._fields = collections.OrderedDict()
 
         # Set default time step
         self.set_step_size()
@@ -513,13 +511,13 @@ class SimulationOpenCL(myokit.CModule):
                 watch_var = self._model.get(watch_var)
             except KeyError:
                 raise myokit.FindNanError(
-                    'Variable <' + str(watch_var) + '> not found.')
+                    f'Variable <{watch_var}> not found.')
             if not watch_var.is_state():
                 raise myokit.FindNanError(
                     'The watched variable must be a state.')
             try:
                 lo, hi = safe_range
-            except Exception:
+            except (TypeError, ValueError):
                 raise myokit.FindNanError(
                     'A safe range must be specified for the watched variable'
                     ' as a tuple (lower, upper).')
@@ -746,7 +744,7 @@ class SimulationOpenCL(myokit.CModule):
                 'Y-coordinate specified for 1-dimensional simulation.')
 
         # Pacing rectangle
-        if type(self._paced_cells) == tuple:
+        if type(self._paced_cells) is tuple:
             nx, ny, xmin, ymin = self._paced_cells
             return (x >= xmin and x < xmin + nx and
                     y >= ymin and y < ymin + ny)
@@ -1046,7 +1044,7 @@ class SimulationOpenCL(myokit.CModule):
         # Create list of intermediary variables that need to be logged
         inter_log = []
         vars_checked = set()
-        for var in log.keys():
+        for var in log:
             var = myokit.split_key(var)[1]
             if var in vars_checked:
                 continue
@@ -1420,8 +1418,8 @@ class SimulationOpenCL(myokit.CModule):
         for x in connections:
             try:
                 i, j, c = x
-            except Exception:
-                raise ValueError(
+            except (TypeError, ValueError):
+                raise TypeError(
                     'Connections must be a list of 3-tuples'
                     ' (cell_index_1, cell_index_2, conductance).')
 

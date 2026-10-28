@@ -4,6 +4,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+# ruff: noqa: I001
 import os
 import platform
 import signal
@@ -111,7 +112,7 @@ else:
 
 
 # Configure Matplotlib for use with Qt
-import matplotlib  # noqa
+import matplotlib
 try:
     matplotlib.use('QtAgg')
 except ImportError:
@@ -120,7 +121,7 @@ except ImportError:
     pass
 try:
     # New Matplotlib no longer has qt4agg/qt5agg, but now uses qtagg for all
-    import matplotlib.backends.back_qtagg as matplotlib_backend  # noqa
+    import matplotlib.backends.back_qtagg as matplotlib_backend
 except ImportError:
     # https://matplotlib.org/stable/api/backend_qt_api.html
     import matplotlib.backends.backend_qt5agg as matplotlib_backend  # noqa
@@ -219,7 +220,7 @@ def run(app, *args):
     """
     # Test application class
     if not issubclass(app, MyokitApplication):
-        raise ValueError(
+        raise TypeError(
             'Application must be specified as a type extending'
             ' MyokitApplication.')
 

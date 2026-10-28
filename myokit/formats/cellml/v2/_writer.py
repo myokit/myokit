@@ -188,7 +188,7 @@ class CellMLWriter:
         """
 
         # Load correct namespaces
-        version = model.version()
+        # version = model.version()
         # if version == '2.0':
         namespaces = {None: cellml.NS_CELLML_2_0}
         namespaces['cellml'] = namespaces[None]

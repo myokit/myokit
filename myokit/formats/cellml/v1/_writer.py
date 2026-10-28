@@ -4,12 +4,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from lxml import etree
 from urllib.parse import quote
+
+from lxml import etree
 
 import myokit
 import myokit.formats.cellml as cellml
-
 
 # Left-over from old exporter. Not sure if this had any function.
 # Add name in 'tmp-documentation' format

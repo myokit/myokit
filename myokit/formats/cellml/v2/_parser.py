@@ -9,10 +9,9 @@ import warnings
 from lxml import etree
 
 import myokit
-import myokit.formats.mathml
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v2
-
+import myokit.formats.mathml
 from myokit.formats.xml import split
 
 
@@ -92,7 +91,7 @@ class CellMLParser:
                     f'Text found in {self._tag(element, name)}.', element)
 
         # Check child elements
-        allowed = set([self._join(x) for x in children])
+        allowed = {self._join(x) for x in children}
         if math:
             allowed.add(self._join('math', cellml.NS_MATHML))
 
@@ -216,7 +215,7 @@ class CellMLParser:
         a CellML model.
         """
         # Read string
-        import xml.etree.ElementTree as etree   # lxml makes this difficult
+        import xml.etree.ElementTree as etree
         try:
             root = etree.fromstring(text)
         except Exception as e:

@@ -8,7 +8,6 @@ from lxml import etree
 
 import myokit
 import myokit.formats.cellml
-
 from myokit.formats.mathml import MathMLExpressionWriter
 
 

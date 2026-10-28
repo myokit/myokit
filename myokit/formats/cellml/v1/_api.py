@@ -9,9 +9,7 @@ import re
 import warnings
 
 import myokit
-
 from myokit.formats import is_real_number_string
-
 
 # Identifier validation
 _cellml_identifier = re.compile('^([_][0-9_]*)?[a-zA-Z][a-zA-Z0-9_]*$')
@@ -538,10 +536,10 @@ class Model(AnnotatableElement):
         """
         # Check both are variables, and from this model
         if not isinstance(variable_1, Variable):
-            raise ValueError(
+            raise TypeError(
                 'Argument variable_1 must be a cellml.v1.Variable.')
         if not isinstance(variable_2, Variable):
-            raise ValueError(
+            raise TypeError(
                 'Argument variable_2 must be a cellml.v1.Variable.')
         if variable_1._model is not self:
             raise ValueError(
@@ -796,8 +794,7 @@ class Model(AnnotatableElement):
                     used.add(u)
 
         # Remove 'None' from the set of used units
-        if None in used:
-            used.remove(None)
+        used.discard(None)
 
         # Add units to models, and store mapping from objects to names
         unit_map = dict(Units._si_units_r)
@@ -1279,7 +1276,7 @@ class Units:
 
         # Check and store Myokit unit
         if not isinstance(myokit_unit, myokit.Unit):
-            raise ValueError(
+            raise TypeError(
                 'The argument `myokit_unit` must be a myokit.Unit object.')
         self._myokit_unit = myokit_unit
 
@@ -1457,7 +1454,7 @@ class Units:
         'metre': myokit.units.m,
         'mole': myokit.units.mol,
         'newton': myokit.units.N,
-        'ohm': myokit.units.R,
+        'ohm': myokit.units.ohm,
         'pascal': myokit.units.Pa,
         'radian': myokit.units.radian,
         'second': myokit.units.s,
@@ -1775,7 +1772,7 @@ class Variable(AnnotatableElement):
             self._rhs = None
             return
         if not isinstance(rhs, myokit.Expression):
-            raise ValueError(
+            raise TypeError(
                 'RHS expressions must be specified as myokit.Expression'
                 f' objects, but got {type(rhs)}.')
 
