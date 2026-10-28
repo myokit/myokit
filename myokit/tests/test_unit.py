@@ -39,7 +39,6 @@ class MyokitUnitTest(unittest.TestCase):
         m_close = m * (1 - 1e-15)
         m_far = m * 2
         not_m = m_close / m
-
         self.assertTrue(myokit.Unit.close(m, m))
         self.assertTrue(myokit.Unit.close(m, m_close))
         self.assertTrue(myokit.Unit.close(m_close, m))
@@ -54,13 +53,12 @@ class MyokitUnitTest(unittest.TestCase):
         mm_close = mm * (1 - 1e-15)
         mm_far = mm * 2
         not_mm = mm_close / mm
-
-        self.assertTrue(myokit.Unit.close(m, m))
-        self.assertTrue(myokit.Unit.close(m, m_close))
-        self.assertTrue(myokit.Unit.close(m_close, m))
-        self.assertTrue(myokit.Unit.close(m_close, m_close))
-        self.assertFalse(myokit.Unit.close(m, m_far))
-        self.assertFalse(myokit.Unit.close(m, not_m))
+        self.assertTrue(myokit.Unit.close(mm, mm))
+        self.assertTrue(myokit.Unit.close(mm, mm_close))
+        self.assertTrue(myokit.Unit.close(mm_close, mm))
+        self.assertTrue(myokit.Unit.close(mm_close, mm_close))
+        self.assertFalse(myokit.Unit.close(mm, mm_far))
+        self.assertFalse(myokit.Unit.close(mm, not_mm))
 
         # Test tiny, but feasible, units
         pF2 = myokit.units.pF**2
@@ -314,7 +312,7 @@ class MyokitUnitTest(unittest.TestCase):
 
             # Attempt registering something that isn't a unit
             self.assertRaisesRegex(
-                ValueError, 'must be a myokit.Unit',
+                TypeError, 'must be a myokit.Unit',
                 myokit.Unit.register_preferred_representation, 'x', 123)
 
             # Attempt registering a representation that doesn't match the unit
