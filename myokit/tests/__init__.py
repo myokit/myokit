@@ -4,9 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-# The TemporaryDirectory class was adapted from Pints
-# See: https://github.com/pints-team/pints
-#
 import os
 import unittest
 import warnings
