@@ -10,7 +10,6 @@ import unittest
 import numpy as np
 
 import myokit
-
 from myokit.tests import WarningCollector
 
 
@@ -372,9 +371,9 @@ class VariableTest(unittest.TestCase):
         self.assertFalse(v.is_intermediary())
         self.assertFalse(v.is_state())
         self.assertEqual(v.lhs(), myokit.Name(v))
-        self.assertRaises(Exception, v.demote)
-        self.assertRaises(Exception, v.index)
-        self.assertRaises(Exception, v.initial_value)
+        self.assertRaisesRegex(Exception, 'not a state', v.demote)
+        self.assertRaisesRegex(Exception, 'Only state', v.index)
+        self.assertRaisesRegex(Exception, 'Only state', v.initial_value)
 
         v.promote(3)
         self.assertFalse(v.is_literal())
@@ -391,9 +390,9 @@ class VariableTest(unittest.TestCase):
         self.assertFalse(v.is_intermediary())
         self.assertFalse(v.is_state())
         self.assertEqual(v.lhs(), myokit.Name(v))
-        self.assertRaises(Exception, v.demote)
-        self.assertRaises(Exception, v.index)
-        self.assertRaises(Exception, v.initial_value)
+        self.assertRaisesRegex(Exception, 'not a state', v.demote)
+        self.assertRaisesRegex(Exception, 'Only state', v.index)
+        self.assertRaisesRegex(Exception, 'Only state', v.initial_value)
 
         # Test errors
         v.promote(3)
@@ -528,7 +527,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(x.refs_to()), [])
         self.assertEqual(list(y.refs_to()), [x])
         self.assertEqual(list(z.refs_to()), [x])
-        self.assertEqual(set(x.refs_by()), set([y, z]))
+        self.assertEqual(set(x.refs_by()), {y, z})
         self.assertEqual(list(y.refs_by()), [])
         self.assertEqual(list(z.refs_by()), [])
 
@@ -537,7 +536,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(x.refs_to()), [])
         self.assertEqual(list(y.refs_to()), [])
         self.assertEqual(list(z.refs_to()), [x])
-        self.assertEqual(set(x.refs_by()), set([z]))
+        self.assertEqual(set(x.refs_by()), {z})
         self.assertEqual(list(y.refs_by()), [])
         self.assertEqual(list(z.refs_by()), [])
         y.set_rhs('2 + x')
@@ -552,9 +551,12 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(z.refs_by()), [])
 
         # State refs
-        self.assertRaises(Exception, x.refs_by, True)
-        self.assertRaises(Exception, y.refs_by, True)
-        self.assertRaises(Exception, z.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', x.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', y.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', z.refs_by, True)
         self.assertEqual(list(x.refs_to(True)), [])
         self.assertEqual(list(y.refs_to(True)), [])
         self.assertEqual(list(z.refs_to(True)), [])
@@ -571,8 +573,10 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(y.refs_to(True)), [x])
         self.assertEqual(list(z.refs_to(True)), [])
         self.assertEqual(list(x.refs_by(True)), [y])
-        self.assertRaises(Exception, y.refs_by, True)
-        self.assertRaises(Exception, z.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', y.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', z.refs_by, True)
 
         # Add another reference to x, should now appear in state refs
         z.set_rhs('3 + x')
@@ -585,9 +589,11 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(x.refs_to(True)), [])
         self.assertEqual(list(y.refs_to(True)), [x])
         self.assertEqual(list(z.refs_to(True)), [x])
-        self.assertEqual(set(x.refs_by(True)), set([y, z]))
-        self.assertRaises(Exception, y.refs_by, True)
-        self.assertRaises(Exception, z.refs_by, True)
+        self.assertEqual(set(x.refs_by(True)), {y, z})
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', y.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', z.refs_by, True)
         self.assertEqual(list(y._srefs_by), [])
         self.assertEqual(list(z._srefs_by), [])
 
@@ -596,15 +602,18 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(x.refs_to(False)), [])
         self.assertEqual(list(y.refs_to(False)), [x])
         self.assertEqual(list(z.refs_to(False)), [x])
-        self.assertEqual(set(x.refs_by(False)), set([y, z]))
+        self.assertEqual(set(x.refs_by(False)), {y, z})
         self.assertEqual(list(y.refs_by(False)), [])
         self.assertEqual(list(z.refs_by(False)), [])
         self.assertEqual(list(x.refs_to(True)), [])
         self.assertEqual(list(y.refs_to(True)), [])
         self.assertEqual(list(z.refs_to(True)), [])
-        self.assertRaises(Exception, x.refs_by, True)
-        self.assertRaises(Exception, y.refs_by, True)
-        self.assertRaises(Exception, z.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', x.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', y.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', z.refs_by, True)
         self.assertEqual(list(x._srefs_by), [])
         self.assertEqual(list(y._srefs_by), [])
         self.assertEqual(list(z._srefs_by), [])
@@ -628,7 +637,8 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(x.refs_to(True)), [])
         self.assertEqual(list(y.refs_to(True)), [x])
         self.assertEqual(list(x.refs_by(True)), [y])
-        self.assertRaises(Exception, y.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', y.refs_by, True)
 
         # Demote x: Now its state refs should become ordinary refs again
         x.demote()
@@ -638,8 +648,10 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(y.refs_by(False)), [])
         self.assertEqual(list(x.refs_to(True)), [])
         self.assertEqual(list(y.refs_to(True)), [])
-        self.assertRaises(Exception, x.refs_by, True)
-        self.assertRaises(Exception, y.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', x.refs_by, True)
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', y.refs_by, True)
         x.validate()
 
         #
@@ -662,8 +674,9 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(y.refs_by(False)), [])
         self.assertEqual(list(x.refs_to(True)), [x])
         self.assertEqual(list(y.refs_to(True)), [x])
-        self.assertEqual(set(x.refs_by(True)), set([x, y]))
-        self.assertRaises(Exception, y.refs_by, True)
+        self.assertEqual(set(x.refs_by(True)), {x, y})
+        self.assertRaisesRegex(
+            Exception, 'can only be used on state', y.refs_by, True)
 
         # Now demoting causes self-reference
         m.validate()

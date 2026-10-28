@@ -10,7 +10,6 @@ import unittest
 
 import myokit
 import myokit.formats.cellml.v1 as cellml
-
 from myokit.tests import TemporaryDirectory, WarningCollector
 
 
@@ -39,8 +38,8 @@ class TestCellMLWriter(unittest.TestCase):
         # Tests if components are written
 
         m1 = cellml.Model('m')
-        c = m1.add_component('c')
-        d = m1.add_component('d')
+        m1.add_component('c')
+        m1.add_component('d')
 
         xml = cellml.write_string(m1)
         m2 = cellml.parse_string(xml)
@@ -235,15 +234,14 @@ class TestCellMLWriter(unittest.TestCase):
         # Check component ordering
         m = cellml.Model('m')
         c = m.add_component('C')
-        a = m.add_component('A')
-        d = m.add_component('D')
-        b = m.add_component('B')
+        m.add_component('A')
+        m.add_component('D')
+        m.add_component('B')
 
         xml = cellml.write_string(m)
         reg = re.compile(br'<component [^>]*name="[\w]+"')
         items = reg.findall(xml)
-        items_sorted = list(sorted(items))
-        self.assertEqual(items, items_sorted)
+        self.assertEqual(items, sorted(items))
 
         # Check variable ordering
         m = cellml.Model('m')
@@ -260,8 +258,7 @@ class TestCellMLWriter(unittest.TestCase):
         xml = cellml.write_string(m)
         reg = re.compile(br'<variable [^>]*name="[\w]+"')
         items = reg.findall(xml)
-        items_sorted = list(sorted(items))
-        self.assertEqual(items, items_sorted)
+        self.assertEqual(items, sorted(items))
 
     def test_oxmeta_annotations(self):
         # Tests if oxmeta annotations are written

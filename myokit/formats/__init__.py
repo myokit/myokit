@@ -490,8 +490,8 @@ class TemplatedRunnableExporter(Exporter):
             raise myokit.ExportError(msg)
         if not os.path.isdir(tpl_dir):  # pragma: no cover
             # Cover pragma: If this happens it's a bug in the exporter
-            msg = 'Template path is not a directory:' + tpl_dir
-            raise Myokit.ExportError(msg)
+            msg = f'Template path is not a directory: {tpl_dir}'
+            raise myokit.ExportError(msg)
 
         # Render all templates
         tpl_vars = self._vars(model, protocol, *args)
@@ -511,10 +511,10 @@ class TemplatedRunnableExporter(Exporter):
                 else:   # pragma: no cover
                     try:
                         os.makedirs(file_dir)
-                    except IOError as e:
-                        msg = 'Failed to create directory at: '
-                        msg += myokit.tools.format_path(file_dir)
-                        msg += ' IOError:' + str(e)
+                    except OSError as e:
+                        msg = ('Failed to create directory at:'
+                               f' {myokit.tools.format_path(file_dir)}'
+                               f' OSError: {e}')
                         raise myokit.ExportError(msg)
 
             # Check if output file already exists
@@ -543,7 +543,7 @@ class TemplatedRunnableExporter(Exporter):
                 p.set_output_stream(f)
                 try:
                     p.process(tpl_name, tpl_vars)
-                except Exception as e:      # pragma: no cover
+                except Exception as e:  # pragma: no cover
                     warnings.warn(
                         'An error ocurred while processing the template at '
                         + myokit.tools.format_path(tpl_name))

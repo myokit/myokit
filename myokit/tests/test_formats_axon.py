@@ -13,9 +13,7 @@ import numpy as np
 import myokit
 import myokit.formats
 import myokit.formats.axon as axon
-
-from myokit.tests import TemporaryDirectory, DIR_FORMATS, WarningCollector
-
+from myokit.tests import DIR_FORMATS, TemporaryDirectory, WarningCollector
 
 V1_INFO = '''
 Axon Binary File: abf-v1.abf
@@ -675,7 +673,7 @@ class AtfTest(unittest.TestCase):
             # Write selected fields
             axon.save_atf(log, path, fields=['time', 'sint'])
             log2 = axon.load_atf(path)
-            self.assertEqual(set(log2.keys()), set(['time', 'sint']))
+            self.assertEqual(set(log2.keys()), {'time', 'sint'})
 
             # Time must be regularly spaced
             log['time'][-1] *= 2

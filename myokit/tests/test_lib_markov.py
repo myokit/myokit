@@ -12,7 +12,6 @@ import numpy as np
 
 import myokit
 import myokit.lib.markov as markov
-
 from myokit.tests import DIR_DATA, WarningCollector
 
 
@@ -355,9 +354,9 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # Bad constructors
         self.assertRaisesRegex(
-            ValueError, 'LinearModel', markov.AnalyticalSimulation, 1)
+            TypeError, 'LinearModel', markov.AnalyticalSimulation, 1)
         self.assertRaisesRegex(
-            ValueError, 'Protocol', markov.AnalyticalSimulation, m, 1)
+            TypeError, 'Protocol', markov.AnalyticalSimulation, m, 1)
 
         # Create properly
         s = markov.AnalyticalSimulation(m)
@@ -580,9 +579,9 @@ class DiscreteSimulationTest(unittest.TestCase):
 
         # Bad constructors
         self.assertRaisesRegex(
-            ValueError, 'LinearModel', markov.DiscreteSimulation, 1)
+            TypeError, 'LinearModel', markov.DiscreteSimulation, 1)
         self.assertRaisesRegex(
-            ValueError, 'Protocol', markov.DiscreteSimulation, m, 1)
+            TypeError, 'Protocol', markov.DiscreteSimulation, m, 1)
         self.assertRaisesRegex(
             ValueError, 'at least 1',
             markov.DiscreteSimulation, m, nchannels=0)

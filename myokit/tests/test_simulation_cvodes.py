@@ -15,12 +15,11 @@ import unittest
 import numpy as np
 
 import myokit
-
 from myokit.tests import (
-    CancellingReporter,
     DIR_DATA,
-    test_case_pk_model,
+    CancellingReporter,
     WarningCollector,
+    test_case_pk_model,
 )
 
 
@@ -58,7 +57,7 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(type(d), myokit.DataLog)
         self.assertIn('engine.time', d)
         n = len(d['engine.time'])
-        for k, v in d.items():
+        for v in d.values():
             self.assertEqual(n, len(v))
 
         # Can't do negative times
@@ -541,7 +540,6 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s.crash_state(), s.state())
         self.assertEqual(
             set(s.crash_inputs()), {'time', 'pace', 'realtime', 'evaluations'})
-        t = s.crash_inputs()['time']
         self.assertEqual(s.crash_inputs()['time'], 0)
         self.assertEqual(s.crash_inputs()['pace'], 0)
         self.assertGreaterEqual(s.crash_inputs()['realtime'], 0)
@@ -643,15 +641,15 @@ class SimulationTest(unittest.TestCase):
 
         m = myokit.Model()
         z = m.add_component('z')
-        t = z.add_variable('t', rhs=0, binding='time')
-        a = z.add_variable('a', rhs=1, binding='pace')
-        b = z.add_variable('b', rhs=2, binding='pace1')
-        c = z.add_variable('c', rhs=4, binding='pace2')
+        z.add_variable('t', rhs=0, binding='time')
+        z.add_variable('a', rhs=1, binding='pace')
+        z.add_variable('b', rhs=2, binding='pace1')
+        z.add_variable('c', rhs=4, binding='pace2')
         d = z.add_variable('d', rhs=8, binding='evaluations')
-        e = z.add_variable('e', rhs=12, binding='realtime')
-        f = z.add_variable('f', rhs=100)
-        p = z.add_variable('p', rhs='p+t+a+b+c+d+e+f', initial_value=0)
-        q = z.add_variable('q', rhs='p + q', initial_value=1)
+        z.add_variable('e', rhs=12, binding='realtime')
+        z.add_variable('f', rhs=100)
+        z.add_variable('p', rhs='p+t+a+b+c+d+e+f', initial_value=0)
+        z.add_variable('q', rhs='p + q', initial_value=1)
 
         sim = myokit.Simulation(m)
 

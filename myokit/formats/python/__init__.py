@@ -4,12 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+from ._ewriter import NumPyExpressionWriter, PythonExpressionWriter
 from ._exporter import PythonExporter
-from ._ewriter import PythonExpressionWriter, NumPyExpressionWriter
 
 # Importers
 # Exporters
-
 _exporters = {
     'python': PythonExporter,
 }

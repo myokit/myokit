@@ -5,7 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 from ._ewriter import MathMLExpressionWriter
-from ._parser import (   # noqa
+from ._parser import (  # noqa: F401
     MathMLError,
     MathMLParser,
     parse_mathml_etree,

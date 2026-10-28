@@ -34,11 +34,8 @@ def load(filename):
     If the file specified by ``filename`` doesn't contain one of these parts
     the corresponding entry in the tuple will be ``None``.
     """
-    f = open(_examplify(filename), 'r')
-    try:
+    with open(_examplify(filename), 'r') as f:
         return myokit.parse(f)
-    finally:
-        f.close()
 
 
 def load_model(filename):
@@ -169,7 +166,7 @@ def save(filename=None, model=None, protocol=None, script=None):
 
     if filename:
         filename = os.path.expanduser(filename)
-        f = open(filename, 'w')
+        f = open(filename, 'w')  # noqa: SIM115
     else:
         f = io.StringIO()
     out = None

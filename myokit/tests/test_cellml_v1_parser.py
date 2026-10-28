@@ -11,8 +11,7 @@ import unittest
 import myokit
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v1 as v1
-
-from myokit.tests import TemporaryDirectory, DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_FORMATS, TemporaryDirectory, WarningCollector
 
 # CellML directory
 DIR = os.path.join(DIR_FORMATS, 'cellml')
@@ -138,7 +137,7 @@ class TestCellMLParser(unittest.TestCase):
             '</component>'
         )
         e = m['ernie']
-        u = e.find_units('wooster')
+        e.find_units('wooster')
 
     def test_connection(self):
         # Test connection parsing
@@ -838,8 +837,6 @@ class TestCellMLParser(unittest.TestCase):
         d1a = '<rdf:Description rdf:about="#'
         d1b = '">'
         d2 = '</rdf:Description>'
-        b1 = '<bqbiol:is rdf:resource="' + cellml.NS_OXMETA
-        b2 = '"/>'
 
         # Model code
         x = ('<component name="a">'
@@ -851,31 +848,31 @@ class TestCellMLParser(unittest.TestCase):
 
         # No content
         y = r1 + r2
-        cm = self.parse(x + y)
+        self.parse(x + y)
 
         # No about attribute
         y = r1 + '<rdf:Description />' + r2
-        cm = self.parse(x + y)
+        self.parse(x + y)
 
         # Unknown cmeta id
         y = r1 + d1a + 'xxx' + d1b + d2 + r2
-        cm = self.parse(x + y)
+        self.parse(x + y)
 
         # No bqbiol:is
         y = r1 + d1a + 'x' + d1b + d2 + r2
-        cm = self.parse(x + y)
+        self.parse(x + y)
 
         # No bqbiol:is
         y = r1 + d1a + 'x' + d1b + d2 + r2
-        cm = self.parse(x + y)
+        self.parse(x + y)
 
         # No resource
         y = r1 + d1a + 'x' + d1b + '<bqbiol:is/>' + d2 + r2
-        cm = self.parse(x + y)
+        self.parse(x + y)
 
         # Non oxmeta-resource
         y = r1 + d1a + 'x' + d1b + '<bqbiol:is rdf:resource="hi"/>' + d2 + r2
-        cm = self.parse(x + y)
+        self.parse(x + y)
 
     def test_parse_file(self):
         # Tests the parse file method

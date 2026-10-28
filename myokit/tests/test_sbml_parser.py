@@ -11,7 +11,6 @@ import myokit
 import myokit.formats
 import myokit.formats.sbml
 from myokit.formats.sbml import SBMLParser, SBMLParsingError
-
 from myokit.tests import WarningCollector
 
 
@@ -441,7 +440,7 @@ class TestSBMLParser(unittest.TestCase):
         d = ('</model>')
         m = self.parse(a + b + c + d)
         self.assertEqual(
-            m.compartment('c').initial_value(), myokit.Number((1.23)))
+            m.compartment('c').initial_value(), myokit.Number(1.23))
 
         # Reset a compartment size
         b = ('<listOfCompartments>'
@@ -449,10 +448,10 @@ class TestSBMLParser(unittest.TestCase):
              '</listOfCompartments>')
         m = self.parse(a + b + d)
         self.assertEqual(
-            m.compartment('c').initial_value(), myokit.Number((12)))
+            m.compartment('c').initial_value(), myokit.Number(12))
         m = self.parse(a + b + c + d)
         self.assertEqual(
-            m.compartment('c').initial_value(), myokit.Number((1.23)))
+            m.compartment('c').initial_value(), myokit.Number(1.23))
 
         # Set a species amount (or concentration)
         a = ('<model>'

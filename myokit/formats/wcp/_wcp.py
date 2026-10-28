@@ -6,6 +6,7 @@
 #
 import os
 import struct
+
 import numpy as np
 
 import myokit
@@ -79,7 +80,7 @@ class WcpFile(myokit.formats.SweepSource):
         # in the file
         data = f.read(1024).decode(_ENC)
         h = [x.strip().split('=') for x in data.split('\n')]
-        h = dict([(x[0].lower(), x[1]) for x in h if len(x) == 2])
+        h = {x[0].lower(): x[1] for x in h if len(x) == 2}
         if int(h['ver']) != 9:
             raise NotImplementedError(
                 'Only able to read format version 9. Given file is in format'
@@ -100,14 +101,14 @@ class WcpFile(myokit.formats.SweepSource):
         if header_size > 1024:  # pragma: no cover
             data += f.read(header_size - 1024).decode(_ENC)
             h = [x.strip().split('=') for x in data.split('\n')]
-            h = dict([(x[0].lower(), x[1]) for x in h if len(x) == 2])
+            h = {x[0].lower(): x[1] for x in h if len(x) == 2}
 
         # Tidy up read data
         for k, v in h.items():
             # Convert to appropriate data type
             try:
                 t = HEADER_FIELDS[k]
-                if t == float:
+                if t is float:
                     # Allow for windows locale stuff
                     v = v.replace(',', '.')
                 self._header[k] = t(v)
@@ -174,16 +175,16 @@ class WcpFile(myokit.formats.SweepSource):
             rtype = f.read(4).decode(_ENC)
 
             # Leak subtraction group number (float set by the user)
-            group_number = struct.unpack(str('<f'), f.read(4))[0]
+            group_number = struct.unpack('<f', f.read(4))[0]
 
             # Time of recording, as float, not sure how to interpret
-            rtime = struct.unpack(str('<f'), f.read(4))[0]
+            rtime = struct.unpack('<f', f.read(4))[0]
 
             # Sampling interval
             # It is technically possible to have different dts for different
             # records (see email J.D. 2023-07-12), but rare.
             # Not supported here!
-            rint = round(struct.unpack(str('<f'), f.read(4))[0], 6)
+            rint = round(struct.unpack('<f', f.read(4))[0], 6)
             if rint != self._dt:  # pragma: no cover
                 raise ValueError(
                     'Unsupported feature: WCP file contains more than one'

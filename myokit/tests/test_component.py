@@ -5,8 +5,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import myokit
 import unittest
+
+import myokit
 
 
 class VarOwnerTest(unittest.TestCase):
@@ -114,7 +115,7 @@ class VarOwnerTest(unittest.TestCase):
         self.assertEqual(z.count_variables(), 1)
         z.remove_variable(a)
         self.assertEqual(z.count_variables(), 0)
-        self.assertRaises(Exception, z.remove_variable, a)
+        self.assertRaises(ValueError, z.remove_variable, a)
 
         # Test re-adding
         a = z.add_variable('a')

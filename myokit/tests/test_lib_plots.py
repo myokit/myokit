@@ -11,7 +11,6 @@ import unittest
 
 import myokit
 import myokit.lib.plots as plots
-
 from myokit.tests import DIR_DATA, WarningCollector
 
 

@@ -131,7 +131,7 @@ class Asciifier(html.parser.HTMLParser):
             if limode == 'ul':
                 self.line.append('* ')
             else:
-                self.line.append(str(1 + licount) + u' ')
+                self.line.append(f'{1 + licount} ')
 
         elif tag == 'em' or tag == 'i':
             self.line.append(' *')

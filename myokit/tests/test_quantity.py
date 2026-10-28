@@ -29,7 +29,6 @@ class QuantityTest(unittest.TestCase):
 
     def test_cast(self):
         # Test :meth:`Quanity.cast()`.
-
         from myokit import Quantity as Q
 
         a = Q('10 [uA]')
@@ -39,7 +38,6 @@ class QuantityTest(unittest.TestCase):
 
     def test_convert(self):
         # Test :meth:`Quantity.convert()`.
-
         from myokit import Quantity as Q
 
         a = Q('10 [mV]')
@@ -47,7 +45,6 @@ class QuantityTest(unittest.TestCase):
 
     def test_creation_and_str(self):
         # Test Quanity creation and :meth:`Quantity.__str__()`.
-
         from myokit import Quantity as Q
 
         # Creation and string representation
@@ -121,9 +118,8 @@ class QuantityTest(unittest.TestCase):
 
     def test_number_conversion(self):
         # Test Quantity conversion from and to number.
-
-        from myokit import Quantity as Q
         from myokit import Number as N
+        from myokit import Quantity as Q
 
         # Conversion from number
         d = N(4)
@@ -142,7 +138,6 @@ class QuantityTest(unittest.TestCase):
 
     def test_operators(self):
         # Test overloaded operators for Quantity.
-
         from myokit import Quantity as Q
 
         # Addition

@@ -4,15 +4,15 @@
 #
 # NOTE: THESE TESTS SHOULD SLOWLY BE MERGED INTO test_model, test_variable, etc
 #
+# Further model API tests are found in:
+#  - test_dependency_checking.py
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import myokit
 import unittest
 
-# Further model API tests are found in:
-#  - test_dependency_checking.py
+import myokit
 
 
 class ModelBuildTest(unittest.TestCase):
@@ -337,7 +337,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertIn('Z', order)
 
         # Check that X comes before Y
-        pos = dict([(name, k) for k, name in enumerate(order)])
+        pos = {name: k for k, name in enumerate(order)}
         self.assertLess(pos['X'], pos['Y'])
         self.assertEqual(pos['*remaining*'], 4)
 

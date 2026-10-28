@@ -5,7 +5,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import myokit
-
 from myokit.formats import is_integer_string, is_real_number_string
 from myokit.formats.xml import split
 
@@ -23,7 +22,7 @@ def parse_mathml_string(s):
 
 
 def parse_mathml_etree(
-        element, name_factory, number_factory, free_variables=set()):
+        element, name_factory, number_factory, free_variables=None):
     """
     Parses a MathML expression and returns a :class:`myokit.Expression`.
 
@@ -220,11 +219,12 @@ class MathMLParser:
         Becomes ``0``
 
     """
-    def __init__(self, variable_factory, number_factory, free_variables=set()):
+    def __init__(self, variable_factory, number_factory, free_variables=None):
         self._vfac = variable_factory
         self._nfac = number_factory
         self._const = lambda x: number_factory(x, None)
-        self._free_variables = free_variables
+        self._free_variables = \
+            set() if free_variables is None else free_variables
 
     def _eat(self, element, iterator, nargs=1):
         """
@@ -977,7 +977,7 @@ class MathMLParser:
         try:
             return self._vfac(symbol, element)
         except Exception as e:
-            raise MathMLError('Unable to create Name: ' + str(e), element)
+            raise MathMLError(f'Unable to create Name: {e}', element)
 
     def _parse_symbol(self, element):
         """
@@ -995,5 +995,5 @@ class MathMLParser:
             return self._vfac(symbol, element)
         except Exception as e:
             raise MathMLError(
-                'Unable to create Name from csymbol: ' + str(e), element)
+                f'Unable to create Name from csymbol: {e}', element)
 

@@ -11,8 +11,7 @@ import unittest
 import numpy as np
 
 import myokit
-
-from myokit.tests import OpenCL_FOUND, DIR_DATA, WarningCollector
+from myokit.tests import DIR_DATA, OpenCL_FOUND, WarningCollector
 from myokit.tests.test_simulation_log_interval import PeriodicTest
 
 debug = False
@@ -26,7 +25,7 @@ class SimulationOpenCLTest(PeriodicTest):
     def test_periodic(self):
         # Test periodic logging.
 
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.SimulationOpenCL(m, p, ncells=1)
         self.periodic(s)
 
@@ -39,7 +38,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
     def test_periodic(self):
         # Test periodic logging.
 
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         with WarningCollector():
             s = myokit.FiberTissueSimulation(
                 m, m, p, ncells_fiber=(1, 1), ncells_tissue=(1, 1))
@@ -48,7 +47,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         emax = 1e-2  # Time steps for logging are approximate
 
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
-        d, e = s.run(
+        d, _ = s.run(
             5, logf=['engine.time'], logt=myokit.LOG_NONE, log_interval=0.5)
         d = d.npview()
         t = d['engine.time']
@@ -62,7 +61,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
 
         # Test 2: Very short simulation
         s.reset()
-        d, e = s.run(
+        d, _ = s.run(
             1, logf=['engine.time'], logt=myokit.LOG_NONE, log_interval=0.5)
         d = d.npview()
         t = d['engine.time']
@@ -76,10 +75,10 @@ class FiberTissueSimulationTest(unittest.TestCase):
 
         # Test 3: Stop and start a simulation
         s.reset()
-        d, e = s.run(
+        d, _ = s.run(
             1, logf=['engine.time'], logt=myokit.LOG_NONE, log_interval=0.5)
-        d, e = s.run(2, logf=d, logt=myokit.LOG_NONE, log_interval=0.5)
-        d, e = s.run(2, logf=d, logt=myokit.LOG_NONE, log_interval=0.5)
+        d, _ = s.run(2, logf=d, logt=myokit.LOG_NONE, log_interval=0.5)
+        d, _ = s.run(2, logf=d, logt=myokit.LOG_NONE, log_interval=0.5)
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 5, 0.5)

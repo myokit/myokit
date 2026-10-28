@@ -5,7 +5,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import myokit
-
 from myokit.formats.ansic import CBasedExpressionWriter
 
 

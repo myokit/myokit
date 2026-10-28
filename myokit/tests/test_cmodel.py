@@ -9,7 +9,6 @@ import os
 import unittest
 
 import myokit
-
 from myokit.tests import DIR_DATA
 
 

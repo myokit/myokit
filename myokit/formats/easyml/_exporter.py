@@ -21,7 +21,7 @@ class EasyMLExporter(myokit.formats.Exporter):
 
     For details of the language, see
     https://carpentry.medunigraz.at/carputils/examples/tutorials/tutorials.01_EP_single_cell.04_limpet_fe.run.html
-    """ # noqa
+    """
     # To test the output, you'll need `$ limpet_fe.py model_file`
 
     def model(self, path, model, protocol=None, convert_units=True):
@@ -234,18 +234,18 @@ class EasyMLExporter(myokit.formats.Exporter):
 
         # Detect names with special meanings
         def special_start(name):
-            if name.startswith('diff_') or name.startswith('d_'):
+            if name.startswith(('diff_', 'd_')):
                 return True
-            if name.startswith('alpha_') or name.startswith('a_'):
+            if name.startswith(('alpha_', 'a_')):
                 return True
-            if name.startswith('beta_') or name.startswith('b_'):
+            if name.startswith(('beta_', 'b_')):
                 return True
             if name.startswith('tau_'):
                 return True
             return False
 
         def special_end(name):
-            return name.endswith('_init') or name.endswith('_inf')
+            return name.endswith(('_init', '_inf'))
 
         # Create initial variable names
         var_to_name = collections.OrderedDict()
@@ -424,11 +424,10 @@ class EasyMLExporter(myokit.formats.Exporter):
             # Make all constants parameters
             parameters = list(model.variables(const=True, sort=True))
             if parameters:
-                f.write('// Parameters' + eol)
-                f.write('group {' + eol)
+                f.write(f'// Parameters{eol}group {{{eol}')
                 for p in parameters:
-                    f.write('  ' + lhs(p) + eos)
-                f.write('}.param()' + eos + eol)
+                    f.write(f'  {lhs(p)}{eos}')
+                f.write(f'}}.param(){eos}{eol}')
 
     def supports_model(self):
         """ See :meth:`myokit.formats.Exporter.supports_model()`. """

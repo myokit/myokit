@@ -16,7 +16,6 @@ import tempfile
 import threading
 import timeit
 
-
 # Natural sort regex
 _natural_sort_regex = re.compile('([0-9]+)')
 
@@ -77,7 +76,7 @@ class Benchmarker:
         tot = int(1e6 * (now - self._start))
         new = int(1e6 * (now - self._last_print))
         self._last_print = now
-        print('[{:10d} us ({:5d} us)] '.format(tot, new) + str(message))
+        print(f'[{tot:10d} us ({new:5d} us)] {message}')
 
     def reset(self):
         """ Resets this timer's start time. """
@@ -288,8 +287,8 @@ class capture:
             # Create temporary files to redirect the output to. Make sure they
             # aren't opened in binary mode, and specify + for reading and
             # writing.
-            self._file_out = tempfile.TemporaryFile(mode='w+')
-            self._file_err = tempfile.TemporaryFile(mode='w+')
+            self._file_out = tempfile.TemporaryFile(mode='w+')  # noqa
+            self._file_err = tempfile.TemporaryFile(mode='w+')  # noqa
 
             # Apply Python-level redirection of sys.stdxxx in addition to the
             # lower-level redirect of sys.__stdxxx___.
@@ -486,7 +485,7 @@ def rmtree(path, silent=False):
             os.chmod(path, stat.S_IWUSR)
             function(path)
         else:
-            raise
+            raise  # noqa
 
     if silent:
         try:

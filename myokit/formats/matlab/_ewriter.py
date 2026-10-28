@@ -5,7 +5,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import myokit
-
 from myokit.formats.python import PythonExpressionWriter
 
 
@@ -122,7 +121,6 @@ class MatlabExpressionWriter(PythonExpressionWriter):
         _thens = [self.ex(x) for x in e._e]
 
         s = []
-        n = len(_ifs)
         for _if, _then in zip(_ifs, _thens):
             s.append(f'{self._fcond}({_if}, {_then}, ')
         s.append(_thens[-1])

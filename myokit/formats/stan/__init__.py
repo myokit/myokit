@@ -4,9 +4,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from ._exporter import StanExporter
 from ._ewriter import StanExpressionWriter
-
+from ._exporter import StanExporter
 
 # Importers
 # Exporters

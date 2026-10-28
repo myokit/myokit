@@ -6,9 +6,9 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import itertools
+import math
 import re
 import unittest
-import math
 
 import myokit
 import myokit.formats
@@ -1454,12 +1454,12 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
             self.assertEqual(eval(expr), result)
 
             # not(a != b)
-            result = int(not (a != b))
+            result = int(not (a != b))  # noqa: SIM202
             expr = self.w.ex(Not(NotEqual(Number(a), Number(b))))
             self.assertEqual(eval(expr), result)
 
             # not(not(a == b))
-            result = int(not (not (a == b)))
+            result = int(not (not (a == b)))  # noqa: SIM201, SIM208
             expr = self.w.ex(Not(Not(Equal(Number(a), Number(b)))))
             self.assertEqual(eval(expr), result)
 

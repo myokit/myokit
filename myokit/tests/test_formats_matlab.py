@@ -9,16 +9,43 @@ import unittest
 
 import myokit
 import myokit.formats.matlab
-
-from myokit import (
-    Number, PrefixPlus, PrefixMinus, Plus, Minus,
-    Multiply, Divide, Quotient, Remainder, Power, Sqrt,
-    Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
-    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
-    If, Piecewise,
-)
-
 import myokit.tests
+from myokit import (
+    Abs,
+    ACos,
+    And,
+    ASin,
+    ATan,
+    Ceil,
+    Cos,
+    Divide,
+    Equal,
+    Exp,
+    Floor,
+    If,
+    Less,
+    LessEqual,
+    Log,
+    Log10,
+    Minus,
+    More,
+    MoreEqual,
+    Multiply,
+    Not,
+    NotEqual,
+    Number,
+    Or,
+    Piecewise,
+    Plus,
+    Power,
+    PrefixMinus,
+    PrefixPlus,
+    Quotient,
+    Remainder,
+    Sin,
+    Sqrt,
+    Tan,
+)
 
 
 class MatlabExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):

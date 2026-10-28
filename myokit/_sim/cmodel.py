@@ -5,10 +5,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import collections
 import os
 import traceback
-
-from collections import OrderedDict
 
 import myokit
 import myokit.formats.ansic
@@ -283,10 +282,10 @@ class CModel:
         """
         # NOTE: Some methods in cmodel.h require the ordering of parameters and
         #       literals to match that in the independents ordered-dict.
-        literals = OrderedDict()
-        literal_derived = OrderedDict()
-        parameters = OrderedDict()
-        parameter_derived = OrderedDict()
+        literals = collections.OrderedDict()
+        literal_derived = collections.OrderedDict()
+        parameters = collections.OrderedDict()
+        parameter_derived = collections.OrderedDict()
 
         # Get all parameters, in the same order as independents
         p = set()
@@ -296,7 +295,7 @@ class CModel:
                 parameters[lhs.var()] = None
 
         # Scan over equations
-        for label, eqs in equations.items():
+        for eqs in equations.values():
             for eq in eqs.equations(const=True):
                 var = eq.lhs.var()
                 if eq.lhs in p:
@@ -345,9 +344,8 @@ class CModel:
 
             """
             if not isinstance(var, (myokit.LhsExpression, myokit.Variable)):
-                raise ValueError(  # pragma: no cover
-                    'v() called with ' + str(var) + ' of type '
-                    + str(type(var)))
+                raise TypeError(  # pragma: no cover
+                    f'v() called with {var} of type {type(var)}')
 
             # Partial derivative
             if isinstance(var, myokit.PartialDerivative):

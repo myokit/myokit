@@ -9,16 +9,43 @@ import unittest
 
 import myokit
 import myokit.formats.opencl
-
-from myokit import (
-    Number, PrefixPlus, PrefixMinus, Plus, Minus,
-    Multiply, Divide, Quotient, Remainder, Power, Sqrt,
-    Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
-    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
-    If, Piecewise,
-)
-
 import myokit.tests
+from myokit import (
+    Abs,
+    ACos,
+    And,
+    ASin,
+    ATan,
+    Ceil,
+    Cos,
+    Divide,
+    Equal,
+    Exp,
+    Floor,
+    If,
+    Less,
+    LessEqual,
+    Log,
+    Log10,
+    Minus,
+    More,
+    MoreEqual,
+    Multiply,
+    Not,
+    NotEqual,
+    Number,
+    Or,
+    Piecewise,
+    Plus,
+    Power,
+    PrefixMinus,
+    PrefixPlus,
+    Quotient,
+    Remainder,
+    Sin,
+    Sqrt,
+    Tan,
+)
 
 
 class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
@@ -143,31 +170,32 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
 
     def test_functions(self):
         a = self.a
-        self.eq(Sqrt(self.a), 'native_sqrt(a)')
-        self.eq(Exp(self.a), 'native_exp(a)')
-        self.eq(Sin(self.a), 'native_sin(a)')
-        self.eq(Cos(self.a), 'native_cos(a)')
-        self.eq(Tan(self.a), 'native_tan(a)')
-        self.eq(ASin(self.a), 'asin(a)')
-        self.eq(ACos(self.a), 'acos(a)')
-        self.eq(ATan(self.a), 'atan(a)')
-        self.eq(Floor(self.a), 'floor(a)')
-        self.eq(Ceil(self.a), 'ceil(a)')
-        self.eq(Abs(self.a), 'fabs(a)')
+        self.eq(Sqrt(a), 'native_sqrt(a)')
+        self.eq(Exp(a), 'native_exp(a)')
+        self.eq(Sin(a), 'native_sin(a)')
+        self.eq(Cos(a), 'native_cos(a)')
+        self.eq(Tan(a), 'native_tan(a)')
+        self.eq(ASin(a), 'asin(a)')
+        self.eq(ACos(a), 'acos(a)')
+        self.eq(ATan(a), 'atan(a)')
+        self.eq(Floor(a), 'floor(a)')
+        self.eq(Ceil(a), 'ceil(a)')
+        self.eq(Abs(a), 'fabs(a)')
 
     def test_functions_no_native(self):
         w = self._target(native_math=False)
-        self.assertEqual(w.ex(Sqrt(self.a)), 'sqrt(comp.a)')
-        self.assertEqual(w.ex(Exp(self.a)), 'exp(comp.a)')
-        self.assertEqual(w.ex(Sin(self.a)), 'sin(comp.a)')
-        self.assertEqual(w.ex(Cos(self.a)), 'cos(comp.a)')
-        self.assertEqual(w.ex(Tan(self.a)), 'tan(comp.a)')
-        self.assertEqual(w.ex(ASin(self.a)), 'asin(comp.a)')
-        self.assertEqual(w.ex(ACos(self.a)), 'acos(comp.a)')
-        self.assertEqual(w.ex(ATan(self.a)), 'atan(comp.a)')
-        self.assertEqual(w.ex(Floor(self.a)), 'floor(comp.a)')
-        self.assertEqual(w.ex(Ceil(self.a)), 'ceil(comp.a)')
-        self.assertEqual(w.ex(Abs(self.a)), 'fabs(comp.a)')
+        a = self.a
+        self.assertEqual(w.ex(Sqrt(a)), 'sqrt(comp.a)')
+        self.assertEqual(w.ex(Exp(a)), 'exp(comp.a)')
+        self.assertEqual(w.ex(Sin(a)), 'sin(comp.a)')
+        self.assertEqual(w.ex(Cos(a)), 'cos(comp.a)')
+        self.assertEqual(w.ex(Tan(a)), 'tan(comp.a)')
+        self.assertEqual(w.ex(ASin(a)), 'asin(comp.a)')
+        self.assertEqual(w.ex(ACos(a)), 'acos(comp.a)')
+        self.assertEqual(w.ex(ATan(a)), 'atan(comp.a)')
+        self.assertEqual(w.ex(Floor(a)), 'floor(comp.a)')
+        self.assertEqual(w.ex(Ceil(a)), 'ceil(comp.a)')
+        self.assertEqual(w.ex(Abs(a)), 'fabs(comp.a)')
 
     def test_conditions(self):
         a, b, c, d = self.abcd

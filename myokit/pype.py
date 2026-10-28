@@ -42,19 +42,23 @@ class TemplateEngine:
         """
         return self.error
 
-    def process(self, filename, variables={}):
+    def process(self, filename, variables=None):
         """
-        Processes the file stored at ``filename``. Any variables required by
-        this template should be passed in through the dict ``variables``.
+        Processes the file stored at ``filename``.
+
+        Any variables required by this template should be passed in through the
+        dict ``variables``.
         """
         # Reset error log
         self.error = None
 
         # Check input
-        if not type(variables) == dict:
+        if variables is None:
+            variables = dict()
+        elif type(variables) is not dict:
             raise ValueError(
                 'Second argument passed to process() must be dict'
-                ' (variable_name : value)')
+                ' (variable_name : value) or None.')
 
         # Convert script, any exceptions are thrown as PypeErrors
         script = self._convert(filename)
@@ -73,7 +77,7 @@ class TemplateEngine:
                 syserr = sys.stderr
                 sys.stdout = stdout
                 sys.stderr = stderr
-                exec(script, variables)
+                exec(script, variables)  # noqa: S102
             except Exception:
                 error = sys.exc_info()
             finally:
@@ -119,8 +123,8 @@ class TemplateEngine:
                     msg.append(sep)
                     lines = script.splitlines()
                     f = '{:>' + str(1 + len(str(line))) + '} '
-                    for k, line in enumerate(lines[0:line]):
-                        msg.append(f.format(1 + k) + line)
+                    for k, ln in enumerate(lines[0:line]):
+                        msg.append(f.format(1 + k) + ln)
                     msg.append(sep)
                     msg.append(msg[0])
                 self.error = '\n'.join(msg)

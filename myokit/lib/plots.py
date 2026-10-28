@@ -129,7 +129,7 @@ def simulation_times(
     except KeyError:
         raise ValueError(
             'Selected mode not found. Avaiable modes are: '
-            + ', '.join(['"' + x + '"' for x in modes.keys()]))
+            + ', '.join([f'"{x}"' for x in modes]))
     return fn(axes, time, realtime, evaluations)
 
 
@@ -263,7 +263,7 @@ def current_arrows(log, voltage, currents, axes=None):
 
 def cumulative_current(
         log, currents, axes=None, labels=None, colors=None, integrate=False,
-        normalize=False, max_currents=None, line_args={}, fill_args={},
+        normalize=False, max_currents=None, line_args=None, fill_args=None,
         normalise=None):
     """
     Plots a number of currents, one on top of the other, with the positive and
@@ -318,6 +318,10 @@ def cumulative_current(
         normalize = normalise
     del normalise
 
+    # Check input
+    line_args = {} if line_args is None else line_args
+    fill_args = {} if fill_args is None else fill_args
+
     # Get axes
     if axes is None:
         axes = plt.gca()
@@ -345,10 +349,7 @@ def cumulative_current(
 
     # Number of currents to show
     nc = len(currents)
-    if max_currents is None or max_currents + 1 >= nc:
-        show_remainder = False
-    else:
-        show_remainder = True
+    if max_currents is not None and max_currents + 1 < nc:
         max_currents = int(max_currents)
         nc = 1 + max_currents
 

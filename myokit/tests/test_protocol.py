@@ -9,7 +9,6 @@ import pickle
 import unittest
 
 import myokit
-
 from myokit.tests import WarningCollector
 
 
@@ -421,7 +420,7 @@ class ProtocolTest(unittest.TestCase):
         self.assertEqual(v, p.value_at_times(t))
 
         # Empty times
-        d = p.log_for_times([])
+        p.log_for_times([])
         self.assertEqual(len(p.value_at_times([])), 0)
 
         # Decreasing times

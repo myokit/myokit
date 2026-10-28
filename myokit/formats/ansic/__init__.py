@@ -4,12 +4,17 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from ._exporter import AnsiCExporter, AnsiCCableExporter, AnsiCEulerExporter
-from ._ewriter import AnsiCExpressionWriter, CBasedExpressionWriter  # noqa
-
+from ._ewriter import (
+    AnsiCExpressionWriter,
+    CBasedExpressionWriter,  # noqa: F401
+)
+from ._exporter import (
+    AnsiCCableExporter,
+    AnsiCEulerExporter,
+    AnsiCExporter,
+)
 
 # Importers
-
 # Exporters
 _exporters = {
     'ansic': AnsiCExporter,

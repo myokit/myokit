@@ -121,7 +121,7 @@ class PresentationMathMLTest(unittest.TestCase):
         # Test creation via formats.ewriter
 
         w = myokit.formats.ewriter('mathml')
-        self.assertIsInstance(self.w, mathml.MathMLExpressionWriter)
+        self.assertIsInstance(w, mathml.MathMLExpressionWriter)
 
     def test_functions(self):
         # Tests writing basic functions

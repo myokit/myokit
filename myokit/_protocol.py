@@ -4,11 +4,11 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import myokit
+from bisect import bisect_right
 
 import numpy as np
 
-from bisect import bisect_right
+import myokit
 
 
 class Protocol:
@@ -644,7 +644,7 @@ class ProtocolEvent:
         ]
         x = [str(x) for x in x]
         s = [8, 8, 8, 8, 0]
-        for i in range(0, 5):
+        for i in range(5):
             n = s[i] - len(x[i]) + z
             z = 0
             if n > 0:
@@ -837,12 +837,10 @@ class PacingSystem:
 
 class NotASequenceError(myokit.MyokitError):
     """ Error raised exclusively by is_sequence_exception(). """
-    pass
 
 
 class NotAnUnbrokenSequenceError(myokit.MyokitError):
     """ Error raised exclusively by is_unbroken_sequence_exception(). """
-    pass
 
 
 class TimeSeriesProtocol:

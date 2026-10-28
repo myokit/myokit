@@ -14,12 +14,11 @@ import unittest
 import numpy as np
 
 import myokit
-
 from myokit.tests import (
-    CancellingReporter,
     DIR_DATA,
-    OpenCL_FOUND,
+    CancellingReporter,
     OpenCL_DOUBLE_PRECISION_CONNECTIONS,
+    OpenCL_FOUND,
     WarningCollector,
 )
 
@@ -349,13 +348,13 @@ class SimulationOpenCLTest(unittest.TestCase):
 
             # Wrong list contents
             self.assertRaisesRegex(
-                ValueError, 'list of 3-tuples',
+                TypeError, 'list of 3-tuples',
                 self.s1.set_connections, [[1, 1]])
             self.assertRaisesRegex(
-                ValueError, 'list of 3-tuples',
+                TypeError, 'list of 3-tuples',
                 self.s1.set_connections, [1, 1, 1])
             self.assertRaisesRegex(
-                ValueError, 'list of 3-tuples',
+                TypeError, 'list of 3-tuples',
                 self.s1.set_connections, 'hello')
 
             # Invalid indices
@@ -394,11 +393,6 @@ class SimulationOpenCLTest(unittest.TestCase):
     def test_connections_run(self):
         # Tests whether a simple simulation with connections gives the same
         # results as a simulation with set_conductance
-
-        # Make protocol
-        bcl = 1000
-        duration = 10
-        p = myokit.pacing.blocktrain(bcl, duration, level=1)
 
         # Run simulations
         try:
@@ -977,7 +971,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         finally:
             try:
                 self.s1.remove_field('membrane.C')
-            except Exception:
+            except KeyError:
                 pass
 
         # 2-dimensional
@@ -996,7 +990,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         finally:
             try:
                 self.s2.remove_field('membrane.C')
-            except Exception:
+            except KeyError:
                 pass
 
     def test_set_paced_cells_1d(self):

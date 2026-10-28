@@ -4,16 +4,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import collections
 import io
 import math
 import re
 
-from collections import OrderedDict
-
 import numpy
 
 import myokit
-
 
 TAB = ' ' * 4
 NAME = re.compile(r'^[a-zA-Z]\w*$')
@@ -465,7 +463,7 @@ class VarOwner(ModelPart, VarProvider):
         self._variables = {}
         # Set component
         self._component = self
-        while type(self._component) != Component:
+        while type(self._component) is not Component:
             self._component = self._component.parent()
 
     def add_variable(self, name, unit=None, rhs=None, label=None,
@@ -531,8 +529,8 @@ class VarOwner(ModelPart, VarProvider):
             # Get similar names
             root = name + '_'
             n = len(name) + 1
-            names = set([
-                x.name() for x in self.variables() if x.name()[:n] == root])
+            names = {
+                x.name() for x in self.variables() if x.name()[:n] == root}
             # Find unused variant
             for i in range(1, 2 + len(names)):
                 name = root + str(i)
@@ -568,7 +566,7 @@ class VarOwner(ModelPart, VarProvider):
         # Scenario 2: One of this VarOwner's ancestors already contains a
         # variable of that name.
         par = self.parent()
-        while type(par) != Model:
+        while type(par) is not Model:
             if name in par:
                 # Return False, unless the variable is whitelisted
                 return par[name] in variable_whitelist
@@ -592,15 +590,13 @@ class VarOwner(ModelPart, VarProvider):
                 def viter(owner):
                     for n, v in sorted(owner._variables.items()):
                         yield v
-                        for w in v._create_variable_stream(True, True):
-                            yield w
+                        yield from v._create_variable_stream(True, True)
                 return viter(self)
             else:
                 def viter(owner):
                     for v in owner._variables.values():
                         yield v
-                        for w in v._create_variable_stream(True, False):
-                            yield w
+                        yield from v._create_variable_stream(True, False)
                 return viter(self)
         else:
             if sort:
@@ -758,7 +754,7 @@ class VarOwner(ModelPart, VarProvider):
         if dot < 0:
             # Local name given: child of this VarOwner or child of ancestor
             par = self
-            while type(par) != Model:
+            while type(par) is not Model:
                 try:
                     return par[name]
                 except KeyError:
@@ -896,8 +892,8 @@ class Model(ObjectWithMetaData, VarProvider):
             # Get similar names
             root = name + '_'
             n = len(name) + 1
-            names = set([
-                x.name() for x in self.components() if x.name()[:n] == root])
+            names = {
+                x.name() for x in self.components() if x.name()[:n] == root}
             # Find unused variant
             for i in range(1, 2 + len(names)):
                 name = root + str(i)
@@ -952,7 +948,7 @@ class Model(ObjectWithMetaData, VarProvider):
                     'The init() operator cannot be used in user functions.')
 
         # Check for unused arguments, undeclared arguments
-        ref_names = set([x._value for x in refs])
+        ref_names = {x._value for x in refs}
         for arg in arguments:
             arg = arg._value
             if arg not in ref_names:
@@ -1214,7 +1210,7 @@ class Model(ObjectWithMetaData, VarProvider):
         #       c2 : set([c3, c5, ...]),
         #        :
         #        }
-        compdeps = dict([(c, set()) for c in self.components()])
+        compdeps = {c: set() for c in self.components()}
         for var in self.variables(deep=True):
             c1 = var.parent(Component)
             d1 = compdeps[c1]
@@ -1346,8 +1342,7 @@ class Model(ObjectWithMetaData, VarProvider):
     def _create_variable_stream(self, deep, sort):
         def stream(model):
             for c in model.components(sort=sort):
-                for v in c.variables(deep=deep, sort=sort):
-                    yield v
+                yield from c.variables(deep=deep, sort=sort)
         return stream(self)
 
     def evaluate_derivatives(
@@ -1470,9 +1465,9 @@ class Model(ObjectWithMetaData, VarProvider):
 
         # Get shallow dependencies of all required equations
         # Use ordered dict to get consistent output
-        shallow = OrderedDict()
+        shallow = collections.OrderedDict()
         arguments = []
-        equations = OrderedDict()
+        equations = collections.OrderedDict()
 
         def add_dep(lhs):
             if lhs in shallow or lhs in arguments:
@@ -1628,12 +1623,10 @@ class Model(ObjectWithMetaData, VarProvider):
         if len(self._warnings) == 0:
             return pre
         out = []
-        i = 0
-        f = ' ({:' + str(1 + int(math.log10(len(self._warnings)))) + '}) '
-        for w in self._warnings:
-            i += 1
-            m = str(w)
-            out.append(f.format(i) + m)
+        n = 1 + int(math.log10(len(self._warnings)))
+        f = f' ({{:{n}}}) {{:}}'
+        for i, w in enumerate(self._warnings):
+            out.append(f.format(1 + i, w))
         return pre + ':\n' + '\n'.join(out)
 
     def get(self, name, class_filter=None):
@@ -1654,15 +1647,12 @@ class Model(ObjectWithMetaData, VarProvider):
         # Split name, get different parts
         names = name.split('.')
         x = self
-        try:
-            for name in names:
-                x = x[name]
-        except KeyError:
-            raise KeyError(str(name))
+        for nm in names:
+            x = x[nm]  # Raises KeyError if not found
 
         # Apply optional class filter
         if class_filter and not isinstance(x, class_filter):
-            raise KeyError(str(name) + ' of class ' + str(class_filter))
+            raise KeyError(f'{name} of class {class_filter}')
 
         return x
 
@@ -1805,10 +1795,11 @@ class Model(ObjectWithMetaData, VarProvider):
         # are the same and not this model
         for comp in external_component:
             if not comp.has_ancestor(ext_model):
-                raise ValueError((
-                    'The imported components must be from the same '
-                    'model, <{}> and <{}> are not.'
-                ).format(comp.name(), external_component[0].name()))
+                raise ValueError(
+                    'The imported components must be from the same model, '
+                    f'<{comp.name()}> and <{external_component[0].name()}> are'
+                    ' not.'
+                )
         if ext_model == self:
             raise ValueError(
                 'The component(s) to import are already part of this model.')
@@ -1817,20 +1808,20 @@ class Model(ObjectWithMetaData, VarProvider):
         for name in new_name:
             if self.has_component(name):
                 raise myokit.DuplicateName(
-                    'This model already has a component with the name <' + name
-                    + '>.')
+                    'This model already has a component with the name'
+                    f' <{name}>.')
 
         # Check for bindings or labels that are already in use
         for comp in external_component:
             for var in comp.variables():
                 if self.label(var.label()) is not None:
                     raise myokit.InvalidLabelError(
-                        'This model already has a variable with the label "'
-                        + str(var.label()) + '".')
+                        'This model already has a variable with the label'
+                        f' "{var.label()}".')
                 if self.binding(var.binding()) is not None:
                     raise myokit.InvalidBindingError(
-                        'This model already has a variable with the binding "'
-                        + str(var.binding()) + '".')
+                        'This model already has a variable with the binding'
+                        f' "{var.binding()}".')
 
         # Create a list of all external variables that require mapping
         vars_to_map = set()
@@ -2247,8 +2238,7 @@ class Model(ObjectWithMetaData, VarProvider):
             omit_states=omit_states, omit_constants=omit_constants)
 
         # Create output structure
-        # Use ordered dict to get consistent output
-        deps = OrderedDict()
+        deps = collections.OrderedDict()
         for comp in self.components():
             deps[comp] = set()
 
@@ -2307,8 +2297,8 @@ class Model(ObjectWithMetaData, VarProvider):
             ``state_variable`` in the mapping will only be added to the output
             list if there are other variables that depend on it.
 
-        The result is a tuple containing two ``OrderedDict`` objects, each of
-        the following structure::
+        The result is a tuple containing two ``collections.OrderedDict()``
+        objects, each with the following structure::
 
             {
                 comp1: [lhs1, lhs2, ...],
@@ -2326,10 +2316,10 @@ class Model(ObjectWithMetaData, VarProvider):
             omit_states=omit_states, omit_constants=omit_constants)
 
         # Create output structure
-        # Using OrderedDict to get consistent results when generating code from
-        # this output
-        di = OrderedDict()  # Inputs to each component (dependencies)
-        do = OrderedDict()  # Outputs from each component
+        # Inputs to each component (dependencies):
+        di = collections.OrderedDict()
+        # Outputs from each component:
+        do = collections.OrderedDict()
         for comp in self.components():
             di[comp] = set()
             do[comp] = set()
@@ -2439,8 +2429,7 @@ class Model(ObjectWithMetaData, VarProvider):
         deep = {}
 
         # Store set of lhs's found by following equations
-        equations = dict(
-            zip(shallow.keys(), [x.rhs() for x in shallow.keys()]))
+        equations = {key: [key.rhs()] for key in shallow}
 
         # Add state variables
         if not omit_states:
@@ -2481,8 +2470,7 @@ class Model(ObjectWithMetaData, VarProvider):
             trail2 = trail + [lhs]
             for kid in shallow[lhs]:
                 follow(kid, deps, trail2)
-                if kid in unused:
-                    unused.remove(kid)
+                unused.discard(kid)
             return deps
 
         # Follow every lhs (checks for cycles)
@@ -2946,7 +2934,7 @@ class Model(ObjectWithMetaData, VarProvider):
         accepted by :meth:`map_to_state`.
         """
         # Use map to state?
-        if isinstance(values, str) or isinstance(values, dict):
+        if isinstance(values, (str, dict)):
             self._state_init = [
                 myokit.Number(x) for x in self.map_to_state(values)]
         elif len(values) != len(self._state_vars):
@@ -3164,19 +3152,21 @@ class Model(ObjectWithMetaData, VarProvider):
         # Create component output dict and todo list
         # Both are created here, so that their order will match
         # `solvable_comps`.
-        out = OrderedDict()     # Final output dict (comp.name:EquationList)
-        todo = OrderedDict()    # Todo dict (comp:{lhs: equation})
+        # Final output dict, comp.name:EquationList
+        out = collections.OrderedDict()
+        # Todo dict, comp:{lhs: equation}
+        todo = collections.OrderedDict()
 
         # Add solvable components in the solvable order
         for comp in solvable_comps:
             out[comp.name()] = EquationList()
-            todo[comp] = OrderedDict()
+            todo[comp] = collections.OrderedDict()
         del solvable_comps
 
         # Add interdependent components in any (consistent) order
-        for comp in cdeps.keys():
+        for comp in cdeps:
             out[comp.name()] = EquationList()
-            todo[comp] = OrderedDict()
+            todo[comp] = collections.OrderedDict()
         del cdeps
 
         # At this point, we have created an ordered dict `out` that contains
@@ -3204,7 +3194,7 @@ class Model(ObjectWithMetaData, VarProvider):
         # {var: eq}. When scanning or solvable equations, nested variables will
         # be added to this dict, and then kept until their parent is
         # encountered, at which point they'll be added to `out`.
-        nested = OrderedDict()
+        nested = collections.OrderedDict()
 
         def add_nested_equations(eq_list, parent, done=None):
             """
@@ -3278,7 +3268,7 @@ class Model(ObjectWithMetaData, VarProvider):
                             dps.remove(lhs)
 
         # Get remaining, unsolved equations as {lhs: eq} map.
-        unsolved = OrderedDict()
+        unsolved = collections.OrderedDict()
         for comp, eqs in todo.items():
             for lhs, eq in eqs.items():
                 unsolved[lhs] = eq
@@ -3717,8 +3707,6 @@ class Component(VarOwner):
         Similarly, ``alias_map`` should be a dictionary mapping aliased
         variables in the old model to their counterparts in the new model.
         """
-        model = component.model()
-
         # Clone aliases
         for k, v in self._alias_map.items():
             component.add_alias(k, alias_map[v])
@@ -3743,7 +3731,7 @@ class Component(VarOwner):
                 'The name <' + str(name) + '> is already in use within this'
                 ' scope.')
         par = variable.parent()
-        if type(par) != Component:
+        if type(par) is not Component:
             raise myokit.IllegalAliasError(
                 'Aliases can only be created for variables whose parent is a'
                 ' Component.')
@@ -4239,7 +4227,7 @@ class Variable(VarOwner):
             if recursive:
                 # Refs from child variables are allowed
                 refs = refs.difference(
-                    set([x for x in refs if x.has_ancestor(self)]))
+                    {x for x in refs if x.has_ancestor(self)})
                 # Nested variables can not be referred to by outside variables,
                 # so this action doesn't have to be repeated for the nested
                 # variables.
@@ -4247,7 +4235,7 @@ class Variable(VarOwner):
             if ignore_siblings:
                 # Refs from sibling variables are allowed
                 refs = refs.difference(
-                    set([x for x in refs if x.has_ancestor(self._parent)]))
+                    {x for x in refs if x.has_ancestor(self._parent)})
 
             if refs:
                 refs = ' and '.join([f'<{v.qname()}>' for v in refs])
@@ -4271,7 +4259,7 @@ class Variable(VarOwner):
         if ignore_siblings:
             # Refs from sibling variables are allowed
             refs = refs.difference(
-                set([x for x in refs if x.has_ancestor(self._parent)]))
+                {x for x in refs if x.has_ancestor(self._parent)})
         if refs:
             refs = ' and '.join([f'<{v.qname()}>' for v in refs])
             raise myokit.IntegrityError(
@@ -4515,7 +4503,7 @@ class Variable(VarOwner):
         if self._index is not None:
             raise Exception('Variable is already a state variable')
         if not isinstance(self._parent, Component):
-            raise Exception('State variables can only be added to Components.')
+            raise Exception('State variables can only be added to Components.')  # noqa: TRY004
         if self._binding is not None:
             raise Exception(
                 'State variables cannot be bound to an external value.')
@@ -4619,9 +4607,9 @@ class Variable(VarOwner):
         # Create function
         local = {}
         if use_numpy:
-            exec(func, {'numpy': numpy}, local)
+            exec(func, {'numpy': numpy}, local)  # noqa: S102
         else:
-            exec(func, {'math': math}, local)
+            exec(func, {'math': math}, local)  # noqa: S102
         handle = local['var_pyfunc_generated']
 
         # Return
@@ -4908,10 +4896,10 @@ class Variable(VarOwner):
         # Get new references made by this variable, filter out references to
         # to values of state variables.
         if rhs is not None:
-            self._refs_to = set(
-                [r.var() for r in rhs.references() if not r.is_state_value()])
-            self._srefs_to = set(
-                [r.var() for r in rhs.references() if r.is_state_value()])
+            self._refs_to = {
+                r.var() for r in rhs.references() if not r.is_state_value()}
+            self._srefs_to = {
+                r.var() for r in rhs.references() if r.is_state_value()}
 
             # Update the refs-by stored in the new dependencies of this var
             for ref in self._refs_to:

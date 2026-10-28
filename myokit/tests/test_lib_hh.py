@@ -12,11 +12,7 @@ import numpy as np
 
 import myokit
 import myokit.lib.hh as hh
-
-from myokit.tests import DIR_DATA
-
-from myokit.tests import WarningCollector
-
+from myokit.tests import DIR_DATA, WarningCollector
 
 MODEL = """
 [[model]]
@@ -317,7 +313,7 @@ class HHDetectionTest(unittest.TestCase):
 
         # First argument must be a myokit model
         self.assertRaisesRegex(
-            ValueError, 'must be a myokit.Model',
+            TypeError, 'must be a myokit.Model',
             hh.convert_hh_states_to_inf_tau_form, [])
 
         # Membrane potential given explicitly (not as label)
@@ -370,7 +366,7 @@ class HHDetectionTest(unittest.TestCase):
 
         # Dt must be an expression
         self.assertRaisesRegex(
-            ValueError, 'must be a myokit.Expression',
+            TypeError, 'must be a myokit.Expression',
             hh.get_rl_expression, a, 'dt')
 
         # Returns None if not in inf-tau form
@@ -419,7 +415,7 @@ class HHModelTest(unittest.TestCase):
 
         # First argument not a model
         self.assertRaisesRegex(
-            ValueError, 'must be a myokit.Model', hh.HHModel, 1, states)
+            TypeError, 'must be a myokit.Model', hh.HHModel, 1, states)
 
         # State doesn't exist
         self.assertRaisesRegex(
@@ -669,9 +665,9 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # Bad constructors
         self.assertRaisesRegex(
-            ValueError, 'HHModel', hh.AnalyticalSimulation, 1)
+            TypeError, 'HHModel', hh.AnalyticalSimulation, 1)
         self.assertRaisesRegex(
-            ValueError, 'Protocol', hh.AnalyticalSimulation, m, 1)
+            TypeError, 'Protocol', hh.AnalyticalSimulation, m, 1)
 
         # Create properly
         s = hh.AnalyticalSimulation(m)

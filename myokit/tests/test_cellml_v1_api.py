@@ -9,7 +9,6 @@ import unittest
 
 import myokit
 import myokit.formats.cellml.v1 as cellml
-
 from myokit.tests import WarningCollector
 
 
@@ -78,8 +77,7 @@ class TestCellML1Component(unittest.TestCase):
         # Test component creation
 
         m = cellml.Model('m')
-        c = m.add_component('c')
-
+        m.add_component('c')
         self.assertRaisesRegex(
             cellml.CellMLError, 'valid CellML identifier',
             m.add_component, '123')
@@ -359,10 +357,10 @@ class TestCellML1Model(unittest.TestCase):
 
         # Not a variable or wrong model
         self.assertRaisesRegex(
-            ValueError, 'variable_1 must be a cellml.v1.Variable.',
+            TypeError, 'variable_1 must be a cellml.v1.Variable.',
             m.add_connection, 'x', y)
         self.assertRaisesRegex(
-            ValueError, 'variable_2 must be a cellml.v1.Variable.',
+            TypeError, 'variable_2 must be a cellml.v1.Variable.',
             m.add_connection, y, 'x')
         self.assertRaisesRegex(
             ValueError, 'variable_1 must be a variable from',
@@ -596,7 +594,7 @@ class TestCellML1ModelConversion(unittest.TestCase):
         x2.set_rhs('3 + c1.x')
         y.set_rhs('2 * x')
         cm = cellml.Model.from_myokit_model(m)
-        mm = cm.myokit_model()
+        cm.myokit_model()
 
         # Test numbers and variables without units are dimensionless...
         self.assertEqual(cm['c1']['x'].units().name(), 'dimensionless')
@@ -965,7 +963,7 @@ class TestCellML1ModelConversion(unittest.TestCase):
         # Missing initial values
         y.set_initial_value(None)
         bz.set_initial_value(None)
-        with WarningCollector() as w:
+        with WarningCollector():
             mm = m.myokit_model()
         mz, my = mm.get('b.z'), mm.get('a.y')
         self.assertEqual(my.initial_value(), myokit.Number(0))
@@ -1325,9 +1323,9 @@ class TestCellML1Variable(unittest.TestCase):
         self.assertIsNone(v.rhs())
 
         # Must be an expression
-        self.assertRaises(ValueError, v.set_rhs, 'a')
-        self.assertRaises(ValueError, v.set_rhs, '1 + 2')
-        self.assertRaises(ValueError, v.set_rhs, 13)
+        self.assertRaises(TypeError, v.set_rhs, 'a')
+        self.assertRaises(TypeError, v.set_rhs, '1 + 2')
+        self.assertRaises(TypeError, v.set_rhs, 13)
 
         # Bad interface
         w = v.component().add_variable('w', 'volt', 'in')
@@ -1424,7 +1422,7 @@ class TestCellML1Units(unittest.TestCase):
     def test_creation(self):
         # Test creation
 
-        mv = cellml.Units('millivolt', myokit.units.mV)
+        cellml.Units('millivolt', myokit.units.mV)
         self.assertRaisesRegex(
             cellml.CellMLError, 'valid CellML identifier',
             cellml.Units, '132', myokit.units.mV)
@@ -1432,7 +1430,7 @@ class TestCellML1Units(unittest.TestCase):
             cellml.CellMLError, 'predefined',
             cellml.Units, 'volt', myokit.units.V)
         self.assertRaisesRegex(
-            ValueError, 'myokit.Unit',
+            TypeError, 'myokit.Unit',
             cellml.Units, 'wooster', 'mV')
 
     def test_find(self):
@@ -1596,7 +1594,7 @@ class TestCellML1Units(unittest.TestCase):
         self.assertEqual(cellml.Units.find_units(
             'newton').myokit_unit(), myokit.units.N)
         self.assertEqual(cellml.Units.find_units(
-            'ohm').myokit_unit(), myokit.units.R)
+            'ohm').myokit_unit(), myokit.units.ohm)
         self.assertEqual(cellml.Units.find_units(
             'pascal').myokit_unit(), myokit.units.Pa)
         self.assertEqual(cellml.Units.find_units(

@@ -10,8 +10,7 @@ import unittest
 
 import myokit
 import myokit.formats.cellml.v2 as v2
-
-from myokit.tests import TemporaryDirectory, DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_FORMATS, TemporaryDirectory, WarningCollector
 
 # CellML directory
 DIR = os.path.join(DIR_FORMATS, 'cellml')

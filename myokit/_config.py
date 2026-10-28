@@ -177,7 +177,7 @@ def _create(path):
     try:
         with open(path, 'w') as configfile:
             config.write(configfile)
-    except IOError:     # pragma: no cover
+    except OSError:  # pragma: no cover
         warnings.warn('Warning: Unable to write settings to ' + str(path))
 
 

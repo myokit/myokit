@@ -5,14 +5,13 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import warnings
 
 import myokit
-
 
 #
 # Deprecated since 2020-06-14
 #
-import warnings
 warnings.warn(
     'The module myokit.lib.multi is deprecated: it will be removed in future'
     ' versions of Myokit.'

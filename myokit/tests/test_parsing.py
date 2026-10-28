@@ -12,7 +12,6 @@ import unittest
 
 import myokit
 import myokit.units
-
 from myokit.tests import DIR_DATA, TemporaryDirectory
 
 
@@ -297,8 +296,7 @@ class PhasedParseTest(unittest.TestCase):
 
     def test_parse_model_from_stream_error(self):
         # Quick error testing for :meth:`parse_model_from_stream`.
-        from myokit._parsing import parse_model_from_stream
-        from myokit._parsing import Tokenizer
+        from myokit._parsing import Tokenizer, parse_model_from_stream
 
         def p(code):
             return parse_model_from_stream(Tokenizer(iter(code)))
@@ -385,8 +383,7 @@ class PhasedParseTest(unittest.TestCase):
 
     def test_block_comments(self):
         # Test block comments in model.
-        from myokit._parsing import parse_model_from_stream
-        from myokit._parsing import Tokenizer
+        from myokit._parsing import Tokenizer, parse_model_from_stream
 
         def p(code):
             return parse_model_from_stream(Tokenizer(iter(code)))
@@ -407,7 +404,7 @@ class PhasedParseTest(unittest.TestCase):
         m2 = p(c2)
         c3 = (
             '[[model]]',
-            '"""'
+            '"""',
             'This is a long',
             'long',
             'long',
@@ -841,7 +838,8 @@ class PhasedParseTest(unittest.TestCase):
             parse_protocol, code)
 
         # Not a protocol (in stream)
-        from myokit._parsing import parse_protocol_from_stream, Tokenizer
+        from myokit._parsing import Tokenizer, parse_protocol_from_stream
+
         stream = Tokenizer(iter(code))
         self.assertRaisesRegex(
             myokit.ParseError, r'Expecting \[\[protocol]]',
@@ -1005,7 +1003,7 @@ class PhasedParseTest(unittest.TestCase):
             '',
             '',
             '4 4 4 4 4',
-            'no'
+            'no',
             '',
             '',
             '[[script]]',
@@ -1014,11 +1012,11 @@ class PhasedParseTest(unittest.TestCase):
         ]
         m, p, x = split('\n'.join(code))
         self.assertEqual(m, '\n'.join(code[:8]))
-        self.assertEqual(p, '\n'.join(code[8:17]))
-        self.assertEqual(x, '\n'.join(code[17:-1]))
+        self.assertEqual(p, '\n'.join(code[8:18]))
+        self.assertEqual(x, '\n'.join(code[18:-1]))
 
         # Scenario 2
-        code[17] = '[[scrubbed]]'
+        code[18] = '[[scrubbed]]'
         m, p, x = split('\n'.join(code))
         self.assertEqual(m, '\n'.join(code[:8]))
         self.assertEqual(p, '\n'.join(code[8:-1]))
@@ -1053,8 +1051,9 @@ class PhasedParseTest(unittest.TestCase):
 
     def test_parse_expression(self):
         # Test parse_expression()
-        from myokit import parse_expression as p
         from myokit import Number
+        from myokit import parse_expression as p
+
         e = p('5')
         self.assertIsInstance(e, Number)
         self.assertEqual(e.eval(), 5.0)
@@ -1378,7 +1377,6 @@ class ModelParseTest(unittest.TestCase):
         i = m.get('membrane.V').index()
         # Test x, xo, y, yo
 
-        v = myokit.Name(m.get('membrane.V'))
         s[i] = -80
         m.set_initial_values(s)
         self.assertEqual(x.rhs().eval(), 3)

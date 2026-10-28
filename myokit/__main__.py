@@ -79,10 +79,10 @@ def main():
     """
     Parses command line arguments.
     """
+    import argparse
     import sys
 
     # Create parser
-    import argparse
     parser = argparse.ArgumentParser(
         usage='myokit',
         description='Command line tools for myokit.',
@@ -331,6 +331,7 @@ def mmt_export(exporter, source, target):
     Exports a myokit model.
     """
     import sys
+
     import myokit
     import myokit.formats
 
@@ -454,8 +455,9 @@ def install_gnome_kde():
     Installs launchers and associates file types for gnome/kde systems.
     """
     import os
-    import sys
     import shutil
+    import sys
+
     import myokit
 
     # Get user home dir
@@ -759,6 +761,7 @@ def opencl_select():
     Lets the user select the OpenCL device to use.
     """
     import sys
+
     import myokit
 
     w = 70
@@ -833,7 +836,7 @@ def opencl_select():
                 pass
             print('Invalid selection, please retry')
     except KeyboardInterrupt:
-        print('')
+        print()
         print('OpenCL device selection aborted.')
         sys.exit(0)
 
@@ -875,6 +878,7 @@ def reset(force=False):
     Removes all Myokit settings files.
     """
     import sys
+
     import myokit
 
     # Ask user if settings should be deleted
@@ -920,6 +924,7 @@ def add_reset_parser(subparsers):
 def run(source, debug_sg, debug_wg, debug_sc, debug_sm, debug_sp, debug_ss):
     """ Runs an mmt file script. """
     import sys
+
     import myokit
 
     # Debug modes
@@ -972,12 +977,8 @@ def run(source, debug_sg, debug_wg, debug_sc, debug_sm, debug_sp, debug_ss):
     # Normal run
     # Show script
     printline()
-    lines = script.splitlines()
-    template = '{:>3d} {:s}'
-    i = 0
-    for line in lines:
-        i += 1
-        print(template.format(i, line))
+    for i, line in enumerate(script.splitlines()):
+        print(f'{i + 1:>3d} {line}')
     printline()
 
     # Run!
@@ -1042,6 +1043,7 @@ def step(source, ref, ini, raw):
     Loads a model and evaluates the state vector derivatives.
     """
     import sys
+
     import myokit
 
     # Parse reference file, if given
@@ -1170,6 +1172,7 @@ def system():
     Displays system information.
     """
     import os
+
     import myokit
     myokit.system(live_printing=True)
 
@@ -1287,7 +1290,7 @@ def test_coverage(args):
             except OSError:
                 pass
             p.wait()
-            print('')
+            print()
             sys.exit(1)
         if ret != 0:
             print('FAILED')
@@ -1351,7 +1354,7 @@ def test_documentation(args):
         except OSError:
             pass
         p.wait()
-        print('')
+        print()
         sys.exit(1)
     if ret != 0:
         print('FAILED')
@@ -1390,7 +1393,7 @@ def test_doc_coverage(classes, functions):
         with open(doc_file, 'r') as f:
             # We need to identify which module each class or function is in
             module = ''
-            for line in f.readlines():
+            for line in f:
                 m_match = re.search(regex_module, line)
                 c_match = re.search(regex_class, line)
                 f_match = re.search(regex_funct, line)
@@ -1455,7 +1458,7 @@ def test_doc_coverage_get_objects():
     import inspect
     import os
 
-    def find_modules(root, modules=[], ignore=[]):
+    def find_modules(root, modules, ignore):
         """ Find all modules in the given directory. """
 
         # Get root as module
@@ -1488,7 +1491,7 @@ def test_doc_coverage_get_objects():
 
     # Get modules
     import myokit
-    modules = find_modules('myokit', ignore=['myokit/tests'])
+    modules = find_modules('myokit', [], ignore=['myokit/tests'])
 
     # Import all modules
     for module in modules:
@@ -1532,8 +1535,6 @@ def test_doc_coverage_get_objects():
             elif inspect.isfunction(member):
                 if member.__module__.startswith('myokit.'):
                     functions.add(full_name)
-
-        return
 
     # Scan and return
     print('Scanning Myokit modules...')
@@ -1637,6 +1638,7 @@ def test_examples_web(args):
     """
     import os
     import sys
+
     import myokit
 
     # Get web directory
@@ -1745,7 +1747,7 @@ def test_style(args):
         except OSError:
             pass
         p.wait()
-        print('')
+        print()
         sys.exit(1)
     if ret == 0:
         print('ok')
@@ -1817,6 +1819,7 @@ def video(src, key, dst, fps, grow, colormap):
     """
     import os
     import sys
+
     import myokit
 
     # Test if moviepy is installed

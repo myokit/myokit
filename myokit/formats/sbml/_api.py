@@ -5,14 +5,14 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
-from typing import Dict
-import warnings
 import re
+import warnings
 
 import myokit
 import myokit.units
-from myokit.formats.cellml.v2._api import create_unit_name as cellml_create_unit_name  # noqa: E501
-
+from myokit.formats.cellml.v2._api import (
+    create_unit_name as cellml_create_unit_name,
+)
 
 # Regex for id checking
 _re_id = re.compile(r'^[a-zA-Z_]+[a-zA-Z0-9_]*$')
@@ -333,9 +333,6 @@ class Model:
         # Add variables
         for component in model:
             for variable in component:
-                # Get variable unit, or infer from RHS if None
-                unit = variable_unit(variable, time_unit)
-
                 # Add variable
                 add_variable(variable)
 
@@ -648,7 +645,7 @@ class Model:
         """Returns the default units for time, or dimensionless if not set."""
         return self._time_units
 
-    def units(self) -> Dict[str, myokit.Unit]:
+    def units(self) -> dict[str, myokit.Unit]:
         """Returns a dict mapping sid to unit for all units in this model."""
         return dict(self._units)
 

@@ -4,12 +4,10 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-from ._exporter import EasyMLExporter
 from ._ewriter import EasyMLExpressionWriter
-
+from ._exporter import EasyMLExporter
 
 # Importers
-
 # Exporters
 _exporters = {
     'easyml': EasyMLExporter,

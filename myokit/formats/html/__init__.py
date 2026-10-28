@@ -5,8 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 from ._exporter import HTMLExporter
-from ._flatten import html2ascii    # noqa
-
+from ._flatten import html2ascii  # noqa: F401
 
 # Importers
 # Exporters

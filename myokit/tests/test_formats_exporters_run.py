@@ -10,7 +10,6 @@ import unittest
 
 import myokit
 import myokit.formats
-
 from myokit.tests import TemporaryDirectory
 
 
@@ -92,8 +91,7 @@ class ExportTest(unittest.TestCase):
 
             # Test if any exports were available
             if exports == 0:
-                raise Exception(
-                    'No types of export supported by: ' + exporter)
+                raise RuntimeError(f'No types of export supported by: {e}')
 
     def test_completeness(self):
         # Test that all exporters have a test (so meta!).

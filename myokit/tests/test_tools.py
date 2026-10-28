@@ -6,15 +6,15 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import pathlib
 import re
 import sys
+import tempfile
 import threading
 import time
 import unittest
 
 import myokit
-
-from myokit.tests import TemporaryDirectory
 
 
 class BenchmarkerTest(unittest.TestCase):
@@ -34,7 +34,7 @@ class BenchmarkerTest(unittest.TestCase):
         t2 = b.time()
         self.assertTrue(t2 >= t1)
         for i in range(1000):
-            x = [0] * 1000
+            x = [0] * 1000  # noqa
         t3 = b.time()
         self.assertTrue(t3 >= t2)
         b.reset()
@@ -288,12 +288,12 @@ class ToolsTest(unittest.TestCase):
     def test_rmtree(self):
         # Test rmtree
 
-        with TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d:
 
             # Create dir with subdir
-            path = d.path('a')
+            path = pathlib.Path(d) / 'a'
             os.mkdir(path)
-            os.mkdir(os.path.join(path, 'b'))
+            os.mkdir(path / 'b')
 
             # This can't be deleted with rmdir
             self.assertRaises(OSError, os.rmdir, path)

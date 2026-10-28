@@ -13,10 +13,8 @@ import numpy as np
 
 import myokit
 
-
 # Unit --> See test_units.py
 # Quantity --> See test_units.py
-
 
 # Tiny model for partial derivative testing.
 pd_model = myokit.parse_model("""
@@ -257,11 +255,11 @@ class ExpressionTest(unittest.TestCase):
 
         # Only Names or intial values are allowed
         self.assertRaisesRegex(
-            ValueError, 'only be taken with respect to a myokit.Name or',
+            TypeError, 'only be taken with respect to a myokit.Name or',
             i.rhs().diff, myokit.Number(3))
         V = m.get('membrane.V')
         self.assertRaisesRegex(
-            ValueError, 'only be taken with respect to a myokit.Name or',
+            TypeError, 'only be taken with respect to a myokit.Name or',
             i.rhs().diff, V.lhs())
 
         # Derivative w.r.t. initial condition is zero when states are
@@ -339,7 +337,7 @@ class ExpressionTest(unittest.TestCase):
             25)
 
         # Test errors in substitution dict format
-        self.assertRaisesRegex(ValueError, 'dict or None', z.rhs().eval, 2)
+        self.assertRaisesRegex(TypeError, 'dict or None', z.rhs().eval, 2)
         self.assertRaisesRegex(ValueError, 'All keys', z.rhs().eval, {5: 1})
         self.assertRaisesRegex(
             ValueError, 'All values', z.rhs().eval, {x.lhs(): 'hello'})
@@ -3375,7 +3373,7 @@ class FloorTest(unittest.TestCase):
         # Operand must be a numerical expression
         self.assertRaisesRegex(myokit.IntegrityError, 'must be other Express',
                                myokit.Floor, 1.2)
-        a = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        myokit.Equal(myokit.Number(1), myokit.Number(2))
         self.assertRaisesRegex(
             myokit.TypeError, r'floor\(\) expects a numerical operand',
             myokit.Floor, myokit.Equal(myokit.Number(1), myokit.Number(2)))

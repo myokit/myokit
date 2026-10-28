@@ -14,9 +14,7 @@ import numpy as np
 
 import myokit
 import myokit.gui
-
-from myokit.gui import QtWidgets, QtGui, QtCore, Qt
-
+from myokit.gui import Qt, QtCore, QtGui, QtWidgets
 
 # Application title
 TITLE = 'Myokit DataBlock Viewer'
@@ -557,7 +555,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         if frame < 0 or frame >= nt:
             frame = 0
         # Update
-        if self._video_iframe != frame or True:
+        if self._video_iframe != frame: # or True:
             self._video_iframe = frame
             # Update slider
             if self._slider.value() != frame:
@@ -711,7 +709,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         if self._data is not None:
             try:
                 z = self._data.get2d(self._variable)[self._video_iframe, y, x]
-                z = '{:< 1.6g}'.format(z)
+                z = f'{z:< 1.6g}'
             except IndexError:
                 z = '?'
             self._label_cursor.setText(f'({x:< 1.6g}, {y:< 1.6g}, {z}')
@@ -761,7 +759,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 if os.path.isdir(path):
                     self._path = path
             self._recent_files = []
-            for i in range(0, N_RECENT_FILES):
+            for i in range(N_RECENT_FILES):
                 opt = 'recent_' + str(i)
                 if config.has_option('files', opt):
                     fname = config.get('files', opt)
@@ -1059,7 +1057,7 @@ class VideoView(QtWidgets.QGraphicsView):
         # Set rendering hints
         self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         self.setViewportUpdateMode(
-            QtWidgets.QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)  # noqa
+            QtWidgets.QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)
 
         # Fit scene rect in view
         self.fitInView(self.sceneRect(), keepAspect=True)
@@ -1250,7 +1248,7 @@ class GraphArea(QtWidgets.QWidget):
         d = myokit.DataLog()
         if self._data is not None:
             d['engine.time'] = self._data.time()
-            for index in self._frozen.keys():
+            for index in self._frozen:
                 x, y, variable = index
                 d[variable, x, y] = self._data.trace(variable, x, y)
             if self._temp_index:

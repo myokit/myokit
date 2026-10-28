@@ -9,7 +9,6 @@ import unittest
 
 import myokit
 import myokit.pype
-
 from myokit.tests import TemporaryDirectory
 
 
@@ -26,35 +25,32 @@ class PypeTest(unittest.TestCase):
         with myokit.tools.capture():
 
             # Test not-a-file
-            self.assertRaises(IOError, e.process, 'file.txt', {})
+            self.assertRaises(OSError, e.process, 'file.txt')
 
             # Test simple error
-            self.e("""<?print(1/0) ?>""", {}, 'ZeroDivisionError')
+            self.e("""<?print(1/0) ?>""", err='ZeroDivisionError')
 
             # Test closing without opening
-            self.e("""Hello ?>""", {}, 'without opening tag')
+            self.e("""Hello ?>""", err='without opening tag')
 
             # Opening without closing is allowed
-            self.e("""<?print('hi')""", {})
+            self.e("""<?print('hi')""")
 
             # Nested opening
-            self.e(
-                """<?print('hi')<?print('hello')?>""",
-                {},
-                'Nested opening tag',
-            )
+            self.e("""<?print('hi')<?print('hello')?>""",
+                   err='Nested opening tag')
 
             # Too much inside <?=?>
-            self.e("""<?=if 1 > 2: print('hi')?>""", {}, 'contain a single')
-            self.e("""<?=print(1); print('hi')?>""", {}, 'contain a single')
+            self.e("""<?=if 1 > 2: print('hi')?>""", err='contain a single')
+            self.e("""<?=print(1); print('hi')?>""", err='contain a single')
 
-            # Triple quote should be allowed
-            self.e('''Hello"""string"""yes''', {})
+            # Triple quote should be allowed - also tests without variables
+            self.e('''Hello"""string"""yes''')
 
             # OSError from inside pype
-            self.e("""Hello<?open('file.txt', 'r')?>yes""", {}, 'No such file')
+            self.e("""Hello<?open('file.txt', 'r')?>yes""", err='No such file')
 
-    def e(self, template, args, expected_error=None):
+    def e(self, template, args=None, err=None):
         """
         Runs a template, if an error is expected it checks if it's the right
         one.
@@ -64,14 +60,14 @@ class PypeTest(unittest.TestCase):
             with open(path, 'w') as f:
                 f.write(template)
             e = myokit.pype.TemplateEngine()
-            if expected_error is None:
+            if err is None:
                 e.process(path, args)
             else:
                 try:
                     e.process(path, args)
                 except myokit.pype.PypeError:
                     # Check expected message in error details
-                    self.assertIn(expected_error, e.error_details())
+                    self.assertIn(err, e.error_details())
                     return
                 raise RuntimeError('PypeError not raised.')
 

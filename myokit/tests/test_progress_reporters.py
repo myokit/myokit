@@ -5,9 +5,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import unittest
 import re
 import time
+import unittest
 
 import myokit
 

@@ -10,7 +10,6 @@ import unittest
 
 import myokit
 import myokit.formats
-
 from myokit.tests import TemporaryDirectory
 
 

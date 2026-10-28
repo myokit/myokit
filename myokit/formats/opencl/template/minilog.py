@@ -4,8 +4,8 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import array
+import os
 from collections import OrderedDict
 
 
@@ -234,17 +234,17 @@ class DataLog(OrderedDict):
             f.write(eol)
             # Write data
             if pad is None:
-                for i in range(0, n):
+                for i in range(n):
                     line = []
                     for d in data:
-                        line.append(myokit.float.str(next(d)))
+                        line.append(str(next(d)))
                     f.write(delim.join(line) + eol)
             else:
-                for i in range(0, n):
+                for i in range(n):
                     line = []
                     for d in data:
                         try:
-                            line.append(myokit.float.str(next(d)))
+                            line.append(str(next(d)))
                         except StopIteration:
                             line.append('0')
                     f.write(delim.join(line) + eol)
