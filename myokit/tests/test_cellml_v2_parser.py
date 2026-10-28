@@ -6,11 +6,13 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import pathlib
+import tempfile
 import unittest
 
 import myokit
 import myokit.formats.cellml.v2 as v2
-from myokit.tests import DIR_FORMATS, TemporaryDirectory, WarningCollector
+from myokit.tests import DIR_FORMATS, WarningCollector
 
 # CellML directory
 DIR = os.path.join(DIR_FORMATS, 'cellml')
@@ -39,8 +41,8 @@ class TestCellMLParser(unittest.TestCase):
         Inserts the given ``xml`` into a <model> element, writes it to a
         temporary file, parses it, and returns the result.
         """
-        with TemporaryDirectory() as d:
-            path = d.path('test.cellml')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'test.cellml'
             with open(path, 'w') as f:
                 f.write(self.wrap(xml))
             return v2.parse_file(path)

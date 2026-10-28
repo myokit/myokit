@@ -8,11 +8,13 @@
 #
 import math
 import os
+import pathlib
+import tempfile
 import unittest
 
 import myokit
 import myokit.units
-from myokit.tests import DIR_DATA, TemporaryDirectory
+from myokit.tests import DIR_DATA
 
 
 class TokenizerTest(unittest.TestCase):
@@ -1185,8 +1187,8 @@ class PhasedParseTest(unittest.TestCase):
             )
 
             # File source
-            with TemporaryDirectory() as d:
-                path = d.path('mmt')
+            with tempfile.TemporaryDirectory() as d:
+                path = pathlib.Path(d) / 'mmt'
                 with open(path, 'w') as f:
                     f.write(bad + '\n')
                 myokit.format_parse_error(e, source=path),

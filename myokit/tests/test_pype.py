@@ -5,11 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import pathlib
+import tempfile
 import unittest
 
 import myokit
 import myokit.pype
-from myokit.tests import TemporaryDirectory
 
 
 class PypeTest(unittest.TestCase):
@@ -55,8 +56,8 @@ class PypeTest(unittest.TestCase):
         Runs a template, if an error is expected it checks if it's the right
         one.
         """
-        with TemporaryDirectory() as d:
-            path = d.path('template')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'template'
             with open(path, 'w') as f:
                 f.write(template)
             e = myokit.pype.TemplateEngine()

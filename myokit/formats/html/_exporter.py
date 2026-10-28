@@ -57,6 +57,7 @@ class HTMLExporter(myokit.formats.Exporter):
                 writer.eq(var.eq(), math)
 
         # Write xml to file
+        path = str(path)
         doc = etree.ElementTree(html)
         doc.write(path, encoding='utf-8', method='xml')
 

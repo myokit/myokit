@@ -8,12 +8,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import pathlib
 import pickle
 import re
+import tempfile
 import unittest
 
 import myokit
-from myokit.tests import TemporaryDirectory, WarningCollector
+from myokit.tests import WarningCollector
 
 
 class ModelTest(unittest.TestCase):
@@ -1701,8 +1703,8 @@ class ModelTest(unittest.TestCase):
 
         m = myokit.load_model('example')
         s1 = m.initial_values(True)
-        with TemporaryDirectory() as d:
-            path = d.path('state.csv')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'state.csv'
             with WarningCollector() as w:
                 m.save_state(path)
             self.assertIn('deprecated', w.text())

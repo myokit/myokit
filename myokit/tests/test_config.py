@@ -6,11 +6,13 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import pathlib
 import sys
+import tempfile
 import unittest
 
 import myokit
-from myokit.tests import TemporaryDirectory, WarningCollector
+from myokit.tests import WarningCollector
 
 debug = False
 
@@ -77,9 +79,9 @@ class TestConfig(unittest.TestCase):
 
         # Temporarily change myokit config dir
         cls._dir_user = myokit.DIR_USER
-        cls._temp_dir = TemporaryDirectory()
-        cls._temp_dir.__enter__()
-        myokit.DIR_USER = cls._temp_dir.path()
+        cls._temp_dir = tempfile.TemporaryDirectory()
+        cls._temp_path = pathlib.Path(cls._temp_dir.name)
+        myokit.DIR_USER = str(cls._temp_path)
 
         # Config module
         cls._config_module = config
@@ -92,6 +94,8 @@ class TestConfig(unittest.TestCase):
 
         # Reset path
         myokit.DIR_USER = cls._dir_user
+        cls._temp_dir.cleanup()
+        del cls._temp_dir, cls._temp_path
 
         # Reset data and time
         myokit.COMPAT_NO_CAPTURE = cls._compat_no_capture
@@ -131,20 +135,20 @@ class TestConfig(unittest.TestCase):
         # Test if the `_create` method works.
 
         # Test _create
-        with TemporaryDirectory() as d:
-            filename = d.path('test.ini')
+        with tempfile.TemporaryDirectory() as d:
+            filename = pathlib.Path(d) / 'test.ini'
             self._config_module._create(filename)
             self.assertTrue(os.path.isfile(filename))
         self.assertFalse(os.path.isfile(filename))
 
         # No ini file (calls _create())
-        path = self._temp_dir.path('myokit.ini')
-        if os.path.exists(path):
-            os.remove(path)
+        path = self._temp_path / 'myokit.ini'
+        if path.exists():
+            path.unlink()
         self._config_module._load()
-        self.assertTrue(os.path.isfile(path))
-        os.remove(path)
-        self.assertFalse(os.path.isfile(path))
+        self.assertTrue(path.is_file())
+        path.unlink()
+        self.assertFalse(path.is_file())
 
     def test_load_basic(self):
         # Tests basic entries are loaded.
@@ -154,7 +158,7 @@ class TestConfig(unittest.TestCase):
         myokit.OPENCL_INC = []
         myokit.FORCE_PYSIDE6 = myokit.FORCE_PYSIDE2 = False
         myokit.FORCE_PYQT6 = myokit.FORCE_PYQT5 = False
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write(config_basic)
         self._config_module._load()
         self.assertEqual(myokit.DATE_FORMAT, 'TEST_DATE_FORMAT')
@@ -169,14 +173,14 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(myokit.OPENCL_INC, ['three', 'eight'])
 
         # Unknown settings are ignored
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write(config_extra)
         self._config_module._load()
 
     def test_load_empty(self):
         # Test loading with an empty file.
 
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('')
         self._config_module._load()
 
@@ -188,7 +192,7 @@ class TestConfig(unittest.TestCase):
         myokit.SUNDIALS_INC = []
         myokit.OPENCL_LIB = []
         myokit.OPENCL_INC = []
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write(config_paths)
         self._config_module._load()
         self.assertEqual(myokit.SUNDIALS_LIB, ['five'])
@@ -202,7 +206,7 @@ class TestConfig(unittest.TestCase):
         # Tests setting the GUI back end
 
         # Qt gui options
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[gui]\nbackend=pyqt6\n')
         self._config_module._load()
         self.assertTrue(myokit.FORCE_PYQT6)
@@ -210,7 +214,7 @@ class TestConfig(unittest.TestCase):
         self.assertFalse(myokit.FORCE_PYSIDE6)
         self.assertFalse(myokit.FORCE_PYSIDE2)
 
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[gui]\nbackend=pyqt5\n')
         self._config_module._load()
         self.assertFalse(myokit.FORCE_PYQT6)
@@ -218,7 +222,7 @@ class TestConfig(unittest.TestCase):
         self.assertFalse(myokit.FORCE_PYSIDE6)
         self.assertFalse(myokit.FORCE_PYSIDE2)
 
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[gui]\nbackend=pyside6\n')
         self._config_module._load()
         self.assertFalse(myokit.FORCE_PYQT6)
@@ -226,7 +230,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(myokit.FORCE_PYSIDE6)
         self.assertFalse(myokit.FORCE_PYSIDE2)
 
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[gui]\nbackend=pyside2\n')
         self._config_module._load()
         self.assertFalse(myokit.FORCE_PYQT6)
@@ -235,7 +239,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(myokit.FORCE_PYSIDE2)
 
         # Empty has no effect
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[gui]\nbackend=\n')
         with WarningCollector() as c:
             self._config_module._load()
@@ -246,7 +250,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(myokit.FORCE_PYSIDE2)
 
         # Invalid raises warning
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[gui]\nbackend=lalala\n')
         with WarningCollector() as c:
             self._config_module._load()
@@ -257,18 +261,18 @@ class TestConfig(unittest.TestCase):
         # Tests loading compatibility option: no_capture
 
         myokit.COMPAT_NO_CAPTURE = False
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[compatibility]\nno_capture = True\n')
         self._config_module._load()
         self.assertTrue(myokit.COMPAT_NO_CAPTURE)
 
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[compatibility]\nno_capture = False\n')
         self._config_module._load()
         self.assertFalse(myokit.COMPAT_NO_CAPTURE)
 
         # Empty has no effect
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[compatibility]\nno_capture = \n')
         with WarningCollector() as c:
             self._config_module._load()
@@ -281,7 +285,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(myokit.COMPAT_NO_CAPTURE)
 
         # Invalid raises warning
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[compatibility]\nno_capture = hiya\n')
         with WarningCollector() as c:
             self._config_module._load()
@@ -292,18 +296,18 @@ class TestConfig(unittest.TestCase):
         # Tests loading compatibility option: no_fd_capture
 
         myokit.COMPAT_NO_FD_CAPTURE = False
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[compatibility]\nno_fd_capture = True\n')
         self._config_module._load()
         self.assertTrue(myokit.COMPAT_NO_FD_CAPTURE)
 
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[compatibility]\nno_fd_capture = False\n')
         self._config_module._load()
         self.assertFalse(myokit.COMPAT_NO_FD_CAPTURE)
 
         # Empty has no effect
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[compatibility]\nno_fd_capture = \n')
         with WarningCollector() as c:
             self._config_module._load()
@@ -316,7 +320,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(myokit.COMPAT_NO_FD_CAPTURE)
 
         # Invalid raises warning
-        with open(self._temp_dir.path('myokit.ini'), 'w') as f:
+        with open(self._temp_path / 'myokit.ini', 'w') as f:
             f.write('[compatibility]\nno_fd_capture = hiya\n')
         with WarningCollector() as c:
             self._config_module._load()

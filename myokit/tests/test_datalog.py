@@ -8,6 +8,8 @@
 import array
 import json
 import os
+import pathlib
+import tempfile
 import unittest
 
 import numpy as np
@@ -17,7 +19,6 @@ from myokit.tests import (
     DIR_DATA,
     DIR_IO,
     CancellingReporter,
-    TemporaryDirectory,
     TestReporter,
     WarningCollector,
 )
@@ -712,8 +713,8 @@ class DataLogTest(unittest.TestCase):
     def test_load_csv_ufeff(self):
         # Test ignoring byte order marker (BOM) at start of file
 
-        with TemporaryDirectory() as td:
-            path = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            path = pathlib.Path(td) / 'test.csv'
             with open(path, 'w', encoding='utf-8-sig') as f:
                 f.write('time,x\n0,2\n1,3\n')
             d = myokit.DataLog.load_csv(path)
@@ -1696,8 +1697,8 @@ class DataLogTest(unittest.TestCase):
         d.cmeta['a.b']['two'] = 2
 
         # Test saving with double precision
-        with TemporaryDirectory() as td:
-            fname = td.path('test.bin')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.bin'
             d.save(fname)
             e = myokit.DataLog.load(fname)
             self.assertFalse(d is e)
@@ -1727,8 +1728,8 @@ class DataLogTest(unittest.TestCase):
         d.set_time_key('c.d')
         d['a.b'] = np.arange(100, dtype=np.float32)
         d['c.d'] = np.sqrt(np.arange(100, dtype=np.float32) * 1.2)
-        with TemporaryDirectory() as td:
-            fname = td.path('test.bin')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.bin'
             d.save(fname, precision=myokit.SINGLE_PRECISION)
             e = myokit.DataLog.load(fname)
             self.assertFalse(d is e)
@@ -1759,8 +1760,8 @@ class DataLogTest(unittest.TestCase):
         d['a.b'] = np.arange(100)
         d['c.d'] = np.sqrt(np.arange(100) * 1.2)
         d['e.f'] = np.arange(100) + 1
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(len(d), len(e))
@@ -1777,22 +1778,22 @@ class DataLogTest(unittest.TestCase):
 
         # Now set time key
         d.set_time_key('a.b')
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(e.time()[0], d['a.b'][0])
         d.set_time_key('e.f')
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(e.time()[0], d['e.f'][0])
 
         # Test saving with single precision
         d = d.npview()
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname, precision=myokit.SINGLE_PRECISION)
             e = myokit.DataLog.load_csv(fname).npview()
             self.assertEqual(len(d), len(e))
@@ -1805,8 +1806,8 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(np.all(np.abs(d['c.d'] - e['c.d']) < 1e-6))
 
         # Test saving with python string formats
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname, precision=None)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(len(d), len(e))
@@ -1819,13 +1820,13 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(np.all(np.abs(d['c.d'] - e['c.d']) < 1e-6))
 
         # Test invalid precision arguments
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             self.assertRaises(ValueError, d.save_csv, fname, 'ernie')
 
         # Test saving with a fixed order
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname, order=['a.b', 'c.d', 'e.f'])
             with open(fname, 'r', newline=None) as f:
                 header = f.readline()
@@ -1851,8 +1852,8 @@ class DataLogTest(unittest.TestCase):
         d['2.z.a'] = np.arange(10) * 2
         d['11.z.a'] = np.arange(10) * 11
         d['14.z.a'] = np.arange(10) * 10
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname)
             with open(fname, 'r', newline=None) as f:
                 order = [x[1:-1] for x in f.readline().strip().split(',')]
@@ -1869,8 +1870,8 @@ class DataLogTest(unittest.TestCase):
 
         # Test saving and loading empty log
         d = myokit.DataLog()
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(len(e.keys()), 0)
@@ -1886,8 +1887,8 @@ class DataLogTest(unittest.TestCase):
         d.meta['one:two'] = 5
         d.cmeta['c.d']['extra'] = 'This is the best column'
 
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname, meta=True)
 
             e = myokit.DataLog.load_csv(fname)
@@ -1901,7 +1902,7 @@ class DataLogTest(unittest.TestCase):
             self.assertEqual(list(d['c.d']), list(e['c.d']))
 
             self.maxDiff = None
-            meta_path = td.path('test.csv-metadata.json')
+            meta_path = pathlib.Path(td) / 'test.csv-metadata.json'
             self.assertTrue(os.path.exists(meta_path))
             with open(meta_path, 'r') as f:
                 self.assertEqual(f.read(), CSV_META)
@@ -1912,10 +1913,10 @@ class DataLogTest(unittest.TestCase):
         del d.meta['one:two']
         del d.cmeta['c.d']['extra']
 
-        with TemporaryDirectory() as td:
-            fname = td.path('test.csv')
+        with tempfile.TemporaryDirectory() as td:
+            fname = pathlib.Path(td) / 'test.csv'
             d.save_csv(fname, meta=True)
-            meta_path = td.path('test.csv-metadata.json')
+            meta_path = pathlib.Path(td) / 'test.csv-metadata.json'
             self.assertFalse(os.path.exists(meta_path))
 
     def test_split(self):

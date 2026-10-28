@@ -5,12 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
+import pathlib
+import tempfile
 import unittest
 
 import myokit
 import myokit.formats
-from myokit.tests import TemporaryDirectory
 
 
 class ExportTest(unittest.TestCase):
@@ -31,8 +31,8 @@ class ExportTest(unittest.TestCase):
         if p is None:
             p = myokit.load_protocol('example')
 
-        with TemporaryDirectory() as d:
-            path = d.path()
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d)
 
             # Try exports
             exports = 0
@@ -42,10 +42,10 @@ class ExportTest(unittest.TestCase):
                 exports += 1
 
                 # Basic export
-                fpath = os.path.join(path, 'model.txt')
+                fpath = path / 'model.txt'
                 ret = e.model(fpath, m)
                 self.assertIsNone(ret)
-                self.assertTrue(os.path.isfile(fpath))
+                self.assertTrue(fpath.is_file())
 
                 # Unnamed model
                 name = m.name()
@@ -53,7 +53,7 @@ class ExportTest(unittest.TestCase):
                     m.set_name(None)
                     ret = e.model(fpath, m)
                     self.assertIsNone(ret)
-                    self.assertTrue(os.path.isfile(fpath))
+                    self.assertTrue(fpath.is_file())
                 finally:
                     m.set_name(name)
 
@@ -65,25 +65,25 @@ class ExportTest(unittest.TestCase):
                 exports += 1
 
                 # Check without protocol
-                dpath = os.path.join(path, 'runnable1')
+                dpath = path / 'runnable1'
                 ret = e.runnable(dpath, m)
                 self.assertIsNone(ret)
-                self.assertTrue(os.path.isdir(dpath))
-                self.assertTrue(len(os.listdir(dpath)) > 0)
+                self.assertTrue(dpath.is_dir())
+                self.assertTrue(any(dpath.iterdir()))
 
                 # Check with protocol
-                dpath = os.path.join(path, 'runnable2')
+                dpath = path / 'runnable2'
                 ret = e.runnable(dpath, m, p)
                 self.assertIsNone(ret)
-                self.assertTrue(os.path.isdir(dpath))
-                self.assertTrue(len(os.listdir(dpath)) > 0)
+                self.assertTrue(dpath.is_dir())
+                self.assertTrue(any(dpath.iterdir()))
 
                 # Write to complex path
-                dpath = os.path.join(path, 'runnable3', 'nest', 'test')
+                dpath = path / 'runnable3' / 'nest' / 'test'
                 ret = e.runnable(dpath, m, p)
                 self.assertIsNone(ret)
-                self.assertTrue(os.path.isdir(dpath))
-                self.assertTrue(len(os.listdir(dpath)) > 0)
+                self.assertTrue(dpath.is_dir())
+                self.assertTrue(any(dpath.iterdir()))
 
             else:
 
@@ -193,12 +193,12 @@ class ExportTest(unittest.TestCase):
 
         # Export to stan
         e = myokit.formats.stan.StanExporter()
-        with TemporaryDirectory() as d:
-            dpath = d.path('out')
+        with tempfile.TemporaryDirectory() as d:
+            dpath = pathlib.Path(d) / 'out'
             ret = e.runnable(dpath, m, parameters=parameters, output=output)
             self.assertIsNone(ret)
-            self.assertTrue(os.path.isdir(dpath))
-            self.assertTrue(len(os.listdir(dpath)) > 0)
+            self.assertTrue(dpath.is_dir())
+            self.assertTrue(any(dpath.iterdir()))
 
     def test_unknown_exporter(self):
         # Test the error handling for requesting an unknown exporter.

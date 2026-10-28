@@ -5,10 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import pathlib
+import tempfile
 import unittest
 
 import myokit
-from myokit.tests import OpenCL_FOUND, TemporaryDirectory
+from myokit.tests import OpenCL_FOUND
 
 
 @unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
@@ -37,9 +39,9 @@ class OpenCLTest(unittest.TestCase):
         import myokit._sim.opencl
         org_name = myokit._sim.opencl.SETTINGS_FILE
         try:
-            with TemporaryDirectory() as d:
-                fname = d.path('opencl-temp.ini')
-                myokit._sim.opencl.SETTINGS_FILE = fname
+            with tempfile.TemporaryDirectory() as d:
+                path = pathlib.Path(d) / 'opencl-temp.ini'
+                myokit._sim.opencl.SETTINGS_FILE = path
 
                 # Save None and None
                 myokit.OpenCL.save_selection(None, None)
