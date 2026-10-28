@@ -10,6 +10,7 @@ myokit.lib.deps
 - :meth:`myokit.lib.deps.create_state_dependency_matrix`
 - :meth:`myokit.lib.deps.create_variable_dependency_graph`
 - :class:`myokit.lib.deps.DiGraph`
+- :class:`myokit.lib.deps.DiGraphError`
 - :meth:`myokit.lib.deps.plot_component_dependency_graph`
 - :meth:`myokit.lib.deps.plot_digraph`
 - :meth:`myokit.lib.deps.plot_state_dependency_matrix`

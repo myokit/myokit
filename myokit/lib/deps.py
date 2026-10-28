@@ -77,25 +77,25 @@ def create_state_dependency_matrix(model, direct=False, knockout=None):
     # At the end of this operation, m = q = the distances
     # Repeat this trick n-1 times...
     for index in range(1, n):
-        for i in range(0, n):
-            for j in range(0, n):
+        for i in range(n):
+            for j in range(n):
                 # ... for every item
                 if m[i][j] == index:
                     # ... where the value is the current index 1,2,3...
-                    for k in range(0, n):
+                    for k in range(n):
                         # ... update the entries
                         # ... unless a previous value was set
                         if q[i][k] == 0 and m[j][k] > 0:
                             q[i][k] = m[i][j] + m[j][k]
-        for i in range(0, n):
-            for j in range(0, n):
+        for i in range(n):
+            for j in range(n):
                 m[i][j] = q[i][j]
 
     return m
 
 
 def plot_state_dependency_matrix(
-        model, direct=False, knockout=[], axes=None):
+        model, direct=False, knockout=None, axes=None):
     """
     Creates a matrix showing state variable dependency distances.
 
@@ -109,6 +109,7 @@ def plot_state_dependency_matrix(
     Returns a matplotlib axes object.
     """
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
 
     # Create dependency matrix
     m = create_state_dependency_matrix(model, direct, knockout)
@@ -121,7 +122,6 @@ def plot_state_dependency_matrix(
     a.set_ylim(0, n)
 
     # Create matrix plot
-    from matplotlib.patches import Rectangle
     w = 1.0 / (max(max(m)))     # color weight
     p1 = 0.1                    # Padding
     p2 = 1.0 - 2 * p1           # Square size
@@ -156,11 +156,11 @@ def plot_state_dependency_matrix(
 
     # Set tick labels
     names = [i.qname() for i in model.states()]
-    a.set_xticks([i + 0.5 for i in range(0, n)])
+    a.set_xticks([i + 0.5 for i in range(n)])
     a.set_xticklabels(names, rotation=90)
     a.xaxis.set_ticks_position('top')
 
-    a.set_yticks([i + 0.5 for i in range(0, n)])
+    a.set_yticks([i + 0.5 for i in range(n)])
     rnames = list(names)
     rnames.reverse()
     a.set_yticklabels(rnames)
@@ -171,6 +171,13 @@ def plot_state_dependency_matrix(
 
     # Return
     return a
+
+
+class DiGraphError(RuntimeError):
+    """
+    Raised when an operation is attempted on an invalid :class:`DiGraph`, e.g.
+    one with cycles.
+    """
 
 
 class DiGraph:
@@ -271,7 +278,7 @@ class DiGraph:
         Returns a list of lists, where each inner list represents a consecutive
         layer.
 
-        Will raise an exception if this digraph has cycles.
+        Will raise a :class:`DiGraphError` if this digraph has cycles.
         """
         # Get minimal equivalent graph
         graph = self.meg_dag()
@@ -291,7 +298,7 @@ class DiGraph:
                 first = node
                 break
         if first is None:
-            raise Exception(
+            raise DiGraphError(
                 'Graph is not acyclical: no node without successors found.')
         P[first] = 1
 
@@ -344,7 +351,8 @@ class DiGraph:
         Finds a Minimal Equivalent Graph (MEG) of a Directed Acyclic Graph
         (DAG) using the algorithm by Harry Hsu [1].
 
-        Will raise an exception if this digraph has self-referencing nodes.
+        Will raise a :class:`DiGraphError` if this digraph has self-referencing
+        nodes.
 
         [1] An algorithm for finding a minimal equivalent graph of a digraph.
             Harry T. Hsu (1975) Journal of the Assoclatlon for Computing
@@ -354,7 +362,7 @@ class DiGraph:
         n = len(m)
         for i in range(n):
             if m[i][i]:
-                raise Exception('Graph has self-referencing nodes.')
+                raise DiGraphError('Graph has self-referencing nodes.')
         for j in range(n):
             for i in range(n):
                 if m[i][j]:
@@ -374,7 +382,7 @@ class DiGraph:
         m = [0] * n
         for i, node in enumerate(nodes):
             row = [0] * n
-            for j in range(0, n):
+            for j in range(n):
                 if node.has_edge_to(nodes[j]):
                     row[j] = 1
             m[i] = row
@@ -395,12 +403,12 @@ class DiGraph:
         """
         p = self.matrix()
         n = len(p)
-        for i in range(0, n):
-            for j in range(0, n):
+        for i in range(n):
+            for j in range(n):
                 if i == j:
                     continue
                 if p[j][i]:
-                    for k in range(0, n):
+                    for k in range(n):
                         if p[j][k] == 0:
                             p[j][k] = p[i][k]
             return p
@@ -577,9 +585,10 @@ def plot_digraph(graph, axes=None, r_node=None):
 
     Returns a matplotlib axes object.
     """
-    import matplotlib.pyplot as plt
     import matplotlib.lines as lines
     import matplotlib.patches as patches
+    import matplotlib.pyplot as plt
+
     limits = [None, None, None, None]
     # Create axes
     ax = axes if axes is not None else plt.gca()
@@ -675,7 +684,7 @@ def create_component_dependency_graph(
     # Layout
     try:
         g.layout_layered()
-    except Exception:
+    except DiGraphError:
         # Cyclical graph, create simple layout
         nOrder = len(order)
         p = 0.1
@@ -723,7 +732,7 @@ def create_variable_dependency_graph(model):
         node = g.add_node(lhs)
         # Set node label
         node.label = lhs.var().qname()
-        if type(lhs) == myokit.Derivative:
+        if type(lhs) is myokit.Derivative:
             node.label = 'd(' + node.label + ')'
         # Set color
         node.rgba = (random.random(), random.random(), random.random(), 0.9)

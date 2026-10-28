@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Myokit documentation build configuration file, created by
 # sphinx-quickstart on Tue May 22 09:57:54 2012.
@@ -17,7 +16,6 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import myokit
-
 
 # -- General configuration ----------------------------------------------------
 
@@ -51,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Myokit'
+project = 'Myokit'
 #copyright = myokit.COPYRIGHT
 
 # The version info for the project you're documenting, acts as replacement for
@@ -137,7 +135,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass[howto/manual]).
 latex_documents = [(
-    'index', 'Myokit.tex', u'Myokit Documentation', u'Michael Clerx', 'manual'
+    'index', 'Myokit.tex', 'Myokit Documentation', 'Michael Clerx', 'manual'
 )]
 
 
@@ -146,7 +144,7 @@ latex_documents = [(
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [(
-    'index', 'myokit', u'Myokit Documentation', [u'Michael Clerx'], 1
+    'index', 'myokit', 'Myokit Documentation', ['Michael Clerx'], 1
 )]
 
 # -- Options for Texinfo output -------------------------------------------
@@ -155,7 +153,7 @@ man_pages = [(
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Myokit', u'Myokit Documentation',
+    (master_doc, 'Myokit', 'Myokit Documentation',
      'Michael Clerx', 'Myokit', 'One line description of project.',
      'Miscellaneous'),
 ]
