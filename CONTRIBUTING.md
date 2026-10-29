@@ -52,8 +52,8 @@ Thanks!
 
 ## Use of chatbots or agents
 
-All communication in issues, PRs, email and otherwise, should be strictly human.
-Any posts to this GitHub page suspected to be computer generated may be deleted without warning.
+All communication in Issues, Pull requests, Discussions, email and otherwise, should be strictly human.
+Posts to this GitHub page suspected to be computer generated may be deleted without warning.
 There are no restrictions on using agents or LLMs to prepare code, but the human submitting the code must take full responsibility for it, and is expected to have reviewed and understood the code, as well as the parts of Myokit that are being added to or modified.
 
 ## Project structure
