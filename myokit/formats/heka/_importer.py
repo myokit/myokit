@@ -16,14 +16,14 @@ class PatchMasterImporter(myokit.formats.Importer):
     def supports_protocol(self):
         return True
 
-    def protocol(self, filename, group=None, series=None):
+    def protocol(self, path, group=None, series=None):
         """
-        Attempts to load the protocol from the file at ``filename``.
+        Attempts to load the protocol from the file at ``path``.
 
         Because PatchMaster files can contain several experiments, a further
         selection can be made with the arguments:
 
-        ``filename``
+        ``path``
             The file to read
         ``group``
             The group to read from (as a string).
@@ -31,8 +31,11 @@ class PatchMasterImporter(myokit.formats.Importer):
             The integer index of the desired series in the specified group.
 
         """
+        if group is None or series is None:
+            raise ValueError('A group and series are required')
+
         from myokit.formats.heka import PatchMasterFile
-        with PatchMasterFile(filename) as f:
+        with PatchMasterFile(path) as f:
             group = f.group(group)
             series = group[series]
             return series.stimulus().protocol()

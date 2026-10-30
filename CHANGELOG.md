@@ -16,8 +16,6 @@ This page lists the main changes made to Myokit in each release.
   - [#1231](https://github.com/myokit/myokit/pull/1231) The methods `AbfFile.filename()`, `AtfFile.filename()`, `PatchMasterFile.filename()`, and `WcpFile.filename()` are deprecated.
   - [#1231](https://github.com/myokit/myokit/pull/1231) The `AbfFile` constructor argument `filepath` is deprecated in favor of `path`. The `AtfFile` constructor argument `filename` is deprecated in favor of `path`.' The `PatchMasterFile` constructor argument `filepath` is deprecated in favor of `path`.
   - [#1231](https://github.com/myokit/myokit/pull/1231) The methods `save_atf` and `load_atf` argument `filename` is deprecated in favor of `path`.
-
-
 - Removed
   - [#1206](https://github.com/myokit/myokit/pull/1206) Removed the unused `JacobianCalculator`, `JacobianTracer`, and `CppModule` classes.
   - [#1207](https://github.com/myokit/myokit/pull/1207) Removed the `gtksourceview` syntax highlighting support.
@@ -31,6 +29,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1223](https://github.com/myokit/myokit/pull/1223) The units of resistance are now rendered `ohm` instead of `Ohm`, and the parser will accept e.g. `[Mohm]`.
   - [#1223](https://github.com/myokit/myokit/pull/1223) The units candela are now rendered as `cd`, not `lm`.
   - [#1225](https://github.com/myokit/myokit/pull/1225) Fixed the command line function `myokit step`.
+  - [#1231](https://github.com/myokit/myokit/pull/1231) The methods `AbfImporter.protocol()` and `PatchMasterImporter.protocol()` now use an argument `path` instead of `filename`, as per the `Importer` interface.
 
 ## [1.39.2] - 2026-03-18
 - Added

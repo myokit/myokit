@@ -22,12 +22,12 @@ class SBMLExporter(myokit.formats.Exporter):
 
     def model(self, path, model, protocol=None):
         """
-        Writes an SBML model to the given filename.
+        Writes an SBML model to the given path.
 
         Arguments:
 
         ``path``
-            The path/filename to write the generated code to.
+            The path to write the generated code to.
         ``model``
             The model to export.
         ``protocol``
