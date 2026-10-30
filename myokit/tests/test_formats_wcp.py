@@ -89,17 +89,19 @@ class WcpTest(unittest.TestCase):
         # Test basic wcp file reading.
 
         # Load test file
-        fname = 'wcp-file.wcp'
-        path = DIR_FORMATS / fname
+        path = DIR_FORMATS / 'wcp-file.wcp'
         w = wcp.WcpFile(path)
         self.assertEqual(w.version(), '9')
-
-        self.assertEqual(w.filename(), fname)
         self.assertEqual(w.path(), str(path))
         self.assertEqual(w.record_count(), 11)
         self.assertEqual(w.sample_count(), 256)
         self.assertEqual(len(w.times()), 256)
         self.assertEqual(len(w.values(0, 0)), 256)
+
+        # Deprecated method
+        with WarningCollector() as wc:
+            self.assertEqual(w.filename(), str(path.name))
+        self.assertIn('deprecated', wc.text())
 
         # Test meta data
         self.maxDiff = None

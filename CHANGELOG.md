@@ -13,6 +13,11 @@ This page lists the main changes made to Myokit in each release.
   - [#1225](https://github.com/myokit/myokit/pull/1225) The property `myokit.EXAMPLE` and the `myokit.DIR_x` properties are now `pathlib.Path` objects. The property `myokit.DIR_USER_OLD` has been removed.
   - [#1225](https://github.com/myokit/myokit/pull/1225) The command line function `myokit video` now requires `moviepy` 2 or greater.
 - Deprecated
+  - [#1231](https://github.com/myokit/myokit/pull/1231) The methods `AbfFile.filename()`, `AtfFile.filename()`, `PatchMasterFile.filename()`, and `WcpFile.filename()` are deprecated.
+  - [#1231](https://github.com/myokit/myokit/pull/1231) The `AbfFile` constructor argument `filepath` is deprecated in favor of `path`. The `AtfFile` constructor argument `filename` is deprecated in favor of `path`.' The `PatchMasterFile` constructor argument `filepath` is deprecated in favor of `path`.
+  - [#1231](https://github.com/myokit/myokit/pull/1231) The methods `save_atf` and `load_atf` argument `filename` is deprecated in favor of `path`.
+
+
 - Removed
   - [#1206](https://github.com/myokit/myokit/pull/1206) Removed the unused `JacobianCalculator`, `JacobianTracer`, and `CppModule` classes.
   - [#1207](https://github.com/myokit/myokit/pull/1207) Removed the `gtksourceview` syntax highlighting support.
@@ -151,8 +156,8 @@ This release fixes a potential issue in simulation output, please see [#1055](ht
   - [#1051](https://github.com/myokit/myokit/pull/1051) `Model.evaluate_derivatives` will now use `numpy.errstate(all='raise')` when `ignore_errors` is set to `False`, causing more numerical issues to be reported.
   - [#1055](https://github.com/myokit/myokit/pull/1055) `Expression.pyfunc` now sorts its arguments in alphabetical order.
 - Deprecated
-  - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.eval_derivatives` is deprecated in favour of an `evaluate_derivatives` method that uses `default_state` instead of `state` when no state is given, and has better support and clearer rules for handling bindings.
-  - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.last_state` is deprecated in favour of `crash_state`.
+  - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.eval_derivatives` is deprecated in favor of an `evaluate_derivatives` method that uses `default_state` instead of `state` when no state is given, and has better support and clearer rules for handling bindings.
+  - [#1051](https://github.com/myokit/myokit/pull/1051) `Simulation.last_state` is deprecated in favor of `crash_state`.
 - Fixed
   - [#1045](https://github.com/myokit/myokit/pull/1045) Fixed an issue where the cache used in MarkovModel was not invalidated if `set_constant()` changed simulation parameters.
   - [#1050](https://github.com/myokit/myokit/pull/1050) Fixed warnings about unknown escape sequences.

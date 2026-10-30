@@ -6,6 +6,7 @@
 #
 import pathlib
 import struct
+import warnings
 
 import numpy as np
 
@@ -38,7 +39,6 @@ class WcpFile(myokit.formats.SweepSource):
     def __init__(self, path):
         # The path to the file and its basename
         self._path = pathlib.Path(path).absolute()
-        self._filename = path.name
 
         # Header info, per file, per record, and per channel
         self._version_str = None
@@ -298,8 +298,12 @@ class WcpFile(myokit.formats.SweepSource):
         return True
 
     def filename(self):
-        """ Returns this file's name. """
-        return self._filename
+        """ Deprecated method: Returns this WcpFile's filename. """
+        # Deprecated since 2026-10-30
+        warnings.warn(
+            'The method "WcpFile.filename" is deprecated and will be removed'
+            ' in future versions of Myokit.')
+        return self._path.name
 
     def info(self):
         """ Deprecated alias of :meth:`meta_str` """
@@ -363,7 +367,7 @@ class WcpFile(myokit.formats.SweepSource):
         out = []
 
         # Add file info
-        out.append(f'WinWCP file: {self._filename}')
+        out.append(f'WinWCP file: {self._path.name}')
         out.append(f'WinWCP Format version {self._version_str}')
         out.append(f'Recorded on: {h["rtime"]}')
 

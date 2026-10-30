@@ -28,11 +28,28 @@ class AtfFile:
     the file's keys use :meth:`iterkeys`, to select a value use
     ``atf_file['key']``. All iterators return the keys stored in the order they
     were listed in the ATF file.
+
+    Arguments:
+
+    ``path``
+        The path to read.
+
     """
-    def __init__(self, filename):
-        # The path to the file and its basename
-        self._path = pathlib.Path(filename).absolute()
-        self._filename = self._path.name
+    def __init__(self, path=None, *, filename=None):
+
+        # Deprecated since 2026-10-30
+        # When removing, remove =None too, as path can no longer be None.
+        if filename is not None:
+            if path is None:
+                warnings.warn(
+                    'The AtfFile argument "filename" is deprecated.'
+                    ' Please use "path" instead.')
+                path = filename
+            else:
+                raise ValueError(
+                    'The AtfFile argument "filename" is a deprecated alias of'
+                    ' "path" and should not be set when "path" is set.')
+        self._path = pathlib.Path(path).absolute()
 
         # A version string
         self._version_str = None
@@ -56,8 +73,12 @@ class AtfFile:
         return len(self._data)
 
     def filename(self):
-        """ Returns this ATF's filename. """
-        return self._filename
+        """ Deprecated method: Returns this AtfFile's filename. """
+        # Deprecated since 2026-10-30
+        warnings.warn(
+            'The method "AtfFile.filename" is deprecated and will be removed'
+            ' in future versions of Myokit.')
+        return self._path.name
 
     def info(self):
         """ Returns this ATF's header/meta data. """
@@ -224,14 +245,27 @@ class AtfFile:
         return self._version_str
 
 
-def load_atf(filename):
+def load_atf(path=None, *, filename=None):
     """
     Reads an ATF file and returns its data as a :class:`myokit.DataLog`.
     """
-    return AtfFile(filename).log()
+    # Deprecated since 2026-10-30
+    # When removing, remove =None too, as path can no longer be None.
+    if filename is not None:
+        if path is None:
+            warnings.warn(
+                'The load_atf argument "filename" is deprecated.'
+                ' Please use "path" instead.')
+            path = filename
+        else:
+            raise ValueError(
+                'The load_atf argument "filename" is a deprecated alias of'
+                ' "path" and should not be set when "path" is set.')
+
+    return AtfFile(path).log()
 
 
-def save_atf(log, filename, fields=None):
+def save_atf(log, path=None, fields=None, *, filename=None):
     """
     Saves the :class:`myokit.DataLog` ``log`` to ``filename`` in ATF format.
 
@@ -241,6 +275,19 @@ def save_atf(log, filename, fields=None):
     will be written in a random order. To indicate an order or make a selection
     of fields, pass in a sequence ``fields`` containing the field names.
     """
+    # Deprecated since 2026-10-30
+    # When removing, remove =None too, as path can no longer be None.
+    if filename is not None:
+        if path is None:
+            warnings.warn(
+                'The load_atf argument "filename" is deprecated.'
+                ' Please use "path" instead.')
+            path = filename
+        else:
+            raise ValueError(
+                'The load_atf argument "filename" is a deprecated alias of'
+                ' "path" and should not be set when "path" is set.')
+
     log.validate()
 
     # Delimiters
@@ -297,7 +344,7 @@ def save_atf(log, filename, fields=None):
     nd = log.length()
 
     # Write file
-    with open(filename, 'wb') as f:
+    with open(path, 'wb') as f:
         # Write version number
         f.write(('ATF 1.0' + eol).encode(_ENC))
 
