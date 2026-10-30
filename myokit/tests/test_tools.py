@@ -257,7 +257,7 @@ class ToolsTest(unittest.TestCase):
         self.assertEqual(fp('.'), '.')
 
         # Filesystem root
-        self.assertEqual(fp('/'), '/')
+        self.assertEqual(fp('/'), str(pathlib.Path('/').absolute()))
         self.assertEqual(fp('/', root='/'), '.')
 
         # Path outside of root
