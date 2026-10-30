@@ -202,6 +202,11 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(abf.path(), str(path))
         self.assertIsInstance(abf, myokit.formats.SweepSource)
 
+        # Deprecated filename() method
+        with WarningCollector() as w:
+            self.assertEqual(abf.filename(), path.name)
+        self.assertIn('deprecated', w.text())
+
         # Check getting info
         self.assertIn('version 1.65', abf.meta_str())
         self.maxDiff = None
@@ -630,6 +635,17 @@ class AbfTest(unittest.TestCase):
         f = abf.matplotlib_figure()
         self.assertIsInstance(f, matplotlib.figure.Figure)
 
+    def test_read_deprecated(self):
+        # Deprecated constructor
+
+        path = DIR_FORMATS / 'abf-v2.abf'
+        with WarningCollector() as w:
+            abf = axon.AbfFile(filepath=path)
+            self.assertEqual(abf.path(), str(path))
+        self.assertIn('deprecated', w.text())
+        self.assertRaisesRegex(
+            ValueError, 'deprecated', axon.AbfFile, path, filepath=path)
+
 
 class AtfTest(unittest.TestCase):
     """
@@ -666,6 +682,14 @@ class AtfTest(unittest.TestCase):
             self.assertEqual(set(log.keys()), set(log3.keys()))
             for k, v in log.items():
                 self.assertTrue(np.all(v == log3[k]))
+
+            # Deprecated constructor
+            with WarningCollector() as w:
+                atf = axon.AtfFile(filename=path)
+                self.assertEqual(atf.path(), str(path))
+            self.assertIn('deprecated', w.text())
+            self.assertRaisesRegex(
+                ValueError, 'deprecated', axon.AtfFile, path, filename=path)
 
             # Write selected fields
             axon.save_atf(log, path, fields=['time', 'sint'])
@@ -811,9 +835,13 @@ class AtfTest(unittest.TestCase):
             # Read atf file
             atf = myokit.formats.axon.AtfFile(path)
 
-            # Test filename() and path()
+            # Test path()
             self.assertEqual(atf.path(), str(path))
-            self.assertEqual(atf.filename(), 'test.atf')
+
+            # Test deprecated filename() method
+            with WarningCollector() as w:
+                self.assertEqual(atf.filename(), 'test.atf')
+            self.assertIn('deprecated', w.text())
 
             # Test iter and getitem
             self.assertEqual(len(list(iter(atf))), 3)

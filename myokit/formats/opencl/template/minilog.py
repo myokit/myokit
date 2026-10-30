@@ -47,7 +47,7 @@ class DataLog(dict):
         return self[key]
 
     @staticmethod
-    def load_csv(filename):
+    def load_csv(path):
         """
         Loads a CSV file from disk and returns it as a :class:`DataLog`.
 
@@ -64,7 +64,7 @@ class DataLog(dict):
         # Delimiters
         quote = '"'
         delim = ','
-        with open(filename, 'r', newline=None) as f:
+        with open(path, 'r', newline=None) as f:
             # Read header
             keys = []
             try:
@@ -172,7 +172,7 @@ class DataLog(dict):
             out[k] = np.asarray(d)
         return out
 
-    def save_csv(self, filename, pad=None):
+    def save_csv(self, path, pad=None):
         """
         Writes this ``DataLog`` to a CSV file, following the syntax
         outlined in RFC 4180 and with a header indicating the field names.
@@ -194,7 +194,7 @@ class DataLog(dict):
         delim = ','
         quote = '"'
         escape = '""'
-        with open(filename, 'wb') as f:
+        with open(path, 'wb') as f:
             # Convert dict structure to ordered sequences
             keys = []
             data = []

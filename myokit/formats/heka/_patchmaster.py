@@ -62,7 +62,7 @@ import myokit
 class PatchMasterFile:
     """
     Provides read-only access to data stored in HEKA PatchMaster ("bundle")
-    files (``.dat``), stored at ``filepath``.
+    files (``.dat``), stored at ``path``.
 
     Data loading is "lazy", meaning that data is only read when requested. This
     means the file stays open, and so :meth:`close()` must be called after
@@ -121,19 +121,30 @@ class PatchMasterFile:
                     log = series.log()
 
     """
-    def __init__(self, filepath):
+    def __init__(self, path=None, *, filepath):
         warnings.warn(
             'PatchMaster file reading is new: There are no unit tests yet.')
 
-        # The path to the file and its basename
-        self._filepath = pathlib.Path(filepath).absolute()
-        self._filename = self._filepath.name
+        # Deprecated since 2026-10-30
+        # When removing, remove =None too, as path can no longer be None.
+        if filepath is not None:
+            if path is None:
+                warnings.warn(
+                    'The PatchMasterFile argument "filepath" is deprecated.'
+                    ' Please use "path" instead.')
+                path = filepath
+            else:
+                raise ValueError(
+                    'The PatchMasterFile argument "filepath" is a deprecated '
+                    ' alias of "path" and should not be set when "path" is'
+                    ' set.')
+        self._path = pathlib.Path(filepath).absolute()
 
         # File format version
         self._version = None
 
         # File handle
-        self._handle = f = open(self._filepath, 'rb')  # noqa: SIM115
+        self._handle = f = open(self._path, 'rb')  # noqa: SIM115
 
         # Check that this is a "bundle" file.
         sig = f.read(8).decode(_ENC)
@@ -255,8 +266,12 @@ class PatchMasterFile:
         self._handle.close()
 
     def filename(self):
-        """ Returns this file's filename. """
-        return self._filename
+        """ Deprecated method: Returns this PatchMasterFile's filename. """
+        # Deprecated since 2026-10-30
+        warnings.warn(
+            'The method PatchMasterFile.filename is deprecated and will be'
+            ' removed in future versions of Myokit.')
+        return self._path.name
 
     def group(self, label):
         """ Returns the first :class`Group` matching the given ``label``. """
@@ -267,7 +282,7 @@ class PatchMasterFile:
 
     def path(self):
         """ Returns the path to this PatchMaster file, as a string. """
-        return str(self._filepath)
+        return str(self._path)
 
     def stimulus_tree(self):
         """
@@ -346,9 +361,9 @@ class TreeNode:
         self._parent = parent
         self._children = []
         try:
-            self._file = parent._file
+            self._pmfile = parent._pmfile
         except AttributeError:
-            self._file = parent
+            self._pmfile = parent
 
     def __len__(self):
         return len(self._children)
@@ -699,7 +714,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
             self._channel_units = [c.value_unit() for c in self[0]]
 
             # Get intended sweep count
-            tree = self._file.stimulus_tree()
+            tree = self._pmfile.stimulus_tree()
             self._stimulus = tree[self[0]._stimulus_id]
             self._intended_sweep_count = self._stimulus.sweep_count()
 
@@ -721,7 +736,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
 
         # Amplifier states (if stored in .amp file)
         if self._amplifier_state_id >= 0:
-            tree = self._file.amplifier_tree()
+            tree = self._pmfile.amplifier_tree()
             self._amplifier_states = [
                 r.amplifier_state() for r in tree[self._amplifier_state_id]]
 
@@ -1052,8 +1067,8 @@ class Series(TreeNode, myokit.formats.SweepSource):
         # Basic info
         out.append(f'Series {self._label}')
         out.append(f'  in {self._parent.label()}')
-        out.append(f'     {self._file.path()}')
-        out.append(f'     version {self._file.version()}')
+        out.append(f'     {self._pmfile.path()}')
+        out.append(f'     version {self._pmfile.version()}')
         out.append(f'Recorded on {self._time}')
         out.append(f'{len(self)} sweeps,'
                    f' {len(self._channel_names)} channels')

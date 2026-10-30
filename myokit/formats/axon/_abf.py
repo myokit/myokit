@@ -155,12 +155,12 @@ _ENC = 'latin-1'
 class AbfFile(myokit.formats.SweepSource):
     """
     Represents a read-only Axon Binary Format file (``.abf``), stored at the
-    location pointed to by ``filepath``.
+    given ``path``..
 
-    Files in the "ABF" format and the newer "ABF2" format can be read. If the
-    given ``filepath`` ends in ``.pro`` a protocol file is assumed. This
-    assumption can be overruled by setting the ``is_protocol_file`` argument
-    to either ``True`` or ``False``.
+    Files in the "ABF" format and the newer "ABF2" format can be read. If
+    ``path`` ends in ``.pro`` a protocol file is assumed. This heuristic can
+    be overruled by setting the ``is_protocol_file`` argument to either
+    ``True`` or ``False``.
 
     Data in ABF files is recorded in *sweeps*, where each sweep contains one or
     more *channels* with recorded (A/D) data. In addition, zero or more output
@@ -208,13 +208,13 @@ class AbfFile(myokit.formats.SweepSource):
     - The publicly available information on the ABF format is not great, so
       there will be several other issues and shortcomings.
 
-    When an :class:`AbfFile` is created, the file at ``filepath`` is read in
+    When an :class:`AbfFile` is created, the file at ``path`` is read in
     its entirety and the file handle is closed. No try-catch or ``with``
     statements are required.
 
     Arguments:
 
-    ``filepath``
+    ``path``
         The path to load the data from. Data will be read into memory
         immediately upon construction.
     ``is_protocol_file``
@@ -228,14 +228,28 @@ class AbfFile(myokit.formats.SweepSource):
         not be read.
 
     """
-    def __init__(self, filepath, is_protocol_file=None, convert_ramps=False):
-        # The path to the file and its basename
-        self._filepath = pathlib.Path(filepath).absolute()
-        self._filename = self._filepath.name
+    def __init__(self, path=None, is_protocol_file=None, convert_ramps=False,
+                 *, filepath=None):
+
+        # Deprecated since 2026-10-30
+        # When removing, remove =None too, as path can no longer be None.
+        if filepath is not None:
+            if path is None:
+                warnings.warn(
+                    'The AbfFile argument "filepath" is deprecated.'
+                    ' Please use "path" instead.')
+                path = filepath
+            else:
+                raise ValueError(
+                    'The AbfFile argument "filepath" is a deprecated alias of'
+                    ' "path" and should not be set when "path" is set.')
+
+        # The path to read
+        self._path = pathlib.Path(path).absolute()
 
         # Read as protocol file yes?
         if is_protocol_file is None:
-            self._is_protocol_file = self._filepath.suffix.lower() == '.pro'
+            self._is_protocol_file = self._path.suffix.lower() == '.pro'
         else:
             self._is_protocol_file = bool(is_protocol_file)
 
@@ -348,7 +362,7 @@ class AbfFile(myokit.formats.SweepSource):
                 return values[0]
             return values
 
-        with open(self._filepath, 'rb') as f:
+        with open(self._path, 'rb') as f:
 
             # Get ABF Format version (pClamp < 10 is version 1, after is
             # version 2)
@@ -835,7 +849,7 @@ class AbfFile(myokit.formats.SweepSource):
             # New files, get info from appropriate header section
             o = h['sections']['Data']['index'] * BLOCKSIZE
             n = h['sections']['Data']['length']
-        data = np.memmap(self._filepath, dt, 'r', shape=(n,), offset=o)
+        data = np.memmap(self._path, dt, 'r', shape=(n,), offset=o)
 
         # Load information about sweep sizes from "SynchArray".
         # The number of sweep information structs will be n, and information
@@ -853,7 +867,7 @@ class AbfFile(myokit.formats.SweepSource):
             # This will be read in as an array of numpy.Void objects, which are
             # similar to structs. In ``dt`` we name the entries offset and len.
             sweep_starts_sizes = np.memmap(
-                self._filepath, [('offset', 'i4'), ('len', 'i4')], 'r',
+                self._path, [('offset', 'i4'), ('len', 'i4')], 'r',
                 shape=(n,), offset=o)
         else:   # pragma: no cover
             # In gap-free model, all data is a single sweep
@@ -1256,8 +1270,12 @@ class AbfFile(myokit.formats.SweepSource):
         return self._equal_length_sweeps
 
     def filename(self):
-        """ Returns this ABF file's filename. """
-        return self._filename
+        """ Deprecated method: Returns this AbfFile's filename. """
+        # Deprecated since 2026-10-30
+        warnings.warn(
+            'The method AbfFile.filename is deprecated and will be removed in'
+            ' future versions of Myokit.')
+        return self._path.name
 
     def log(self, join_sweeps=False, use_names=False, include_da=True):
         # Docstring in SweepSource
@@ -1329,7 +1347,7 @@ class AbfFile(myokit.formats.SweepSource):
         """ Creates and returns a matplotlib figure with this file's data. """
         import matplotlib.pyplot as plt
         f = plt.figure()
-        plt.suptitle(self.filename())
+        plt.suptitle(self._path.name)
 
         # Plot AD channels
         ax = plt.subplot(2, 1, 1)
@@ -1362,9 +1380,9 @@ class AbfFile(myokit.formats.SweepSource):
 
         # File info
         if self._is_protocol_file:
-            out.append(f'Axon Protocol File: {self._filename}')
+            out.append(f'Axon Protocol File: {self._path.name}')
         else:
-            out.append(f'Axon Binary File: {self._filename}')
+            out.append(f'Axon Binary File: {self._path.name}')
         out.append(f'ABF Format version {self._version_str}')
         out.append(f'Recorded on: {self._datetime}')
 
@@ -1418,7 +1436,7 @@ class AbfFile(myokit.formats.SweepSource):
 
     def path(self):
         """ Returns the path to the underlying ABF file, as a string. """
-        return str(self._filepath)
+        return str(self._path)
 
     def sweep_count(self):
         # Docstring in SweepSource

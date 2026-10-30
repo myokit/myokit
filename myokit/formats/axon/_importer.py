@@ -16,13 +16,13 @@ class AbfImporter(myokit.formats.Importer):
     def supports_protocol(self):
         return True
 
-    def protocol(self, filename, channel=0):
+    def protocol(self, path, channel=0):
         """
-        Attempts to load the protocol from the file at ``filename``.
+        Attempts to load the protocol from the given ``path``.
 
         If specified, the channel index ``channel`` will be used to select
         which channel in the AbfFile to convert to a protocol
         """
         from myokit.formats.axon import AbfFile
-        abf = AbfFile(filename)
+        abf = AbfFile(path)
         return abf.da_protocol(channel)
