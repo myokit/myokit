@@ -5,14 +5,13 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import myokit
 from myokit.tests import DIR_DATA, WarningCollector
 
 # Path to multi-model testing files
-DIR_MULTI = os.path.join(DIR_DATA, 'multi')
+DIR_MULTI = DIR_DATA / 'multi'
 
 
 class LibMultiTest(unittest.TestCase):
@@ -52,8 +51,7 @@ class LibMultiTest(unittest.TestCase):
         self.assertEqual(type(tuples[1][1]), myokit.Protocol)
 
         # Path must be a directory
-        path = os.path.join(DIR_MULTI, 'lr-1991.mmt')
-        i = multi.iterdir(path)
+        i = multi.iterdir(DIR_MULTI / 'lr-1991.mmt')
         self.assertRaisesRegex(ValueError, 'not a directory', next, i)
 
     def test_scandir(self):

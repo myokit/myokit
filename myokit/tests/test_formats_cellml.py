@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pathlib
 import re
 import tempfile
@@ -18,7 +17,7 @@ from myokit.formats.cellml import CellMLImporterError
 from myokit.tests import DIR_FORMATS, WarningCollector
 
 # CellML dir
-DIR = os.path.join(DIR_FORMATS, 'cellml')
+DIR = DIR_FORMATS / 'cellml'
 
 
 class CellMLExporterTest(unittest.TestCase):
@@ -44,7 +43,7 @@ class CellMLExporterTest(unittest.TestCase):
 
         # 1. Export without a protocol
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'model.cellml'
+            path = pathlib.Path(d, 'model.cellml')
             with WarningCollector() as w:
                 e.model(path, m1)
             m2 = i.model(path)
@@ -54,7 +53,7 @@ class CellMLExporterTest(unittest.TestCase):
         # 2. Export with protocol, but without variable bound to pacing
         m1.get('engine.pace').set_binding(None)
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'model.cellml'
+            path = pathlib.Path(d, 'model.cellml')
             with WarningCollector() as w:
                 e.model(path, m1, p1)
             m2 = i.model(path)
@@ -64,7 +63,7 @@ class CellMLExporterTest(unittest.TestCase):
         # 3. Export with protocol and variable bound to pacing
         m1.get('engine.pace').set_binding('pace')
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'model.cellml'
+            path = pathlib.Path(d, 'model.cellml')
             with WarningCollector() as w:
                 e.model(path, m1, p1)
             m2 = i.model(path)
@@ -87,28 +86,28 @@ class CellMLExporterTest(unittest.TestCase):
 
         # Default version
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.cellml'
+            path = pathlib.Path(d, 'test.cellml')
             e.model(path, model)
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.1#', f.read())
 
         # Write to 1.0 model
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.cellml'
+            path = pathlib.Path(d, 'test.cellml')
             e.model(path, model, version='1.0')
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.0#', f.read())
 
         # Write to 1.1 model
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.cellml'
+            path = pathlib.Path(d, 'test.cellml')
             e.model(path, model, version='1.1')
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.1#', f.read())
 
         # Write to 2.0 model
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.cellml'
+            path = pathlib.Path(d, 'test.cellml')
             e.model(path, model, version='2.0')
             with open(path, 'r') as f:
                 self.assertIn('cellml/2.0#', f.read())
@@ -124,7 +123,7 @@ class CellMLExporterTest(unittest.TestCase):
         # Write to 1.0 model
         e = formats.exporter('cellml1')
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.cellml'
+            path = pathlib.Path(d, 'test.cellml')
             e.model(path, model)
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.1#', f.read())
@@ -132,7 +131,7 @@ class CellMLExporterTest(unittest.TestCase):
         # Write to 2.0 model
         e = formats.exporter('cellml2')
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.cellml'
+            path = pathlib.Path(d, 'test.cellml')
             e.model(path, model)
             with open(path, 'r') as f:
                 self.assertIn('cellml/2.0#', f.read())
@@ -481,32 +480,32 @@ class CellMLImporterTest(unittest.TestCase):
     def test_model_1_0_dot(self):
         # This is beeler-reuter but with a dot() in an expression
         i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'br-1977-dot.cellml'))
+        m = i.model(DIR / 'br-1977-dot.cellml')
         m.validate()
 
     def test_model_1_0_errors(self):
         # Files with errors raise CellMLImporterErrors (not parser errors)
         i = formats.importer('cellml')
-        m = os.path.join(DIR, 'invalid-file.cellml')
+        m = DIR / 'invalid-file.cellml'
         self.assertRaisesRegex(
             CellMLImporterError, 'valid CellML identifier', i.model, m)
 
     def test_model__1_0_nesting(self):
         # The corrias model has multiple levels of nesting (encapsulation)
         i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'corrias.cellml'))
+        m = i.model(DIR / 'corrias.cellml')
         m.validate()
 
     def test_model_1_0_simple(self):
         # Beeler-Reuter is a simple model
         i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'br-1977.cellml'))
+        m = i.model(DIR / 'br-1977.cellml')
         m.validate()
 
     def test_model_2_0(self):
         # Decker 2009 in CellML 2.0
         i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'decker-2009.cellml'))
+        m = i.model(DIR / 'decker-2009.cellml')
         m.validate()
 
     def test_model_2_0_errors(self):
@@ -523,7 +522,7 @@ class CellMLImporterTest(unittest.TestCase):
 
         # Write to disk and import
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.celllml'
+            path = pathlib.Path(d, 'test.cellml')
             with open(path, 'w') as f:
                 f.write(x)
 
@@ -540,12 +539,12 @@ class CellMLImporterTest(unittest.TestCase):
         i = formats.importer('cellml')
         self.assertRaisesRegex(
             CellMLImporterError, 'not a CellML document',
-            i.model, os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+            i.model, DIR_FORMATS / 'sbml' / 'HodgkinHuxley.xml')
 
         # Not an XML file
         self.assertRaisesRegex(
             CellMLImporterError, 'Unable to parse XML',
-            i.model, os.path.join(DIR_FORMATS, 'lr-1991.mmt'))
+            i.model, DIR_FORMATS / 'lr-1991.mmt')
 
     def test_warnings_1_0(self):
         # Tests warnings are logged
@@ -561,7 +560,7 @@ class CellMLImporterTest(unittest.TestCase):
 
         # Write to disk and import
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.celllml'
+            path = pathlib.Path(d, 'test.cellml')
             with open(path, 'w') as f:
                 f.write(x)
 

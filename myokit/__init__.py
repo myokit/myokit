@@ -53,11 +53,10 @@ del sys
 #
 # Version information and licensing
 #
-import importlib.metadata
-
+import importlib.metadata  # noqa: I001
 __version__ = importlib.metadata.version('myokit')
 __release__ = len(__version__.split('.')) == 3
-del importlib  # Do _not_ `del importlib.metadata`, that modifies importlib!
+del importlib
 
 # Warn about development version
 if not __release__:     # pragma: no cover
@@ -72,51 +71,39 @@ if not __release__:     # pragma: no cover
 #
 # Paths
 #
-
-# Myokit root
-import inspect
-import os
-
-try:
-    frame = inspect.currentframe()
-    DIR_MYOKIT = os.path.abspath(os.path.dirname(inspect.getfile(frame)))
-finally:
-    # Always manually delete frame
-    # https://docs.python.org/2/library/inspect.html#the-interpreter-stack
-    del frame
-
-# Binary data files
-DIR_DATA = os.path.join(DIR_MYOKIT, '_bin')
-
-# C header files
-DIR_CFUNC = os.path.join(DIR_MYOKIT, '_sim')
+import importlib.resources  # noqa: I001
+DIR_MYOKIT = importlib.resources.files('myokit')
+del importlib
 
 # Location of myokit user config
-DIR_USER = os.path.join(os.path.expanduser('~'), '.config', 'myokit')
+import pathlib  # noqa: I001
+_home = pathlib.Path.home()
+DIR_USER = _home / '.config' / 'myokit'
+DIR_USER_OLD = _home / '.myokit'
+del pathlib, _home
 
-# Old user config location: Move if possible
-DIR_USER_OLD = os.path.join(os.path.expanduser('~'), '.myokit')
+# Ensure the user config directory exists and is a directory
+if DIR_USER.exists():
+    if not DIR_USER.is_dir():  # pragma: no cover
+        raise Exception(f'Non-directory found at {DIR_USER}')
+elif DIR_USER_OLD.exists():  # pragma: no cover
+    # Old user directory exists: move it to the new location
+    import shutil
+    shutil.move(DIR_USER_OLD, DIR_USER)
+    del shutil
+else:  # pragma: no cover
+    # Create user config dir
+    DIR_USER.mkdir(parents=True)
+del DIR_USER_OLD
 
-if os.path.exists(DIR_USER_OLD):    # pragma: no cover
-    if not os.path.exists(DIR_USER):
-        import shutil
-        shutil.move(DIR_USER_OLD, DIR_USER)
-        del shutil
+# C header files
+DIR_CFUNC = DIR_MYOKIT / '_sim'
 
-# Ensure the user config directory exists and is writable
-if os.path.exists(DIR_USER):    # pragma: no cover
-    if not os.path.isdir(DIR_USER):
-        raise Exception(
-            f'File or link found in place of user directory: {DIR_USER}')
-else:                           # pragma: no cover
-    os.makedirs(DIR_USER)
+# Binary data files
+DIR_DATA = DIR_MYOKIT / '_bin'
 
 # Example mmt file
-EXAMPLE = os.path.join(DIR_DATA, 'example.mmt')
-
-# Don't expose standard libraries as part of Myokit
-del os, inspect
-
+EXAMPLE = DIR_DATA / 'example.mmt'
 
 #
 # Debugging modes

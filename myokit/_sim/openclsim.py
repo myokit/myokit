@@ -6,7 +6,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
-import os
 import platform
 
 import numpy as np
@@ -291,7 +290,7 @@ class SimulationOpenCL(myokit.CModule):
         SimulationOpenCL._index += 1
         mname = 'myokit_sim_opencl_' + str(SimulationOpenCL._index)
         mname += '_' + str(myokit.pid_hash())
-        fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+        fname = myokit.DIR_CFUNC / SOURCE_FILE
         args = {
             'module_name': mname,
             'model': self._model,
@@ -1057,7 +1056,7 @@ class SimulationOpenCL(myokit.CModule):
         platform, device = myokit.OpenCL.load_selection_bytes()
 
         # Compile template into string with kernel code
-        kernel_file = os.path.join(myokit.DIR_CFUNC, KERNEL_FILE)
+        kernel_file = myokit.DIR_CFUNC / KERNEL_FILE
         args = {
             'model': self._model,
             'precision': self._precision,

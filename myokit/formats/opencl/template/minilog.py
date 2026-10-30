@@ -5,14 +5,12 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import array
-import os
-from collections import OrderedDict
 
 
-class DataLog(OrderedDict):
+class DataLog(dict):
     """
-    Extends an ordered ``dict`` type with a number of methods specifically for
-    working with logged simulation data.
+    Extends ``dict`` with a number of methods specifically for logged
+    simulation data.
     """
     def get(self, name, *cell):
         """
@@ -57,9 +55,6 @@ class DataLog(OrderedDict):
         names, separated by commas. Each subsequent row should contain the
         values at a single point in time for all logged variables.
         """
-        # Check filename
-        filename = os.path.expanduser(filename)
-
         # Error method
         def e(line, char, msg):
             raise Exception(
@@ -170,10 +165,7 @@ class DataLog(OrderedDict):
             return log
 
     def npview(self):
-        """
-        Returns an ordered dict of numpy arrays pointing to the data stored in
-        this log.
-        """
+        """ Returns a DataLog with all data stored in numpy arrays. """
         import numpy as np
         out = DataLog()
         for k, d in self.items():
@@ -193,8 +185,6 @@ class DataLog(OrderedDict):
             same order as the header line. A line is added for each time point
             logged.
         """
-        # Check filename
-        filename = os.path.expanduser(filename)
         # EOL: CSV files use DOS line endings '\r\n'. In windows, if you try
         # to write a '\n' in mode 'w' it automatically writes '\r\n', so '\r\n'
         # gets converted to '\r\r\n'. To circumvent this, open the file in mode
@@ -219,8 +209,8 @@ class DataLog(OrderedDict):
                 if pad is None:
                     raise Exception(
                         'Data passed to save_csv contains lists of unequal'
-                        ' length (' + str(n) + '). Please ensure all lists'
-                        ' have equal length or set a padding value.')
+                        f' length ({n}). Please ensure all lists have equal'
+                        ' length or set a padding value.')
             else:
                 # Padding not needed
                 pad = None

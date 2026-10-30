@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
-
 import myokit.formats
 
 
@@ -33,7 +31,7 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
     _use_rl = False
 
     def _dir(self, root):
-        return os.path.join(root, 'opencl', 'template')
+        return root / 'opencl' / 'template'
 
     def _dict(self):
         return {

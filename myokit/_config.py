@@ -186,10 +186,10 @@ def _load():
     Reads the configuration file and attempts to set the library paths.
     """
     # Location of configuration file
-    path = os.path.join(myokit.DIR_USER, 'myokit.ini')
+    path = myokit.DIR_USER / 'myokit.ini'
 
     # No file present? Create one and return
-    if not os.path.isfile(path):
+    if not path.is_file():
         _create(path)
 
     # In Python <3.2, strings like "x ; y" are treated as "x" followed by a
@@ -310,18 +310,18 @@ def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
     This is only done _if_ the user doesn't set an explicit path (i.e. we allow
     user overrides).
     """
-    sundials_win = os.path.abspath(
-        os.path.join(myokit.DIR_DATA, 'sundials-win-vs'))
+    sundials_win = myokit.DIR_DATA / 'sundials-win-vs'
     if len(myokit.SUNDIALS_LIB) == 0:
-        myokit.SUNDIALS_LIB.append(os.path.join(sundials_win, 'lib'))
+        myokit.SUNDIALS_LIB.append(str(sundials_win / 'lib'))
     if len(myokit.SUNDIALS_INC) == 0:
-        myokit.SUNDIALS_INC.append(os.path.join(sundials_win, 'include'))
+        myokit.SUNDIALS_INC.append(str(sundials_win / 'include'))
 
 
 def _path_list(text):
-    return [
-        os.path.expandvars(os.path.expanduser(x))
-        for x in [x.strip() for x in text.split(';')] if x != '']
+    # Note 1: Expanding environment variables is not available in pathlib
+    # Note 2: The ';' here is a myokit convention, not e.g. os.pathsep
+    return [os.path.expandvars(os.path.expanduser(x))
+            for x in [x.strip() for x in text.split(';')] if x != '']
 
 
 # Load settings

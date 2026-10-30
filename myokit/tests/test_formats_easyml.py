@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pathlib
 import tempfile
 import unittest
@@ -155,7 +154,7 @@ class EasyMLExporterTest(unittest.TestCase):
 
         model = myokit.load_model('example')
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'easy.model'
+            path = pathlib.Path(d, 'easy.model')
 
             # Test with simple model
             e = myokit.formats.easyml.EasyMLExporter()
@@ -181,16 +180,16 @@ class EasyMLExporterTest(unittest.TestCase):
         # against reference output.
 
         # Export model
-        m = myokit.load_model(os.path.join(DIR_DATA, 'decker-2009.mmt'))
+        m = myokit.load_model(DIR_DATA / 'decker-2009.mmt')
         e = myokit.formats.easyml.EasyMLExporter()
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'decker.model'
+            path = pathlib.Path(d, 'decker.model')
             e.model(path, m)
             with open(path, 'r') as f:
                 observed = f.readlines()
 
         # Load expected output
-        with open(os.path.join(DIR_DATA, 'decker.model'), 'r') as f:
+        with open(DIR_DATA / 'decker.model', 'r') as f:
             expected = f.readlines()
 
         # Compare (line by line, for readable output)
@@ -205,7 +204,7 @@ class EasyMLExporterTest(unittest.TestCase):
         m = myokit.parse_model(units_model)
         e = myokit.formats.easyml.EasyMLExporter()
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'easy.model'
+            path = pathlib.Path(d, 'easy.model')
             e.model(path, m)
             with open(path, 'r') as f:
                 observed = f.read().strip().splitlines()
@@ -222,7 +221,7 @@ class EasyMLExporterTest(unittest.TestCase):
         m.get('membrane.V').set_rhs('hh.I1 + mm.I2')
         m.get('membrane').remove_variable(m.get('membrane.C'))
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'easy.model'
+            path = pathlib.Path(d, 'easy.model')
             with WarningCollector() as c:
                 e.model(path, m)
             self.assertIn('Unable to convert hh.I1', c.text())
@@ -230,7 +229,7 @@ class EasyMLExporterTest(unittest.TestCase):
 
         m.get('engine.time').set_unit(myokit.units.cm)
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'easy.model'
+            path = pathlib.Path(d, 'easy.model')
             with WarningCollector() as c:
                 e.model(path, m)
             self.assertIn('Unable to convert time units [cm]', c.text())
@@ -262,7 +261,7 @@ class EasyMLExporterTest(unittest.TestCase):
         # Export, and read back in
         e = myokit.formats.easyml.EasyMLExporter()
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'easy.model'
+            path = pathlib.Path(d, 'easy.model')
             e.model(path, m)
             with open(path, 'r') as f:
                 x = f.read()

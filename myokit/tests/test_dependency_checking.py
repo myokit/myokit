@@ -6,7 +6,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import myokit
@@ -22,8 +21,7 @@ class DepTest(unittest.TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        cls.m = myokit.load_model(
-            os.path.join(DIR_DATA, 'lr-1991-dep.mmt'))
+        cls.m = myokit.load_model(DIR_DATA / 'lr-1991-dep.mmt')
 
     def d(self, name):
         return myokit.Derivative(myokit.Name(self.m.get(name)))

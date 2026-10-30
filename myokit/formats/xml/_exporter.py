@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
-
 from lxml import etree
 
 import myokit
@@ -20,9 +18,17 @@ class XMLExporter(myokit.formats.Exporter):
     def model(self, path, model, protocol=None):
         """
         Export the model to a generic xml document.
-        """
-        path = os.path.abspath(os.path.expanduser(path))
 
+        Arguments:
+
+        ``path``
+            The path to store the document.
+        ``model``
+            The model to export.
+        ``protocol``
+            This will be ignored: protocol export is not supported.
+
+        """
         # Create model xml element
         root = etree.Element('math')
         root.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
@@ -38,6 +44,7 @@ class XMLExporter(myokit.formats.Exporter):
             writer.eq(var.eq(), root)
 
         # Write xml to file
+        path = str(path)
         doc = etree.ElementTree(root)
         doc.write(path, encoding='utf-8', method='xml')
 

@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
-
 import myokit
 
 from ._ewriter import LatexExpressionWriter
@@ -36,6 +34,16 @@ class PdfExporter(myokit.formats.Exporter):
     def model(self, path, model, protocol=None):
         """
         Export to an xml document.
+
+        Arguments:
+
+        ``path``
+            The path to store the document.
+        ``model``
+            The model to export.
+        ``protocol``
+            This will be ignored: protocol export is not supported.
+
         """
         # Create an expression writer
         e = LatexExpressionWriter()
@@ -123,9 +131,17 @@ class PosterExporter(myokit.formats.Exporter):
     def model(self, path, model, protocol=None):
         """
         Exports a model to an xml document.
-        """
-        path = os.path.abspath(os.path.expanduser(path))
 
+        Arguments:
+
+        ``path``
+            The path to store the document.
+        ``model``
+            The model to export.
+        ``protocol``
+            This will be ignored: protocol export is not supported.
+
+        """
         # Create an expression writer
         e = LatexExpressionWriter()
 

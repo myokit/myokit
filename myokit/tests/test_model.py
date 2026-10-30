@@ -1704,7 +1704,7 @@ class ModelTest(unittest.TestCase):
         m = myokit.load_model('example')
         s1 = m.initial_values(True)
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'state.csv'
+            path = pathlib.Path(d, 'state.csv')
             with WarningCollector() as w:
                 m.save_state(path)
             self.assertIn('deprecated', w.text())

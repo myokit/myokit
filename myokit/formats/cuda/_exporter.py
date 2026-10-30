@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
-
 import myokit.formats
 
 
@@ -30,7 +28,7 @@ class CudaKernelExporter(myokit.formats.TemplatedRunnableExporter):
     """
 
     def _dir(self, root):
-        return os.path.join(root, 'cuda', 'template')
+        return root / 'cuda' / 'template'
 
     def _dict(self):
         return {'kernel.cu': 'kernel.cu'}
@@ -53,7 +51,7 @@ class CudaKernelRLExporter(myokit.formats.TemplatedRunnableExporter):
     """
 
     def _dir(self, root):
-        return os.path.join(root, 'cuda', 'template')
+        return root / 'cuda' / 'template'
 
     def _dict(self):
         return {'kernel.cu': 'kernel.cu'}

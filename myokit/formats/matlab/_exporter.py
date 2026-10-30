@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
-
 import myokit.formats
 
 
@@ -30,7 +28,7 @@ class MatlabExporter(myokit.formats.TemplatedRunnableExporter):
         return 'To run simulations, run the file main.m.'
 
     def _dir(self, root):
-        return os.path.join(root, 'matlab', 'template')
+        return root / 'matlab' / 'template'
 
     def _dict(self):
         return {

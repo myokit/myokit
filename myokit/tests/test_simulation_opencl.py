@@ -8,7 +8,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import numpy as np
@@ -35,8 +34,7 @@ class SimulationOpenCLTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Create simulations for later use in testing
-        cls.m = myokit.load_model(
-            os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+        cls.m = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
         cls.p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
         cls._s0 = cls._s1 = cls._s2 = None
 

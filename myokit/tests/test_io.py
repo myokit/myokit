@@ -6,7 +6,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pathlib
 import tempfile
 import unittest
@@ -22,8 +21,9 @@ class LoadSaveMmtTest(unittest.TestCase):
 
     def test_examplify(self):
         # Test _examplify.
-        self.assertEqual(myokit._io._examplify('test.txt'), 'test.txt')
-        self.assertEqual(myokit._io._examplify('example'), myokit.EXAMPLE)
+        e = myokit._io._examplify
+        self.assertEqual(str(e('test.txt')), 'test.txt')
+        self.assertEqual(e('example'), myokit.EXAMPLE)
 
     def test_load_multiline_string_indent(self):
         # Test what happens when you load save a string that gets auto-indented
@@ -38,7 +38,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         v.set_rhs(0)
         # Store to disk
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'multiline.mmt'
+            opath = pathlib.Path(d, 'multiline.mmt')
             myokit.save_model(opath, m1)
             # Load and compare the meta-data string
             m2 = myokit.load_model(opath)
@@ -55,7 +55,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         v.set_rhs(0)
         # Store to disk
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'multiline.mmt'
+            opath = pathlib.Path(d, 'multiline.mmt')
             myokit.save_model(opath, m1)
             # Load and compare the meta-data string
             m2 = myokit.load_model(opath)
@@ -72,7 +72,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         v.set_rhs(0)
         # Store to disk
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'multiline.mmt'
+            opath = pathlib.Path(d, 'multiline.mmt')
             myokit.save_model(opath, m1)
             # Load and compare the meta-data string
             m2 = myokit.load_model(opath)
@@ -81,9 +81,9 @@ class LoadSaveMmtTest(unittest.TestCase):
 
     def test_load_partial(self):
         # Test loading of partial files.
-        mpath = os.path.join(DIR_DATA, 'beeler-1977-model.mmt')
-        ppath = os.path.join(DIR_DATA, 'beeler-1977-protocol.mmt')
-        spath = os.path.join(DIR_DATA, 'beeler-1977-script.mmt')
+        mpath = DIR_DATA / 'beeler-1977-model.mmt'
+        ppath = DIR_DATA / 'beeler-1977-protocol.mmt'
+        spath = DIR_DATA / 'beeler-1977-script.mmt'
 
         m, p, x = myokit.load(mpath)
         self.assertIsInstance(m, myokit.Model)
@@ -125,7 +125,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save all three and reload
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, m, p, x)
             mm, pp, xx = myokit.load(opath)
             self.assertEqual(m.code(), mm.code())
@@ -134,7 +134,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save only model
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, model=m)
             with open(opath, 'r') as f:
                 text = f.read()
@@ -148,7 +148,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save only protocol
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, protocol=p)
             with open(opath, 'r') as f:
                 text = f.read()
@@ -162,7 +162,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save only script
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, script=x)
             with open(opath, 'r') as f:
                 text = f.read()
@@ -176,7 +176,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save all but model
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, protocol=p, script=x)
             with open(opath, 'r') as f:
                 text = f.read()
@@ -190,7 +190,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save all but protocol
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, model=m, script=x)
             with open(opath, 'r') as f:
                 text = f.read()
@@ -204,7 +204,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save all but script
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, model=m, protocol=p)
             with open(opath, 'r') as f:
                 text = f.read()
@@ -218,7 +218,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save all as strings
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, m, p, x)
             with open(opath, 'r') as f:
                 text1 = f.read()
@@ -229,7 +229,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save all as strings without [[model]] or [[protocol]] tage
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, m, p, x)
             with open(opath, 'r') as f:
                 text1 = f.read()
@@ -242,7 +242,7 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save all, compare with string generated version
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, model=m, protocol=p, script=x)
             with open(opath, 'r') as f:
                 text = f.read()
@@ -250,15 +250,15 @@ class LoadSaveMmtTest(unittest.TestCase):
 
         # Save nothing
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             self.assertRaises(ValueError, myokit.save, opath)
-            self.assertFalse(os.path.exists(opath))
+            self.assertFalse(opath.exists())
 
     def test_save_model(self):
         # Test if the correct parts are saved/loaded from disk using the
         # ``save_model()`` method.
 
-        ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
+        ipath = DIR_DATA / 'lr-1991.mmt'
         # Test example loading
         m = myokit.load_model('example')
         self.assertIsInstance(m, myokit.Model)
@@ -266,7 +266,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         m = myokit.load_model(ipath)
         self.assertIsInstance(m, myokit.Model)
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'loadsave.mmt'
+            opath = pathlib.Path(d, 'loadsave.mmt')
             myokit.save_model(opath, m)
             # Test no other parts were written
             with open(opath, 'r') as f:
@@ -283,7 +283,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         # Test if the correct parts are saved/loaded from disk using the
         # ``save_protocol()`` method.
 
-        ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
+        ipath = DIR_DATA / 'lr-1991.mmt'
         # Test example loading
         p = myokit.load_protocol('example')
         self.assertIsInstance(p, myokit.Protocol)
@@ -291,7 +291,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         p = myokit.load_protocol(ipath)
         self.assertIsInstance(p, myokit.Protocol)
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save_protocol(opath, p)
             # Test no other parts were written
             with open(opath, 'r') as f:
@@ -308,7 +308,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         # Test if the correct parts are saved/loaded from disk using the
         # ``save_script()`` method.
 
-        ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
+        ipath = DIR_DATA / 'lr-1991.mmt'
         # Test example loading
         x = myokit.load_script('example')
         self.assertTrue(isinstance(x, str))
@@ -316,7 +316,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         x = myokit.load_script(ipath)
         self.assertTrue(isinstance(x, str))
         with tempfile.TemporaryDirectory() as d:
-            opath = pathlib.Path(d) / 'test.mmt'
+            opath = pathlib.Path(d, 'test.mmt')
             myokit.save_script(opath, x)
             # Test no other parts were written
             with open(opath, 'r') as f:
@@ -338,7 +338,7 @@ class LoadSaveStateTest(unittest.TestCase):
         m, p, x = myokit.load('example')
         with tempfile.TemporaryDirectory() as d:
             # Test save and load without model
-            f = pathlib.Path(d) / 'state.txt'
+            f = pathlib.Path(d, 'state.txt')
             myokit.save_state(f, m.initial_values(True))
             self.assertEqual(myokit.load_state(f), m.initial_values(True))
 
@@ -362,7 +362,7 @@ class LoadSaveStateTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
 
             # Test save and load with double precision
-            f = pathlib.Path(d) / 'state.bin'
+            f = pathlib.Path(d, 'state.bin')
             myokit.save_state_bin(f, m.initial_values(True))
             self.assertEqual(myokit.load_state_bin(f), m.initial_values(True))
 

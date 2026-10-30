@@ -5,8 +5,9 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
-import os
+import pathlib
 import re
+import warnings
 
 import numpy as np
 
@@ -30,8 +31,8 @@ class AtfFile:
     """
     def __init__(self, filename):
         # The path to the file and its basename
-        self._path = os.path.abspath(filename)
-        self._filename = os.path.basename(filename)
+        self._path = pathlib.Path(filename).absolute()
+        self._filename = self._path.name
 
         # A version string
         self._version_str = None
@@ -61,7 +62,6 @@ class AtfFile:
     def info(self):
         """ Returns this ATF's header/meta data. """
         # Deprecated since 2023-07-12
-        import warnings
         warnings.warn(
             'The method `info` is deprecated. Please use `meta_str` instead.')
         return self.meta_str()
@@ -97,14 +97,13 @@ class AtfFile:
     def myokit_log(self):
         """ Deprecated alias of :meth:`log`. """
         # Deprecated since 2023-06-22
-        import warnings
         warnings.warn(
             'The method `myokit_log` is deprecated. Please use `log` instead.')
         return self.log()
 
     def path(self):
-        """ Returns the path to this ATF file. """
-        return self._path
+        """ Returns the path to this ATF file, as a string. """
+        return str(self._path)
 
     def _read(self):
         """ Reads the data in this file. """
@@ -229,7 +228,6 @@ def load_atf(filename):
     """
     Reads an ATF file and returns its data as a :class:`myokit.DataLog`.
     """
-    filename = os.path.expanduser(filename)
     return AtfFile(filename).log()
 
 
@@ -244,10 +242,6 @@ def save_atf(log, filename, fields=None):
     of fields, pass in a sequence ``fields`` containing the field names.
     """
     log.validate()
-    import myokit
-
-    # Check filename
-    filename = os.path.expanduser(filename)
 
     # Delimiters
     # Dos-style EOL: Open file in 'wb' mode to stop windows writing \r\r\n

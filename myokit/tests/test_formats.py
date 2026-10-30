@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pathlib
 import tempfile
 import unittest
@@ -110,14 +109,14 @@ class ExporterTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
 
             # Create in new dir
-            path = pathlib.Path(d) / 'new-dir'
+            path = pathlib.Path(d, 'new-dir')
             e.runnable(path, m, p)
 
             # Create again, in same dir (should be ok)
             e.runnable(path, m, p)
 
             # Create at location of file: not allowed!
-            path = pathlib.Path(d) / 'file'
+            path = pathlib.Path(d, 'file')
             with open(path, 'w') as f:
                 f.write('Hello')
             self.assertRaisesRegex(
@@ -139,21 +138,21 @@ class ExporterTest(unittest.TestCase):
             dpath = path / 'runnable1'
             ret = e.runnable(dpath, m)
             self.assertIsNone(ret)
-            self.assertTrue(os.path.isdir(dpath))
-            self.assertTrue(len(os.listdir(dpath)) > 0)
+            self.assertTrue(dpath.is_dir())
+            self.assertTrue(any(dpath.iterdir()))
 
             # Write to complex path
             dpath = path / 'runnable2' / 'nest' / 'test'
             ret = e.runnable(dpath, m, p)
             self.assertIsNone(ret)
-            self.assertTrue(os.path.isdir(dpath))
-            self.assertTrue(len(os.listdir(dpath)) > 0)
+            self.assertTrue(dpath.is_dir())
+            self.assertTrue(any(dpath.iterdir()))
 
             # Overwrite existing path
             ret = e.runnable(dpath, m, p)
             self.assertIsNone(ret)
-            self.assertTrue(os.path.isdir(dpath))
-            self.assertTrue(len(os.listdir(dpath)) > 0)
+            self.assertTrue(dpath.is_dir())
+            self.assertTrue(any(dpath.iterdir()))
 
             # Path pointing to file
             dpath = path / 'file'
@@ -165,7 +164,7 @@ class ExporterTest(unittest.TestCase):
             # Directory exists where we're trying to write a file
             dpath = path / 'runnable3'
             fname = dpath / 'sim.c'
-            os.makedirs(fname)
+            fname.mkdir(parents=True)
             self.assertRaisesRegex(
                 myokit.ExportError, 'Directory exists',
                 e.runnable, dpath, m, p)
@@ -187,9 +186,19 @@ class ExporterTest(unittest.TestCase):
                 return {'sim.c': 'nested/sim.c/som.c'}
 
             e._dict = embedded
-            dpath = os.path.join(path, 'runnable4')
+            dpath = path / 'runnable4'
             self.assertRaisesRegex(
                 myokit.ExportError, 'file or link', e.runnable, dpath, m, p)
+
+            # 3. Exporter contains relative path, to outside intended path
+            def embedded():
+                return {'sim.c': '../sim.c'}
+
+            e._dict = embedded
+            dpath = path / 'runnable4'
+            self.assertRaisesRegex(
+                myokit.ExportError, 'outside user-specified directory',
+                e.runnable, dpath, m, p)
 
 
 class ImporterTest(unittest.TestCase):

@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import numpy as np
@@ -26,7 +25,7 @@ class Simulation1dTest(unittest.TestCase):
         # Test basic usage.
 
         # Load model
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
 
         # Run a simulation
         ncells = 5
@@ -119,7 +118,7 @@ class Simulation1dTest(unittest.TestCase):
     def test_negative_time(self):
         # Test starting at a negative time
 
-        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
         p = myokit.pacing.blocktrain(duration=1, level=1, period=2)
         n = 4
         s = myokit.Simulation1d(m, p, ncells=n)
@@ -138,7 +137,7 @@ class Simulation1dTest(unittest.TestCase):
 
     def test_no_protocol(self):
         # Test running without a protocol
-        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
         x = 0.123
         m.get('engine.pace').set_rhs(x)
         n = 4
@@ -162,7 +161,7 @@ class Simulation1dTest(unittest.TestCase):
 
     def test_set_state(self):
         # Test :meth:`Simulation1d.set_state()`.
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         n = 4
 
         s = myokit.Simulation1d(m, p, n)
@@ -200,7 +199,7 @@ class Simulation1dTest(unittest.TestCase):
 
     def test_set_default_state(self):
         # Test :meth:`Simulation1d.set_default_state()`.
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         n = 4
 
         s = myokit.Simulation1d(m, p, n)
@@ -238,7 +237,7 @@ class Simulation1dTest(unittest.TestCase):
 
     def test_with_progress_reporter(self):
         # Test running with a progress reporter.
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
 
         # Test using a progress reporter
         s = myokit.Simulation1d(m, p, ncells=5)
@@ -261,7 +260,7 @@ class Simulation1dTest(unittest.TestCase):
         # Compare the Simulation1d output with CVODE output
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         e = p.head()
 
         #

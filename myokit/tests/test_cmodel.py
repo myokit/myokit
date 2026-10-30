@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import myokit
@@ -20,7 +19,7 @@ class CModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Test cmodel instantiation.
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         cls.model = m
         cls.sensitivities = (['ik1.gK1', 'ikp.IKp'], ['cell.K_o', 'ikp.gKp'])
         cls.pacing_labels = {}

@@ -4,7 +4,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
+import pathlib
 import struct
 
 import numpy as np
@@ -37,9 +37,8 @@ class WcpFile(myokit.formats.SweepSource):
     """
     def __init__(self, path):
         # The path to the file and its basename
-        path = str(path)
-        self._path = os.path.abspath(path)
-        self._filename = os.path.basename(path)
+        self._path = pathlib.Path(path).absolute()
+        self._filename = path.name
 
         # Header info, per file, per record, and per channel
         self._version_str = None
@@ -410,8 +409,8 @@ class WcpFile(myokit.formats.SweepSource):
         return self.log(self)
 
     def path(self):
-        """ Returns the path to this file. """
-        return self._path
+        """ Returns the path to this file, as a string. """
+        return str(self._path)
 
     def plot(self):
         """

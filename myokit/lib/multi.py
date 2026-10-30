@@ -4,7 +4,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
+import pathlib
 import warnings
 
 import myokit
@@ -34,25 +34,19 @@ def iterdir(path, guarantee_model_names=True):
     specify a ``name`` meta-attribute will be given their filename as name.
     This ensures every model read by this method has a name meta-property.
     """
-    # Fix path
-    path = os.path.expanduser(os.path.abspath(path))
-
-    if not os.path.isdir(path):
+    path = pathlib.Path(path)
+    if not path.is_dir():
         raise ValueError('Given path is not a directory.')
 
     # Scan files
-    for fname in sorted(os.listdir(path)):
-        fpath = os.path.join(path, fname)
+    for sub in sorted(path.iterdir()):
 
         # Check if it's a model file
-        if not os.path.isfile(fpath):
-            continue
-        base, ext = os.path.splitext(fname)
-        if ext != '.mmt':
+        if (not sub.is_file()) or sub.suffix != '.mmt':
             continue
 
         # Read model & protocol
-        model, protocol, x = myokit.load(fpath)
+        model, protocol, x = myokit.load(sub)
 
         # Skip files without model
         if model is None:
@@ -61,7 +55,7 @@ def iterdir(path, guarantee_model_names=True):
         # Set name attribute
         if guarantee_model_names:
             if not model.name():
-                model.meta['name'] = base
+                model.meta['name'] = sub.stem
 
         # Yield
         yield model, protocol

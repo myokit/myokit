@@ -139,7 +139,7 @@
 # was also used: http://neurodata.hg.sourceforge.net/hgweb/neurodata/neurodata/
 #------------------------------------------------------------------------------
 import datetime
-import os
+import pathlib
 import struct
 import warnings
 
@@ -230,13 +230,12 @@ class AbfFile(myokit.formats.SweepSource):
     """
     def __init__(self, filepath, is_protocol_file=None, convert_ramps=False):
         # The path to the file and its basename
-        filepath = str(filepath)
-        self._filepath = os.path.abspath(filepath)
-        self._filename = os.path.basename(filepath)
+        self._filepath = pathlib.Path(filepath).absolute()
+        self._filename = self._filepath.name
 
         # Read as protocol file yes?
         if is_protocol_file is None:
-            self._is_protocol_file = os.path.splitext(filepath)[1] == '.pro'
+            self._is_protocol_file = self._filepath.suffix.lower() == '.pro'
         else:
             self._is_protocol_file = bool(is_protocol_file)
 
@@ -1418,8 +1417,8 @@ class AbfFile(myokit.formats.SweepSource):
         return '\n'.join(out)
 
     def path(self):
-        """ Returns the path to the underlying ABF file. """
-        return self._filepath
+        """ Returns the path to the underlying ABF file, as a string. """
+        return str(self._filepath)
 
     def sweep_count(self):
         # Docstring in SweepSource

@@ -5,15 +5,14 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
+import pathlib
+import tempfile
 import unittest
 
 import numpy as np
 
 import myokit
-from myokit.tests import (
-    DIR_DATA,
-)
+from myokit.tests import DIR_DATA
 
 
 class PrecompiledSimulationTest(unittest.TestCase):
@@ -25,7 +24,7 @@ class PrecompiledSimulationTest(unittest.TestCase):
         # Create and run two simulations and compare the output
 
         # Load model and protocol
-        model, protocol, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        model, protocol, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
 
         # Select sensitivities to calculate
         sens = (
@@ -33,16 +32,11 @@ class PrecompiledSimulationTest(unittest.TestCase):
             ('init(ik.x)', 'init(ica.Ca_i)', 'ina.gNa', 'ik.PNa_K')
         )
 
-        # Create both simulation
-        path = 'precompiled-test.zip'
-        assert not os.path.exists(path), 'Path used in test already exists'
-        try:
+        # Create both simulations
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d, 'precompiled-test.zip')
             sim1 = myokit.Simulation(model, protocol, sens, path=path)
             sim2 = myokit.Simulation.from_path(path)
-        finally:
-            if os.path.exists(path):
-                os.remove(path)
-        assert not os.path.exists(path), 'Test leaked file: ' + path
 
         sim1.pre(10)
         sim1.run(10)

@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pickle
 import platform
 import re
@@ -32,7 +31,7 @@ class SimulationTest(unittest.TestCase):
     def setUpClass(cls):
         # Test simulation creation.
 
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         cls.model = m
         cls.protocol = p
         cls.sim = myokit.Simulation(cls.model, cls.protocol)
@@ -1112,7 +1111,7 @@ class SimulationTest(unittest.TestCase):
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
 
         # Parameter (needs sensitivies set)
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         sim = myokit.Simulation(m, p, (['ib.Ib'], ['ib.gb']))
         sim.set_constant('ib.gb', 20)
 

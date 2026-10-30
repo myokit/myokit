@@ -7,7 +7,7 @@
 # ruff: noqa: I001
 import configparser
 import gc
-import os
+import pathlib
 import sys
 import traceback
 
@@ -51,26 +51,26 @@ TITLE = 'Myokit DataLog Viewer (PROTOTYPE)'
 #        ]
 #    icon = QtGui.QIcon()
 #    for i in icons:
-#        icon.addFile(os.path.join(myokit.DIR_DATA, 'gui', i))
+#        icon.addFile(str(myokit.DIR_DATA / 'gui' / i))
 #    return icon
 
 # Settings file
-SETTINGS_FILE = os.path.join(myokit.DIR_USER, 'DataLogViewer.ini')
+SETTINGS_FILE = myokit.DIR_USER / 'DataLogViewer.ini'
 # Number of recent files to display
 # N_RECENT_FILES = 5
 
 # About
-ABOUT = '<h1>' + TITLE + '</h1>' + """
+ABOUT = f'''<h1>{TITLE}</h1>
 <p>
     The DataLog viewer is a PROTOTYPE utility to examine time series data in
     formats supported by Myokit.
 </p>
 <p>
     System info:
-    <br />Python: PYTHON
-    <br />Using the BACKEND GUI backend.
+    <br />Python: {sys.version}
+    <br />Using the {myokit.gui.backend} GUI backend.
 </p>
-""".replace('BACKEND', myokit.gui.backend).replace('PYTHON', sys.version)
+'''
 
 # File filters
 FILTER_ABF = 'ABF files (*.abf *.pro)'
@@ -106,7 +106,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         super().__init__()
 
         # Set Title, icon
-        self.setWindowTitle(TITLE + ' ' + myokit.__version__)
+        self.setWindowTitle(f'{TITLE} {myokit.__version__}')
 
         # Set size, center
         self.resize(800, 600)
@@ -132,7 +132,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self.statusBar().showMessage('Ready')
 
         # Current path
-        self._path = QtCore.QDir.currentPath()
+        self._path = pathlib.Path(QtCore.QDir.currentPath()).absolute()
 
         # Load settings from ini file
         self.load_config()
@@ -238,7 +238,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         Let the user select and open a file.
         """
         filenames = QtWidgets.QFileDialog.getOpenFileNames(
-            self, 'Open data file', self._path, filter=FILTER_LIST)[0]
+            self, 'Open data file', str(self._path), filter=FILTER_LIST)[0]
         if filenames:
             # Save current number of tabs
             tab_count = self._tabs.count()
@@ -414,7 +414,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # Read ini file
         config = configparser.RawConfigParser()
         try:
-            config.read(os.path.expanduser(SETTINGS_FILE))
+            config.read(SETTINGS_FILE)
         except configparser.ParsingError:
             # Partially read config causes all sorts of errors, so discard
             config = configparser.RawConfigParser()
@@ -437,44 +437,44 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         # Current files, directory, etc
         if config.has_section('files'):
             if config.has_option('files', 'path'):
-                path = config.get('files', 'path')
-                if os.path.isdir(path):
+                path = pathlib.Path(config.get('files', 'path')).absolute()
+                if path.is_dir():
                     self._path = path
 
-    def load_file(self, filename):
+    def load_file(self, path):
         """ Loads a data file. """
-        root, ext = os.path.splitext(os.path.basename(filename))
+        path = pathlib.Path(path).absolute()
         try:
-            action = self._load_actions[ext.lower()]
+            action = self._load_actions[path.suffix.lower()]
         except KeyError:
             QtWidgets.QMessageBox.critical(
-                self, TITLE, 'File format not recognized: ' + ext)
+                self, TITLE, f'File format not recognized: {path.suffix}')
             return
-        action(filename)
+        action(path)
 
-    def load_abf_file(self, filename):
+    def load_abf_file(self, path):
         """ Loads an ABF file. """
         try:
-            abf = myokit.formats.axon.AbfFile(filename)
+            abf = myokit.formats.axon.AbfFile(path)
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
             return
-        self._path = os.path.dirname(filename)
-        self._tabs.addTab(AbfTab(self, abf), os.path.basename(filename))
+        self._path = path.parent
+        self._tabs.addTab(AbfTab(self, abf), path.name)
 
-    def load_atf_file(self, filename):
+    def load_atf_file(self, path):
         """ Loads an ATF file. """
         try:
-            atf = myokit.formats.axon.AtfFile(filename)
+            atf = myokit.formats.axon.AtfFile(path)
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
             return
-        self._path = os.path.dirname(filename)
-        self._tabs.addTab(AtfTab(self, atf), os.path.basename(filename))
+        self._path = path.parent
+        self._tabs.addTab(AtfTab(self, atf), path.name)
 
-    def load_dat_file(self, filename):
+    def load_dat_file(self, path):
         """ Loads a PatchMaster dat file. """
         complete_only = False
 
@@ -488,7 +488,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         QtWidgets.QApplication.processEvents(flag)
 
         try:
-            with myokit.formats.heka.PatchMasterFile(filename) as f:
+            with myokit.formats.heka.PatchMasterFile(path) as f:
                 if complete_only:
                     n = sum([len(list(g.complete_series())) for g in f])
                 else:
@@ -509,7 +509,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
                         QtWidgets.QApplication.processEvents(flag)
                     if stop:
                         break
-                self._path = os.path.dirname(filename)
+                self._path = path.parent
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
@@ -519,59 +519,59 @@ class DataLogViewer(myokit.gui.MyokitApplication):
             pbar.close()
             pbar.deleteLater()
 
-    def load_datalog(self, filename):
+    def load_datalog(self, path):
         """ Loads a DataLog from csv or zip file. """
         try:
-            if filename[-4:].lower() == '.csv':
-                log = myokit.DataLog.load_csv(filename)
+            if path.suffix.lower() == '.csv':
+                log = myokit.DataLog.load_csv(path)
             else:
-                log = myokit.DataLog.load(filename)
+                log = myokit.DataLog.load(path)
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
             return
-        self._path = os.path.dirname(filename)
-        name = os.path.basename(filename)
+        self._path = path.parent
+        name = path.name
         self._tabs.addTab(CsvTab(self, log, name), name)
 
-    def load_mat_file(self, filename):
+    def load_mat_file(self, path):
         """
         Loads a Matlab file.
 
         This method requires ``SciPy`` to be installed.
         """
         try:
-            mat = scipy.io.loadmat(filename)
+            mat = scipy.io.loadmat(path)
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
             return
-        self._path = os.path.dirname(filename)
-        name = os.path.basename(filename)
+        self._path = path.parent
+        name = path.name
         self._tabs.addTab(MatTab(self, mat, name), name)
 
-    def load_txt_file(self, filename):
+    def load_txt_file(self, path):
         """ Loads a text file. """
         try:
-            data = np.loadtxt(filename)
+            data = np.loadtxt(path)
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
             return
-        self._path = os.path.dirname(filename)
-        name = os.path.basename(filename)
+        self._path = path.parent
+        name = path.name
         self._tabs.addTab(TxtTab(self, data, name), name)
 
-    def load_wcp_file(self, filename):
+    def load_wcp_file(self, path):
         """ Loads a WinWCP file. """
         try:
-            wcp = myokit.formats.wcp.WcpFile(filename)
+            wcp = myokit.formats.wcp.WcpFile(path)
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
             return
-        self._path = os.path.dirname(filename)
-        self._tabs.addTab(WcpTab(self, wcp), os.path.basename(filename))
+        self._path = path.parent
+        self._tabs.addTab(WcpTab(self, wcp), path.name)
 
     def save_config(self):
         """
@@ -589,11 +589,10 @@ class DataLogViewer(myokit.gui.MyokitApplication):
 
         # Current files, directory, etc
         config.add_section('files')
-        config.set('files', 'path', self._path)
+        config.set('files', 'path', str(self._path))
 
         # Write configuration to ini file
-        inifile = os.path.expanduser(SETTINGS_FILE)
-        with open(inifile, 'w') as configfile:
+        with open(SETTINGS_FILE, 'w') as configfile:
             config.write(configfile)
 
     def show(self):
@@ -841,11 +840,10 @@ class CsvTab(GraphTabWidget):
 
     The given log must have a time variable set.
     """
-    def __init__(self, parent, log, filename):
+    def __init__(self, parent, log, path):
         super().__init__(parent)
 
         self._log = log.npview()
-        self._filename = filename
 
         # Check time key was found
         time = log.time_key()
@@ -937,10 +935,8 @@ class CsvTab(GraphTabWidget):
 
 class MatTab(GraphTabWidget):
     """ A widget displaying a .mat file. """
-    def __init__(self, parent, mat, filename):
+    def __init__(self, parent, mat, path):
         super().__init__(parent)
-
-        self._filename = filename
 
         # Find usable data
         for key in mat:
@@ -1016,10 +1012,8 @@ class PatchMasterTab(SweepSourceTab):
 class TxtTab(GraphTabWidget):
     """ A widget displaying a .txt file (with lots of heuristics!). """
 
-    def __init__(self, parent, data, filename):
+    def __init__(self, parent, data, path):
         super().__init__(parent)
-
-        self._filename = filename
 
         # Find usable data
         if np.prod(data.shape) == np.max(data.shape):

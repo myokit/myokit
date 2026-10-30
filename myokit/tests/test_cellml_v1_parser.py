@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pathlib
 import tempfile
 import unittest
@@ -16,7 +15,7 @@ import myokit.formats.cellml.v1 as v1
 from myokit.tests import DIR_FORMATS, WarningCollector
 
 # CellML directory
-DIR = os.path.join(DIR_FORMATS, 'cellml')
+DIR = DIR_FORMATS / 'cellml'
 
 
 class TestCellMLParser(unittest.TestCase):
@@ -43,7 +42,7 @@ class TestCellMLParser(unittest.TestCase):
         temporary file, parses it, and returns the result.
         """
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.cellml'
+            path = pathlib.Path(d, 'test.cellml')
             with open(path, 'w') as f:
                 f.write(self.wrap(xml))
             return v1.parse_file(path)
@@ -79,7 +78,7 @@ class TestCellMLParser(unittest.TestCase):
         # Test cmeta ids are parsed
 
         # Test parsing cmeta id
-        path = os.path.join(DIR, 'br-1977.cellml')
+        path = DIR / 'br-1977.cellml'
         model = v1.parse_file(path)
         self.assertEqual(model.cmeta_id(), 'beeler_reuter_1977')
 
@@ -271,7 +270,7 @@ class TestCellMLParser(unittest.TestCase):
     def test_documentation(self):
         # Tests parsing a <documentation> tag from the cellml temp doc ns
 
-        path = os.path.join(DIR, 'documentation.cellml')
+        path = DIR / 'documentation.cellml'
         expected = '\n'.join([
             'Article title',
             '',
@@ -303,7 +302,7 @@ class TestCellMLParser(unittest.TestCase):
         org_values = org_model.evaluate_derivatives()
 
         # Load exported version
-        path = os.path.join(DIR, 'lr-1991-exported-1.cellml')
+        path = DIR / 'lr-1991-exported-1.cellml'
         cm = v1.parse_file(path)
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]

@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import numpy as np
@@ -73,7 +72,7 @@ class SimulationTest(PeriodicTest):
         if debug:
             print('= Simulation :: Dynamic logging =')
         # Load model & protocol
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         # Define sensitivities
         sens = (['ik1.gK1', 'ikp.IKp'], ['cell.K_o', 'ikp.gKp'])
         # Create simulation
@@ -201,7 +200,7 @@ class SimulationTest(PeriodicTest):
     def test_periodic(self):
         # Test periodic logging
 
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         s = myokit.Simulation(m, p)
         self.periodic(s)
 
@@ -266,7 +265,7 @@ class SimulationTest(PeriodicTest):
         # Test logging with a preset list of points.
 
         # Load model
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         # Create simulation
         s = myokit.Simulation(m, p)
 
@@ -354,7 +353,7 @@ class SimulationTest(PeriodicTest):
         # points overlap with protocol change points.
 
         # Load model
-        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
         # Voltage clamp
         m.binding('pace').set_binding(None)
         v = m.get('membrane.V')
@@ -406,7 +405,7 @@ class Simulation1dTest(PeriodicTest):
     def test_periodic(self):
         # Test periodic logging.
 
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         s = myokit.Simulation1d(m, p, ncells=1)
         self.periodic(s)
 

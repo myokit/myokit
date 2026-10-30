@@ -4,7 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import platform
 import timeit
 
@@ -56,7 +55,7 @@ class RhsBenchmarker(myokit.CModule):
             'variables': self._variables,
             'exclude_selected': exclude_selected,
         }
-        fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+        fname = myokit.DIR_CFUNC / SOURCE_FILE
 
         # Define libraries
         libs = []

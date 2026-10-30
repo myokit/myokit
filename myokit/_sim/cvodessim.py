@@ -267,7 +267,7 @@ class Simulation(myokit.CModule):
             'module_name': module_name,
             'model_code': cmodel_code,
         }
-        fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+        fname = myokit.DIR_CFUNC / SOURCE_FILE
 
         # Define libraries
         libs = [

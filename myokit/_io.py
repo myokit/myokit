@@ -8,7 +8,7 @@
 #
 import array
 import io
-import os
+import pathlib
 import sys
 
 import myokit
@@ -20,10 +20,9 @@ def _examplify(filename):
     name, this function returns the file specified by myokit.EXAMPLE. In all
     other cases, the original filename is returned.
     """
-    if filename == 'example' and not os.path.exists(filename):
+    if filename == 'example' and not pathlib.Path(filename).is_file():
         return myokit.EXAMPLE
-    else:
-        return os.path.expanduser(filename)
+    return filename
 
 
 def load(filename):
@@ -89,7 +88,6 @@ def load_state(filename, model=None):
     :meth:`Model.map_to_state()` and returned as a list of floating point
     numbers.
     """
-    filename = os.path.expanduser(filename)
     with open(filename, 'r') as f:
         s = myokit.parse_state(f)
         if model:
@@ -103,8 +101,6 @@ def load_state_bin(filename):
 
     See :meth:`save_state_bin` for details.
     """
-    filename = os.path.expanduser(filename)
-
     # Load compression modules
     import zipfile
     try:
@@ -112,7 +108,7 @@ def load_state_bin(filename):
         del zlib
     except ImportError:
         raise Exception(
-            'This method requires the `zlib` module to be installed.')
+            'This method requires the zlib module to be installed.')
 
     # Open file
     with zipfile.ZipFile(filename, 'r') as f:
@@ -164,13 +160,16 @@ def save(filename=None, model=None, protocol=None, script=None):
         raise ValueError(
             'At least one of [model, protocol, script] must not be None.')
 
-    if filename:
-        filename = os.path.expanduser(filename)
-        f = open(filename, 'w')  # noqa: SIM115
-    else:
-        f = io.StringIO()
-    out = None
     try:
+        # Open file, or write to string
+        file_open = False
+        if filename is None:
+            f = io.StringIO()
+        else:
+            f = open(filename, 'w')  # noqa: SIM115
+            file_open = True
+
+        # Add model
         if model is not None:
             if isinstance(model, myokit.Model):
                 model = model.code()
@@ -183,6 +182,7 @@ def save(filename=None, model=None, protocol=None, script=None):
                 f.write(model)
                 f.write('\n\n')
 
+        # Add protocol
         if protocol is not None:
             if isinstance(protocol, myokit.Protocol):
                 protocol = protocol.code()
@@ -195,6 +195,7 @@ def save(filename=None, model=None, protocol=None, script=None):
                 f.write(protocol)
                 f.write('\n\n')
 
+        # Add script
         if script is not None:
             script = script.strip()
             if script != '' and script[:10] != '[[script]]':
@@ -203,11 +204,9 @@ def save(filename=None, model=None, protocol=None, script=None):
                 f.write(script)
                 f.write('\n\n')
     finally:
-        if filename:
+        if file_open:
             f.close()
-        else:
-            out = f.getvalue()
-    return out
+    return f.getvalue() if filename is None else None
 
 
 def save_model(filename, model):
@@ -244,9 +243,6 @@ def save_state(filename, state, model=None):
     and will be stored in the format returned by
     :meth:`Model.format_state() <myokit.Model.format_state>`.
     """
-    # Check filename
-    filename = os.path.expanduser(filename)
-
     # Format
     if model is not None:
         state = model.map_to_state(state)
@@ -268,9 +264,6 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
     where ``x`` is the used data type (``d`` or ``f``) and ``y`` is the number
     of entries. All entries are stored little-endian.
     """
-    # Check filename
-    filename = os.path.expanduser(filename)
-
     # Load compression modules
     import zipfile
     try:
@@ -289,7 +282,7 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
         ar.byteswap()
 
     # Store precision and data type in internal filename
-    name = 'state_' + code + '_' + str(len(state))
+    name = f'state_{code}_{len(state)}'
     info = zipfile.ZipInfo(name)
     info.compress_type = zipfile.ZIP_DEFLATED
 

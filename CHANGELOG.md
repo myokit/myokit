@@ -10,6 +10,8 @@ This page lists the main changes made to Myokit in each release.
   - [#1211](https://github.com/myokit/myokit/pull/1211) Development versions of Myokit now have a version number ending in `dev0` (formerly ended in `dev`).
   - [#1223](https://github.com/myokit/myokit/pull/1223) The methods `cg_layers_dag` and `meg_dag` in `lib.deps` will now raise a `DiGraphError` instead of a generic `Exception` if the graph is cyclical.
   - [#1223](https://github.com/myokit/myokit/pull/1223) The following calls now raise a `TypeError` instead of a `ValueError` if an incorrect type argument is passed in: `cellml.v1.Model.add_connection()`, `cellml.v1.Units()`, `cellml.v1.Variable.set_rhs()`, `cellml.v2.Model.add_connection()`, `cellml.v2.Units()`, `myokit.gui.run()`, `DataLog.prepare_log()`, `Expression.diff()`, `Expression.eval()`, `OpenCLSim.set_connections()`, `Unit.register_preferred_representation()`, `lib.hh.HHModel()`, `lib.hh.AnalyticalSimulation()`, `lib.hh.convert_hh_states_to_inf_tau_form()`, `lib.hh.get_rl_expression()`, `lib.markov.AnalyticalSimulation()`, `lib.markov.DiscreteSimulation()`.
+  - [#1225](https://github.com/myokit/myokit/pull/1225) The property `myokit.EXAMPLE` and the `myokit.DIR_x` properties are now `pathlib.Path` objects. The property `myokit.DIR_USER_OLD` has been removed.
+  - [#1225](https://github.com/myokit/myokit/pull/1225) The command line function `myokit video` now requires `moviepy` 2 or greater.
 - Deprecated
 - Removed
   - [#1206](https://github.com/myokit/myokit/pull/1206) Removed the unused `JacobianCalculator`, `JacobianTracer`, and `CppModule` classes.
@@ -23,6 +25,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1219](https://github.com/myokit/myokit/pull/1219) Fixed a CellML 1 import bug introduced in 1.39.0 that caused units for constants to be omitted from the generated Myokit code.
   - [#1223](https://github.com/myokit/myokit/pull/1223) The units of resistance are now rendered `ohm` instead of `Ohm`, and the parser will accept e.g. `[Mohm]`.
   - [#1223](https://github.com/myokit/myokit/pull/1223) The units candela are now rendered as `cd`, not `lm`.
+  - [#1225](https://github.com/myokit/myokit/pull/1225) Fixed the command line function `myokit step`.
 
 ## [1.39.2] - 2026-03-18
 - Added

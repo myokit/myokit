@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
-
 import myokit
 
 # Path to C Source for Compiler info module
@@ -42,7 +40,7 @@ class Compiler(myokit.CModule):
         # Create back-end
         mname = 'myokit_compiler_info_' + str(Compiler._index)
         mname += '_' + str(myokit.pid_hash())
-        fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+        fname = myokit.DIR_CFUNC / SOURCE_FILE
         args = {'module_name': mname}
         try:
             Compiler._instance = self._compile(

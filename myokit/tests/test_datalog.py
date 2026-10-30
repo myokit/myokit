@@ -7,7 +7,6 @@
 #
 import array
 import json
-import os
 import pathlib
 import tempfile
 import unittest
@@ -85,7 +84,7 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(apds['duration'][0], 4)
 
         # Check against example model
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         s = myokit.Simulation(m, p)
         s.set_tolerance(1e-8, 1e-8)
         d, apds1 = s.run(
@@ -109,7 +108,7 @@ class DataLogTest(unittest.TestCase):
         import matplotlib.pyplot as plt
 
         # Create log, write to it
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         s = myokit.Simulation(m, p)
         d = s.run(1)
         plt.figure()
@@ -121,7 +120,7 @@ class DataLogTest(unittest.TestCase):
         # Test cloning via constructor and clone() method
 
         # Obtain a log from a simulation
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         s = myokit.Simulation(m, p)
         d1 = s.run(100, log=myokit.LOG_BOUND + myokit.LOG_STATE)
         d1.meta['yes'] = 'no'
@@ -569,42 +568,42 @@ class DataLogTest(unittest.TestCase):
         # Test if the correct load errors are raised.
 
         # Missing data file
-        path = os.path.join(DIR_IO, 'badlog-1-no-data.zip')
+        path = DIR_IO / 'badlog-1-no-data.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
             path)
 
         # Missing structure file
-        path = os.path.join(DIR_IO, 'badlog-2-no-structure.zip')
+        path = DIR_IO / 'badlog-2-no-structure.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
             path)
 
         # Not a zip
-        path = os.path.join(DIR_IO, 'badlog-3-not-a-zip.zip')
+        path = DIR_IO / 'badlog-3-not-a-zip.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'bad zip file', myokit.DataLog.load, path)
 
         # Wrong number of fields
-        path = os.path.join(DIR_IO, 'badlog-4-invalid-n-fields.zip')
+        path = DIR_IO / 'badlog-4-invalid-n-fields.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'number of fields', myokit.DataLog.load,
             path)
 
         # Negative data size
-        path = os.path.join(DIR_IO, 'badlog-5-invalid-data-size.zip')
+        path = DIR_IO / 'badlog-5-invalid-data-size.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Invalid data size', myokit.DataLog.load,
             path)
 
         # Unknown data type
-        path = os.path.join(DIR_IO, 'badlog-6-bad-data-type.zip')
+        path = DIR_IO / 'badlog-6-bad-data-type.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Invalid data type', myokit.DataLog.load,
             path)
 
         # Not enough data
-        path = os.path.join(DIR_IO, 'badlog-7-not-enough-data.zip')
+        path = DIR_IO / 'badlog-7-not-enough-data.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'larger data', myokit.DataLog.load, path)
 
@@ -686,7 +685,7 @@ class DataLogTest(unittest.TestCase):
         # Test loading with a progress reporter.
 
         p = TestReporter()
-        path = os.path.join(DIR_IO, 'goodlog.zip')
+        path = DIR_IO / 'goodlog.zip'
         self.assertFalse(p.entered)
         self.assertFalse(p.exited)
         self.assertFalse(p.updated)
@@ -703,7 +702,7 @@ class DataLogTest(unittest.TestCase):
     def test_load_csv_duplicate_keys(self):
         # Test loading a CSV with duplicate key names
 
-        path = os.path.join(DIR_IO, 'datalog-18-duplicate-keys.csv')
+        path = DIR_IO / 'datalog-18-duplicate-keys.csv'
         d = myokit.DataLog.load_csv(path)
         self.assertEqual(len(d), 7)
         self.assertEqual(
@@ -714,7 +713,7 @@ class DataLogTest(unittest.TestCase):
         # Test ignoring byte order marker (BOM) at start of file
 
         with tempfile.TemporaryDirectory() as td:
-            path = pathlib.Path(td) / 'test.csv'
+            path = pathlib.Path(td, 'test.csv')
             with open(path, 'w', encoding='utf-8-sig') as f:
                 f.write('time,x\n0,2\n1,3\n')
             d = myokit.DataLog.load_csv(path)
@@ -724,114 +723,114 @@ class DataLogTest(unittest.TestCase):
         # Test for errors during csv loading.
 
         # Test errory file, with comments etc., should work fine!
-        path = os.path.join(DIR_IO, 'datalog.csv')
+        path = DIR_IO / 'datalog.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Empty file
-        path = os.path.join(DIR_IO, 'datalog-1-empty.csv')
+        path = DIR_IO / 'datalog-1-empty.csv'
         d = myokit.DataLog.load_csv(path)
         self.assertEqual(set(d.keys()), set())
 
         # Test windows line endings
-        path = os.path.join(DIR_IO, 'datalog-2-windows.csv')
+        path = DIR_IO / 'datalog-2-windows.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test old mac line endings
-        path = os.path.join(DIR_IO, 'datalog-3-old-mac.csv')
+        path = DIR_IO / 'datalog-3-old-mac.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test empty lines at end
-        path = os.path.join(DIR_IO, 'datalog-4-empty-lines.csv')
+        path = DIR_IO / 'datalog-4-empty-lines.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test semicolons at end of each line
-        path = os.path.join(DIR_IO, 'datalog-5-semicolons.csv')
+        path = DIR_IO / 'datalog-5-semicolons.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test unterminated string
-        path = os.path.join(DIR_IO, 'datalog-6-open-string.csv')
+        path = DIR_IO / 'datalog-6-open-string.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'inside quoted', myokit.DataLog.load_csv,
             path)
 
         # Test empty lines between data
-        path = os.path.join(DIR_IO, 'datalog-7-empty-lines-2.csv')
+        path = DIR_IO / 'datalog-7-empty-lines-2.csv'
         d = myokit.DataLog.load_csv(path)
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == np.arange(1, 7)))
         self.assertTrue(np.all(d['v'] == 10 * (np.arange(1, 7))))
 
         # Test unquoted field names
-        path = os.path.join(DIR_IO, 'datalog-8-unquoted-header.csv')
+        path = DIR_IO / 'datalog-8-unquoted-header.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test double-quoted field names
-        path = os.path.join(DIR_IO, 'datalog-9-double-quoted-header.csv')
+        path = DIR_IO / 'datalog-9-double-quoted-header.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v"quote"'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v"quote"'] == 10 * (1 + np.arange(6))))
 
         # Test file with just some spaces (one line)
-        path = os.path.join(DIR_IO, 'datalog-10-just-spaces.csv')
+        path = DIR_IO / 'datalog-10-just-spaces.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), set())
 
         # Test file with just some spaces (one line)
-        path = os.path.join(DIR_IO, 'datalog-11-just-a-semicolon.csv')
+        path = DIR_IO / 'datalog-11-just-a-semicolon.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), set())
 
         # Test header "abc"x"adc"
-        path = os.path.join(DIR_IO, 'datalog-12-bad-header.csv')
+        path = DIR_IO / 'datalog-12-bad-header.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Expecting double quote',
             myokit.DataLog.load_csv, path)
 
         # Test empty field "" in header
-        path = os.path.join(DIR_IO, 'datalog-13-header-with-empty-1.csv')
+        path = DIR_IO / 'datalog-13-header-with-empty-1.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test empty field "x",,"y" in header
-        path = os.path.join(DIR_IO, 'datalog-14-header-with-empty-2.csv')
+        path = DIR_IO / 'datalog-14-header-with-empty-2.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test empty field "time","v", in header
-        path = os.path.join(DIR_IO, 'datalog-15-header-with-empty-3.csv')
+        path = DIR_IO / 'datalog-15-header-with-empty-3.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test wrong field count in data
-        path = os.path.join(DIR_IO, 'datalog-16-wrong-columns-in-data.csv')
+        path = DIR_IO / 'datalog-16-wrong-columns-in-data.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Wrong number of columns',
             myokit.DataLog.load_csv, path)
 
         # Test non-float data
-        path = os.path.join(DIR_IO, 'datalog-17-non-float-data.csv')
+        path = DIR_IO / 'datalog-17-non-float-data.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Unable to convert',
             myokit.DataLog.load_csv, path)
@@ -871,8 +870,7 @@ class DataLogTest(unittest.TestCase):
 
         # Test multi-cell log preparing
         from myokit import prepare_log
-        m = myokit.load_model(
-            os.path.join(DIR_DATA, 'lr-1991-testing.mmt'))
+        m = myokit.load_model(DIR_DATA / 'lr-1991-testing.mmt')
 
         #
         # 1. Integer flags
@@ -1176,8 +1174,7 @@ class DataLogTest(unittest.TestCase):
 
         # Test multi-cell log preparing
         from myokit import prepare_log
-        m = myokit.load_model(
-            os.path.join(DIR_DATA, 'lr-1991-testing.mmt'))
+        m = myokit.load_model(DIR_DATA / 'lr-1991-testing.mmt')
 
         #
         # 1. Integer flags
@@ -1698,7 +1695,7 @@ class DataLogTest(unittest.TestCase):
 
         # Test saving with double precision
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.bin'
+            fname = pathlib.Path(td, 'test.bin')
             d.save(fname)
             e = myokit.DataLog.load(fname)
             self.assertFalse(d is e)
@@ -1729,7 +1726,7 @@ class DataLogTest(unittest.TestCase):
         d['a.b'] = np.arange(100, dtype=np.float32)
         d['c.d'] = np.sqrt(np.arange(100, dtype=np.float32) * 1.2)
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.bin'
+            fname = pathlib.Path(td, 'test.bin')
             d.save(fname, precision=myokit.SINGLE_PRECISION)
             e = myokit.DataLog.load(fname)
             self.assertFalse(d is e)
@@ -1761,7 +1758,7 @@ class DataLogTest(unittest.TestCase):
         d['c.d'] = np.sqrt(np.arange(100) * 1.2)
         d['e.f'] = np.arange(100) + 1
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            fname = pathlib.Path(td, 'test.csv')
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(len(d), len(e))
@@ -1779,13 +1776,13 @@ class DataLogTest(unittest.TestCase):
         # Now set time key
         d.set_time_key('a.b')
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            fname = pathlib.Path(td, 'test.csv')
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(e.time()[0], d['a.b'][0])
         d.set_time_key('e.f')
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            fname = pathlib.Path(td, 'test.csv')
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(e.time()[0], d['e.f'][0])
@@ -1793,7 +1790,7 @@ class DataLogTest(unittest.TestCase):
         # Test saving with single precision
         d = d.npview()
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            fname = pathlib.Path(td, 'test.csv')
             d.save_csv(fname, precision=myokit.SINGLE_PRECISION)
             e = myokit.DataLog.load_csv(fname).npview()
             self.assertEqual(len(d), len(e))
@@ -1807,7 +1804,7 @@ class DataLogTest(unittest.TestCase):
 
         # Test saving with python string formats
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            fname = pathlib.Path(td, 'test.csv')
             d.save_csv(fname, precision=None)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(len(d), len(e))
@@ -1821,12 +1818,12 @@ class DataLogTest(unittest.TestCase):
 
         # Test invalid precision arguments
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            fname = pathlib.Path(td, 'test.csv')
             self.assertRaises(ValueError, d.save_csv, fname, 'ernie')
 
         # Test saving with a fixed order
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            fname = pathlib.Path(td, 'test.csv')
             d.save_csv(fname, order=['a.b', 'c.d', 'e.f'])
             with open(fname, 'r', newline=None) as f:
                 header = f.readline()
@@ -1853,7 +1850,7 @@ class DataLogTest(unittest.TestCase):
         d['11.z.a'] = np.arange(10) * 11
         d['14.z.a'] = np.arange(10) * 10
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            fname = pathlib.Path(td, 'test.csv')
             d.save_csv(fname)
             with open(fname, 'r', newline=None) as f:
                 order = [x[1:-1] for x in f.readline().strip().split(',')]
@@ -1871,7 +1868,7 @@ class DataLogTest(unittest.TestCase):
         # Test saving and loading empty log
         d = myokit.DataLog()
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            fname = pathlib.Path(td, 'test.csv')
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(len(e.keys()), 0)
@@ -1888,7 +1885,8 @@ class DataLogTest(unittest.TestCase):
         d.cmeta['c.d']['extra'] = 'This is the best column'
 
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
+            path = pathlib.Path(td)
+            fname = path / 'test.csv'
             d.save_csv(fname, meta=True)
 
             e = myokit.DataLog.load_csv(fname)
@@ -1902,22 +1900,22 @@ class DataLogTest(unittest.TestCase):
             self.assertEqual(list(d['c.d']), list(e['c.d']))
 
             self.maxDiff = None
-            meta_path = pathlib.Path(td) / 'test.csv-metadata.json'
-            self.assertTrue(os.path.exists(meta_path))
+            meta_path = path / 'test.csv-metadata.json'
+            self.assertTrue(meta_path.exists())
             with open(meta_path, 'r') as f:
                 self.assertEqual(f.read(), CSV_META)
 
-        # Test no meta data is written is none is set
+        # Test no meta data is written when none is set
         del d.meta['test']
         del d.meta['number']
         del d.meta['one:two']
         del d.cmeta['c.d']['extra']
 
         with tempfile.TemporaryDirectory() as td:
-            fname = pathlib.Path(td) / 'test.csv'
-            d.save_csv(fname, meta=True)
-            meta_path = pathlib.Path(td) / 'test.csv-metadata.json'
-            self.assertFalse(os.path.exists(meta_path))
+            path = pathlib.Path(td)
+            d.save_csv(path / 'test.csv', meta=True)
+            meta_path = path / 'test.csv-metadata.json'
+            self.assertFalse(meta_path.exists())
 
     def test_split(self):
         # Test the split function.

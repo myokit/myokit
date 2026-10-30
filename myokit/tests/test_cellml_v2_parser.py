@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pathlib
 import tempfile
 import unittest
@@ -15,7 +14,7 @@ import myokit.formats.cellml.v2 as v2
 from myokit.tests import DIR_FORMATS, WarningCollector
 
 # CellML directory
-DIR = os.path.join(DIR_FORMATS, 'cellml')
+DIR = DIR_FORMATS / 'cellml'
 
 
 class TestCellMLParser(unittest.TestCase):
@@ -42,7 +41,7 @@ class TestCellMLParser(unittest.TestCase):
         temporary file, parses it, and returns the result.
         """
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.cellml'
+            path = pathlib.Path(d, 'test.cellml')
             with open(path, 'w') as f:
                 f.write(self.wrap(xml))
             return v2.parse_file(path)
@@ -203,8 +202,7 @@ class TestCellMLParser(unittest.TestCase):
         org_values = org_model.evaluate_derivatives()
 
         # Load exported version
-        path = os.path.join(DIR, 'lr-1991-exported-2.cellml')
-        cm = v2.parse_file(path)
+        cm = v2.parse_file(DIR / 'lr-1991-exported-2.cellml')
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
         new_values = new_model.evaluate_derivatives()

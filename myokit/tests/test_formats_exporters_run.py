@@ -194,7 +194,7 @@ class ExportTest(unittest.TestCase):
         # Export to stan
         e = myokit.formats.stan.StanExporter()
         with tempfile.TemporaryDirectory() as d:
-            dpath = pathlib.Path(d) / 'out'
+            dpath = pathlib.Path(d, 'out')
             ret = e.runnable(dpath, m, parameters=parameters, output=output)
             self.assertIsNone(ret)
             self.assertTrue(dpath.is_dir())

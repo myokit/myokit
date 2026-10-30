@@ -30,7 +30,7 @@
 #
 import datetime
 import enum
-import os
+import pathlib
 import struct
 import warnings
 
@@ -126,8 +126,8 @@ class PatchMasterFile:
             'PatchMaster file reading is new: There are no unit tests yet.')
 
         # The path to the file and its basename
-        self._filepath = os.path.abspath(filepath)
-        self._filename = os.path.basename(filepath)
+        self._filepath = pathlib.Path(filepath).absolute()
+        self._filename = self._filepath.name
 
         # File format version
         self._version = None
@@ -266,8 +266,8 @@ class PatchMasterFile:
         raise KeyError(f'Group not found: {label}')
 
     def path(self):
-        """ Returns the path to this PatchMaster file. """
-        return self._filepath
+        """ Returns the path to this PatchMaster file, as a string. """
+        return str(self._filepath)
 
     def stimulus_tree(self):
         """
