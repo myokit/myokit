@@ -8,6 +8,7 @@
 #
 import io
 import os
+import pathlib
 import re
 import shutil
 import stat
@@ -406,28 +407,24 @@ class capture:
 
 def format_path(path, root='.'):
     """
-    Formats a path for use in user messages. If the given path is a
-    subdirectory of the current directory this part is chopped off.
+    Formats a ``path`` for use in user messages, cutting off the given ``root``
+    if shared by the path.
 
-    Alternatively, a ``root`` directory may be given explicitly: any
-    subdirectory of this path will be formatted relative to ``root``.
-
-    This function differs from os.path.relpath() in the way it handles paths
-    *outside* the root: In these cases relpath returns a relative path such as
-    '../../' while this function returns an absolute path.
+    If ``path`` is not within (or equal to) ``root``, an absolute path is
+    returned.
     """
-    if path == '':
-        path = '.'
-    try:
-        path = os.path.relpath(path, root)
-    except ValueError:  # pragma: no cover
-        # This can happen on windows, if `path` is on a different drive than
-        # root (so that no relative path from one to the other can be made).
-        return path
+    # Ensure path and root are Path objects
+    if isinstance(path, str):
+        path = pathlib.Path(path)
+    if isinstance(root, str):
+        root = pathlib.Path(root)
 
-    if '..' in path:
-        path = os.path.abspath(os.path.join(root, path))
-    return path
+    # Return relative path only if root is a parent of path
+    if path == root or root in path.parents:
+        return str(path.relative_to(root))
+
+    # Else return absolute path
+    return str(path.absolute())
 
 
 def lvsd(s, t):

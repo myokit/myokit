@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import numpy as np
@@ -91,12 +90,12 @@ class WcpTest(unittest.TestCase):
 
         # Load test file
         fname = 'wcp-file.wcp'
-        path = os.path.join(DIR_FORMATS, fname)
+        path = DIR_FORMATS / fname
         w = wcp.WcpFile(path)
         self.assertEqual(w.version(), '9')
 
         self.assertEqual(w.filename(), fname)
-        self.assertEqual(w.path(), path)
+        self.assertEqual(w.path(), str(path))
         self.assertEqual(w.record_count(), 11)
         self.assertEqual(w.sample_count(), 256)
         self.assertEqual(len(w.times()), 256)
@@ -211,8 +210,7 @@ class WcpTest(unittest.TestCase):
     def test_empty_file(self):
         # Tests reading a file with no data
 
-        path = os.path.join(DIR_FORMATS, 'wcp-file-empty.wcp')
-        w = wcp.WcpFile(path)
+        w = wcp.WcpFile(DIR_FORMATS / 'wcp-file-empty.wcp')
         self.assertEqual(w.version(), '9')
 
         # No records, but it still has a channel
@@ -228,7 +226,7 @@ class WcpTest(unittest.TestCase):
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
-        w = wcp.WcpFile(os.path.join(DIR_FORMATS, 'wcp-file.wcp'))
+        w = wcp.WcpFile(DIR_FORMATS / 'wcp-file.wcp')
         f = w.matplotlib_figure()
         self.assertIsInstance(f, matplotlib.figure.Figure)
 
@@ -237,7 +235,7 @@ class WcpTest(unittest.TestCase):
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
-        w = wcp.WcpFile(os.path.join(DIR_FORMATS, 'wcp-file.wcp'))
+        w = wcp.WcpFile(DIR_FORMATS / 'wcp-file.wcp')
         with WarningCollector() as c:
             f = w.plot()
         self.assertIn('deprecated', c.text())

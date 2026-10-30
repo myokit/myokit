@@ -40,7 +40,7 @@ class OpenCLTest(unittest.TestCase):
         org_name = myokit._sim.opencl.SETTINGS_FILE
         try:
             with tempfile.TemporaryDirectory() as d:
-                path = pathlib.Path(d) / 'opencl-temp.ini'
+                path = pathlib.Path(d, 'opencl-temp.ini')
                 myokit._sim.opencl.SETTINGS_FILE = path
 
                 # Save None and None

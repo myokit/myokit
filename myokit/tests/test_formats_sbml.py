@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pathlib
 import tempfile
 import unittest
@@ -41,7 +40,7 @@ class SBMLExporterTest(unittest.TestCase):
 
         # 1. Export without a protocol
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'model.sbml'
+            path = pathlib.Path(d, 'model.sbml')
             with WarningCollector() as w:
                 e.model(path, m1)
             m2 = i.model(path)
@@ -51,7 +50,7 @@ class SBMLExporterTest(unittest.TestCase):
         # 2. Export with protocol, but without variable bound to pacing
         m1.get('engine.pace').set_binding(None)
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'model.sbml'
+            path = pathlib.Path(d, 'model.sbml')
             with WarningCollector() as w:
                 e.model(path, m1, p1)
             m2 = i.model(path)
@@ -61,7 +60,7 @@ class SBMLExporterTest(unittest.TestCase):
         # 3. Export with protocol and variable bound to pacing
         m1.get('engine.pace').set_binding('pace')
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'model.sbml'
+            path = pathlib.Path(d, 'model.sbml')
             with WarningCollector() as w:
                 e.model(path, m1, p1)
             m2 = i.model(path)
@@ -90,8 +89,7 @@ class SBMLImporterTest(unittest.TestCase):
         # Tests importing the Hodgkin-Huxley model
         i = myokit.formats.importer('sbml')
         with WarningCollector() as w:
-            model = i.model(
-                os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+            model = i.model(DIR_FORMATS / 'sbml' / 'HodgkinHuxley.xml')
         self.assertIn('Unknown SBML namespace', w.text())
 
         self.assertIsInstance(model, myokit.Model)
@@ -110,12 +108,10 @@ class SBMLTestSuiteExamplesTest(unittest.TestCase):
         cls.importer = myokit.formats.importer('sbml')
 
     def get_sbml_file(self, case):
-        return os.path.join(
-            DIR_FORMATS, 'sbml', 'model', case + '-sbml-l3v2.xml')
+        return DIR_FORMATS / 'sbml' / 'model' / f'{case}-sbml-l3v2.xml'
 
     def get_results(self, case):
-        path = os.path.join(
-            DIR_FORMATS, 'sbml', 'result', case + '-results.csv')
+        path = DIR_FORMATS / 'sbml' / 'result' / f'{case}-results.csv'
         data = np.genfromtxt(path, delimiter=',')
 
         # Eliminate title row

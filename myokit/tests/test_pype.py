@@ -57,7 +57,7 @@ class PypeTest(unittest.TestCase):
         one.
         """
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'template'
+            path = pathlib.Path(d, 'template')
             with open(path, 'w') as f:
                 f.write(template)
             e = myokit.pype.TemplateEngine()

@@ -323,7 +323,7 @@ class TestCellMLWriter(unittest.TestCase):
 
         m1 = cellml.Model('ernie')
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d) / 'test.cellml'
+            path = pathlib.Path(d, 'test.cellml')
             cellml.write_file(path, m1)
             m2 = cellml.parse_file(path)
 

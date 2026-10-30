@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
-
 import myokit.formats
 
 
@@ -47,7 +45,7 @@ class AnsiCExporter(myokit.formats.TemplatedRunnableExporter):
         ))
 
     def _dir(self, root):
-        return os.path.join(root, 'ansic', 'template')
+        return root / 'ansic' / 'template'
 
     def _dict(self):
         return {'sim.c': 'sim.c'}
@@ -94,7 +92,7 @@ class AnsiCEulerExporter(myokit.formats.TemplatedRunnableExporter):
         ))
 
     def _dir(self, root):
-        return os.path.join(root, 'ansic', 'template')
+        return root / 'ansic' / 'template'
 
     def _dict(self):
         return {'euler.c': 'euler.c'}
@@ -157,7 +155,7 @@ class AnsiCCableExporter(myokit.formats.TemplatedRunnableExporter):
         ))
 
     def _dir(self, root):
-        return os.path.join(root, 'ansic', 'template')
+        return root / 'ansic' / 'template'
 
     def _dict(self):
         return {'cable.c': 'cable.c'}

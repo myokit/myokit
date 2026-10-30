@@ -5,7 +5,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
-import os
 import pathlib
 import re
 
@@ -1966,7 +1965,14 @@ def format_parse_error(ex, source=None):
     line = None
 
     if ex.line > 0 and source is not None:
-        if isinstance(source, (str, pathlib.Path)) and os.path.isfile(source):
+        if isinstance(source, str):
+            is_file = pathlib.Path(source).is_file()
+        elif isinstance(source, pathlib.Path):
+            is_file = source.is_file()
+        else:
+            is_file = False
+
+        if is_file:
             # Re-open file, find line
             with open(source, 'r') as f:
                 for i in range(ex.line):

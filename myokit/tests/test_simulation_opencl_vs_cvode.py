@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import numpy as np
@@ -28,7 +27,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # Compare the SimulationOpenCL output with CVODE output
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         e = p.head()
 
         # Make protocol to compare t=0 event implementations
@@ -120,7 +119,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
     def test_event_at_step_size_multiple(self):
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         e = p.head()
 
         # Make protocol to compare with event at step-size multiple
@@ -216,7 +215,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
     def test_event_not_at_multiple(self):
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         e = p.head()
 
         # Make protocol to compare with event NOT at step-size multiple
@@ -315,7 +314,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # Test again, with event at step multiple, but now without Rush-Larsen
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         e = p.head()
 
         dt = 0.01   # Note: this is too big to be very accurate
@@ -354,7 +353,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # Test using fields
 
         # Load model and protocol
-        m = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+        m = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
         p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
 
         # Create simulations
@@ -408,7 +407,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # math
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         e = p.head()
 
         # Make protocol to compare t=0 event implementations
@@ -473,7 +472,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # math
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
         e = p.head()
 
         # Make protocol to compare t=0 event implementations
@@ -537,7 +536,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # Test using set_constant
 
         # Load model and protocol
-        m = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+        m = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
         p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
 
         # Create simulations

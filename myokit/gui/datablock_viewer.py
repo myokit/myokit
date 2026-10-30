@@ -6,7 +6,7 @@
 #
 import collections
 import configparser
-import os
+import pathlib
 import sys
 import traceback
 
@@ -20,13 +20,13 @@ from myokit.gui import Qt, QtCore, QtGui, QtWidgets
 TITLE = 'Myokit DataBlock Viewer'
 
 # Settings file
-SETTINGS_FILE = os.path.join(myokit.DIR_USER, 'DataBlockViewer.ini')
+SETTINGS_FILE = myokit.DIR_USER / 'DataBlockViewer.ini'
 
 # Number of recent files to display
 N_RECENT_FILES = 5
 
 # About
-ABOUT = f'<h1>{TITLE}</h1>' + f"""
+ABOUT = f'''<h1>{TITLE}</h1>
 <p>
     Myokit's DataBlock viewer is a utility to examine
     <code>DataBlock1d</code> and <code>DataBlock2d</code> objects
@@ -43,7 +43,7 @@ ABOUT = f'<h1>{TITLE}</h1>' + f"""
     <br />Python: {sys.version}
     <br />Using the {myokit.gui.backend} GUI backend.
 </p>
-"""
+'''
 
 # File filters
 FILTER_CSV = 'Comma separated file (*.txt *.csv)'
@@ -71,7 +71,7 @@ def icon():
     ]
     icon = QtGui.QIcon()
     for i in icons:
-        icon.addFile(os.path.join(myokit.DIR_DATA, 'gui', i))
+        icon.addFile(str(myokit.DIR_DATA / 'gui' / i))
     return icon
 
 
@@ -262,7 +262,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self.setCentralWidget(self._central_widget)
 
         # Current path, current file, recent files
-        self._path = QtCore.QDir.currentPath()
+        self._path = pathlib.Path(QtCore.QDir.currentPath()).absolute()
         self._file = None
         self._recent_files = []
 
@@ -287,8 +287,10 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._colorbar_view.resize_event.connect(self._resize_started)
 
         # Attempt to load selected file
-        if filename and os.path.isfile(filename):
-            self.load_data_file(filename)
+        if filename is not None:
+            filename = pathlib.Path(filename).absolute()
+            if filename.is_file():
+                self.load_data_file(filename)
 
         # Focus on play button
         self._play_button.setFocus()
@@ -325,20 +327,20 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 '<p>Please open a data file first.</p>')
             return
 
-        fname = QtWidgets.QFileDialog.getSaveFileName(
+        path = QtWidgets.QFileDialog.getSaveFileName(
             self,
             'Extract colormap to image file',
-            self._path,
+            str(self._path),
             filter=FILTER_IMG)[0]
 
-        if fname:
-            fname = str(fname)
-            ext = os.path.splitext(fname)[1][1:].upper()
+        if path:
+            path = pathlib.Path(path)
+            ext = path.suffix[1:].upper()
             if ext not in IMAGE_TYPES:
                 QtWidgets.QMessageBox.warning(
                     self, TITLE,
                     '<h1>Image type not recognized.</h1>'
-                    f'<p>Unknown image type "{ext}".</p>')
+                    f'<p>Uncrecognized extension "{path.suffix}".</p>')
                 return
 
             # Create image
@@ -361,7 +363,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             painter.end()
 
             # Save
-            image.save(fname, ext)
+            image.save(str(path), ext)
 
     def action_extract_frame(self):
         """
@@ -376,7 +378,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         fname = QtWidgets.QFileDialog.getSaveFileName(
             self,
             'Extract frame to csv file',
-            self._path,
+            str(self._path),
             filter=FILTER_CSV)[0]
         if fname:
             fname = str(fname)
@@ -393,25 +395,25 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 '<h1>No data to export.</h1>'
                 '<p>Please open a data file first.</p>')
             return
-        fname = QtWidgets.QFileDialog.getSaveFileName(
+        path = QtWidgets.QFileDialog.getSaveFileName(
             self,
             'Extract frame to image file',
-            self._path,
+            str(self._path),
             filter=FILTER_IMG)[0]
-        if fname:
-            fname = str(fname)
-            ext = os.path.splitext(fname)[1][1:].upper()
+        if path:
+            path = pathlib.Path(path)
+            ext = path.suffix[1:].upper()
             if ext not in IMAGE_TYPES:
                 QtWidgets.QMessageBox.warning(
                     self, TITLE,
                     '<h1>Image type not recognized.</h1>'
-                    f'<p>Unknown image type "{ext}".</p>')
+                    f'<p>Unrecognized extension "{path.suffix}".</p>')
                 return
             nt, ny, nx = self._data.shape()
             image = self._video_frames[self._video_iframe]
             image = QtGui.QImage(
                 image, nx, ny, QtGui.QImage.Format.Format_ARGB32)
-            image.save(fname, ext)
+            image.save(str(path), ext)
 
     def action_extract_graphs(self):
         """
@@ -434,7 +436,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         fname = QtWidgets.QFileDialog.getSaveFileName(
             self,
             'Extract graphs to csv file',
-            self._path,
+            str(self._path),
             filter=FILTER_CSV)[0]
         if fname:
             fname = str(fname)
@@ -452,11 +454,10 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         self.action_stop_timer()
         fname = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Open data file', directory=self._path)[0]
+            self, 'Open data file', directory=str(self._path))[0]
         QtWidgets.QApplication.processEvents()
         if fname:
-            fname = str(fname)
-            self.load_data_file(fname)
+            self.load_data_file(str(fname))
 
     def action_pause_timer(self):
         """
@@ -473,14 +474,14 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         action = self.sender()
         if action:
-            fname = str(action.data())
-            if not os.path.isfile(fname):
+            path = action.data()
+            if not path.is_file():
                 QtWidgets.QMessageBox.warning(
                     self, TITLE,
                     '<h1>Failed to load file.</h1>'
                     '<p>The selected file no longer exists.</p>')
             else:
-                self.load_data_file(fname)
+                self.load_data_file(path)
 
     def action_start_stop(self):
         """
@@ -539,10 +540,10 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             self._colormap_lower_field.value(),
             self._colormap_upper_field.value()
         )
-        self.action_set_frame(self._video_iframe)
+        self.action_set_frame(self._video_iframe, force_refresh=True)
         self.action_depause_timer()
 
-    def action_set_frame(self, frame):
+    def action_set_frame(self, frame, force_refresh=False):
         """
         Move to a specific frame.
 
@@ -555,7 +556,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         if frame < 0 or frame >= nt:
             frame = 0
         # Update
-        if self._video_iframe != frame: # or True:
+        if self._video_iframe != frame or force_refresh:
             self._video_iframe = frame
             # Update slider
             if self._slider.value() != frame:
@@ -573,15 +574,14 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._graph_area.set_position(self._video_iframe)
 
     def action_start_timer(self):
-        """
-        Starts the timer.
-        """
+        """ Starts the timer. """
         self._timer_paused = False
         if self._data is not None:
             self._timer.start()
             self._play_button.setIcon(self._play_icon_pause)
 
     def action_stop_timer(self):
+        """ Stops the timer. """
         self._timer_paused = False
         self._timer.stop()
         self._play_button.setIcon(self._play_icon_play)
@@ -727,7 +727,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # Read ini file
         config = configparser.RawConfigParser()
         try:
-            config.read(os.path.expanduser(SETTINGS_FILE))
+            config.read(SETTINGS_FILE)
         except configparser.ParsingError:
             # Partially read config causes all sorts of errors, so discard
             config = configparser.RawConfigParser()
@@ -755,16 +755,16 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # Current files, directory, etc
         if config.has_section('files'):
             if config.has_option('files', 'path'):
-                path = config.get('files', 'path')
-                if os.path.isdir(path):
+                path = pathlib.Path(config.get('files', 'path')).absolute()
+                if path.is_dir():
                     self._path = path
             self._recent_files = []
             for i in range(N_RECENT_FILES):
                 opt = 'recent_' + str(i)
                 if config.has_option('files', opt):
-                    fname = config.get('files', opt)
-                    if os.path.isfile(fname):
-                        self._recent_files.append(fname)
+                    path = pathlib.Path(config.get('files', opt)).absolute()
+                    if path.is_file():
+                        self._recent_files.append(path)
             self.update_recent_files_menu()
 
         # Selected colormap
@@ -779,16 +779,16 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                     if ival > 0:
                         self._timer_interval = ival
 
-    def load_data_file(self, fname):
-        """
-        Attempts to load the given data block 2d file.
-        """
-        self._timer.stop()
-        # Fix path
-        fname = os.path.abspath(str(fname))
-        self._path = os.path.dirname(fname)
+    def load_data_file(self, path):
+        """ Attempts to load the given data block 2d file. """
+        self.action_stop_timer()
+
+        # Get path
+        path = pathlib.Path(path).absolute()
+        self._path = path.parent
+
         # Try loading file.
-        self.statusBar().showMessage('Loading ' + str(fname))
+        self.statusBar().showMessage(f'Loading {path}')
         n = 1000000
         pd = QtWidgets.QProgressDialog('Loading data file...', 'Cancel', 0, n)
         pd.setWindowModality(Qt.WindowModality.WindowModal)
@@ -810,7 +810,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
 
         reporter = Reporter(pd)
         try:
-            data = myokit.DataBlock2d.load(fname, progress=reporter)
+            data = myokit.DataBlock2d.load(path, progress=reporter)
             del reporter
         except myokit.DataBlockReadError as e:
             pd.reset()
@@ -818,7 +818,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>Unable to read file.</h1>'
-                f'<p>The given filename <code>{fname}</code>'
+                f'<p>The given path <code>{path}</code>'
                 ' could not be read as a <code>myokit.DataBlock2d</code>.</p>'
                 f'<p>{e}</p>'
             )
@@ -839,25 +839,23 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>Unable to read file.</h1>'
-                f'<p>The given filename <code>{fname}</code>'
+                f'<p>The given path <code>{path}</code>'
                 ' does not contain any 2d data.</p>')
             return
 
         # File loaded okay
         self.statusBar().showMessage('File loaded succesfully.')
-        self._file = fname
+        self._file = path
         self._data = data
         self.update_window_title()
 
         # Update recent file list
         try:
-            # Remove fname from recent files list
-            i = self._recent_files.index(fname)
-            self._recent_files = \
-                self._recent_files[:i] + self._recent_files[i + 1:]
+            # Remove path from recent files list
+            self._recent_files.remove(path)
         except ValueError:
             pass
-        self._recent_files.insert(0, fname)
+        self._recent_files.insert(0, path)
         self._recent_files = self._recent_files[:N_RECENT_FILES]
         self.update_recent_files_menu()
 
@@ -940,9 +938,9 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
 
         # Current files, directory, etc
         config.add_section('files')
-        config.set('files', 'path', self._path)
-        for k, fname in enumerate(self._recent_files):
-            config.set('files', 'recent_' + str(k), fname)
+        config.set('files', 'path', str(self._path))
+        for k, path in enumerate(self._recent_files):
+            config.set('files', f'recent_{k}', str(path))
 
         # Current control values
         config.add_section('video')
@@ -950,18 +948,17 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         config.set('video', 'interval', self._timer_interval)
 
         # Write configuration to ini file
-        inifile = os.path.expanduser(SETTINGS_FILE)
-        with open(inifile, 'w') as configfile:
+        with open(SETTINGS_FILE, 'w') as configfile:
             config.write(configfile)
 
     def update_recent_files_menu(self):
         """
         Updates the recent files menu.
         """
-        for k, fname in enumerate(self._recent_files):
+        for k, path in enumerate(self._recent_files):
             t = self._recent_file_tools[k]
-            t.setText(f'{k + 1}. {os.path.basename(fname)}')
-            t.setData(fname)
+            t.setText(f'{k + 1}. {path.name}')
+            t.setData(path)
             t.setVisible(True)
         for i in range(len(self._recent_files), N_RECENT_FILES):
             self._recent_file_tools[i].setVisible(False)
@@ -972,7 +969,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         title = f'{TITLE} {myokit.__version__}'
         if self._file:
-            title = f'{os.path.basename(self._file)} - {title}'
+            title = f'{self._file.name} - {title}'
         self.setWindowTitle(title)
 
 

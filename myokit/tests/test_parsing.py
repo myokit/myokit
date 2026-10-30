@@ -7,7 +7,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import math
-import os
 import pathlib
 import tempfile
 import unittest
@@ -1186,12 +1185,26 @@ class PhasedParseTest(unittest.TestCase):
                 ])
             )
 
-            # File source
+            # File source - as Path
             with tempfile.TemporaryDirectory() as d:
-                path = pathlib.Path(d) / 'mmt'
+                path = pathlib.Path(d, 'mmt')
                 with open(path, 'w') as f:
                     f.write(bad + '\n')
                 myokit.format_parse_error(e, source=path),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                    '  5 + / 2',
+                    '      ^'
+                ])
+
+            # File source - as str
+            with tempfile.TemporaryDirectory() as d:
+                path = pathlib.Path(d, 'mmt')
+                with open(path, 'w') as f:
+                    f.write(bad + '\n')
+                myokit.format_parse_error(e, source=str(path)),
                 '\n'.join([
                     'Syntax error',
                     '  Unexpected token SLASH "/" expecting expression',
@@ -1273,7 +1286,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_model_creation(self):
         # Basic model creation via the parser
-        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
 
         # Test components
         self.assertEqual(len(m), 9)
@@ -1370,8 +1383,7 @@ class ModelParseTest(unittest.TestCase):
     def test_piecewise(self):
         # Test a model with a piecewise statement
 
-        m = myokit.load_model(
-            os.path.join(DIR_DATA, 'conditional.mmt'))
+        m = myokit.load_model(DIR_DATA / 'conditional.mmt')
         # Test evaluation
         x = m.get('test.x')
         y = m.get('test.y')
@@ -1617,7 +1629,7 @@ class ModelParseTest(unittest.TestCase):
             'conditional.mmt',
         ]
         for model in models:
-            m1 = myokit.load_model(os.path.join(DIR_DATA, model))
+            m1 = myokit.load_model(DIR_DATA / model)
             c1 = m1.code()
             m2 = myokit.parse(c1)[0]
             c2 = m2.code()
@@ -1629,7 +1641,7 @@ class ModelParseTest(unittest.TestCase):
     def test_advanced_units(self):
         # Test the new unit syntax where literals have units.
         model = 'beeler-1977-units.mmt'
-        m = myokit.load_model(os.path.join(DIR_DATA, model))
+        m = myokit.load_model(DIR_DATA / model)
         m.validate()
 
     def test_unresolved_references(self):

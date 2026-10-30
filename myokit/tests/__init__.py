@@ -4,23 +4,23 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
+import importlib
 import unittest
 import warnings
 
 import myokit
 
 # The test directory
-DIR_TEST = os.path.abspath(os.path.dirname(__file__))
+DIR_TEST = importlib.resources.files('myokit.tests')
 
 # The data directory
-DIR_DATA = os.path.join(DIR_TEST, 'data')
+DIR_DATA = DIR_TEST / 'data'
 
 # Extra files in the data directory for load/save testing
-DIR_IO = os.path.join(DIR_DATA, 'io')
+DIR_IO = DIR_DATA / 'io'
 
 # Extra files in the data directory for format testing
-DIR_FORMATS = os.path.join(DIR_DATA, 'formats')
+DIR_FORMATS = DIR_DATA / 'formats'
 
 # OpenCL support
 OpenCL_FOUND = myokit.OpenCL.available()

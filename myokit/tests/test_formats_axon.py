@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pathlib
 import tempfile
 import unittest
@@ -198,10 +197,9 @@ class AbfTest(unittest.TestCase):
         # Test reading a version 1 file.
 
         # Load file
-        path = os.path.join(DIR_FORMATS, 'abf-v1.abf')
+        path = DIR_FORMATS / 'abf-v1.abf'
         abf = axon.AbfFile(path)
-        self.assertEqual(abf.path(), path)
-        self.assertEqual(abf.filename(), 'abf-v1.abf')
+        self.assertEqual(abf.path(), str(path))
         self.assertIsInstance(abf, myokit.formats.SweepSource)
 
         # Check getting info
@@ -402,8 +400,7 @@ class AbfTest(unittest.TestCase):
         # Test reading a v1 protocol file.
 
         # Load file
-        path = os.path.join(DIR_FORMATS, 'abf-protocol.pro')
-        abf = axon.AbfFile(path)
+        abf = axon.AbfFile(DIR_FORMATS / 'abf-protocol.pro')
 
         # Check version info
         self.assertIn('version 1.65', abf.meta_str())
@@ -420,8 +417,8 @@ class AbfTest(unittest.TestCase):
         #self.assertEqual(len(abf.log(join_sweeps=True)), 2)
 
         # Load, force as protocol
-        path = os.path.join(DIR_FORMATS, 'abf-protocol.pro')
-        abf = axon.AbfFile(path, is_protocol_file=True)
+        abf = axon.AbfFile(
+            DIR_FORMATS / 'abf-protocol.pro', is_protocol_file=True)
         self.assertEqual(abf.channel_count(), 0)
         self.assertEqual(abf.channel_count(), 0)
         self.assertEqual(abf.da_count(), 1)
@@ -438,10 +435,9 @@ class AbfTest(unittest.TestCase):
         # Test reading a version 2 file.
 
         # Load file
-        path = os.path.join(DIR_FORMATS, 'abf-v2.abf')
+        path = DIR_FORMATS / 'abf-v2.abf'
         abf = axon.AbfFile(path)
-        self.assertEqual(abf.path(), path)
-        self.assertEqual(abf.filename(), 'abf-v2.abf')
+        self.assertEqual(abf.path(), str(path))
 
         # Check getting info
         self.assertIn('version 2.0', abf.meta_str())
@@ -630,8 +626,7 @@ class AbfTest(unittest.TestCase):
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
-        path = os.path.join(DIR_FORMATS, 'abf-v1.abf')
-        abf = axon.AbfFile(path)
+        abf = axon.AbfFile(DIR_FORMATS / 'abf-v1.abf')
         f = abf.matplotlib_figure()
         self.assertIsInstance(f, matplotlib.figure.Figure)
 
@@ -653,7 +648,7 @@ class AtfTest(unittest.TestCase):
             log['cost'] = np.cos(log['time'])
 
             # Write atf file
-            path = pathlib.Path(d) / 'test.atf'
+            path = pathlib.Path(d, 'test.atf')
             axon.save_atf(log, path)
 
             # Read atf file
@@ -810,7 +805,7 @@ class AtfTest(unittest.TestCase):
             log['cost'] = np.cos(log['time'])
 
             # Write atf file
-            path = pathlib.Path(d) / 'test.atf'
+            path = pathlib.Path(d, 'test.atf')
             axon.save_atf(log, path)
 
             # Read atf file
@@ -871,7 +866,7 @@ class AbfImporterInterfaceTest(unittest.TestCase):
     def test_protocol(self):
         i = myokit.formats.importer('abf')
         self.assertTrue(i.supports_protocol())
-        i.protocol(os.path.join(DIR_FORMATS, 'abf-v1.abf'))
+        i.protocol(DIR_FORMATS / 'abf-v1.abf')
 
 
 if __name__ == '__main__':

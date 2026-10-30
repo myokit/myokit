@@ -9,6 +9,7 @@
 import configparser
 import gc
 import os
+import pathlib
 import sys
 import textwrap
 import traceback
@@ -34,13 +35,13 @@ matplotlib.interactive(True)        # Allows plt.show()
 TITLE = 'Myokit IDE'
 
 # Settings file
-SETTINGS_FILE = os.path.join(myokit.DIR_USER, 'myokit-ide.ini')
+SETTINGS_FILE = myokit.DIR_USER / 'myokit-ide.ini'
 
 # Number of recent files to display
 N_RECENT_FILES = 5
 
 # About
-ABOUT = '<h1>' + TITLE + '</h1>' + """
+ABOUT = f'''<h1>{TITLE}</h1>
 <p>
     The Myokit IDE provides a user-friendly environment in which mmt files can
     be created, imported, modified and run.
@@ -50,24 +51,24 @@ ABOUT = '<h1>' + TITLE + '</h1>' + """
 </p>
 <p>
     System info:
-    <br />Python: PYTHON
-    <br />Using the BACKEND GUI backend.
+    <br />Python: {sys.version}
+    <br />Using the {myokit.gui.backend} GUI backend.
 </p>
-""".replace('BACKEND', myokit.gui.backend).replace('PYTHON', sys.version)
+'''
 
 # File filters
 # Note: Using the special filter MMT_SAVE with only one extension specified,
 # the file save dialog will add the extension if the user didn't specify one.
 FILTER_ALL = 'All files (*.*)'
 FILTER_MMT_SAVE = 'Myokit mmt files (*.mmt)'
-FILTER_MMT = 'Myokit mmt files (*.mmt);;' + FILTER_ALL
+FILTER_MMT = f'Myokit mmt files (*.mmt);; {FILTER_ALL}'
 
-FILTER_ABF = 'Axon files (*.abf *.pro);; Axon Binary File (*.abf)' \
-    + ';;Axon Protocol File (*.pro);;' + FILTER_ALL
-FILTER_CELLML = 'CellML file (*.cellml *.xml);;' + FILTER_ALL
-FILTER_HTML = 'HTML file (*.html *.htm);;' + FILTER_ALL
-FILTER_LATEX = 'Tex file (*.tex)' + FILTER_ALL
-FILTER_SBML = 'SBML file (*.sbml *.xml)' + FILTER_ALL
+FILTER_ABF = ('Axon files (*.abf *.pro);; Axon Binary File (*.abf)'
+              f';; Axon Protocol File (*.pro);; {FILTER_ALL}')
+FILTER_CELLML = f'CellML file (*.cellml *.xml);; {FILTER_ALL}'
+FILTER_HTML = f'HTML file (*.html *.htm);; {FILTER_ALL}'
+FILTER_LATEX = f'Tex file (*.tex);; {FILTER_ALL}'
+FILTER_SBML = f'SBML file (*.sbml *.xml);; {FILTER_ALL}'
 
 
 # Application icon
@@ -85,7 +86,7 @@ def icon():
     ]
     icon = QtGui.QIcon()
     for i in icons:
-        icon.addFile(os.path.join(myokit.DIR_DATA, 'gui', i))
+        icon.addFile(str(myokit.DIR_DATA / 'gui' / i))
     return icon
 
 
@@ -249,7 +250,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._explorer = None
 
         # Current path, current file, recent files
-        self._path = QtCore.QDir.currentPath()
+        self._path = pathlib.Path(QtCore.QDir.currentPath()).absolute()
         self._file = None
         self._recent_files = []
 
@@ -281,28 +282,26 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             # Load or import file, based on extension
             # If it doesn't work, show an error message, as this is something
             # the user explicitly requested.
-            base, ext = os.path.splitext(filename)
-            ext = ext.lower()[1:]
-            if ext == 'cellml':
-                self.action_import_model_internal('cellml', filename)
+            path = pathlib.Path(filename).absolute()
+            if path.suffix.lower() == '.cellml':
+                self.action_import_model_internal('cellml', path)
             else:
                 # Open as mmt
                 try:
-                    self.load_file(filename)
+                    self.load_file(path)
                 except Exception:
-                    self._console.write('Error loading file: ' + str(filename))
+                    self._console.write(f'Error loading file: {path}')
                     self.show_exception()
-        else:
-            if self._file is not None:
-                # Try loading the last file, but if it goes wrong continue
-                # without error messages
-                try:
-                    self.load_file(self._file)
-                except Exception:
-                    self._file = None
-            if self._file is None:
-                # Create a new file
-                self.new_file()
+        elif self._file is not None:
+            # Try loading the last file (set in config), but if it goes wrong
+            # continue without error messages
+            try:
+                self.load_file(self._file)
+            except Exception:
+                self._file = None
+        if self._file is None:
+            # Create a new file
+            self.new_file()
 
         # Set focus
         self._model_editor.setFocus()
@@ -531,16 +530,13 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if ext is None:
                 path = self._path
             elif self._file is None:
-                path = os.path.join(self._path, 'new-model' + ext)
+                path = self._path / f'new-model{ext}'
             else:
-                path = os.path.splitext(self._file)[0] + ext
+                path = self._file.with_suffix(ext)
 
             # Ask for real path
             filename = QtWidgets.QFileDialog.getSaveFileName(
-                self,
-                'Select file to export to',
-                path,
-                filter=glob)[0]
+                self, 'Select file to export to', str(path), filter=glob)[0]
             if not filename:
                 return
 
@@ -597,7 +593,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
             # Select dir
             path = QtWidgets.QFileDialog.getSaveFileName(
-                self, 'Create directory', self._path)[0]
+                self, 'Create directory', str(self._path))[0]
             if not path:
                 return
 
@@ -660,9 +656,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         try:
             if not self.prompt_save_changes(cancel=True):
                 return
-            filename = QtWidgets.QFileDialog.getOpenFileName(
-                self, 'Open ABF file', self._path, filter=FILTER_ABF)[0]
-            if not filename:
+            path = QtWidgets.QFileDialog.getOpenFileName(
+                self, 'Open ABF file', str(self._path), filter=FILTER_ABF)[0]
+            if not path:
                 return
 
             # Create importer
@@ -672,11 +668,11 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             exception = None
             with warnings.catch_warnings(record=True) as ws:
                 try:
-                    protocol = i.protocol(filename)
+                    protocol = i.protocol(path)
                 except myokit.ImportError as ex:
                     exception = ex
             for w in ws:
-                self._console.write('Warning: ' + str(w.message))
+                self._console.write(f'Warning: {w.message}')
 
             # Handle failure
             if exception is not None:
@@ -691,7 +687,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self._console.write('Protocol imported successfully.')
 
             # Set working directory to file's path
-            self._path = os.path.dirname(filename)
+            self._path = pathlib.Path(path).parent.absolute()
             os.chdir(self._path)
 
             # Save settings file
@@ -722,31 +718,31 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         try:
             if not self.prompt_save_changes(cancel=True):
                 return
-            filename = QtWidgets.QFileDialog.getOpenFileName(
-                self, 'Select model file', self._path, filter=glob)[0]
-            if not filename:
+            path = QtWidgets.QFileDialog.getOpenFileName(
+                self, 'Select model file', str(self._path), filter=glob)[0]
+            if not path:
                 return
 
-            self.action_import_model_internal(name, filename)
+            self.action_import_model_internal(name, path)
 
         except Exception:
             self.show_exception()
 
-    def action_import_model_internal(self, importer, filename):
+    def action_import_model_internal(self, importer, path):
         """
-        Imports a model file, with a known filename.
+        Imports a model file, with a known path.
 
         Arguments:
 
         ``importer``
             The name of the importer to use.
-        ``filename``
+        ``path``
             The file to import.
 
         """
         try:
             # Set working directory to file's path
-            self._path = os.path.dirname(filename)
+            self._path = pathlib.Path(path).parent.absolute()
             os.chdir(self._path)
 
             # Load file
@@ -756,11 +752,11 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             exception = None
             with warnings.catch_warnings(record=True) as ws:
                 try:
-                    model = i.model(filename)
+                    model = i.model(path)
                 except myokit.ImportError as e:
                     exception = e
             for w in ws:
-                self._console.write('Warning: ' + str(w.message))
+                self._console.write(f'Warning: {w.message}')
 
             # Import failed?
             if exception is not None:
@@ -902,36 +898,32 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self.show_exception()
 
     def action_open(self):
-        """
-        Select and open an existing file.
-        """
+        """ Select and open an existing file. """
         try:
             if not self.prompt_save_changes(cancel=True):
                 return
-            filename = QtWidgets.QFileDialog.getOpenFileName(
-                self, 'Open mmt file', self._path, filter=FILTER_MMT)[0]
-            if filename:
-                self.load_file(filename)
+            path = QtWidgets.QFileDialog.getOpenFileName(
+                self, 'Open mmt file', str(self._path), filter=FILTER_MMT)[0]
+            if path:
+                self.load_file(path)
         except Exception:
             self.statusBar().showMessage('"Open file" failed')
             self.show_exception()
 
     def action_open_recent(self):
-        """
-        Opens a recent file.
-        """
+        """ Opens a recent file. """
         try:
             if not self.prompt_save_changes(cancel=True):
                 return
             action = self.sender()
             if action:
-                filename = str(action.data())
-                if not os.path.isfile(filename):
+                path = action.data()
+                if not path.is_file():
                     self._console.write(
                         'Failed to load file. The selected file can not be'
-                        ' found: ' + str(filename))
+                        f' found: {path}')
                 else:
-                    self.load_file(filename)
+                    self.load_file(path)
         except Exception:
             self.statusBar().showMessage('"Open recent file" failed')
             self.show_exception()
@@ -2097,7 +2089,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Read ini file
         config = configparser.RawConfigParser()
         try:
-            config.read(os.path.expanduser(SETTINGS_FILE))
+            config.read(SETTINGS_FILE)
         except configparser.ParsingError:
             # Partially read config causes all sorts of errors, so discard
             config = configparser.RawConfigParser()
@@ -2129,23 +2121,23 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Current and recent files
         if config.has_section('files'):
             if config.has_option('files', 'file'):
-                filename = config.get('files', 'file')
-                if os.path.isfile(filename):
-                    self._file = filename
+                path = pathlib.Path(config.get('files', 'file')).absolute()
+                if path.is_file():
+                    self._file = path
             if config.has_option('files', 'path'):
-                path = config.get('files', 'path')
-                if os.path.isdir(path):
+                path = pathlib.Path(config.get('files', 'path')).absolute()
+                if path.is_dir():
                     # Note: If self._file is a valid file this will be loaded,
                     # which will change _path again. But if no last file is
                     # set, this option is used.
                     self._path = path
             self._recent_files = []
             for i in range(N_RECENT_FILES):
-                opt = 'recent_' + str(i)
+                opt = f'recent_{i}'
                 if config.has_option('files', opt):
-                    filename = config.get('files', opt)
-                    if os.path.isfile(filename):
-                        self._recent_files.append(filename)
+                    path = pathlib.Path(config.get('files', opt)).absolute()
+                    if path.is_file():
+                        self._recent_files.append(path)
             self.update_recent_files_menu()
 
         # Source editors
@@ -2158,30 +2150,28 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         if nav == 'true':
             self.action_toggle_navigator()
 
-    def load_file(self, filename):
+    def load_file(self, path):
         """
         Loads a file into the IDE. Does not provide error handling.
         """
         # Close explorer, if required
         self.close_explorer()
 
-        # Allow user directory and relative paths
-        filename = os.path.abspath(os.path.expanduser(filename))
-
-        # Set path to filename's path. Do this before we even know the file is
+        # Set path to file's parent. Do this before we even know the file is
         # valid: if you click the wrong file by mistake you shouldn't have to
         # browse all the way back again).
-        self._path = os.path.dirname(filename)
+        path = pathlib.Path(path).absolute()
+        self._path = path.parent
 
         # Open file, split into segments
-        with open(filename, 'r') as f:
+        with open(path, 'r') as f:
             segments = myokit.split(f)
 
         # Still here? Then set as file.
-        self._file = filename
+        self._file = path
 
         # Add to recent files
-        self.add_recent_file(filename)
+        self.add_recent_file(path)
 
         # Update model editor
         self._model_editor.set_text(segments[0].strip())
@@ -2195,7 +2185,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Don't validate model or protocol. Opening an invalid file is not an
         # error in itself.
         # Update console
-        self._console.write('Opened ' + self._file)
+        self._console.write(f'Opened {self._file}')
 
         # Set working directory to file's path
         os.chdir(self._path)
@@ -2317,7 +2307,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         if not self._have_changes:
             return True
         if self._file:
-            msg = 'Save changes to ' + str(self._file) + '?'
+            msg = f'Save changes to {self._file}?'
         else:
             msg = 'Save changes to new file?'
         sb = QtWidgets.QMessageBox.StandardButton
@@ -2407,10 +2397,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
         # Current and recent files
         config.add_section('files')
-        config.set('files', 'path', self._path)
-        config.set('files', 'file', self._file)
-        for k, filename in enumerate(self._recent_files):
-            config.set('files', 'recent_' + str(k), filename)
+        config.set('files', 'path', str(self._path))
+        config.set('files', 'file', str(self._file))
+        for k, path in enumerate(self._recent_files):
+            config.set('files', f'recent_{k}', str(path))
 
         # Source editors
         self._model_search.save_config(config, 'model_editor')
@@ -2424,36 +2414,38 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             str(self._tool_view_navigator.isChecked()))
 
         # Write configuration to ini file
-        inifile = os.path.expanduser(SETTINGS_FILE)
-        with open(inifile, 'w') as configfile:
+        with open(SETTINGS_FILE, 'w') as configfile:
             config.write(configfile)
 
     def save_file(self, save_as=False):
         """
-        Saves the current document. If no file name is known or
-        ``save_as=True`` the user is asked for a filename.
+        Saves the current document.
 
-        Returns ``True`` if the save was succesful
+        If no file name is known or ``save_as=True`` the user is asked for a
+        path.
+
+        Returns ``True`` if the save was succesful.
         """
         # Get file name
         if save_as or self._file is None:
             path = self._file
             if path is None:
-                path = os.path.join(self._path, 'new-model.mmt')
-            filename = QtWidgets.QFileDialog.getSaveFileName(
-                self, 'Save mmt file', path, filter=FILTER_MMT_SAVE)[0]
-            if not filename:
+                path = self._path / 'new-model.mmt'
+            path = QtWidgets.QFileDialog.getSaveFileName(
+                self, 'Save mmt file', str(path), filter=FILTER_MMT_SAVE)[0]
+            if not path:
                 return
             # Set file
-            self._file = str(filename)
+            self._file = pathlib.Path(path).absolute()
             # Add to recent files
             self.add_recent_file(self._file)
             # Set path
-            self._path = os.path.dirname(self._file)
+            self._path = self._file.parent
             # Set working directory to new path
             os.chdir(self._path)
+
         # Save
-        self.statusBar().showMessage('Saving to ' + str(self._file))
+        self.statusBar().showMessage(f'Saving to {self._file}')
         self._tool_save.setEnabled(False)
         self._tool_save_as.setEnabled(False)
         try:
@@ -2464,33 +2456,41 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             p = self._protocol_editor.get_text()
             x = self._script_editor.get_text()
             myokit.save(self._file, m, p, x)
+
             # Update have_changes state (triggers signals that fix the rest)
             self._model_editor.document().setModified(False)
             self._protocol_editor.document().setModified(False)
             self._script_editor.document().setModified(False)
+
             # Update window title
             self.update_window_title()
+
             # Inform user
-            self.statusBar().showMessage('File saved as ' + str(self._file))
+            self.statusBar().showMessage(f'File saved as {self._file}')
+
         except OSError:
             self._tool_save.setEnabled(True)
             self._tool_save_as.setEnabled(True)
             self.statusBar().showMessage('Error saving file.')
             self.show_exception()
             return False
+
         except Exception:
             self._tool_save.setEnabled(True)
             self._tool_save_as.setEnabled(True)
             self.statusBar().showMessage('Unexpected error saving file.')
             self.show_exception()
             return False
+
         finally:
             self._tool_save_as.setEnabled(True)
+
         # Save file history
         try:
             self.save_config()
         except Exception:
             pass
+
         # Finished
         return True
 
@@ -2560,11 +2560,11 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Updates the recent files menu.
         """
-        for k, filename in enumerate(self._recent_files):
+        for k, path in enumerate(self._recent_files):
             t = self._recent_file_tools[k]
-            t.setText(str(k + 1) + '. ' + os.path.basename(filename))
-            t.setStatusTip('Open ' + os.path.abspath(filename))
-            t.setData(filename)
+            t.setText(f'{k + 1}. {path.name}')
+            t.setStatusTip(f'Open {path}')
+            t.setData(path)
             t.setVisible(True)
         for i in range(len(self._recent_files), N_RECENT_FILES):
             self._recent_file_tools[i].setVisible(False)
@@ -2573,11 +2573,11 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Sets this window's title based on the current state.
         """
-        title = TITLE + ' ' + myokit.__version__
+        title = f'{TITLE} {myokit.__version__}'
         if self._file:
-            title = os.path.basename(self._file) + ' - ' + title
+            title = f'{self._file.name} - {title}'
             if self._have_changes:
-                title = '*' + title
+                title = f'*{title}'
         self.setWindowTitle(title)
 
 

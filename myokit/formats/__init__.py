@@ -4,16 +4,16 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
+import importlib
+import pathlib
 import re
-import sys
 import traceback
 import warnings
 
 import myokit
 
 # Constants
-DIR_FORMATS = os.path.join(myokit.DIR_MYOKIT, 'formats')
+DIR_FORMATS = myokit.DIR_MYOKIT / 'formats'
 
 # Hidden lists
 _IMPORTERS = None
@@ -48,17 +48,18 @@ class Exporter:
 
     def _test_writable_dir(self, path):
         """
-        Ensures the given path is writable, or raises a
+        Ensures the given ``path`` is writable, or raises a
         :class:`myokit.ExportError` if it can't be used.
         """
-        if os.path.exists(path):
-            if not os.path.isdir(path):
+        path = pathlib.Path(path)
+        if path.exists():
+            if not path.is_dir():
                 raise myokit.ExportError(
-                    'Can\'t create output directory. A file exists at the'
-                    ' specified location: ' + path)
+                    'Cannot create output directory. A file exists at the'
+                    f' specified location: {path}')
 
-        elif path != '' and not os.path.isdir(path):
-            os.makedirs(path)
+        elif not path.is_dir():
+            path.mkdir(parents=True)
 
     def model(self, path, model):
         """
@@ -470,8 +471,7 @@ class TemplatedRunnableExporter(Exporter):
         The output will be stored in the **directory** ``path``.
         """
         # Get and test path
-        path = os.path.abspath(os.path.expanduser(path))
-        path = myokit.tools.format_path(path)
+        path = pathlib.Path(path).resolve()  # Must resolve to remove .. later
         self._test_writable_dir(path)
 
         # Clone the model, allowing changes to be made during export
@@ -483,77 +483,74 @@ class TemplatedRunnableExporter(Exporter):
             protocol = myokit.default_protocol()
 
         # Build and check template path
-        tpl_dir = self._dir(DIR_FORMATS)
-        if not os.path.exists(tpl_dir):  # pragma: no cover
+        tpl_dir = pathlib.Path(self._dir(DIR_FORMATS))
+        if not tpl_dir.exists():  # pragma: no cover
             # Cover pragma: If this happens it's a bug in the exporter
-            msg = 'Template directory not found: ' + tpl_dir
-            raise myokit.ExportError(msg)
-        if not os.path.isdir(tpl_dir):  # pragma: no cover
+            raise myokit.ExportError(
+                f'Template path not found: {tpl_dir}')
+        if not tpl_dir.is_dir():  # pragma: no cover
             # Cover pragma: If this happens it's a bug in the exporter
-            msg = f'Template path is not a directory: {tpl_dir}'
-            raise myokit.ExportError(msg)
+            raise myokit.ExportError(
+                f'Template path is not a directory: {tpl_dir}')
 
         # Render all templates
         tpl_vars = self._vars(model, protocol, *args)
-        for tpl_name, out_name in self._dict().items():
+        for tpl_path, out_path in self._dict().items():
 
-            # Create any dirs embedded in output file path
-            file_dir = os.path.split(out_name)[0]
+            # Get path to write to
+            out_path = (path / out_path).resolve()  # Resolve to remove ..
 
-            if file_dir:
-                file_dir = os.path.join(path, file_dir)
-                if os.path.exists(file_dir):
-                    if not os.path.isdir(file_dir):
-                        msg = 'Failed to create directory at: '
-                        msg += myokit.tools.format_path(file_dir)
-                        msg += ' A file or link with that name already exists.'
-                        raise myokit.ExportError(msg)
-                else:   # pragma: no cover
-                    try:
-                        os.makedirs(file_dir)
-                    except OSError as e:
-                        msg = ('Failed to create directory at:'
-                               f' {myokit.tools.format_path(file_dir)}'
-                               f' OSError: {e}')
-                        raise myokit.ExportError(msg)
+            # Check it does not sneak out of the intended root
+            if not out_path.is_relative_to(path):
+                raise myokit.ExportError(
+                    'Exporter specifies output paths outside user-specified'
+                    f' directory: {out_path}.')
 
-            # Check if output file already exists
-            out_name = os.path.join(path, out_name)
-            if os.path.exists(out_name):
-                if os.path.isdir(out_name):
-                    msg = 'Directory exists at ' \
-                          + myokit.tools.format_path(out_name)
-                    raise myokit.ExportError(msg)
+            # Create nested output directories if requested
+            sub_dir = out_path.parent
+            if not sub_dir.exists():
+                try:
+                    sub_dir.mkdir(parents=True)
+                except OSError as e:  # pragma: no cover
+                    raise myokit.ExportError(
+                        f'Failed to create directory at {sub_dir} due to {e}.')
+            elif not sub_dir.is_dir():
+                raise myokit.ExportError(
+                    f'Failed to create directory at: {sub_dir}. A file or link'
+                    ' with that name already exists.')
+
+            # Check if directory exists where file needs to be written
+            out_path = path / out_path
+            if out_path.is_dir():
+                raise myokit.ExportError(
+                    'Unable to write template file. Directory exists at'
+                    f' intended location {out_path}')
 
             # Check template file
-            tpl_name = os.path.join(tpl_dir, tpl_name)
-            if not os.path.exists(tpl_name):    # pragma: no cover
-                # Cover pragma: If this happens it's a bug in the exporter
-                msg = 'File not found: ' + myokit.tools.format_path(tpl_name)
-                raise myokit.ExportError(msg)
-            if not os.path.isfile(tpl_name):    # pragma: no cover
-                # Cover pragma: If this happens it's a bug in the exporter
-                msg = 'Directory found, expecting file at '
-                msg += myokit.tools.format_path(tpl_name)
-                raise myokit.ExportError(msg)
+            tpl_path = tpl_dir / tpl_path
+            # Check for bugs in subclasses:
+            if not tpl_path.exists():  # pragma: no cover
+                raise myokit.ExportError(f'File not found: {tpl_path}')
+            if not tpl_path.is_file():  # pragma: no cover
+                raise myokit.ExportError(
+                    'Expecting file but directory or link found at {tpl_path}')
 
             # Render
-            with open(out_name, 'w') as f:
+            with open(out_path, 'w') as f:
                 p = myokit.pype.TemplateEngine()
                 p.set_output_stream(f)
                 try:
-                    p.process(tpl_name, tpl_vars)
+                    p.process(tpl_path, tpl_vars)
                 except Exception as e:  # pragma: no cover
-                    warnings.warn(
-                        'An error ocurred while processing the template at '
-                        + myokit.tools.format_path(tpl_name))
+                    warnings.warn('An error ocurred while processing the'
+                                  f' template at {tpl_path}')
                     warnings.warn(traceback.format_exc())
                     if isinstance(e, myokit.pype.PypeError):
                         # Pype error? Then add any error details
                         d = p.error_details()
                         if d:
                             warnings.warn(d)
-                    raise myokit.ExportError(   # pragma: no cover
+                    raise myokit.ExportError(  # pragma: no cover
                         'An internal error ocurred while processing a'
                         ' template.')
 
@@ -566,8 +563,10 @@ class TemplatedRunnableExporter(Exporter):
 
     def _dict(self):
         """
-        Returns a dict (filename : template_file_name) containing all the
+        Returns a dict ``{template_path: rendered_output_path}`` for all
         templates used by this exporter.
+
+        The paths can be strings or :class:`pathlib.Path` objects.
 
         *This should be implemented by each subclass.*
         """
@@ -575,10 +574,13 @@ class TemplatedRunnableExporter(Exporter):
 
     def _dir(self, formats_dir):
         """
-        Returns the path to this exporter's data files (as a string).
+        Returns the path to this exporter's data files (as a string or a
+        :class:`pathlib.Path`).
 
-        *This should be implemented by each subclass. The root directory all
-        format extensions are stored in in passed in as ``formats_dir``.*
+        Will be called with the root directory for all formats as
+        ``formats_dir`` (a :class:`pathlib.Path`).
+
+        *This should be implemented by each subclass.*
         """
         raise NotImplementedError
 
@@ -586,8 +588,8 @@ class TemplatedRunnableExporter(Exporter):
         """
         Returns a dict containing all variables the templates will need.
 
-        Will be called with the arguments `model` and `protocol`, followed by
-        any extra arguments passed to :meth:`runnable`.
+        Will be called with the arguments ``model`` and ``protocol``, followed
+        by any extra arguments passed to :meth:`runnable`.
 
         *This should be implemented by each subclass.*
         """
@@ -605,20 +607,16 @@ def _scan_for_internal_formats():
         _EXPORTERS = {}
     if _EWRITERS is None:
         _EWRITERS = {}
-    for fname in os.listdir(DIR_FORMATS):
-        d = os.path.join(DIR_FORMATS, fname)
-        if not os.path.isdir(d):
+    for d in sorted(DIR_FORMATS.iterdir()):
+        if not d.is_dir():
             continue
 
         # Only check modules
-        f = os.path.join(d, '__init__.py')
-        if not os.path.isfile(f):
-            continue     # pragma: no cover
+        if not (d / '__init__.py').is_file():
+            continue  # pragma: no cover
 
         # Dynamically load module
-        name = 'myokit.formats.' + fname
-        __import__(name)
-        m = sys.modules[name]
+        m = importlib.import_module(f'myokit.formats.{d.name}')
 
         # Add importers, exporters and expression writers to global list
         try:

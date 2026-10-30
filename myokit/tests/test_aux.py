@@ -6,7 +6,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import io
-import os
+import pathlib
 import re
 import unittest
 
@@ -120,21 +120,18 @@ class AuxTest(unittest.TestCase):
 
     def test_format_path(self):
         # Deprecated alias of myokit.tools.format_path
-        root = os.path.join(os.path.abspath('.'), 'a')
-        a = os.path.join(root, 'b', 'c')
-        b = os.path.join(os.path.abspath('.'), 'a')
+        r = pathlib.Path('a').absolute()
+        a = r / 'b' / 'c'
         with WarningCollector() as c:
-            x = myokit.format_path(a, b)
+            x = myokit.format_path(a, r)
         self.assertIn('`myokit.format_path` is deprecated', c.text())
-        self.assertEqual(x, myokit.tools.format_path(a, b))
+        self.assertEqual(x, myokit.tools.format_path(a, r))
 
     def test_model_comparison(self):
         # Test the model comparison class.
 
-        m1 = os.path.join(DIR_DATA, 'beeler-1977-model-compare-a.mmt')
-        m2 = os.path.join(DIR_DATA, 'beeler-1977-model-compare-b.mmt')
-        m1 = myokit.load_model(m1)
-        m2 = myokit.load_model(m2)
+        m1 = myokit.load_model(DIR_DATA / 'beeler-1977-model-compare-a.mmt')
+        m2 = myokit.load_model(DIR_DATA / 'beeler-1977-model-compare-b.mmt')
 
         with myokit.tools.capture() as capture:
             c = myokit.ModelComparison(m1, m2, live=True)
@@ -276,7 +273,7 @@ class AuxTest(unittest.TestCase):
 
     def test_step(self):
         # Test the step() method.
-        m1 = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+        m1 = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
 
         # For whatever reason, CI gives slightly different final digits some
         # times.

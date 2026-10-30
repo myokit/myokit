@@ -47,6 +47,8 @@ optional = [
 gui = ["pyqt6", "sip"]      # Commercially license or GPL
 pyqt = ["pyqt6", "sip"]     # Commercially license or GPL
 pyside = ["pyside6"]        # Commercially license or LGPL
+# Moviepy extra
+video = ["moviepy>2"]       # MIT license
 
 [project.scripts]
 myokit = "myokit.__main__:main"

@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import numpy as np
@@ -23,8 +22,7 @@ class LinearModelTest(unittest.TestCase):
     def test_manual_creation(self):
 
         # Load model
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
 
         # Select a number of states and parameters
         states = [
@@ -181,8 +179,7 @@ class LinearModelTest(unittest.TestCase):
     def test_linear_model_from_component(self):
 
         # Load model
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
 
         # Create a markov model
         markov.LinearModel.from_component(model.get('ina'))
@@ -245,8 +242,7 @@ class LinearModelTest(unittest.TestCase):
     def test_linear_model_matrices(self):
 
         # Create model
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
         m = markov.LinearModel.from_component(model.get('ina'))
 
         # Test shape of output
@@ -261,8 +257,7 @@ class LinearModelTest(unittest.TestCase):
         # Test finding the steady-state of the Clancy model
 
         # Create model
-        filename = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(filename)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
         m = markov.LinearModel.from_component(model.get('ina'))
 
         # Get steady state
@@ -289,8 +284,7 @@ class LinearModelTest(unittest.TestCase):
         # exposed a bug in the steady state code
 
         # Create model
-        filename = os.path.join(DIR_DATA, 'dom-markov.mmt')
-        model = myokit.load_model(filename)
+        model = myokit.load_model(DIR_DATA / 'dom-markov.mmt')
         m = markov.LinearModel.from_component(model.get('ikr'))
 
         # Get steady state
@@ -309,8 +303,7 @@ class LinearModelTest(unittest.TestCase):
     def test_rates(self):
 
         # Load model
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
 
         # Create a markov model
         m = markov.LinearModel.from_component(model.get('ina'))
@@ -325,8 +318,7 @@ class LinearModelTest(unittest.TestCase):
     def test_initial_value_conversion(self):
         # Tests that initial value expressions are converted to floats
 
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
         model.get('ina.C3').set_initial_value('1 / sqrt(7)')
         model.get('ina.C2').set_initial_value('-1 / log(ina_ref.p)')
         model.get('ina.C1').set_initial_value(0.5134619065149598)
@@ -348,8 +340,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test basics of analytical simulation
 
         # Create a simulation
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
         m = markov.LinearModel.from_component(model.get('ina'))
 
         # Bad constructors
@@ -456,8 +447,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test basic get/set methods of analytical simulation.
 
         # Create a simulation
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
         m = markov.LinearModel.from_component(model.get('ina'))
         s = markov.AnalyticalSimulation(m)
 
@@ -518,8 +508,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Validate against a cvode sim.
 
         # Get a model
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
 
         # Create a protocol
         vs = [-30, -20, -10]
@@ -573,8 +562,7 @@ class DiscreteSimulationTest(unittest.TestCase):
         # Test the DiscreteSimulation class, running, resetting etc..
 
         # Create a simulation
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
         m = markov.LinearModel.from_component(model.get('ina'))
 
         # Bad constructors
@@ -679,8 +667,7 @@ class DiscreteSimulationTest(unittest.TestCase):
         # Test basic get/set methods of discrete simulation.
 
         # Create a simulation
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
         m = markov.LinearModel.from_component(model.get('ina'))
         s = markov.DiscreteSimulation(m, nchannels=50)
 
@@ -755,8 +742,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests convert_markov_models_to_compact_form()
 
         # Load clancy model, has two versions of same markov model in it
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model1 = myokit.load_model(fname)
+        model1 = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
 
         models = markov.find_markov_models(model1)
         self.assertEqual(len(models), 2)
@@ -800,8 +786,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests convert_markov_models_to_compact_form()
 
         # Load clancy model, has two versions of same markov model in it
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model1 = myokit.load_model(fname)
+        model1 = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
 
         # Convert to compact form, and check that it worked
         model1 = markov.convert_markov_models_to_compact_form(model1)
@@ -841,8 +826,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests find_markov_models()
 
         # Load clancy model, has two versions of same markov model in it
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
 
         models = markov.find_markov_models(model)
         self.assertEqual(len(models), 2)
@@ -884,8 +868,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests find_markov_models() for non-markov models
 
         # Load clancy model, has two versions of same markov model in it
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        moodel = myokit.load_model(fname)
+        moodel = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
 
         # Remove ina_ref component
         c = moodel.get('ina_ref')
@@ -954,8 +937,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests _linear_combination()
 
         # Load model, to create interesting RHS
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
         v1 = model.get('ina.C1')
         v2 = model.get('ina.C2')
         v3 = model.get('ina.C3')
@@ -983,8 +965,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests _split_factor
 
         # Load model, to create interesting RHS
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
         v1 = model.get('ina.C1')
         v2 = model.get('ina.C2')
         v3 = model.get('ina.C3')
@@ -1068,8 +1049,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests _split_terms
 
         # Load model, get rhs with lots of terms
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
 
         # Simple case
         v1 = model.get('ina.C1')

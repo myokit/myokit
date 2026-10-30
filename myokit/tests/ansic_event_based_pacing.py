@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
-
 import myokit
 from myokit.tests import DIR_TEST
 
@@ -28,7 +26,7 @@ class AnsicEventBasedPacing(myokit.CModule):
             + str(AnsicEventBasedPacing._index)
 
         # Arguments
-        fname = os.path.join(DIR_TEST, SOURCE_FILE)
+        fname = DIR_TEST / SOURCE_FILE
 
         # Create back-end
         args = {'module_name': module_name}

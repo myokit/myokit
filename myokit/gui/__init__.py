@@ -5,7 +5,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 # ruff: noqa: I001
-import os
 import platform
 import signal
 import sys
@@ -137,7 +136,7 @@ if platform == 'Linux':
         QtGui.QIcon.setThemeName('gnome')
 
 # Icons with fallback for apple and windows
-ICON_PATH = os.path.join(myokit.DIR_DATA, 'gui')
+ICON_PATH = myokit.DIR_DATA / 'gui'
 ICONS = {
     'document-new': 'new.png',
     'document-open': 'open.png',
@@ -148,7 +147,7 @@ ICONS = {
     'media-playback-start': 'run.png',
 }
 for k, v in ICONS.items():
-    ICONS[k] = os.path.join(ICON_PATH, v)
+    ICONS[k] = ICON_PATH / v
 
 # Toolbar style suitable for platform
 TOOL_BUTTON_STYLE = Qt.ToolButtonStyle.ToolButtonTextUnderIcon
@@ -174,7 +173,7 @@ def icon(name):
 
     Raises a ``KeyError`` if no such icon is available.
     """
-    return QtGui.QIcon.fromTheme(name, QtGui.QIcon(ICONS[name]))
+    return QtGui.QIcon.fromTheme(name, QtGui.QIcon(str(ICONS[name])))
 
 
 def _in_dark_mode(palette):

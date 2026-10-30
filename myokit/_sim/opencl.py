@@ -5,12 +5,11 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import configparser
-import os
 
 import myokit
 
 # Settings file
-SETTINGS_FILE = os.path.join(myokit.DIR_USER, 'preferred-opencl-device.ini')
+SETTINGS_FILE = myokit.DIR_USER / 'preferred-opencl-device.ini'
 
 # Location of C source for OpenCL info module
 SOURCE_FILE = 'opencl.c'
@@ -36,7 +35,7 @@ class OpenCL(myokit.CModule):
         OpenCL._index += 1
         mname = 'myokit_opencl_info_' + str(OpenCL._index)
         mname += '_' + str(myokit.pid_hash())
-        fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+        fname = str(myokit.DIR_CFUNC / SOURCE_FILE)
         args = {'module_name': mname}
 
         # Define libraries
@@ -152,11 +151,10 @@ class OpenCL(myokit.CModule):
         """
         platform = device = None
 
-        # Read ini file
-        inifile = os.path.expanduser(SETTINGS_FILE)
-        if os.path.isfile(inifile):
+        # Read settings file
+        if SETTINGS_FILE.is_file():
             config = configparser.RawConfigParser()
-            config.read(inifile, encoding='ascii')
+            config.read(SETTINGS_FILE, encoding='ascii')
 
             def get(section, option):
                 x = None
@@ -199,9 +197,8 @@ class OpenCL(myokit.CModule):
         if device:
             config.set('selection', 'device', device)
 
-        # Write configuration to ini file
-        inifile = os.path.expanduser(SETTINGS_FILE)
-        with open(inifile, 'w') as configfile:
+        # Write configuration to settings file
+        with open(SETTINGS_FILE, 'w') as configfile:
             config.write(configfile)
 
     @staticmethod

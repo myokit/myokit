@@ -6,7 +6,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import myokit
@@ -29,7 +28,7 @@ class LibPlotTest(unittest.TestCase):
         import matplotlib.pyplot as plt
 
         # Run simulation, get benchmarks
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         s = myokit.Simulation(m, p)
         d = s.run(1000, log=[
             'engine.time', 'engine.realtime', 'engine.evaluations'])
@@ -89,7 +88,7 @@ class LibPlotTest(unittest.TestCase):
         import matplotlib.pyplot as plt
 
         # Run simulation, get currents
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
 
         # Add dummy current, that never carries much charge and should be
         # ignored
@@ -121,7 +120,7 @@ class LibPlotTest(unittest.TestCase):
         import matplotlib.pyplot as plt
 
         # Run simulation, get currents
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         s = myokit.Simulation(m, p)
         currents = ['ica.ICa', 'ik.IK', 'ik1.IK1', 'ikp.IKp', 'ib.Ib']
         d = s.run(600, log=['engine.time', 'membrane.V'] + currents)

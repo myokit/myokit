@@ -4,7 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import warnings
 
 _line_width = 79
 
@@ -139,6 +138,10 @@ def block(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     Runs the DataBlock viewer.
     """
     qtforce(pyqt6, pyqt5, pyside6, pyside2)
+
+    import pathlib
+    if filename is not None:
+        filename = pathlib.Path(filename).expanduser().resolve()
 
     import myokit.gui.datablock_viewer
     myokit.gui.run(myokit.gui.datablock_viewer.DataBlockViewer, filename)
@@ -331,6 +334,7 @@ def mmt_export(exporter, source, target):
     Exports a myokit model.
     """
     import sys
+    import warnings
 
     import myokit
     import myokit.formats
@@ -342,7 +346,7 @@ def mmt_export(exporter, source, target):
 
     # Parse input file
     try:
-        print('Reading model from ' + myokit.tools.format_path(source))
+        print(f'Reading model from {source}')
         model, protocol, script = myokit.load(source)
     except myokit.ParseError as ex:
         print(myokit.format_parse_error(ex, source))
@@ -454,39 +458,38 @@ def install_gnome_kde():
     """
     Installs launchers and associates file types for gnome/kde systems.
     """
-    import os
+    import pathlib
     import shutil
     import sys
 
     import myokit
 
     # Get user home dir
-    home = os.path.expanduser('~')
+    home = pathlib.Path.home()
 
     # Get template directory
-    dir_templates = os.path.join(myokit.DIR_DATA, 'install-lin')
+    dir_templates = myokit.DIR_DATA / 'install-lin'
 
     # Get icon directory
-    dir_icons = os.path.join(myokit.DIR_DATA, 'gui')
+    dir_icons = myokit.DIR_DATA / 'gui'
 
     # Copies file and creates directory structure
     def place_file(path, name, template=False):
-        print('Placing ' + str(name) + ' in ' + str(path))
+        print(f'Placing {name} in {path}')
 
-        orig = os.path.join(dir_templates, name)
-        dest = os.path.join(path, name)
-        if not os.path.exists(orig):
-            print('Error: file not found ' + orig)
+        orig = dir_templates / name
+        dest = path / name
+        if not orig.exists():
+            print(f'Error: file not found {orig}')
             sys.exit(1)
-        if os.path.exists(path):
-            if not os.path.isdir(path):
-                print(
-                    'Error: Cannot create output directory. A file exists at '
-                    + path)
+        if path.exists():
+            if not path.is_dir():
+                print('Error: Cannot create output directory. A non-directory'
+                      f' already exists at {path}')
                 sys.exit(1)
         else:
-            print('  Creating directory structure: ' + path)
-            os.makedirs(path)
+            print(f'  Creating directory structure: {path}')
+            path.mkdir(parents=True)
 
         if template:
             # Process templates, create files
@@ -503,14 +506,14 @@ def install_gnome_kde():
 
     # Desktop files
     print('Installing desktop files...')
-    path = os.path.join(home, '.local', 'share', 'applications')
+    path = home / '.local' / 'share' / 'applications'
     place_file(path, 'myokit-ide.desktop', True)
     place_file(path, 'myokit-datalog-viewer.desktop', True)
     place_file(path, 'myokit-datablock-viewer.desktop', True)
 
     # Mime-type file
     print('Installing mmt mime-type...')
-    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
+    path = home / '.local' / 'share' / 'mime' / 'packages'
     place_file(path, 'x-myokit.xml')
     print('Installing CellML mime-type...')
     place_file(path, 'x-cellml.xml')
@@ -521,7 +524,7 @@ def install_gnome_kde():
 
     # Reload mime database
     print('Reloading mime database')
-    path = home + '/.local/share/mime/'
+    path = home / '.local' / 'share' / 'mime'
     from subprocess import call
     call(['update-mime-database', path])
 
@@ -536,7 +539,7 @@ def install_windows():
     if platform.system() != 'Windows':
         raise Exception('Not a windows machine.')
 
-    import os
+    import pathlib
     import tempfile
 
     import menuinst
@@ -545,12 +548,11 @@ def install_windows():
     import myokit.pype
 
     # Process template to get icon directory
-    tdir = tempfile.mkdtemp()
-    try:
+    with tempfile.TemporaryDirectory() as d:
+        output = pathlib.Path(d, 'menu.json')
+        source = myokit.DIR_DATA / 'install-win' / 'menu.json'
+        varmap = {'icons': myokit.DIR_DATA / 'gui'}
         p = myokit.pype.TemplateEngine()
-        source = os.path.join(myokit.DIR_DATA, 'install-win', 'menu.json')
-        varmap = {'icons': os.path.join(myokit.DIR_DATA, 'gui')}
-        output = os.path.join(tdir, 'menu.json')
         with open(output, 'w') as f:
             p.set_output_stream(f)
             p.process(source, varmap)
@@ -559,9 +561,6 @@ def install_windows():
         # Install
         menuinst.install(output)
         print('Done')
-
-    finally:
-        myokit.tools.rmtree(tdir)
 
 
 def add_icon_parser(subparsers):
@@ -586,9 +585,9 @@ def ide(filename, pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
     """
     qtforce(pyqt6, pyqt5, pyside6, pyside2)
 
-    import os
+    import pathlib
     if filename is not None:
-        filename = os.path.abspath(os.path.expanduser(filename))
+        filename = pathlib.Path(filename).expanduser().resolve()
 
     import myokit.gui.ide
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
@@ -622,6 +621,8 @@ def mmt_import(importer, source, target=None):
     """
     Imports a model and saves it in mmt format.
     """
+    import warnings
+
     import myokit
 
     # Get importer
@@ -1085,7 +1086,7 @@ def step(source, ref, ini, raw):
             derivs = model.evaluate_derivatives(state=ini)
             print('\n'.join([myokit.float.str(x) for x in derivs]))
         else:
-            print(myokit.step(model, initial=ini, reference=ref))
+            print(myokit.step(model, state=ini, reference=ref))
     except myokit.NumericalError as ee:
         e = 'Numerical error'
         n = _line_width - len(e) - 2
@@ -1171,14 +1172,12 @@ def system():
     """
     Displays system information.
     """
-    import os
-
     import myokit
     myokit.system(live_printing=True)
 
-    ini = os.path.join(myokit.DIR_USER, 'myokit.ini')
+    ini = myokit.DIR_USER / 'myokit.ini'
     print()
-    print('= ' + ini + ' =')
+    print(f'= {ini} =')
     with open(ini, 'r') as f:
         print(f.read())
 
@@ -1267,7 +1266,7 @@ def test_coverage(args):
     """
     Runs the unit tests and prints a coverage report.
     """
-    import os
+    import pathlib
     import subprocess
     import sys
 
@@ -1309,8 +1308,9 @@ def test_coverage(args):
 
     finally:
         # Remove coverage file
-        if os.path.isfile('.coverage'):
-            os.remove('.coverage')
+        path = pathlib.Path('.coverage')
+        if path.is_file():
+            path.unlink()
 
 
 def test_documentation(args):
@@ -1369,14 +1369,16 @@ def test_doc_coverage(classes, functions):
     This method is based on one made by Fergus Cooper for PINTS.
     See https://github.com/pints-team/pints
     """
-    import os
+    import pathlib
     import re
 
+    path = pathlib.Path('docs', 'source')
     doc_files = []
-    for root, dirs, files in os.walk(os.path.join('docs', 'source')):
+    for root, dirs, files in path.walk():
         for file in files:
-            if file.endswith('.rst'):
-                doc_files.append(os.path.join(root, file))
+            fpath = root / file
+            if fpath.suffix == '.rst':
+                doc_files.append(fpath)
 
     # Regular expression that would find either 'module' or 'currentmodule':
     # this needs to be prepended to the symbols as x.y.z != x.z
@@ -1456,42 +1458,49 @@ def test_doc_coverage_get_objects():
     print('Finding Myokit modules...')
     import importlib
     import inspect
-    import os
+    import pathlib
+
+    import myokit
 
     def find_modules(root, modules, ignore):
-        """ Find all modules in the given directory. """
+        """
+        Find all modules in the given directory.
 
+        root is a pathlib.Path, modules is a list, ignore is a list of paths.
+        """
         # Get root as module
-        module_root = root.replace('/', '.')
+        module_root = '.'.join(root.parts)  # Assumes relative path!
 
         # Check if this path is on the ignore list
         if root in ignore:
             return modules
 
         # Check if this is a module
-        if os.path.isfile(os.path.join(root, '__init__.py')):
-            modules.append(module_root)
-        else:
+        if not (root / '__init__.py').is_file():
             return modules
 
+        # Add this module to the list
+        modules.append(module_root)
+
         # Look for submodules
-        for name in os.listdir(root):
-            if name[:1] == '_' or name[:1] == '.':
+        for path in root.iterdir():
+            if path.name[:1] == '_':
                 continue
-            path = os.path.join(root, name)
-            if os.path.isdir(path):
+
+            if path.is_dir():
                 find_modules(path, modules, ignore)
-            else:
-                base, ext = os.path.splitext(name)
-                if ext == '.py':
-                    modules.append(module_root + '.' + base)
+            elif path.suffix == '.py':
+                modules.append(f'{module_root}.{path.stem}')
 
         # Return found
         return modules
 
     # Get modules
-    import myokit
-    modules = find_modules('myokit', [], ignore=['myokit/tests'])
+    root = pathlib.Path('myokit')
+    ignore = [
+        root / 'tests',
+    ]
+    modules = find_modules(root, [], ignore)
 
     # Import all modules
     for module in modules:
@@ -1499,7 +1508,6 @@ def test_doc_coverage_get_objects():
 
     # Find modules, classes, and functions
     def scan(module, root, pref, modules, classes, functions):
-        nroot = len(root)
         for name, member in inspect.getmembers(module):
             if name[0] == '_':
                 # Don't include private members
@@ -1514,7 +1522,7 @@ def test_doc_coverage_get_objects():
                     # Don't scan external modules
                     if member.__file__ is None:
                         continue
-                    if member.__file__[0:nroot] != root:
+                    if root not in pathlib.Path(member.__file__).parents:
                         continue
                 except AttributeError:
                     # Built-ins have no __file__ and should not be included
@@ -1523,7 +1531,7 @@ def test_doc_coverage_get_objects():
                     continue
                 modules.add(full_name)
                 mpref = full_name + '.'
-                mroot = os.path.join(root, name)
+                mroot = root / name
                 scan(member, mroot, mpref, modules, classes, functions)
 
             # Class
@@ -1542,14 +1550,12 @@ def test_doc_coverage_get_objects():
     modules = set()
     classes = set()
     functions = set()
-    root = os.path.dirname(module.__file__)
+    root = pathlib.Path(module.__file__).parent
     pre = module.__name__ + '.'
     scan(module, root, pre, modules, classes, functions)
 
-    print(
-        'Found (' + str(len(modules)) + ') modules, identified ('
-        + str(len(classes)) + ') classes and (' + str(len(functions))
-        + ') functions.')
+    print(f'Found ({len(modules)}) modules, identified ({len(classes)})'
+          f' classes and ({len(functions)}) functions.')
 
     return modules, classes, functions
 
@@ -1559,7 +1565,7 @@ def test_doc_coverage_index(modules, classes, functions):
     Checks the documentation index to see if everything is listed and to see if
     nothing is listed that shouldn't be listed.
     """
-    import os
+    import pathlib
     import re
 
     def scan_docs(path):
@@ -1580,25 +1586,19 @@ def test_doc_coverage_index(modules, classes, functions):
         files = set()
         classes = set()
         functions = set()
-        for fname in os.listdir(path):
-            fpath = os.path.join(path, fname)
-            if not os.path.isfile(fpath):
-                continue
-            if fname[-4:] != '.rst':
-                continue
-            read_file(fpath, classes, functions)
-            files.add(fpath)
+        for fpath in path.glob('*.rst'):
+            if fpath.is_file():
+                read_file(fpath, classes, functions)
+                files.add(fpath)
         # Return results
         return files, classes, functions
 
     # Scan api/index files
     print('Reading doc files for api_index')
-    docdir = os.path.join('docs', 'source', 'api_index')
+    docdir = pathlib.Path('docs', 'source', 'api_index')
     doc_files, doc_classes, doc_functions = scan_docs(docdir)
-    print(
-        'Found (' + str(len(doc_files)) + ') files, identified ('
-        + str(len(doc_classes)) + ') classes and (' + str(len(doc_functions))
-        + ') functions.')
+    print(f'Found ({len(doc_files)}) files, identified ({len(doc_classes)})'
+          f' classes and ({len(doc_functions)}) functions.')
 
     # Compare the results
     n = 0
@@ -1636,24 +1636,17 @@ def test_examples_web(args):
     """
     Runs all web examples, exits if one of them fails.
     """
-    import os
     import sys
 
     import myokit
 
     # Get web directory
-    path = os.path.join(
-        myokit.DIR_MYOKIT,
-        '..',
-        'dev',
-        'web',
-        'html',
-        'static',
-        'download',
-        'examples',
-    )
-    if not os.path.isdir(path):
-        print('Web examples not found. Skipping.')
+    path = (myokit.DIR_MYOKIT / '..' / 'dev' / 'web' / 'html' / 'static' /
+            'download' / 'examples').resolve()
+    if not path.is_dir():
+        print('Web examples not found in')
+        print(f'  {path}')
+        print('Skipping.')
         return
 
     # Run, exit on error
@@ -1665,44 +1658,44 @@ def test_in_repo():
     """
     Returns ``True`` iff it thinks we're in the Myokit repo root directory.
     """
-    import os
-    return os.path.isfile(os.path.join('myokit', '__init__.py'))
+    import pathlib
+    return pathlib.Path('myokit', '__init__.py').is_file()
 
 
 def test_mmt_files(path):
     """
-    Run all the `mmt` files in a given directory `path`, returns 0 iff nothing
-    goes wrong.
+    Run all the ``mmt`` files in a given directory ``path``.
+
+    Returns 0 iff nothing goes wrong.
     """
-    import fnmatch
     import gc
     import os
+    import pathlib
     import traceback
 
     import myokit
 
     # Get absolute path
-    path = os.path.abspath(path)
+    path = pathlib.Path(path).resolve()
 
     # Show what we're running
     print('Running mmt files for:')
-    print('  ' + path)
+    print(f'  {path}')
 
     # Error state
     error = 0
 
-    # Set working directory that that path
+    # Set working directory to that path (note that we don't use pathlib here)
     wdir = os.getcwd()
     try:
         os.chdir(path)
 
         # Run all
-        glob = '*.mmt'
-        for fn in fnmatch.filter(os.listdir(path), glob):
+        for fn in path.glob('*.mmt'):
             # Load and run
             try:
-                print('Loading ' + fn)
-                m, p, x = myokit.load(os.path.join(path, fn))
+                print(f'Loading {fn}')
+                m, p, x = myokit.load(fn)
                 try:
                     print('Running...')
                     myokit.run(m, p, x)
@@ -1730,15 +1723,18 @@ def test_mmt_files(path):
 
 def test_style(args):
     """
-    Runs flake8 in a subprocess, exits if it doesn't finish.
+    Runs ruff in a subprocess, exits if it doesn't finish.
     """
-    print('Running flake8 ... ')
+    print('Running ruff... ')
 
     import subprocess
     import sys
 
     sys.stdout.flush()
-    p = subprocess.Popen(['flake8', '-j4'], stderr=subprocess.PIPE)
+    p = subprocess.Popen(
+        [sys.executable, '-m', 'ruff', 'check'],
+        stderr=subprocess.PIPE
+    )
     try:
         ret = p.wait()
     except KeyboardInterrupt:
@@ -1749,33 +1745,29 @@ def test_style(args):
         p.wait()
         print()
         sys.exit(1)
-    if ret == 0:
-        print('ok')
-    else:
-        print('FAILED')
-        sys.exit(ret)
+    sys.exit(ret)
 
 
 def test_unit(args=None):
     """
     Runs unit tests, exits if anything fails.
     """
-    import os
+    import pathlib
     import sys
     import unittest
     import warnings
 
-    print('Running tests with ' + sys.executable)
+    print(f'Running tests with {sys.executable}')
 
     # Don't hide repeat warnings: This makes it possible to check that warnings
     # are being raised in a consistent manner.
     warnings.simplefilter('always')
 
     if test_in_repo():
-        path = os.path.join('myokit', 'tests')
+        path = pathlib.Path('myokit', 'tests')
     else:
         import myokit
-        path = os.path.join(myokit.DIR_MYOKIT, 'tests')
+        path = myokit.DIR_MYOKIT / 'tests'
 
     suite = unittest.defaultTestLoader.discover(path, pattern='test*.py')
     res = unittest.TextTestRunner(verbosity=2).run(suite)
@@ -1817,7 +1809,7 @@ def video(src, key, dst, fps, grow, colormap):
     """
     Use "moviepy" to create an animation from a DataBlock2d.
     """
-    import os
+    import pathlib
     import sys
 
     import myokit
@@ -1825,14 +1817,15 @@ def video(src, key, dst, fps, grow, colormap):
     # Test if moviepy is installed
     print('Loading moviepy.')
     try:
-        import moviepy.editor as mpy
+        import moviepy
     except ImportError:
         print('This function requires MoviePy to be installed.')
         sys.exit(1)
     print('Done.')
 
-    # Get filename
-    src = os.path.abspath(os.path.expanduser(str(src)))
+    # Get filenames
+    src = pathlib.Path(src).expanduser().resolve()
+    dst = pathlib.Path(dst).expanduser().resolve()
 
     # Supported codecs
     codecs = {
@@ -1848,14 +1841,14 @@ def video(src, key, dst, fps, grow, colormap):
     }
 
     # Get codec from destination file
-    ext = os.path.splitext(dst)[1].lower()
+    ext = dst.suffix.lower()
     try:
         codec = codecs[ext]
     except KeyError:
-        print('Unable to determine codec for "' + ext + '"')
-        print('Known extensions:')
+        print(f'Unable to determine codec from extension "{ext}"')
+        print('Recognized extensions:')
         for ext in codecs:
-            print('  ' + ext)
+            print(f'  {ext}')
         sys.exit(1)
 
     # Get frame rate
@@ -1887,7 +1880,7 @@ def video(src, key, dst, fps, grow, colormap):
             p = int(f * 100)
             if p > self._last:
                 self._last = p
-                p = str(p) + '%'
+                p = f'{p}%'
                 sys.stdout.write(p + chr(8) * len(p))
                 sys.stdout.flush()
             return True
@@ -1897,7 +1890,7 @@ def video(src, key, dst, fps, grow, colormap):
     try:
         data = myokit.DataBlock2d.load(src, progress=reporter)
     except myokit.DataBlockReadError as e:
-        print('DataBlock reading failed\n: ' + str(e))
+        print(f'DataBlock reading failed\n: {e}')
         sys.exit(1)
     finally:
         del reporter
@@ -1911,21 +1904,21 @@ def video(src, key, dst, fps, grow, colormap):
     try:
         data.get2d(key)
     except KeyError:
-        print('Key not found in DataBlock: <' + str(key) + '>.')
+        print(f'Key not found in DataBlock: <{key}>.')
         sys.exit(1)
 
     # File loaded okay
     nt, ny, nx = data.shape()
     print('Done.')
-    print('  nx = ' + str(nx))
-    print('  ny = ' + str(ny))
-    print('  nt = ' + str(nt))
+    print(f'  nx = {nx}')
+    print(f'  ny = {ny}')
+    print(f'  nt = {nt}')
 
     # Create movie
     print('Converting data into image frames.')
     frames = data.colors(key, colormap=colormap, multiplier=grow)
     print('Compiling frames into video clip.')
-    video = mpy.ImageSequenceClip(frames, fps=fps)
+    video = moviepy.ImageSequenceClip(frames, fps=fps)
     rate = str(nx * ny * fps * 4)
     video.write_videofile(dst, fps=24, audio=False, codec=codec, bitrate=rate)
 

@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import numpy as np
@@ -383,8 +382,7 @@ class HHModelTest(unittest.TestCase):
         # Test manual creation of a HHModel.
 
         # Load model
-        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
 
         # Select a number of states and parameters
         states = [
@@ -530,8 +528,7 @@ class HHModelTest(unittest.TestCase):
         # Create a HH model from a component.
 
         # Load model
-        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
 
         # Create a current model
         hh.HHModel.from_component(model.get('ina'))
@@ -584,8 +581,7 @@ class HHModelTest(unittest.TestCase):
         # Test the method HHModel.steady_state().
 
         # Create model
-        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
         m = hh.HHModel.from_component(model.get('ina'))
 
         # Get steady state
@@ -659,8 +655,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test creating and running a simulation
 
         # Create a simulation
-        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
         m = hh.HHModel.from_component(model.get('ina'))
 
         # Bad constructors
@@ -781,8 +776,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test basic get/set methods of analytical simulation.
 
         # Create a simulation
-        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
         m = hh.HHModel.from_component(model.get('ina'))
         s = hh.AnalyticalSimulation(m)
 
@@ -843,8 +837,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Validate against a cvode sim.
 
         # Get a model
-        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
-        model = myokit.load_model(fname)
+        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
         model.get('membrane.V').set_binding('pace')
 
         # Create a protocol
@@ -917,8 +910,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # https://github.com/myokit/myokit/issues/1059
 
         # Load model and convert to inf-tau form
-        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
-        model = hh.convert_hh_states_to_inf_tau_form(myokit.load_model(fname))
+        model = hh.convert_hh_states_to_inf_tau_form(
+            myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt'))
 
         # Get initial state and set steady state
         initial_state = model.get('ina.m').initial_value(as_float=True)

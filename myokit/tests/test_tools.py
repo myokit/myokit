@@ -236,31 +236,34 @@ class ToolsTest(unittest.TestCase):
         # Test format_path().
         fp = myokit.tools.format_path
 
+        # Platform-dependent outcome
+        abc = f'a{os.sep}b{os.sep}c'
+        bc = f'b{os.sep}c'
+
         # Normal use
-        self.assertEqual(
-            fp(os.path.join('a', 'b', 'c')), os.path.join('a', 'b', 'c'))
+        self.assertEqual(fp('a/b/c'), abc)
 
         # No trailing slash
         self.assertEqual(fp('a'), 'a')
-        self.assertEqual(fp('a/b/'), os.path.join('a', 'b'))
+        self.assertEqual(fp('a/'), 'a')
+        self.assertEqual(fp('a/b/c/'), abc)
 
         # Use with custom root
-        root = os.path.join(os.path.abspath('.'), 'a')
-        self.assertEqual(
-            fp(os.path.join(root, 'b', 'c'), root), os.path.join('b', 'c'))
+        root = '/home/myokit/meepmeep/'
+        self.assertEqual(fp(f'{root}b/c', root), bc)
 
         # Empty path
         self.assertEqual(fp(''), '.')
         self.assertEqual(fp('.'), '.')
 
         # Filesystem root
-        self.assertEqual(fp('/'), os.path.abspath('/'))
+        self.assertEqual(fp('/'), str(pathlib.Path('/').absolute()))
         self.assertEqual(fp('/', root='/'), '.')
 
         # Path outside of root
-        self.assertEqual(
-            fp(os.path.abspath('test'), os.path.abspath('test/tost')),
-            os.path.abspath('test'))
+        path1 = pathlib.Path('test').absolute()
+        path2 = path1 / 'tost'
+        self.assertEqual(fp(path1, path2), str(path1))
 
     def test_levenshtein_distance(self):
         # Test the levenshtein distance method.
@@ -291,17 +294,16 @@ class ToolsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
 
             # Create dir with subdir
-            path = pathlib.Path(d) / 'a'
-            os.mkdir(path)
-            os.mkdir(path / 'b')
+            path = pathlib.Path(d, 'a')
+            (path / 'b').mkdir(parents=True)
 
             # This can't be deleted with rmdir
-            self.assertRaises(OSError, os.rmdir, path)
-            self.assertTrue(os.path.exists(path))
+            self.assertRaises(OSError, path.rmdir)
+            self.assertTrue(path.exists())
 
             # But rmtree works
             myokit.tools.rmtree(path)
-            self.assertFalse(os.path.exists(path))
+            self.assertFalse(path.exists())
 
             # It doesn't work twice in a row:
             self.assertRaises(OSError, myokit.tools.rmtree, path)

@@ -295,9 +295,8 @@ class CModule:
                 # This shouldn't really occur: Writing is always done in a
                 # temporary directory
                 if os.path.isdir(target):
-                    line = 'Can\'t create output file. A directory exists at '
-                    line += myokit.tools.format_path(target)
-                    raise OSError(line)
+                    raise OSError('Unable to create output file. A directory'
+                                  f' already exists at {target}')
             # Open output file
             handle = open(target, 'w')  # noqa: SIM115
 

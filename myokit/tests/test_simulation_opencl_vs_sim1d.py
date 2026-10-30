@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import numpy as np
@@ -28,7 +27,7 @@ class SimulationOpenCL1dTest(unittest.TestCase):
         # Compare the SimulationOpenCL output with Simulation1d output
 
         # Set up simulations
-        m = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+        m = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
         m.get('membrane.i_stim.amplitude').set_rhs(-80)
         p = myokit.pacing.blocktrain(period=1000, duration=2, offset=3)
         n = 10

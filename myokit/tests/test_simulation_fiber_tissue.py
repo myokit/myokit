@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import unittest
 
 import numpy as np
@@ -33,9 +32,8 @@ class FiberTissueSimulationTest(unittest.TestCase):
         # Create objects for shared used in testing
 
         # Fiber model, tissue model, protocol
-        cls.mf = myokit.load_model(
-            os.path.join(DIR_DATA, 'dn-1985-normalised.mmt'))
-        cls.mt = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        cls.mf = myokit.load_model(DIR_DATA / 'dn-1985-normalised.mmt')
+        cls.mt = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
         cls.p = myokit.pacing.blocktrain(1000, 2.0, offset=.01)
 
         # Fiber/Tissue sizes (small sim)
@@ -796,9 +794,8 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
         # Load models and protocols for use in testing
 
         # Fiber model, tissue model, protocol
-        cls.mf = myokit.load_model(
-            os.path.join(DIR_DATA, 'dn-1985-normalised.mmt'))
-        cls.mt = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        cls.mf = myokit.load_model(DIR_DATA / 'dn-1985-normalised.mmt')
+        cls.mt = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
 
         # Fiber/Tissue sizes (small sim)
         cls.nfx = 8

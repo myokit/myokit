@@ -5,7 +5,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
-import os
 import warnings
 
 import myokit.formats
@@ -343,9 +342,6 @@ class EasyMLExporter(myokit.formats.Exporter):
         # Create expression writer
         e = easyml.EasyMLExpressionWriter()
         e.set_lhs_function(lhs)
-
-        # Test if can write in dir (raises exception if can't)
-        self._test_writable_dir(os.path.dirname(path))
 
         # Write equations
         eol = '\n'

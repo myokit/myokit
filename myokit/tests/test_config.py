@@ -5,7 +5,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import pathlib
 import sys
 import tempfile
@@ -56,9 +55,9 @@ class TestConfig(unittest.TestCase):
     def setUpClass(cls):
 
         # Import hidden _config module
-        path = sys.path
+        path = list(sys.path)
         try:
-            sys.path.append(myokit.DIR_MYOKIT)
+            sys.path.append(str(myokit.DIR_MYOKIT))
             import _config as config
         finally:
             sys.path = path
@@ -81,7 +80,7 @@ class TestConfig(unittest.TestCase):
         cls._dir_user = myokit.DIR_USER
         cls._temp_dir = tempfile.TemporaryDirectory()
         cls._temp_path = pathlib.Path(cls._temp_dir.name)
-        myokit.DIR_USER = str(cls._temp_path)
+        myokit.DIR_USER = cls._temp_path
 
         # Config module
         cls._config_module = config
@@ -136,10 +135,10 @@ class TestConfig(unittest.TestCase):
 
         # Test _create
         with tempfile.TemporaryDirectory() as d:
-            filename = pathlib.Path(d) / 'test.ini'
-            self._config_module._create(filename)
-            self.assertTrue(os.path.isfile(filename))
-        self.assertFalse(os.path.isfile(filename))
+            path = pathlib.Path(d, 'test.ini')
+            self._config_module._create(path)
+            self.assertTrue(path.is_file())
+        self.assertFalse(path.is_file())
 
         # No ini file (calls _create())
         path = self._temp_path / 'myokit.ini'

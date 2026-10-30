@@ -4,7 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import platform
 
 import myokit
@@ -191,7 +190,7 @@ class Simulation1d(myokit.CModule):
             'ncells': self._ncells,
             'rl_states': rl_states,
         }
-        fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+        fname = myokit.DIR_CFUNC / SOURCE_FILE
 
         # Define libraries
         libs = []

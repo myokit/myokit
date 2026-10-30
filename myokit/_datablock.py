@@ -5,7 +5,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import array
-import os
 import sys
 
 import numpy as np
@@ -465,8 +464,6 @@ class DataBlock1d:
         passed in as ``progress``. An optional description of the current
         simulation to use in the ProgressReporter can be passed in as `msg`.
         """
-        filename = os.path.expanduser(filename)
-
         # Load compression modules
         import zipfile
         try:
@@ -651,8 +648,6 @@ class DataBlock1d:
         - All 1d entries, reshaped using numpy order='C'
 
         """
-        # Check filename
-        filename = os.path.expanduser(filename)
         # Load compression modules
         import zipfile
         try:
@@ -1241,8 +1236,6 @@ class DataBlock2d:
         If the given file contains a :class:`DataBlock1d` this is read and
         converted to a 2d block without warning.
         """
-        filename = os.path.expanduser(filename)
-
         # Load compression modules
         import zipfile
         try:
@@ -1444,9 +1437,6 @@ class DataBlock2d:
         - All 2d entries, reshaped using numpy order='C'
 
         """
-        # Check filename
-        filename = os.path.expanduser(filename)
-
         # Load compression modules
         import zipfile
         try:
@@ -1498,16 +1488,13 @@ class DataBlock2d:
             f.writestr(body, body_str)
             f.writestr(read, README_SAVE_2D.encode(ENC))
 
-    def save_frame_csv(
-            self, filename, name, frame, xname='x', yname='y', zname='value'):
+    def save_frame_csv(self, filename, name, frame, xname='x', yname='y',
+                       zname='value'):
         """
         Stores a single 2d variable's data at a single point in time to disk,
         using a csv format where each point in the frame is stored on a
         separate line as a tuple ``x, y, value``.
         """
-        # Check filename
-        filename = os.path.expanduser(filename)
-        # Save
         delimx = ','
         delimy = '\n'
         data = self._2d[name]
@@ -1531,9 +1518,6 @@ class DataBlock2d:
         default a space) and rows are separated by ``delimy`` (by default this
         will be a newline character).
         """
-        # Check filename
-        filename = os.path.expanduser(filename)
-        # Save
         data = self._2d[name]
         data = data[frame]
         text = []

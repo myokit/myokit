@@ -4,8 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
-
 import myokit.formats
 
 
@@ -28,7 +26,7 @@ class PythonExporter(myokit.formats.TemplatedRunnableExporter):
     """
 
     def _dir(self, root):
-        return os.path.join(root, 'python', 'template')
+        return root / 'python' / 'template'
 
     def _dict(self):
         return {'sim.py': 'sim.py'}

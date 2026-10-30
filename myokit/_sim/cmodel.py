@@ -6,7 +6,6 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import collections
-import os
 import traceback
 
 import myokit
@@ -418,7 +417,7 @@ class CModel:
         }
 
         # Path
-        path = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+        path = myokit.DIR_CFUNC / SOURCE_FILE
 
         # Parse template
         p = myokit.pype.TemplateEngine()

@@ -7,7 +7,7 @@
 import array
 import collections
 import json
-import os
+import pathlib
 import re
 import sys
 
@@ -534,9 +534,6 @@ class DataLog(collections.OrderedDict):
         passed in as ``progress``. An optional description of the current
         simulation to use in the ProgressReporter can be passed in as `msg`.
         """
-        # Check filename
-        filename = os.path.expanduser(filename)
-
         # Load compression modules
         import zipfile
         try:
@@ -554,9 +551,10 @@ class DataLog(collections.OrderedDict):
         }
 
         # Read data
+        f = None
         try:
-            f = None
             f = zipfile.ZipFile(filename, 'r')
+
             # Get ZipInfo objects
             try:
                 body = f.getinfo('data.bin')
@@ -586,7 +584,7 @@ class DataLog(collections.OrderedDict):
                 'Unable to read log: zip file requires zip64 support and this'
                 ' has not been enabled on this system.')
         finally:
-            if f:
+            if f is not None:
                 f.close()
 
         # Create empty log
@@ -683,8 +681,6 @@ class DataLog(collections.OrderedDict):
         safely be read.
         """
         log = DataLog()
-        # Check filename
-        filename = os.path.expanduser(filename)
 
         # Typecode dependent on precision
         typecode = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
@@ -1064,9 +1060,6 @@ class DataLog(collections.OrderedDict):
         """
         self.validate()
 
-        # Check filename
-        filename = os.path.expanduser(filename)
-
         # Load compression modules
         import zipfile
         try:
@@ -1123,9 +1116,8 @@ class DataLog(collections.OrderedDict):
             if meta_json is not None:
                 f.writestr(meta, json.dumps(meta_json, indent=2).encode(enc))
 
-    def save_csv(
-            self, filename, precision=myokit.DOUBLE_PRECISION, order=None,
-            delimiter=',', header=True, meta=False):
+    def save_csv(self, filename, precision=myokit.DOUBLE_PRECISION, order=None,
+                 delimiter=',', header=True, meta=False):
         """
         Writes this ``DataLog`` to a CSV file, following the syntax
         outlined in RFC 4180, and with a header indicating the field names.
@@ -1175,9 +1167,6 @@ class DataLog(collections.OrderedDict):
         to manually specify the correct separator and delimiter.
         """
         self.validate()
-
-        # Check filename
-        filename = os.path.expanduser(filename)
 
         # Set precision
         if precision is None:
@@ -1262,7 +1251,7 @@ class DataLog(collections.OrderedDict):
 
         meta = {}
         meta['@context'] = 'http://www.w3.org/ns/csvw'
-        meta['url'] = os.path.basename(data_file_path)
+        meta['url'] = pathlib.Path(data_file_path).name
 
         # Add table schema and column meta data
         columns = []

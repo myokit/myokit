@@ -4,7 +4,6 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import os
 import platform
 
 import myokit
@@ -348,7 +347,7 @@ class FiberTissueSimulation(myokit.CModule):
             'precision': self._precision,
             'native_math': self._native_math,
         }
-        fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+        fname = myokit.DIR_CFUNC / SOURCE_FILE
 
         # Define libraries
         libs = []
@@ -852,7 +851,7 @@ class FiberTissueSimulation(myokit.CModule):
         platform, device = myokit.OpenCL.load_selection_bytes()
 
         # Generate kernels
-        kernel_file = os.path.join(myokit.DIR_CFUNC, KERNEL_FILE)
+        kernel_file = myokit.DIR_CFUNC / KERNEL_FILE
         args = {
             'precision': self._precision,
             'native_math': self._native_math,
