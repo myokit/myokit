@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1205](https://github.com/myokit/myokit/pull/1205) Evaluating non-literal initial values no longer re-validates an unchanged model, which made creating a `Simulation` validate the model once per state.
 
 ## [1.40.0] - 2026-11-02
 - Added
