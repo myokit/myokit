@@ -717,9 +717,7 @@ def plot_component_dependency_graph(
 
 def create_variable_dependency_graph(model):
     """
-    Creates a dependency graph from the given model
-
-    (Doesn't include constants)
+    Creates a dependency graph from the given model (not including constants).
     """
     g = DiGraph()
     # Get shallow dependencies
