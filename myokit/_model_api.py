@@ -1202,13 +1202,17 @@ class Model(ObjectWithMetaData, VarProvider):
 
     def component_cycles(self):
         """
-        Finds cyclical references between components and returns them. For
-        example, if ``a.p`` depends on ``b.q`` while ``b.x`` depends on
-        ``a.y``, a cycle ``a > b > a`` will be returned.
+        Finds cyclical references between components and returns them.
 
-        For a faster way to check if there are any interdependent components
-        (without returning the exact cycles found), use
-        :meth:`has_interdependent_components()`.
+        For example, if ``a.p`` depends on ``b.q`` while ``b.x`` depends on
+        ``a.y``, the following list will be returned::
+
+            [
+                [<Component(a)>, <Component(b)>, <Component(a)>],
+            ]
+
+        Note that the order is not guaranteed, and a cycle ``b > a > b`` could
+        be returned instead.
         """
         # Collect dependencies between components in a structure:
         # compdeps = {
@@ -1666,16 +1670,15 @@ class Model(ObjectWithMetaData, VarProvider):
     def has_interdependent_components(self):
         """
         Returns ``True`` if this model contains mutually dependent components.
-        That is, if there exists any component A whose variables depend on
+
+        This tests if there exists any component A whose variables depend on
         variables from component B, while variables in component B depend on
         variables in component A.
 
         To see the variables causing the interdependence, use
-        :meth:`component_cycles()`.
+        :meth:`component_cycles()` (which this method calls).
         """
-        equations = self.solvable_order()
-        remaining = equations['*remaining*']
-        return len(remaining) > 0
+        return len(self.component_cycles()) > 0
 
     def has_parse_info(self):
         """
@@ -3093,6 +3096,7 @@ class Model(ObjectWithMetaData, VarProvider):
         only components that depend on each other non-cyclically) this list
         will be empty.
         """
+        # TODO: Ensure model has been validated at this point
         # TODO: Cache this!
 
         # Get components in solvable order
@@ -3179,10 +3183,9 @@ class Model(ObjectWithMetaData, VarProvider):
 
         def add_nested_equations(eq_list, parent, done=None):
             """
-            Recursively adds equations for all children of a given `parent` to
-            the output `eq_list`.
-            The list `done` is updated to contain all variables whose equation
-            was added in this call.
+            Recursively adds equations for all children of a given ``parent``
+            to the output ``eq_list``. The list ``done`` is updated to contain
+            all variables whose equation was added in this call.
             """
             if done is None:
                 done = []
@@ -3195,13 +3198,12 @@ class Model(ObjectWithMetaData, VarProvider):
 
         def add_equation(eq_list, done, eq):
             """
-            Adds the equation `eq` to the equation list `eq_list` or, if the
-            equation is for a nested variable, stores it in the global dict
-            `nested`.
-            If a variable with children is encountered, all its children will
-            be added to `eq_list` too.
-            The list `done` is updated to contain all `lhs` expressions whose
-            equation was added to `eq_list` in this call.
+            Adds the equation ``eq`` to the equation list ``eq_list`` or, if
+            the equation is for a nested variable, stores it in the global dict
+            ``nested``. If a variable with children is encountered, all its
+            children will be added to ``eq_list`` too. The list ``done`` is
+            updated to contain all lhs expressions whose equation was added to
+            ``eq_list`` in this call.
             """
             var = eq.lhs.var()
             if var.is_nested():
