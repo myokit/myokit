@@ -2279,6 +2279,14 @@ class ModelTest(unittest.TestCase):
         bx = b.add_variable('x')
         x = m.add_component('x')
         xx = x.add_variable('x')
+
+        # Unames are None until validate() or create_unique_names() is called
+        self.assertIsNone(a.uname())
+        self.assertIsNone(ax.uname())
+        self.assertIsNone(b.uname())
+        self.assertIsNone(bx.uname())
+        self.assertIsNone(x.uname())
+        self.assertIsNone(xx.uname())
         m.create_unique_names()
         self.assertEqual(a.uname(), 'a')
         self.assertEqual(ax.uname(), 'a_x')

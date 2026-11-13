@@ -242,6 +242,9 @@ class ModelPart(ObjectWithMetaData):
     def uname(self):
         """
         Returns a globally unique name for this object.
+
+        This method will return ``None`` until either :meth:`Model.validate()`
+        or :meth:`model.create_unique_names()` has been called.
         """
         return self._uname
 
@@ -1293,7 +1296,7 @@ class Model(ObjectWithMetaData, VarProvider):
         :meth:`reserve_unique_names()` and names starting with a prefix listed
         using :meth:`reserve_unique_prefix()`.
         """
-        # Don't suggest names started with registered prefixes
+        # Don't suggest names starting with registered prefixes
         def prepend(name):
             for prefix, prepend in self._reserved_uname_prefixes.items():
                 if name.startswith(prefix):
@@ -2445,10 +2448,7 @@ class Model(ObjectWithMetaData, VarProvider):
                 raise myokit.CyclicalDependencyError(trail)
 
             # Not in shallow? Error in dict
-            if lhs not in shallow:
-                raise RuntimeError(  # pragma: no cover
-                    f'Variable {lhs._value} not found in dict of shallow'
-                    ' dependencies.')
+            assert lhs in shallow
 
             # Add this var as a dependency
             deps.add(lhs)
