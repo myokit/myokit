@@ -9,7 +9,7 @@ import myokit.formats
 
 class CudaKernelExporter(myokit.formats.TemplatedRunnableExporter):
     """
-    This :class:`Exporter <myokit.formats.Exporter>` creates an unoptimised
+    This :class:`Exporter <myokit.formats.Exporter>` creates an unoptimized
     CUDA cell kernel that calculates a forward Euler step for a single cell.
 
     Only a kernel file is created, no driver class is included and no support
@@ -46,7 +46,7 @@ class CudaKernelRLExporter(myokit.formats.TemplatedRunnableExporter):
     applicable.
 
     For this exporter to work, the model's membrane potential variable must be
-    labelled as ``membrane_potential``, and a value must be bound to
+    labeled as ``membrane_potential``, and a value must be bound to
     ``diffusion_current`` (see :class:`CudaKernelExporter` for details).
     """
 

@@ -12,9 +12,6 @@ as a :class:`Plus` expression with two operands of the type
 :class:`Number`. All expressions extend the :class:`Expression` base
 class described below.
 
-Creating expression trees manually is a labour-intesive process. In most cases,
-expressions will be created by the :ref:`parser <api/io>`.
-
 .. _api/myokit.Expression:
 .. autoclass:: Expression
 

@@ -40,7 +40,7 @@ class ModelTest(unittest.TestCase):
         r = m.add_component('r')
         for i in range(10):
             r = m.add_component_allow_renaming('r')
-            self.assertEqual(r.name(), 'r_' + str(1 + i))
+            self.assertEqual(r.name(), f'r_{1 + i}')
 
     def test_add_function(self):
         # Test the ``Model.add_function`` method.
@@ -1655,7 +1655,7 @@ class ModelTest(unittest.TestCase):
         m.set_name('Bert')
         self.assertRaisesRegex(
             myokit.IncompatibleModelError,
-            'Incompatible model <Bert>: No variable found',
+            'Incompatible model "Bert": No variable found',
             m.labelx, 'y')
 
     def test_labels(self):
@@ -2090,7 +2090,7 @@ class ModelTest(unittest.TestCase):
         # Set with one big string
         values[0] += 5
         s = dict(zip(states, values))
-        s = '\n'.join([str(a) + '=' + str(b) for a, b in s.items()])
+        s = '\n'.join([f'{a}={b}' for a, b in s.items()])
         m.set_initial_values(s)
         for val, ref in zip(m.initial_values(True), values):
             self.assertEqual(val, ref)

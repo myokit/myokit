@@ -32,7 +32,7 @@ class PatchMasterImporter(myokit.formats.Importer):
 
         """
         if group is None or series is None:
-            raise ValueError('A group and series are required')
+            raise ValueError('A group and series are required.')
 
         from myokit.formats.heka import PatchMasterFile
         with PatchMasterFile(path) as f:

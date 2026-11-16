@@ -45,8 +45,8 @@ class RhsBenchmarker(myokit.CModule):
 
         # Extension module id
         RhsBenchmarker._index += 1
-        module_name = 'myokit_RhsBenchmarker_' + str(RhsBenchmarker._index)
-        module_name += '_' + str(myokit.pid_hash())
+        module_name = (f'myokit_RhsBenchmarker_{RhsBenchmarker._index}'
+                       f'_{myokit.pid_hash()}')
 
         # Distutils arguments
         args = {
@@ -170,16 +170,14 @@ class RhsBenchmarker(myokit.CModule):
             state = state.qname()
             if state not in log:
                 raise ValueError(
-                    'State variable <' + str(state) + '> not found in'
-                    ' simulation log.')
+                    f'State variable "{state}" not found in simulation log.')
             m = len(log[state])
             if n is None:
                 n = m
             elif n != m:
                 raise ValueError(
                     'All lists in the simulation log must have the same'
-                    ' length. Found entries with size ' + str(n) + ' and '
-                    + str(m) + '.')
+                    f' length. Found entries with size {n} and {m}.')
 
     def _check_variables(self, variables):
         """

@@ -350,7 +350,7 @@ class MyokitUnitTest(unittest.TestCase):
         # Predefined complex unit
         self.assertEqual(str(myokit.units.N), '[N]')
 
-        # Low mulipliers
+        # Low multipliers
         um = m * 1e-6
         self.assertEqual(str(um), '[um]')
         um3 = myokit.parse_unit('um^3')

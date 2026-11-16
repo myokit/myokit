@@ -29,7 +29,7 @@ the ``mmt`` file::
     p = get_protocol()
 
 When running from an independent python script, you'll need to get the model
-and protocol somwhere else, for example from a stored ``.mmt`` file::
+and protocol somewhere else, for example from a stored ``.mmt`` file::
 
     import myokit
 
@@ -47,7 +47,7 @@ under :ref:`API::Simulations <api/simulations>`. The most common types are:
 
  * The single cell :class:`Simulation <myokit.Simulation>` class, which uses
    the CVODES solver to perform high-speed single cell simulations.
- * The multi-cell :class:`SimulationOpenCL` class, which runs parallelised 1d
+ * The multi-cell :class:`SimulationOpenCL` class, which runs parallelized 1d
    or 2d simulations using a forward-Euler solver implemented in OpenCL.
 
 All simulation types take a :class:`Model <myokit.Model>` as first argument
@@ -194,7 +194,7 @@ containing the logged values::
 In this example, no special instructions were given to the Simulation about
 which variables to log. For large models or longer simulations it is often best
 to specify which variables to store. This can be done in a number of ways, the
-most common of which is to specify the variables explictly using their qnames::
+most common of which is to specify the variables explicitly using their qnames::
 
     d = s.run(1000, log=['engine.time', 'membrane.V'])
 

@@ -44,7 +44,7 @@ class CellMLImporter(myokit.formats.Importer):
             parser = etree.XMLParser(remove_comments=True)
             tree = etree.parse(path, parser=parser)
         except Exception as e:
-            raise CellMLImporterError('Unable to parse XML: ' + str(e))
+            raise CellMLImporterError(f'Unable to parse XML: {e}')
 
         # Get root node
         root = tree.getroot()
@@ -55,8 +55,7 @@ class CellMLImporter(myokit.formats.Importer):
             parser = parsers[ns]
         except KeyError:
             raise CellMLImporterError(
-                'Unknown CellML version or not a CellML document at '
-                + str(path) + '.')
+                f'Unknown CellML version or not a CellML document at {path}.')
         parser = parser()
 
         try:

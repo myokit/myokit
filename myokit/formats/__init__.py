@@ -105,7 +105,7 @@ def exporter(name):
     try:
         return _EXPORTERS[name]()
     except KeyError:
-        raise KeyError('Exporter not found: ' + name)
+        raise KeyError(f'Exporter not found: {name}.')
 
 
 def exporters():
@@ -195,13 +195,13 @@ class ExpressionWriter:
 
     def eq(self, q):
         """ Converts a :class:`myokit.Equation` to a string. """
-        return self.ex(q.lhs) + ' = ' + self.ex(q.rhs)
+        return f'{self.ex(q.lhs)} = {self.ex(q.rhs)}'
 
     def ex(self, e):
         """ Converts a :class:`myokit.Expression` to a string. """
         t = type(e)
         if t not in self._op_map:   # pragma: no cover
-            raise ValueError('Unknown expression type: ' + str(t))
+            raise ValueError(f'Unknown expression type: {t}.')
         return self._op_map[t](e)
 
     def _ex_name(self, e):
@@ -304,7 +304,7 @@ class ExpressionWriter:
 
     def _ex_equal(self, e):
         #
-        # To obtain the desired `(0 == 0) == 0` behaviour, this and other
+        # To obtain the desired `(0 == 0) == 0` behavior, this and other
         # conditions are best rendered with brackets.
         #
         raise NotImplementedError
@@ -361,7 +361,7 @@ def ewriter(name):
     try:
         return _EWRITERS[name]()
     except KeyError:
-        raise KeyError('Expression writer not found: ' + name)
+        raise KeyError(f'Expression writer not found: {name}.')
 
 
 def ewriters():
@@ -386,7 +386,7 @@ class Importer:
         model.
 
         The importer may pose restraints on the used model. For example, the
-        model may be required to contain a variable labelled
+        model may be required to contain a variable labeled
         "membrane_potential". For details, check the documentation of the
         individual importers.
 
@@ -442,7 +442,7 @@ def importer(name):
     try:
         return _IMPORTERS[name]()
     except KeyError:
-        raise KeyError('Importer not found: ' + name)
+        raise KeyError(f'Importer not found: {name}.')
 
 
 def importers():
@@ -525,7 +525,7 @@ class TemplatedRunnableExporter(Exporter):
             if out_path.is_dir():
                 raise myokit.ExportError(
                     'Unable to write template file. Directory exists at'
-                    f' intended location {out_path}')
+                    f' intended location {out_path}.')
 
             # Check template file
             tpl_path = tpl_dir / tpl_path
@@ -534,7 +534,8 @@ class TemplatedRunnableExporter(Exporter):
                 raise myokit.ExportError(f'File not found: {tpl_path}')
             if not tpl_path.is_file():  # pragma: no cover
                 raise myokit.ExportError(
-                    'Expecting file but directory or link found at {tpl_path}')
+                    'Expecting file but directory or link found at'
+                    f' {tpl_path}.')
 
             # Render
             with open(out_path, 'w') as f:
@@ -543,8 +544,8 @@ class TemplatedRunnableExporter(Exporter):
                 try:
                     p.process(tpl_path, tpl_vars)
                 except Exception as e:  # pragma: no cover
-                    warnings.warn('An error ocurred while processing the'
-                                  f' template at {tpl_path}')
+                    warnings.warn('An error occurred while processing the'
+                                  f' template at {tpl_path}.')
                     warnings.warn(traceback.format_exc())
                     if isinstance(e, myokit.pype.PypeError):
                         # Pype error? Then add any error details
@@ -626,7 +627,7 @@ def _scan_for_internal_formats():
             x = {}
         for k, v in x.items():
             if k in _IMPORTERS:     # pragma: no cover
-                raise Exception('Duplicate importer name: "' + str(k) + '".')
+                raise Exception(f'Duplicate importer name: "{k}".')
             _IMPORTERS[k] = v
 
         try:
@@ -635,7 +636,7 @@ def _scan_for_internal_formats():
             x = {}
         for k, v in x.items():
             if k in _EXPORTERS:     # pragma: no cover
-                raise Exception('Duplicate exporter name: "' + str(k) + '".')
+                raise Exception(f'Duplicate exporter name: "{k}".')
             _EXPORTERS[k] = v
 
         try:
@@ -644,8 +645,7 @@ def _scan_for_internal_formats():
             x = {}
         for k, v in x.items():
             if k in _EWRITERS:     # pragma: no cover
-                raise Exception(
-                    'Duplicate expression writer name: "' + str(k) + '".')
+                raise Exception(f'Duplicate expression writer name: "{k}".')
             _EWRITERS[k] = v
 
 
@@ -717,7 +717,7 @@ def register_external_ewriter(name, ewriter_class):
 
 class SweepSource:
     """
-    Interface for classes that provide time-series data organised into *sweeps*
+    Interface for classes that provide time-series data organized into *sweeps*
     (or *records* or *episodes*) and *channels* (or *traces*).
 
     The :class:`SweepSource` interface defines methods to get the number of
@@ -818,7 +818,7 @@ class SweepSource:
         may be specified as :class:`myokit.Unit` objects or strings.
 
         By default, floating point numbers in the protocol will be rounded to
-        9 digits after the decimal point. This can be customised using the
+        9 digits after the decimal point. This can be customized using the
         argument ``n_digits``.
 
         If a D/A output cannot be converted to a :class:`myokit.Protocol`, a

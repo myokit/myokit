@@ -79,7 +79,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
         #d['c.V'] = np.linspace(-80.0, 50.0, 10)
         d['c.W'] = np.linspace(0.0, 10.0, 10)
         self.assertRaisesRegex(
-            ValueError, 'State variable <c.V> not found', b.bench_full, d, 1)
+            ValueError, 'State variable "c.V" not found', b.bench_full, d, 1)
 
         # Different size log entries
         d = myokit.DataLog()

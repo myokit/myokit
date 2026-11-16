@@ -144,7 +144,7 @@ This specifies that the variable ``x`` is in the unit ``kg``, regardless of how
 
 The second way of using units is by attaching them to a literal value. For
 example writing ``5 [kg]`` instead of ``5``. This double specification can be
-used for unig checking, for example, if x is known to be invalid it makes no
+used for unit checking, for example, if x is known to be invalid it makes no
 sense to assign it a value ``7 [m/s]``.
 
 For state variables, the ``in`` keyword refers to *the variable*, not its
@@ -307,7 +307,7 @@ Myokit allows multi-level nesting::
         b = c + 14
             c = 5
 
-Here, the set of ``m`` and ``b`` are refered to as ``c``'s ancestors.
+Here, the set of ``m`` and ``b`` are referred to as ``c``'s ancestors.
 
 Scope and naming
 ================
@@ -405,7 +405,7 @@ The following functions are defined:
 +----------------+------------------------------------------------------------+
 | ``sqrt(x)``    | Square root                                                |
 +----------------+------------------------------------------------------------+
-| ``sin(x)``     | Sine (all trigonomic functions work with radians)          |
+| ``sin(x)``     | Sine (all trigonometric functions work with radians)       |
 +----------------+------------------------------------------------------------+
 | ``cos(x)``     | Cosine                                                     |
 +----------------+------------------------------------------------------------+
@@ -556,7 +556,7 @@ and made available to the model through a variable bound to a label such as
 A simulation using the binding ``pace`` will set the value of ``level`` based
 on the provided Protocol.
 
-Labelling special variables
+Labeling special variables
 ---------------------------
 Some variables in a model have a special meaning that may be relevant to
 simulation engines. These can be marked using the ``label`` keyword. For
@@ -598,7 +598,7 @@ However, the following two constraints are imposed:
 References, solvability
 =======================
 The order in which variables are specified doesn't matter. However, cycles
-in the variables' dependencies are not allowed. For the sake of modelling, it
+in the variables' dependencies are not allowed. For the sake of modeling, it
 is often nice to have a non-cyclical graph of *component* dependencies, but no
 such requirements are made by myokit.
 

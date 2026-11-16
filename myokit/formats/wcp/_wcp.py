@@ -224,7 +224,7 @@ class WcpFile(myokit.formats.SweepSource):
 
             self._records.append(record)
 
-            # Increase offset beyong data block
+            # Increase offset beyond data block
             offset += rdb_size
 
         # Create time signal
@@ -269,7 +269,7 @@ class WcpFile(myokit.formats.SweepSource):
         # Deprecated since 2023-06-22
         import warnings
         warnings.warn(
-            'The method `channels` is deprecated. Please use'
+            'The method "channels()" is deprecated. Please use'
             ' WcpFile.channel_count() instead.')
         return self._nc
 
@@ -310,7 +310,8 @@ class WcpFile(myokit.formats.SweepSource):
         # Deprecated since 2023-07-12
         import warnings
         warnings.warn(
-            'The method `info` is deprecated. Please use `meta_str` instead.')
+            'The method "info()" is deprecated. Please use "meta_str()"'
+            ' instead.')
         return self.meta_str(False)
 
     def log(self, join_sweeps=False, use_names=False, include_da=True):
@@ -408,7 +409,7 @@ class WcpFile(myokit.formats.SweepSource):
         # Deprecated since 2023-06-22
         import warnings
         warnings.warn(
-            'The method `myokit_log` is deprecated. Please use'
+            'The method "myokit_log()" is deprecated. Please use'
             ' WcpFile.log(use_names=True) instead.')
         return self.log(self)
 
@@ -425,7 +426,7 @@ class WcpFile(myokit.formats.SweepSource):
         # Deprecated since 2023-06-22
         import warnings
         warnings.warn(
-            'The method `plot` is deprecated. Please use'
+            'The method "plot()" is deprecated. Please use'
             ' WcpFile.matplotlib_figure() instead.')
 
         import matplotlib.pyplot as plt
@@ -441,7 +442,7 @@ class WcpFile(myokit.formats.SweepSource):
         # Deprecated since 2023-06-22
         import warnings
         warnings.warn(
-            'The method `records` is deprecated. Please use'
+            'The method "records()" is deprecated. Please use'
             ' WcpFile.record_count() instead.')
 
         return self._nr

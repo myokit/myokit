@@ -102,7 +102,7 @@ class TemplateEngine:
                         raise AttributeError
                 except AttributeError:
                     # No filename or lineno property or filename not equal to
-                    # <string>. Attempt to scan the strack trace for a frame
+                    # <string>. Attempt to scan the stack trace for a frame
                     # with filename <string> and extract the line number.
                     next = error[2]
                     try:
@@ -149,7 +149,7 @@ class TemplateEngine:
         with open(source, 'r') as f:
             source = f.read()
 
-        # Define token recognising regex, helpers
+        # Define token recognizing regex, helpers
         tags = [r'<\?=', r'<\?', r'\?>']
         rTags = re.compile(r'(' + '|'.join(tags) + ')')
         rQuot = re.compile(r'(""")')

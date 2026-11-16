@@ -121,7 +121,7 @@ class Simulation1d(myokit.CModule):
         if vm is None:
             raise ValueError(
                 'This simulation requires the membrane potential'
-                ' variable to be labelled as "membrane_potential".')
+                ' variable to be labeled as "membrane_potential".')
 
         # Prepare for Rush-Larsen updates, and/or clone model
         rl_states = {}
@@ -160,18 +160,13 @@ class Simulation1d(myokit.CModule):
 
         # Get membrane potential variable
         self._vm = self._model.label('membrane_potential')
-        # Already checked this above
-        # if self._vm is None:
-        #    raise ValueError(
-        #        'This simulation requires the membrane potential'
-        #        ' variable to be labelled as "membrane_potential".')
 
         # Check for binding to diffusion_current
         if self._model.binding('diffusion_current') is None:
             raise ValueError(
                 'This simulation requires a variable to be bound to'
                 ' "diffusion_current" to pass current from one cell to the'
-                ' next')
+                ' next.')
 
         # Set state and default state
         self._state = self._model.initial_values(True) * ncells
@@ -179,8 +174,7 @@ class Simulation1d(myokit.CModule):
 
         # Unique simulation id
         Simulation1d._index += 1
-        module_name = 'myokit_sim1d_' + str(Simulation1d._index)
-        module_name += '_' + str(myokit.pid_hash())
+        module_name = f'myokit_sim1d_{Simulation1d._index}_{myokit.pid_hash()}'
 
         # Arguments
         args = {

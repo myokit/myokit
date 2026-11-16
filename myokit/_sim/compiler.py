@@ -38,8 +38,7 @@ class Compiler(myokit.CModule):
         libs = []
 
         # Create back-end
-        mname = 'myokit_compiler_info_' + str(Compiler._index)
-        mname += '_' + str(myokit.pid_hash())
+        mname = f'myokit_compiler_info_{Compiler._index}_{myokit.pid_hash()}'
         fname = myokit.DIR_CFUNC / SOURCE_FILE
         args = {'module_name': mname}
         try:
@@ -62,7 +61,7 @@ class Compiler(myokit.CModule):
         # Instance creation failed, raise exception
         if Compiler._instance is False:  # pragma: no cover
             raise NoCompilerError(
-                'Could not detect C compiler.\n' + Compiler._message)
+                f'Could not detect C compiler.\n{Compiler._message}')
 
         # Return instance
         return Compiler._instance

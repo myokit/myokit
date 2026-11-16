@@ -206,10 +206,10 @@ class SimulationOpenCL(myokit.CModule):
             if vm is None:
                 raise ValueError(
                     'This simulation requires the membrane potential'
-                    ' variable to be labelled as "membrane_potential".')
+                    ' variable to be labeled as "membrane_potential".')
             if not vm.is_state():
                 raise ValueError(
-                    'The variable labelled as membrane potential must'
+                    'The variable labeled as membrane potential must'
                     ' be a state variable.')
 
         #if vm.is_referenced():
@@ -445,10 +445,10 @@ class SimulationOpenCL(myokit.CModule):
             if key not in log:
                 raise myokit.FindNanError(
                     'Method requires a simulation log containing all states'
-                    f' and bound variables. Missing variable <{key}>.')
+                    f' and bound variables. Missing variable "{key}".')
         del t
 
-        # Error criterium
+        # Error criterion
         if watch_var is None:
 
             # NaN/inf detection
@@ -491,7 +491,7 @@ class SimulationOpenCL(myokit.CModule):
             try:
                 watch_var = self._model.get(watch_var)
             except KeyError:
-                raise myokit.FindNanError(f'Variable <{watch_var}> not found.')
+                raise myokit.FindNanError(f'Variable "{watch_var}" not found.')
             if not watch_var.is_state():
                 raise myokit.FindNanError(
                     'The watched variable must be a state.')
@@ -1128,11 +1128,10 @@ class SimulationOpenCL(myokit.CModule):
                 time, icell, var, value, states, bounds, d = self.find_nan(
                     log, return_log=True)
                 icell_str = '(' + ','.join([str(x) for x in icell]) + ')'
-                txt.append(
-                    'Encountered numerical error at t='
-                    + myokit.float.str(time, precision=self._precision)
-                    + f' in cell {icell_str} when {var}='
-                    + myokit.float.str(value, precision=self._precision) + '.')
+                t_str = myokit.float.str(time, precision=self._precision)
+                v_str = myokit.float.str(value, precision=self._precision)
+                txt.append(f'Encountered numerical error at t={t_str} in cell'
+                           f' {icell_str} when {var}={v_str}.')
 
                 # Check if this cell was paced.
                 is_paced = self.is_paced(*icell)
@@ -1237,9 +1236,9 @@ class SimulationOpenCL(myokit.CModule):
                     for key, values in d.items():
                         value = values[-2]
                         if not np.isfinite(value):
-                            txt.append(
-                                '  ' + str(key) + ' = ' + myokit.float.str(
-                                    value, precision=self._precision))
+                            v_str = myokit.float.str(
+                                value, precision=self._precision)
+                            txt.append(f'  {key} = {v_str}')
 
                     # Show any error in evaluating derivatives
                     if eval_error is not None:
@@ -1381,7 +1380,7 @@ class SimulationOpenCL(myokit.CModule):
 
         if connections is None:
             raise ValueError(
-                'Connection list cannot be None. To unset connections, call '
+                'Connection list cannot be None. To unset connections, call'
                 ' set_conductance() with the new conductance value.')
         conns = []
         doubles = set()
@@ -1432,7 +1431,7 @@ class SimulationOpenCL(myokit.CModule):
         var = self._model.get(var)
         if not var.is_literal():
             raise ValueError(
-                f'The given variable <{var.qname()}> is not a literal.')
+                f'The given variable "{var.qname()}" is not a literal.')
         # Update value in internal model (will update its defined value when
         # the kernel is generated before the next run).
         self._model.set_value(var.qname(), value)
@@ -1487,12 +1486,12 @@ class SimulationOpenCL(myokit.CModule):
         if len(self._dims) == 1:
             if values.shape != (self._nx, ):
                 raise ValueError(
-                    f'The argument `values` must have length {self._nx}.')
+                    f'The argument "values" must have length {self._nx}.')
         else:
             shape = (self._ny, self._nx)
             if values.shape != shape:
                 raise ValueError(
-                    f'The argument `values` must have dimensions {shape}.')
+                    f'The argument "values" must have dimensions {shape}.')
         # Add field
         self._fields[var] = list(values.reshape(self._nx * self._ny))
 
@@ -1531,7 +1530,7 @@ class SimulationOpenCL(myokit.CModule):
             raise RuntimeError(
                 'This method is unavailable when diffusion is disabled.')
 
-        # Check nx and x. Allow cell selections outside of the boders!
+        # Check nx and x. Allow cell selections outside of the borders!
         nx = int(nx)
         x = int(x)
         if nx < 0:
@@ -1619,7 +1618,7 @@ class SimulationOpenCL(myokit.CModule):
         elif n != self._nstate:
             raise ValueError(
                 'Given state must have the same size as a single'
-                ' cell state or a full simulation state')
+                ' cell state or a full simulation state.')
 
         # Set all cells to same state
         if x is None:

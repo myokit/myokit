@@ -37,7 +37,7 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
         elif version == '2.0':
             self._ns = myokit.formats.cellml.NS_CELLML_2_0
         else:
-            raise ValueError('Unknown CellML version: ' + str(version))
+            raise ValueError(f'Unknown CellML version: {version}.')
 
         # Namespaces for element creation
         self._nsmap['cellml'] = self._ns

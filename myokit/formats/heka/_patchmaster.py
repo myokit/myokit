@@ -135,7 +135,7 @@ class PatchMasterFile:
                 path = filepath
             else:
                 raise ValueError(
-                    'The PatchMasterFile argument "filepath" is a deprecated '
+                    'The PatchMasterFile argument "filepath" is a deprecated'
                     ' alias of "path" and should not be set when "path" is'
                     ' set.')
         self._path = pathlib.Path(path).absolute()
@@ -156,7 +156,7 @@ class PatchMasterFile:
                 'Only bundle files are supported.')
         elif sig[:4] != 'DAT2':
             raise NotImplementedError(
-                'Older version or not recognised as HEKA PatchMaster'
+                'Older version or not recognized as HEKA PatchMaster'
                 ' format.')
 
         # Read remaining bundle header
@@ -215,11 +215,11 @@ class PatchMasterFile:
                 item = self._items.get(ext)
             except KeyError:        # pragma: no-cover
                 raise NotImplementedError(
-                    'Unsupported bundle item: ' + ext)
+                    f'Unsupported bundle item: {ext}')
             if item is not None:    # pragma: no-cover
                 raise ValueError(
-                    'Invalid or unsupported file. Bundle item appears'
-                    ' more than once: ' + ext)
+                    'Invalid or unsupported file. Bundle item appears more'
+                    f' than once: {ext}')
             self._items[ext] = (start, size)
 
         # Read amplifier tree
@@ -354,8 +354,8 @@ class TreeNode:
     calling the constructor with a ``parent`` but no children. (2) Calling the
     method :meth:`_read_properties` which should read record properties from
     the open file handle and update the ``TreeNode`` accordingly. (3) Calling
-    the method :meth:`_read_finalize`, which can handl any actions that require
-    children to have been added.
+    the method :meth:`_read_finalize`, which can handle any actions that
+    require children to have been added.
     """
     def __init__(self, parent):
         self._parent = parent
@@ -411,7 +411,7 @@ class TreeNode:
         if n != len(levels):
             raise ValueError(
                 'Unexpected number of levels found in tree: expected'
-                f' ({len(levels)}), found ({n}).')
+                f' {len(levels)}, found {n}.')
 
         # Go!
         return TreeNode._read(pfile, handle, reader, levels, sizes)
@@ -890,7 +890,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         completed.
 
         The full check can only be run if this channel's Stimulus can be
-        analysed to determine the intended number of samples in each sweep. If
+        analyzed to determine the intended number of samples in each sweep. If
         the stimulus contains unsupported features, this part of the check will
         not be run.
         """
@@ -1128,8 +1128,8 @@ class Series(TreeNode, myokit.formats.SweepSource):
                 out.append('  R series compensation: not enabled')
             # Current-clamp info
             out.append(f'  Current clamp holding current: {a.i_hold()} pA')
-            out.append('  Current clamp stimulus gain: '
-                       f'{a.current_clamp_stimulus_gain()} pA/mV')
+            out.append('  Current clamp stimulus gain:'
+                       f' {a.current_clamp_stimulus_gain()} pA/mV')
 
         # Info from first trace
         if len(self) and len(self[0]):
@@ -1158,10 +1158,10 @@ class Series(TreeNode, myokit.formats.SweepSource):
             out.append('-' * 60)
             out.append(f'Stimulus "{stim.label()}"')
             out.append(f'  {stim.sweep_count()} sweeps')
-            out.append('  Delay between sweeps: '
-                       f'{stim.sweep_interval() * 1000} ms')
-            out.append('  Sampling interval: '
-                       f'{stim.sampling_interval() * 1000} ms')
+            out.append('  Delay between sweeps:'
+                       f' {stim.sweep_interval() * 1000} ms')
+            out.append('  Sampling interval:'
+                       f' {stim.sampling_interval() * 1000} ms')
             for i, ch in enumerate(stim):
                 out.append(f'  Channel {i}, in {ch.unit()}, amplifier in'
                            f' {ch.amplifier_mode()} mode')
@@ -1453,7 +1453,7 @@ class Trace(TreeNode):
         """
         Returns the "seal resistance" (MOhm) that was determined the last time
         that the "amplifier window" was active (so at some indeterminate time
-        before the Trace was aquired).
+        before the Trace was acquired).
 
         The values returned by :meth:`r_seal` and :meth:`r_pipette` are the
         same measurement ("R-memb") performed at a different time. The value
@@ -1677,7 +1677,7 @@ class AmplifierState:
     manual erroneously described as an on/off switch) can be used to set both
     values independently. If this is done, it becomes unclear what the value in
     the file represents, as only one value is stored. For this reason, if
-    prediction is set seperately from correction, both values must be noted
+    prediction is set separately from correction, both values must be noted
     down by the experimenter and the value from the file should be ignored.
     """
     def __init__(self, handle, reader):
@@ -1873,8 +1873,8 @@ class AmplifierState:
             return gain_values[self._cc_gain]
         except IndexError:  # pragma: no-cover
             raise NotImplementedError(
-                'Unexpected value found for current clamp gain'
-                f' ({self._cc_gain}).')
+                'Unexpected value found for current clamp gain:'
+                f' {self._cc_gain}.')
 
     def current_gain(self):
         """
@@ -1992,7 +1992,7 @@ class AmplifierState:
 
     def stimulus_filter(self):
         """
-        Returns a :class:`StimulusFilterSetting` descibing the stimulus filter
+        Returns a :class:`StimulusFilterSetting` describing the stimulus filter
         settings.
 
         For more information, see :class:`StimulusFilterSetting`.
@@ -2001,7 +2001,7 @@ class AmplifierState:
 
     def stimulus_filter_str(self):
         """
-        Returns a string descibing the stimulus filter settings.
+        Returns a string describing the stimulus filter settings.
 
         For more information, see :class:`StimulusFilterSetting`.
         """
@@ -2027,7 +2027,7 @@ class Filter1Setting(enum.Enum):
 
     Both filter 1 and filter 2 are hardware filters, implemented on the EPC 9
     and 10. Filter 1 is used in voltage control, while filter 2 is used to
-    perform filtering before digitisation. Filter 1 is always on, but some
+    perform filtering before digitization. Filter 1 is always on, but some
     amplifiers allow filter 2 to be bypassed. The setting for filter 1
     determines both the type of filter (Bessel etc.) and the bandwidth. The
     user setting for filter 2 sets the combined bandwidth of both filters.
@@ -2088,7 +2088,7 @@ class Filter2Type(enum.Enum):
 
 class CSlowRange(enum.Enum):
     """
-    Available options for slow capacitance cancelling range.
+    Available options for slow capacitance canceling range.
 
     This doubles up as the on/off setting for slow capacitance cancellation.
     """
@@ -2629,7 +2629,7 @@ class StimulusChannel(TreeNode):
         for seg in self:
             if seg.segment_class() is not SegmentClass.Constant:
                 raise NotImplementedError(
-                    'Unsupported segment type: {seg.segment_class()}')
+                    f'Unsupported segment type: {seg.segment_class()}')
 
         # Units are of a supported type
         if self._unit not in (myokit.units.V, myokit.units.nA):
@@ -3124,7 +3124,7 @@ class SegmentIncrement(enum.Enum):
             #indices[1:-1:2] = range(2, n_sweeps, 2)
             #indices[2::2] = range(1, n_sweeps - 1, 2)
             #return indices
-            raise NotImplementedError('Segment with interleaved increase')
+            raise NotImplementedError('Segment with interleaved increase.')
         elif self in (S.DecreaseInterleaved, S.LogDecreaseInterleaved):
             # Interleaved
             # The pattern given in the manual is not explained and only
@@ -3134,7 +3134,7 @@ class SegmentIncrement(enum.Enum):
             #indices[1:-1:2] = range(n_sweeps - 3, -1, -2)
             #indices[2:-2:2] = range(n_sweeps - 2, 2, -2)
             #return indices
-            raise NotImplementedError('Segment with interleaved decrease')
+            raise NotImplementedError('Segment with interleaved decrease.')
         elif self is S.Alternate:
             indices = np.zeros(n_sweeps) * np.nan
             nh = (1 + n_sweeps) // 2

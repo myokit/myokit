@@ -50,12 +50,12 @@ def parse(source):
         if script is None:
             expecting = '[[script]]'
             if protocol is None:
-                expecting = '[[protocol]] or ' + expecting
+                expecting = f'[[protocol]] or {expecting}'
                 if model is None:
-                    expecting = '[[model]] or ' + expecting
+                    expecting = f'[[model]] or {expecting}'
         raise ParseError(
             'Invalid segment header', token[2], token[3],
-            'Expecting ' + expecting)
+            f'Expecting {expecting}')
     expect(next(stream), EOF)
 
     # Return
@@ -302,22 +302,22 @@ def unexpected_token(token, expected):
     got = token_map[code]
     hide = [EOL, EOF, INDENT, DEDENT, AND, OR, NOT]
     if code not in hide:
-        got += ' "' + text + '"'
+        got += f' "{text}"'
 
     # Parse expected token(s) or string
     if type(expected) is int:
         expected = [expected]
     if not isinstance(expected, str):
         if len(expected) > 2:
-            expected = 'one of [' \
-                + ', '.join([token_str[i] for i in expected]) + ']'
+            expected = ', '.join([token_str[i] for i in expected])
+            expected = f'one of [{expected}]'
         elif len(expected) == 2:
-            expected = token_str[expected[0]] + ' or ' + token_str[expected[1]]
+            expected = f'{token_str[expected[0]]} or {token_str[expected[1]]}'
         else:
             expected = token_str[expected[0]]
     raise ParseError(
         'Syntax error', line, char,
-        'Unexpected token ' + got + ' expecting ' + expected)
+        f'Unexpected token {got} expecting {expected}')
 
 
 def reg_token(info, token, obj):
@@ -389,8 +389,8 @@ def parse_model_from_stream(stream, syntax_only=False):
             if meta_key in model.meta:
                 raise ParseError(
                     'Duplicate meta-data key', t[2], t[3],
-                    'The meta-data key "' + meta_key + '" was already'
-                    ' specified for this model.')
+                    f'The meta-data key "{meta_key}" was already specified'
+                    ' for this model.')
             expect(next(stream), COLON)
             t_next = expect(next(stream), [TEXT, EOL])
             meta_val = ''
@@ -409,7 +409,7 @@ def parse_model_from_stream(stream, syntax_only=False):
             if name in info.initial_values:
                 raise ParseError(
                     'Duplicate initial value', t0[2], t0[3],
-                    'A value for <' + name + '> was already specified.')
+                    f'A value for "{name}" was already specified.')
             expect(next(stream), EQUAL)
             expr = parse_proto_expression(stream)
             expect(next(stream), EOL)
@@ -462,7 +462,7 @@ def parse_model_from_stream(stream, syntax_only=False):
         t = info.initial_value_tokens[qname]
         raise ParseError(
             'Unused initial value', t[2], t[3],
-            'An unused initial value was found for "' + qname + '".')
+            f'An unused initial value was found for "{qname}".')
 
     # Re-order the model state
     model.reorder_state(state_order)
@@ -554,8 +554,8 @@ def parse_component(stream, info=None):
             if meta_key in component.meta:
                 raise ParseError(
                     'Duplicate meta-data key', t[2], t[3],
-                    'The meta-data key "' + meta_key + '" was already'
-                    ' specified for this component.')
+                    f'The meta-data key "{meta_key}" was already specified'
+                    ' for this component.')
             expect(next(stream), COLON)
             t_next = expect(next(stream), [TEXT, EOL])
             meta_val = ''
@@ -591,7 +591,7 @@ def parse_alias(stream, info, component):
         if token_v[0] != DOT:
             raise ParseError(
                 'Invalid reference', token_v[2], token_v[3],
-                'Aliassed variables must be specified using their fully'
+                'Aliased variables must be specified using their fully'
                 ' qualified name (component.variable)')
         token_v = expect(next(stream), NAME)   # variable
 
@@ -673,7 +673,7 @@ def parse_variable(stream, info, parent):
         if var.qname() not in info.initial_values:
             raise ParseError(
                 'Missing initial value', line, char,
-                'No initial value was found for "' + var.qname() + '"')
+                f'No initial value was found for "{var.qname()}"')
         var.promote()
 
     # Parse definition, quick unit, bind, label and description syntax
@@ -725,7 +725,7 @@ def parse_variable(stream, info, parent):
                 if meta_key in var.meta:
                     raise ParseError(
                         'Duplicate meta-data key', line, char,
-                        'The meta-data key "' + meta_key + '" was already'
+                        f'The meta-data key "{meta_key}" was already'
                         ' specified for this variable.')
                 next(stream)
                 expect(next(stream), COLON)
@@ -749,7 +749,7 @@ def parse_variable(stream, info, parent):
                 parse_binding(stream, info, var)
                 expect(next(stream), EOL)
             elif token[0] == LABEL:
-                # Labelled as unique value
+                # Labeled as unique value
                 parse_label(stream, info, var)
                 expect(next(stream), EOL)
             else:   # pragma: no cover
@@ -807,12 +807,12 @@ def resolve_alias_map_names(info):
     Updates the alias map in each component from a string:string dictionary to
     a string:variable dictionary and checks if
      - The variables are in another component
-     - No two aliasses are tied to the same variable (within a single
+     - No two aliases are tied to the same variable (within a single
       component)
     """
     for comp, amap in info.alias_map.items():
         for name, (t_use, t_comp, t_var) in amap.items():
-            var_name = t_comp[1] + '.' + t_var[1]
+            var_name = f'{t_comp[1]}.{t_var[1]}'
             (var, sug, msg) = info.model.suggest_variable(var_name)
             if var is None:
                 raise ParseError(
@@ -911,7 +911,7 @@ def parse_unit_string(string):
 def parse_bracketed_unit(stream):
     """
     Parses a unit wrapped in brackets, catches the unit text and adds a fake
-    UNIT token to the unit, allowing later maniplation.
+    UNIT token to the unit, allowing later manipulation.
     """
     unit_text = stream.start_catching()
     token = expect(next(stream), BRACKET_OPEN)
@@ -1206,7 +1206,7 @@ KEYWORDS = KEYWORD_MAP.keys()
 #  the indenting rules
 tabsize = 8
 
-# Define token recognising regex
+# Define token recognizing regex
 # The syntax r'' is used for raw strings
 _rTOKEN = re.compile('|'.join([
     # Whitespace
@@ -1704,7 +1704,7 @@ class Tokenizer:
                     token = line[pos:]
                     raise ParseError(
                         'Unknown or invalid token', numb, pos,
-                        'Unrecognized token: ' + token)
+                        f'Unrecognized token: {token}')
 
             # Join lines with open parentheses
             if bracket_depth > 0:
@@ -1790,7 +1790,7 @@ class Tokenizer:
                     else:   # pragma: no cover
                         raise Exception(
                             'Unexpected character in multi-line string\'s'
-                            ' whitespace: "' + line[pos] + '"')
+                            f' whitespace: "{line[pos]}"')
                     pos += 1
                 text.append(line[pos:])
         return ('\n'.join(text)).strip()
@@ -1860,7 +1860,7 @@ def parse_expression_string(string, context=None):
         else:
             info.model = context.model()
 
-    # Tokenise and parse string to proto expression
+    # Tokenize and parse string to proto expression
     s = Tokenizer(string)
     e = parse_proto_expression(s, info=info)
 
@@ -1956,12 +1956,12 @@ def format_parse_error(ex, source=None):
 
     If a filename or input stream is passed in as ``source``, this will
     be used to show the line on which an error occurred. If a stream is passed,
-    it should be rewinded to the same point the original parsing started.
+    it should be rewound to the same point the original parsing started.
     """
     out = [ex.name]
     if ex.desc is not None:
-        out.append('  ' + ex.desc)
-    out.append('On line ' + str(ex.line) + ' character ' + str(ex.char))
+        out.append(f'  {ex.desc}')
+    out.append(f'On line {ex.line} character {ex.char}')
     line = None
 
     if ex.line > 0 and source is not None:
@@ -2010,11 +2010,11 @@ def format_parse_error(ex, source=None):
             line = line[p1:p2]
             char = char - p1
             if p1 > 0:
-                line = '..' + line
+                line = f'..{line}'
                 char += 2
             if p2 < n:
                 line += '..'
-        out.append('  ' + line)
+        out.append(f'  {line}')
 
         # Add error indication
         out.append(' ' * (2 + char) + '^')
@@ -2061,7 +2061,7 @@ class NameParser(NudParser):
         if stream.peek()[0] == DOT:
             t2 = next(stream)
             t3 = expect(next(stream), NAME)
-            name += '.' + t3[1]
+            name += f'.{t3[1]}'
         return (myokit.Name, (name, ), (t1, t2, t3, t4))
 
 
@@ -2110,8 +2110,8 @@ class FunctionParser(NudParser):
                 if len(ops) not in func._nargs:
                     raise ParseError(
                         'Syntax error', name[2], name[3],
-                        'Wrong number of arguments for function '
-                        + str(func._fname) + '()')
+                        'Wrong number of arguments for function'
+                        f' "{func._fname}()".')
             return (func, ops, (name,))
 
         # User-defined function
@@ -2123,9 +2123,9 @@ class FunctionParser(NudParser):
                 pass
         if func is None:
             raise ParseError(
-                'Unknown function', name[2], name[3], 'A function '
-                + name[1] + '() with ' + str(len(ops))
-                + ' argument(s) could not be found.')
+                'Unknown function', name[2], name[3],
+                f'A function "{name[1]}()" with {len(ops)} argument(s) could'
+                ' not be found.')
 
         # Found function, return template, arguments and tokens. "func" is
         # now a (template) Expression object.

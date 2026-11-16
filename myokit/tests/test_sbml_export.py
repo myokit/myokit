@@ -259,7 +259,7 @@ class TestSBMLExport(unittest.TestCase):
         self.assertIn("<kineticLaw>", sbml_str)
         self.assertIn("<cn>1.0</cn>", sbml_str)
 
-        # test stochoimetry
+        # test stoichiometry
         model = Model()
         c = model.add_compartment("my_compartment")
         s = model.add_species(c, "my_species")

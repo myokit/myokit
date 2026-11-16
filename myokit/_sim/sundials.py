@@ -38,8 +38,7 @@ class Sundials(myokit.CModule):
         libs = []
 
         # Create Sundials back-end
-        mname = 'myokit_sundials_info_' + str(Sundials._index)
-        mname += '_' + str(myokit.pid_hash())
+        mname = f'myokit_sundials_info_{Sundials._index}_{myokit.pid_hash()}'
         fname = myokit.DIR_CFUNC / SOURCE_FILE
         args = {'module_name': mname}
         try:
@@ -62,7 +61,7 @@ class Sundials(myokit.CModule):
         # Instance creation failed, raise exception
         if Sundials._instance is False:  # pragma: no cover
             raise NoSundialsError(
-                'Sundials support not found.\n' + Sundials._message)
+                f'Sundials support not found.\n{Sundials._message}')
         # Return instance
         return Sundials._instance
 

@@ -22,8 +22,7 @@ class AnsicEventBasedPacing(myokit.CModule):
 
         # Unique id
         AnsicEventBasedPacing._index += 1
-        module_name = 'myokit_ansic_pacing_' \
-            + str(AnsicEventBasedPacing._index)
+        module_name = f'myokit_ansic_pacing_{AnsicEventBasedPacing._index}'
 
         # Arguments
         fname = DIR_TEST / SOURCE_FILE
@@ -80,7 +79,7 @@ class AnsicEventBasedPacing(myokit.CModule):
         # Test the input
         a, b = float(a), float(b)
         if b < a:
-            raise ValueError('The argument `b` cannot be smaller than `a`')
+            raise ValueError('The argument "b" cannot be smaller than "a".')
 
         # Create a simulation log
         log = myokit.DataLog()

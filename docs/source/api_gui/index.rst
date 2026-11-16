@@ -4,7 +4,7 @@
 API :: Graphical User Interfaces
 ********************************
 
-Myokit comes equipeed with a number of graphical user interface components:
+Myokit comes equipped with a number of graphical user interface components:
 
 - The :ref:`Myokit IDE <gui/ide>` (for *integrated development environment*)
   allows you to create, import and modify mmt files. Simulations can be run and

@@ -110,7 +110,7 @@ class LibDepsTest(unittest.TestCase):
         deps.plot_component_dependency_graph(model)
 
         # Add cyclical component dependencies, plot again
-        # This time, the acylical plotting code can't be used.
+        # This time, the acyclical plotting code can't be used.
         v = model.get('ina').add_variable('ion')
         v.set_rhs('membrane.i_ion')
         self.assertTrue(model.has_interdependent_components())

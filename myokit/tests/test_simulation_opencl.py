@@ -610,7 +610,7 @@ class SimulationOpenCLTest(unittest.TestCase):
             RuntimeError, 'method is unavailable',
             s.set_conductance_field, [1, 1])
 
-        # Test that all cells depolarise and are the same
+        # Test that all cells depolarize and are the same
         d = s.run(10, log=['membrane.V']).npview()
         self.assertGreater(np.max(d['membrane.V', 0]), 0)
         self.assertGreater(np.max(d['membrane.V', 1]), 0)
@@ -634,7 +634,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         m.label('membrane_potential').set_label(None)
         s = myokit.SimulationOpenCL(m, self.p, ncells=3, diffusion=False)
 
-        # Test that all cells depolarise and are the same
+        # Test that all cells depolarize and are the same
         d = s.run(10, log=['membrane.V']).npview()
         self.assertGreater(np.max(d['membrane.V', 0]), 0)
         self.assertGreater(np.max(d['membrane.V', 1]), 0)
@@ -810,7 +810,7 @@ class SimulationOpenCLTest(unittest.TestCase):
     def test_protocol(self):
         # Tests changing the protocol
 
-        # Run with protocol, check for depolarisation
+        # Run with protocol, check for depolarization
         self.s0.reset()
         d0 = self.s0.run(3, log=['engine.pace']).npview()
         self.assertEqual(np.max(d0['engine.pace']), 1)

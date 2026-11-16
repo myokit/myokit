@@ -38,7 +38,7 @@ class Asciifier(html.parser.HTMLParser):
         self.text = []  # Current document
         self.line = []  # Current (unwrapped) line
 
-        # Ordered/unorderd lists
+        # Ordered/unordered lists
         self.limode = []
         self.licount = []
 
@@ -210,7 +210,7 @@ class Asciifier(html.parser.HTMLParser):
             return
 
         # Convert html characters
-        data = html.unescape('&' + name + ';')
+        data = html.unescape(f'&{name};')
 
         # Convert to ascii and back to strip out non-ascii content
         data = data.encode('ascii', 'ignore').decode('ascii')

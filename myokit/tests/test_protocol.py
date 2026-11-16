@@ -122,8 +122,8 @@ class ProtocolTest(unittest.TestCase):
         p.schedule(2, 10, 100, 1000, 2)
         self.assertEqual(
             p.in_words(),
-            'Stimulus of 2.0 times the normal level applied at t=10.0, '
-            'lasting 100.0 and occurring 2 times with a period of 1000.0.')
+            'Stimulus of 2.0 times the normal level applied at t=10.0,'
+            ' lasting 100.0 and occurring 2 times with a period of 1000.0.')
 
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 1000, 0)

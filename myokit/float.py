@@ -20,7 +20,7 @@ def close(a, b, reltol=1e-9, abstol=1e-9):
     Differs from :meth:`myokit.float.eq` in that it tries to answer the
     question "are two numbers resulting from various calculations close enough
     to be considered equal". Whereas :meth`myokit.float.eq` aims to deal with
-    umbers that are numerically indistinguishable but still have a slightly
+    numbers that are numerically indistinguishable but still have a slightly
     different floating point representation.
     """
     # Note the initial == check handles infinity

@@ -340,7 +340,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 QtWidgets.QMessageBox.warning(
                     self, TITLE,
                     '<h1>Image type not recognized.</h1>'
-                    f'<p>Uncrecognized extension "{path.suffix}".</p>')
+                    f'<p>Unrecognized extension "{path.suffix}".</p>')
                 return
 
             # Create image
@@ -672,7 +672,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
 
     def event_graph_mouse_move(self, x, y):
         """
-        Graph cursur moved: Display the current cursor position on the graph
+        Graph cursor moved: Display the current cursor position on the graph
         scene in the status bar.
         """
         self._label_cursor.setText(f'({x:< 1.6g}, {y:< 1.6g})')
@@ -701,7 +701,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
 
     def event_video_mouse_move(self, x, y):
         """
-        Video cursur moved: Display the current cursor position on the video
+        Video cursor moved: Display the current cursor position on the video
         scene in the status bar.
         """
         # Cursor position is in scene coordinates, so already matches datablock
@@ -760,7 +760,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                     self._path = path
             self._recent_files = []
             for i in range(N_RECENT_FILES):
-                opt = 'recent_' + str(i)
+                opt = f'recent_{i}'
                 if config.has_option('files', opt):
                     path = pathlib.Path(config.get('files', opt)).absolute()
                     if path.is_file():
@@ -844,7 +844,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             return
 
         # File loaded okay
-        self.statusBar().showMessage('File loaded succesfully.')
+        self.statusBar().showMessage('File loaded successfully.')
         self._file = path
         self._data = data
         self.update_window_title()

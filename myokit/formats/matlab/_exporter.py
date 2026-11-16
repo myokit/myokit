@@ -62,11 +62,11 @@ class MatlabExporter(myokit.formats.TemplatedRunnableExporter):
         # Variable naming function
         def v(var):
             if isinstance(var, myokit.Derivative):
-                return 'ydot(' + str(1 + var.var().index()) + ')'
+                return f'ydot({1 + var.var().index()})'
             if isinstance(var, myokit.Name):
                 var = var.var()
             if var.is_constant():
-                return 'c.' + var.uname()
+                return f'c.{var.uname()}'
             else:
                 return var.uname()
 

@@ -12,7 +12,7 @@
 #  numbers 2.0 and up. Older version are referred to a version 1 (even though
 #  the actual version number may be, for example, 1.6).
 # The version 2 format uses a variable sized header making it a little trickier
-#  to read but appears to be more structured overal than the first version.
+#  to read but appears to be more structured overall than the first version.
 #
 # Trials, runs, sweeps and channels
 # ---------------------------------
@@ -36,12 +36,12 @@
 # -----------------
 # pClamp uses five acquisition modes:
 #  Gap-free mode
-#    Data is recored continuously, without any interruptions
+#    Data is recorded continuously, without any interruptions
 #  Variable-length events mode
 #    Data is recorded in bursts of variable length (for example whenever some
 #    condition is met)
 #  Fixed-length events mode
-#    Data is recored in bursts of fixed length, starting whenever some
+#    Data is recorded in bursts of fixed length, starting whenever some
 #    condition is met. Multiple bursts (sweeps, or episodes in pClamp <10
 #    terminology) may overlap.
 #  High-speed oscilloscope mode
@@ -736,7 +736,7 @@ class AbfFile(myokit.formats.SweepSource):
                             use = True
                             warnings.warn(
                                 f'Unsupported epoch type: {epoch_types[t]}:'
-                                ' converting to step')
+                                ' converting to step.')
                         elif t != EPOCH_DISABLED:  # pragma: no cover
                             use = False
                             warnings.warn(
@@ -1127,7 +1127,7 @@ class AbfFile(myokit.formats.SweepSource):
             if int_id < 0 or int_id >= self._n_dac:
                 raise IndexError(
                     f'output_id out of range: {output_id} ({self._n_dac}'
-                    ' channel(s) available)')
+                    ' channel(s) available).')
         return int_id
 
     def da(self, output_id, join_sweeps=False):

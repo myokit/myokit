@@ -9,7 +9,7 @@ Common Plots
 The ``myokit.lib`` module provides a number of functions that take simulation
 logs as input and create some common (or less common) plots.
 
-This module uses ``matplotlib`` for visualisation.
+This module uses ``matplotlib`` for visualization.
 
 .. autofunction:: cumulative_current
 

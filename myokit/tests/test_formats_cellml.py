@@ -213,13 +213,13 @@ class CellMLExpressionWriterTest(unittest.TestCase):
 
         cn = write_cn(myokit.Number(1e-6))
         a, b = 'type="e-notation"', 'cellml:units="dimensionless"'
-        c1 = '<cn ' + a + ' ' + b + '>1<sep/>-6</cn>'
-        c2 = '<cn ' + b + ' ' + a + '>1<sep/>-6</cn>'
+        c1 = f'<cn {a} {b}>1<sep/>-6</cn>'
+        c2 = f'<cn {b} {a}>1<sep/>-6</cn>'
         self.assertIn(cn, (c1, c2))
 
         cn = write_cn(myokit.Number(2.1e24))
-        c1 = '<cn ' + a + ' ' + b + '>2.1<sep/>24</cn>'
-        c2 = '<cn ' + b + ' ' + a + '>2.1<sep/>24</cn>'
+        c1 = f'<cn {a} {b}>2.1<sep/>24</cn>'
+        c2 = f'<cn {b} {a}>2.1<sep/>24</cn>'
         self.assertIn(cn, (c1, c2))
 
         # myokit.float.str(1.23456789) = 1.23456788999999989e+00
@@ -237,23 +237,23 @@ class CellMLExpressionWriterTest(unittest.TestCase):
 
         # Prefix plus
         x = myokit.PrefixPlus(b)
-        self.assertWrite(x, '<apply><plus/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><plus/>{cb}</apply>')
         # Prefix minus
         x = myokit.PrefixMinus(b)
-        self.assertWrite(x, '<apply><minus/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><minus/>{cb}</apply>')
 
         # Plus
         x = myokit.Plus(a, b)
-        self.assertWrite(x, '<apply><plus/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><plus/>{ca}{cb}</apply>')
         # Minus
         x = myokit.Minus(a, b)
-        self.assertWrite(x, '<apply><minus/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><minus/>{ca}{cb}</apply>')
         # Multiply
         x = myokit.Multiply(a, b)
-        self.assertWrite(x, '<apply><times/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><times/>{ca}{cb}</apply>')
         # Divide
         x = myokit.Divide(a, b)
-        self.assertWrite(x, '<apply><divide/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><divide/>{ca}{cb}</apply>')
 
     def test_functions(self):
         # Test printing functions
@@ -265,23 +265,23 @@ class CellMLExpressionWriterTest(unittest.TestCase):
 
         # Power
         x = myokit.Power(a, b)
-        self.assertWrite(x, '<apply><power/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><power/>{ca}{cb}</apply>')
         # Sqrt
         x = myokit.Sqrt(b)
-        self.assertWrite(x, '<apply><root/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><root/>{cb}</apply>')
         # Exp
         x = myokit.Exp(a)
-        self.assertWrite(x, '<apply><exp/>' + ca + '</apply>')
+        self.assertWrite(x, f'<apply><exp/>{ca}</apply>')
 
         # Floor
         x = myokit.Floor(b)
-        self.assertWrite(x, '<apply><floor/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><floor/>{cb}</apply>')
         # Ceil
         x = myokit.Ceil(b)
-        self.assertWrite(x, '<apply><ceiling/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><ceiling/>{cb}</apply>')
         # Abs
         x = myokit.Abs(b)
-        self.assertWrite(x, '<apply><abs/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><abs/>{cb}</apply>')
 
     def test_inequalities(self):
         # Tests printing inequalities
@@ -293,22 +293,22 @@ class CellMLExpressionWriterTest(unittest.TestCase):
 
         # Equal
         x = myokit.Equal(a, b)
-        self.assertWrite(x, '<apply><eq/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><eq/>{ca}{cb}</apply>')
         # NotEqual
         x = myokit.NotEqual(a, b)
-        self.assertWrite(x, '<apply><neq/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><neq/>{ca}{cb}</apply>')
         # More
         x = myokit.More(a, b)
-        self.assertWrite(x, '<apply><gt/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><gt/>{ca}{cb}</apply>')
         # Less
         x = myokit.Less(a, b)
-        self.assertWrite(x, '<apply><lt/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><lt/>{ca}{cb}</apply>')
         # MoreEqual
         x = myokit.MoreEqual(a, b)
-        self.assertWrite(x, '<apply><geq/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><geq/>{ca}{cb}</apply>')
         # LessEqual
         x = myokit.LessEqual(a, b)
-        self.assertWrite(x, '<apply><leq/>' + ca + cb + '</apply>')
+        self.assertWrite(x, f'<apply><leq/>{ca}{cb}</apply>')
 
     def test_log(self):
         # Tests printing the log function
@@ -320,14 +320,14 @@ class CellMLExpressionWriterTest(unittest.TestCase):
 
         # Log(a)
         x = myokit.Log(b)
-        self.assertWrite(x, '<apply><ln/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><ln/>{cb}</apply>')
         # Log(a, b)
         x = myokit.Log(a, b)
         self.assertWrite(
-            x, '<apply><log/><logbase>' + cb + '</logbase>' + ca + '</apply>')
+            x, f'<apply><log/><logbase>{cb}</logbase>{ca}</apply>')
         # Log10
         x = myokit.Log10(b)
-        self.assertWrite(x, '<apply><log/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><log/>{cb}</apply>')
 
     def test_logical(self):
         # Tests printing logical operators and functions
@@ -351,20 +351,20 @@ class CellMLExpressionWriterTest(unittest.TestCase):
               '<cn cellml:units="dimensionless">1.0</cn>'
               '</apply>')
         x = myokit.Not(cond1)
-        self.assertWrite(x, '<apply><not/>' + c1 + '</apply>')
+        self.assertWrite(x, f'<apply><not/>{c1}</apply>')
         # And
         x = myokit.And(cond1, cond2)
-        self.assertWrite(x, '<apply><and/>' + c1 + c2 + '</apply>')
+        self.assertWrite(x, f'<apply><and/>{c1}{c2}</apply>')
         # Or
         x = myokit.Or(cond1, cond2)
-        self.assertWrite(x, '<apply><or/>' + c1 + c2 + '</apply>')
+        self.assertWrite(x, f'<apply><or/>{c1}{c2}</apply>')
         # If
         x = myokit.If(cond1, a, b)
         self.assertWrite(
             x,
             '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<otherwise>' + cb + '</otherwise>'
+            f'<piece>{ca}{c1}</piece>'
+            f'<otherwise>{cb}</otherwise>'
             '</piecewise>'
         )
         # Piecewise
@@ -372,9 +372,9 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         self.assertWrite(
             x,
             '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<piece>' + cb + c2 + '</piece>'
-            '<otherwise>' + cc + '</otherwise>'
+            f'<piece>{ca}{c1}</piece>'
+            f'<piece>{cb}{c2}</piece>'
+            f'<otherwise>{cc}</otherwise>'
             '</piecewise>'
         )
 
@@ -386,22 +386,22 @@ class CellMLExpressionWriterTest(unittest.TestCase):
 
         # Sin
         x = myokit.Sin(b)
-        self.assertWrite(x, '<apply><sin/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><sin/>{cb}</apply>')
         # Cos
         x = myokit.Cos(b)
-        self.assertWrite(x, '<apply><cos/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><cos/>{cb}</apply>')
         # Tan
         x = myokit.Tan(b)
-        self.assertWrite(x, '<apply><tan/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><tan/>{cb}</apply>')
         # ASin
         x = myokit.ASin(b)
-        self.assertWrite(x, '<apply><arcsin/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><arcsin/>{cb}</apply>')
         # ACos
         x = myokit.ACos(b)
-        self.assertWrite(x, '<apply><arccos/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><arccos/>{cb}</apply>')
         # ATan
         x = myokit.ATan(b)
-        self.assertWrite(x, '<apply><arctan/>' + cb + '</apply>')
+        self.assertWrite(x, f'<apply><arctan/>{cb}</apply>')
 
     def test_quotient_remainder(self):
         # Tests printing quotient and remainder
@@ -416,15 +416,15 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         x = myokit.Quotient(a, b)
         self.assertWrite(
             x,
-            '<apply><floor/><apply><divide/>' + ca + cb + '</apply></apply>')
+            f'<apply><floor/><apply><divide/>{ca}{cb}</apply></apply>')
 
         # Remainder
         x = myokit.Remainder(a, b)
         self.assertWrite(
             x,
-            '<apply><minus/>' + ca +
-            '<apply><times/>' + cb +
-            '<apply><floor/><apply><divide/>' + ca + cb + '</apply></apply>'
+            f'<apply><minus/>{ca}'
+            f'<apply><times/>{cb}'
+            f'<apply><floor/><apply><divide/>{ca}{cb}</apply></apply>'
             '</apply>'
             '</apply>'
         )

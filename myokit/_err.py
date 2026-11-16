@@ -175,8 +175,8 @@ class IllegalReferenceError(IntegrityError):
     """
     def __init__(self, reference, owner):
         super().__init__(
-            'Illegal reference: The referenced variable <' + reference.qname()
-            + '> is outside the scope of <' + owner.qname() + '>.')
+            f'Illegal reference: The referenced variable "{reference.qname()}"'
+            f' is outside the scope of "{owner.qname()}".')
 
 
 class IllegalReferenceInInitialValueError(IllegalReferenceError):
@@ -188,7 +188,7 @@ class IllegalReferenceInInitialValueError(IllegalReferenceError):
     def __init__(self, reference, owner):
         super(IntegrityError, self).__init__(
             'Illegal reference made in initial value: The referenced variable'
-            ' <' + reference.qname() + '> is nested.')
+            f' "{reference.qname()}" is nested.')
 
 
 class ImportError(MyokitError):
@@ -206,11 +206,8 @@ class IncompatibleModelError(MyokitError):
     *Extends:* :class:`myokit.MyokitError`.
     """
     def __init__(self, model_name, message):
-        msg = 'Incompatible model'
-        if model_name:
-            msg += ' <' + str(model_name) + '>'
-        msg += ': ' + str(message)
-        super().__init__(msg)
+        name = f' "{model_name}"' if model_name else ''
+        super().__init__(f'Incompatible model{name}: {message}')
 
 
 class IncompatibleUnitError(MyokitError):
@@ -293,7 +290,7 @@ class MissingRhsError(IntegrityError):
     *Extends:* :class:`myokit.IntegrityError`
     """
     def __init__(self, var):
-        msg = 'No rhs set for <' + var.qname() + '>.'
+        msg = f'No rhs set for "{var.qname()}".'
         tok = var._token
         super().__init__(msg, tok)
 
@@ -342,9 +339,9 @@ class ParseError(MyokitError):
         self.name = str(name)
         self.line = int(line)
         self.char = int(char)
-        self.value = self.name + ' on line ' + str(self.line)
+        self.value = f'{self.name} on line {self.line}'
         self.desc = str(desc)
-        self.value += ': ' + self.desc
+        self.value += f': {self.desc}'
         self.cause = cause
         super().__init__(self.value)
 
@@ -389,7 +386,7 @@ class SimulationCancelledError(MyokitError):
 
     *Extends:* :class:`myokit.MyokitError`
     """
-    def __init__(self, message='Operation cancelled by user.'):
+    def __init__(self, message='Operation canceled by user.'):
         super().__init__(message)
 
 
@@ -424,8 +421,8 @@ class UnresolvedReferenceError(IntegrityError):
     """
     def __init__(self, reference, extra_message=None):
         super().__init__(
-            'Unknown variable: <' + reference + '>.'
-            + ((' ' + extra_message) if extra_message else '')
+            f'Unknown variable: "{reference}".'
+            + (f' {extra_message}' if extra_message else '')
         )
 
 
@@ -438,7 +435,7 @@ class UnusedVariableError(IntegrityError):
     *Extends:* :class:`myokit.IntegrityError`
     """
     def __init__(self, var):
-        msg = 'Unused variable: <' + var.qname() + '>.'
+        msg = f'Unused variable: "{var.qname()}".'
         tok = var.lhs()._token
         super().__init__(msg, tok)
 

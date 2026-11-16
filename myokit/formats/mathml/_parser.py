@@ -58,7 +58,7 @@ class MathMLError(myokit.ImportError):
         if element is not None:
             try:    # pragma: no cover
                 line = str(element.sourceline)
-                message = 'Error on line ' + line + '. ' + message
+                message = f'Error on line {line}. {message}'
             except AttributeError:
                 pass
         super().__init__(message)
@@ -84,7 +84,7 @@ class MathMLParser:
     This is not a validating parser: if the MathML is invalid the method's
     behavior is undefined.
 
-    The following MathML elements are recognised:
+    The following MathML elements are recognized:
 
     Literals and references
 
@@ -249,8 +249,8 @@ class MathMLParser:
         # Check number of operands
         if len(ops) != nargs:
             raise MathMLError(
-                'Expecting ' + str(nargs) + ' operand(s), got ' + str(len(ops))
-                + ' for ' + split(element.tag)[1] + '.', element)
+                f'Expecting {nargs} operand(s), got {len(ops)} for'
+                f' {split(element.tag)[1]}.', element)
 
         return ops
 
@@ -341,7 +341,7 @@ class MathMLParser:
         # Unexpected element
         else:
             raise MathMLError(
-                'Unsupported element: ' + str(element.tag) + '.', element)
+                f'Unsupported element: {element.tag}.', element)
 
     def _parse_apply(self, apply_element):
         """
@@ -453,7 +453,7 @@ class MathMLParser:
             return myokit.Divide(
                 self._const(1), myokit.Cos(*self._eat(element, iterator)))
         elif name == 'cot':
-            # Contangent: cot(x) = 1 / tan(x)
+            # Cotangent: cot(x) = 1 / tan(x)
             return myokit.Divide(
                 self._const(1), myokit.Tan(*self._eat(element, iterator)))
         elif name == 'arccsc':
@@ -566,12 +566,12 @@ class MathMLParser:
         # Unexpected element
         else:
             raise MathMLError(
-                'Unsupported element in apply: ' + str(element.tag) + '.',
+                f'Unsupported element in apply: {element.tag}.',
                 element)
 
     def _parse_derivative(self, element, iterator):
         """
-        Parses the elements folling a ``<diff>`` element.
+        Parses the elements following a ``<diff>`` element.
 
         Arguments
 
@@ -590,7 +590,7 @@ class MathMLParser:
         ci = self._next(iter(bvar), 'ci')
         if ci is None:
             raise MathMLError(
-                '<bvar> element must contain a <ci>', element)
+                '<bvar> element must contain a <ci>.', element)
         self._free_variables.add(self._parse_name(ci))
 
         # Check degree, if given
@@ -737,7 +737,7 @@ class MathMLParser:
                 return unary(ops[0])
             else:
                 raise MathMLError(
-                    'Operator needs at least two operands', element)
+                    'Operator needs at least two operands.', element)
 
         # Create nested binary expressions and return
         ex = binary(ops[0], ops[1])
@@ -770,7 +770,7 @@ class MathMLParser:
             # Note: We are being tolerant here and allowing e-notation - which
             # is not consistent with the spec.
             if element.text is None:
-                raise MathMLError('Empty <cn> element', element)
+                raise MathMLError('Empty <cn> element.', element)
             if not is_real_number_string(element.text, True):
                 raise MathMLError('Unable to convert contents of <cn> to a'
                                   f' real number: "{element.text}".', element)
@@ -786,7 +786,7 @@ class MathMLParser:
 
             # Get value
             if element.text is None:
-                raise MathMLError('Empty <cn> element', element)
+                raise MathMLError('Empty <cn> element.', element)
             if not is_integer_string(element.text, True):
                 raise MathMLError('Unable to convert contents of <cn> to an'
                                   f' integer: "{element.text}".', element)
@@ -795,7 +795,7 @@ class MathMLParser:
         elif kind == 'double':
             # Floating point (positive, negative, exponents, etc)
             if element.text is None:
-                raise MathMLError('Empty <cn> element', element)
+                raise MathMLError('Empty <cn> element.', element)
             if not is_real_number_string(element.text, True):
                 raise MathMLError('Unable to convert contents of <cn> to a'
                                   f' real number: "{element.text}".', element)
@@ -902,7 +902,7 @@ class MathMLParser:
             else:
                 raise MathMLError(
                     'Unexpected content in <piecewise>. Expecting <piece> or'
-                    ' <otherwise>, found <' + el + '>.', child)
+                    f' <otherwise>, found <{el}>.', child)
 
         # Add otherwise
         if other is None:

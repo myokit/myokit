@@ -12,7 +12,7 @@ import myokit
 class ProgressReporter:
     """
     Interface for progress updates in Simulations. Also allows some job types
-    to be cancelled by the user.
+    to be canceled by the user.
 
     Many simulation types take an argument ``progress`` that can be used to
     pass in an object implementing this interface. The simulation will use this
@@ -53,7 +53,7 @@ class ProgressReporter:
         ``progress``, which will have a value in the range ``[0, 1]``.
 
         The return value of this update can be used to signal a job should be
-        cancelled: Return ``True`` to keep going, ``False`` to cancel.
+        canceled: Return ``True`` to keep going, ``False`` to cancel.
         """
 
     class _Job:
@@ -116,14 +116,14 @@ class ProgressPrinter(ProgressReporter):
                 p = t * (100 / f - 1)
                 if p > 60:
                     p = str(round(p / 60, 1))
-                    p = ', estimated ' + p + ' minutes remaining'
+                    p = f', estimated {p} minutes remaining'
                 else:
                     p = str(int(round(p, 0)))
-                    p = ', estimated ' + p + ' seconds remaining'
+                    p = f', estimated {p} seconds remaining'
             else:
                 p = ''
             t = str(round(t / 60, 1))
-            print('[' + t + ' minutes] ' + str(f) + ' % done' + p)
+            print(f'[{t} minutes] {f} % done{p}')
         return True
 
 

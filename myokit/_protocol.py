@@ -69,7 +69,7 @@ class Protocol:
         if e._start == f._start:
             raise myokit.SimultaneousProtocolEventError(
                 'Two events cannot (re-)start at the same time:'
-                ' Error at time t=' + str(e._start) + '.')
+                f' Error at time t={e._start}.')
         e._next = f._next
         f._next = e
 
@@ -241,9 +241,8 @@ class Protocol:
 
             if e._start < t:
                 raise NotASequenceError(
-                    'Event starting at t=' + str(e._start)
-                    + ' overlaps with previous event which finishes at t='
-                    + str(t) + '.')
+                    f'Event starting at t={e._start} overlaps with previous'
+                    f' event which finishes at t={t}.')
 
             t = e._start + e._duration
             e = e._next
@@ -304,14 +303,12 @@ class Protocol:
             # Check starting time
             if e._start < t:
                 raise NotAnUnbrokenSequenceError(
-                    'Event starting at t=' + str(e._start)
-                    + ' overlaps with previous event which finishes at t='
-                    + str(t) + '.')
+                    f'Event starting at t={e._start} overlaps with previous'
+                    f' event which finishes at t={t}.')
             elif e._start > t:
                 raise NotAnUnbrokenSequenceError(
-                    'Event starting at t=' + str(e._start)
-                    + ' does not start directly after previous event,'
-                    + ' which finishes at t=' + str(t) + '.')
+                    f'Event starting at t={e._start} does not start directly'
+                    f' after previous event, which finishes at t={t}.')
         return True
 
     def __iter__(self):
@@ -366,7 +363,7 @@ class Protocol:
         # Test the input
         a, b = float(a), float(b)
         if b < a:
-            raise ValueError('The argument `b` cannot be smaller than `a`')
+            raise ValueError('The argument "b" cannot be smaller than "a".')
 
         # Create a simulation log
         log = myokit.DataLog()
@@ -398,7 +395,7 @@ class Protocol:
         Returns a :class:`myokit.DataLog` containing the entries ``time`` and
         ``pace`` representing the value of the pacing stimulus at each point.
 
-        The time entries ``times`` must be an non-descreasing series of
+        The time entries ``times`` must be an non-decreasing series of
         non-negative points.
         """
         log = myokit.DataLog()
@@ -501,7 +498,7 @@ class Protocol:
         times = np.asarray(times)
         if np.any(times[1:] < times[:-1]):
             raise ValueError(
-                'The argument `times` must contain a'
+                'The argument "times" must contain a'
                 ' non-decreasing sequence of time points.')
         if times[0] < 0:
             raise ValueError('Times cannot be negative.')
@@ -554,7 +551,7 @@ class ProtocolEvent:
                 'An event\'s period must be zero or greater.')
         if self._multiplier < 0:
             raise myokit.ProtocolEventError(
-                'An event\'s multiplier must be zero or greater')
+                'An event\'s multiplier must be zero or greater.')
         if self._period == 0 and self._multiplier > 0:
             raise myokit.ProtocolEventError(
                 'Non-recurring events can not specify a multiplier.')
@@ -641,16 +638,15 @@ class ProtocolEvent:
         """
         Returns a description of this event.
         """
-        out = 'Stimulus of ' + str(self._level) + ' times the normal level ' \
-            'applied at t=' + str(self._start) + ', lasting ' \
-            + str(self._duration)
+        out = (f'Stimulus of {self._level} times the normal level applied at'
+               f' t={self._start}, lasting {self._duration}')
         if self._period != 0:
             if self._multiplier > 0:
-                out += ' and occurring ' + str(self._multiplier) + ' times'
+                out += f' and occurring {self._multiplier} times'
             else:
                 out += ' and recurring indefinitely'
-            out += ' with a period of ' + str(self._period)
-        return out + '.'
+            out += f' with a period of {self._period}'
+        return f'{out}.'
 
     def level(self):
         """
@@ -857,7 +853,7 @@ class TimeSeriesProtocol:
             self._method = str(method).lower()
             if self._method not in ('linear', ):
                 raise ValueError(
-                    'Unknown interpolation method: ' + self._method)
+                    f'Unknown interpolation method: {self._method}')
 
     def __eq__(self, other):
         if self is other:

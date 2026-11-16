@@ -22,8 +22,7 @@ class AnsicTimeSeriesPacing(myokit.CModule):
 
         # Unique id
         AnsicTimeSeriesPacing._index += 1
-        module_name = \
-            'myokit_ansic_fpacing_' + str(AnsicTimeSeriesPacing._index)
+        module_name = f'myokit_ansic_fpacing_{AnsicTimeSeriesPacing._index}'
 
         # Arguments
         fname = DIR_TEST / SOURCE_FILE

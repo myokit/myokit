@@ -330,7 +330,7 @@ int mcl_select_device(
     #endif
 
     // Get array of platform ids
-    // This can raisee an error CL_PLATFORM_NOT_FOUND_KHR (code -1001) if no
+    // This can raise an error CL_PLATFORM_NOT_FOUND_KHR (code -1001) if no
     // platforms are found and the cl_khr_icd extension is enabled:
     // https://www.khronos.org/registry/OpenCL/sdk/2.0/docs/man/xhtml/clGetPlatformIDs.html
     n_platforms = 0;
@@ -853,7 +853,7 @@ mcl_info(void)
     #endif
 
     // Get platforms
-    // This can raisee an error CL_PLATFORM_NOT_FOUND_KHR (code -1001) if no
+    // This can raise an error CL_PLATFORM_NOT_FOUND_KHR (code -1001) if no
     // platforms are found and the cl_khr_icd extension is enabled:
     // https://www.khronos.org/registry/OpenCL/sdk/2.0/docs/man/xhtml/clGetPlatformIDs.html
     n_platforms = 0;

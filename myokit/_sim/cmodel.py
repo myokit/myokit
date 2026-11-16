@@ -91,7 +91,7 @@ class CModel:
             'evaluations': 'evaluations',
         }
         for i, label in enumerate(pacing_labels):
-            labels[label] = 'pace_values[' + str(i) + ']'
+            labels[label] = f'pace_values[{i}]'
         bound_variables = myokit._prepare_bindings(model, labels)
 
         # Get equations in solvable order (grouped by component)
@@ -164,7 +164,7 @@ class CModel:
             indeps = list(indeps)
         except Exception:
             raise ValueError(
-                'The argument `sensitivities` must be None, or a tuple'
+                'The argument "sensitivities" must be None, or a tuple'
                 ' containing two lists.')
         if len(deps) == 0 or len(indeps) == 0:
             return False, [], []
@@ -195,12 +195,12 @@ class CModel:
                 lhs = myokit.Derivative(lhs)
                 if not var.is_state():
                     raise ValueError(
-                        'Sensitivity of ' + lhs.code() + ' requested, but '
-                        + var.qname() + ' is not a state variable.')
+                        f'Sensitivity of {lhs.code()} requested, but'
+                        f' {var.qname()} is not a state variable.')
             elif var.is_bound():
                 raise ValueError(
-                    'Sensitivities cannot be calculated for bound'
-                    ' variables (got ' + str(var.qname()) + ').')
+                    'Sensitivities cannot be calculated for bound variables'
+                    f' (got {var.qname()}).')
             # Note: constants are fine, just not very useful! But may be
             # easy, e.g. when working with multiple models.
             dependents.append(lhs)
@@ -227,14 +227,13 @@ class CModel:
                 lhs = myokit.InitialValue(myokit.Name(var))
                 if not var.is_state():
                     raise ValueError(
-                        'Sensitivity with respect to ' + lhs.code() +
-                        ' requested, but ' + var.qname() + ' is not a'
-                        ' state variable.')
+                        f'Sensitivity with respect to {lhs.code()} requested,'
+                        f' but {var.qname()} is not a state variable.')
             elif not var.is_literal():
                 raise ValueError(
-                    'Sensitivity with respect to ' + var.qname() +
-                    ' requested, but this is not a literal variable (it'
-                    ' depends on other variables).')
+                    f'Sensitivity with respect to {var.qname()} requested,'
+                    ' but this is not a literal variable (it depends on other'
+                    ' variables).')
             independents.append(lhs)
 
         return True, dependents, independents
@@ -344,21 +343,21 @@ class CModel:
             """
             if not isinstance(var, (myokit.LhsExpression, myokit.Variable)):
                 raise TypeError(  # pragma: no cover
-                    f'v() called with {var} of type {type(var)}')
+                    f'v() called with {var} of type {type(var)}.')
 
             # Partial derivative
             if isinstance(var, myokit.PartialDerivative):
                 i = var.dependent_expression()
                 j = str(independents.index(var.independent_expression()))
                 if isinstance(i, myokit.Derivative):
-                    return 'S' + j + '_D_' + i.var().uname()
+                    return f'S{j}_D_{i.var().uname()}'
                 if i.var().is_state():
-                    return 'S' + j + '_Y_' + i.var().uname()
-                return 'S' + j + '_V_' + i.var().uname()
+                    return f'S{j}_Y_{i.var().uname()}'
+                return f'S{j}_V_{i.var().uname()}'
 
             # Derivative
             if isinstance(var, myokit.Derivative):
-                return 'D_' + var.var().uname()
+                return f'D_{var.var().uname()}'
 
             # Name given? get variable object from name
             if isinstance(var, myokit.Name):
@@ -366,22 +365,22 @@ class CModel:
 
             # State
             if var.is_state():
-                return 'Y_' + var.uname()
+                return f'Y_{var.uname()}'
 
             # Parameter
             if var in parameters:
-                return 'P_' + var.uname()
+                return f'P_{var.uname()}'
 
             # Constant (parameter derived, literal, literal derived)
             if var.is_constant():
-                return 'C_' + var.uname()
+                return f'C_{var.uname()}'
 
             # Bound variable
             if var.is_bound():
-                return 'B_' + var.binding()
+                return f'B_{var.binding()}'
 
             # Intermediary variable
-            return 'V_' + var.uname()
+            return f'V_{var.uname()}'
 
         # Create expression writer
         w = myokit.formats.ansic.AnsiCExpressionWriter()
@@ -395,7 +394,7 @@ class CModel:
             parameter_derived, v, w):
         """ Generates and returns the model code. """
 
-        # Get states whose initial value is used in sensivitity calculations
+        # Get states whose initial value is used in sensitivity calculations
         initials = [p.var().index() for p in independents
                     if isinstance(p, myokit.InitialValue)]
 

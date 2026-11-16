@@ -738,7 +738,7 @@ class TestCellML2ModelConversion(unittest.TestCase):
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(cm.name(), 'unnamed_myokit_model')
 
-        # Test model is ramed if no name given
+        # Test model is named if no name given
         m = self.model()
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(cm.name(), 'unnamed_myokit_model')
@@ -1147,7 +1147,7 @@ class TestCellML2ModelConversion(unittest.TestCase):
         cm.add_units('kilowatt', myokit.units.W * 1e3)
 
         # x requires conversion, and is used in c: it should get a new variable
-        # in c with the correct nuits
+        # in c with the correct units
         ax = a.add_variable('x', 'volt', 'public')
         bx = b.add_variable('x', 'millivolt', 'public_and_private')
         cx = c.add_variable('x', 'kilovolt', 'public')

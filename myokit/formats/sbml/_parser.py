@@ -39,14 +39,13 @@ def _parse_mathml(expr, name_generator):
             return name_generator(x, y)
         except KeyError:
             raise myokit.formats.sbml.SBMLError(
-                'Unknown or inaccessible symbol in MathML: "' + str(x) + '".')
+                f'Unknown or inaccessible symbol in MathML: "{x}".')
 
     try:
         return myokit.formats.mathml.parse_mathml_etree(
             expr, name, lambda x, y: myokit.Number(x))
     except myokit.formats.mathml.MathMLError as e:
-        raise myokit.formats.sbml.SBMLError(
-            'Unable to parse MathML: ' + str(e))
+        raise myokit.formats.sbml.SBMLError(f'Unable to parse MathML: {e}')
 
     # Note: In any place we parse mathematics, we could also check that
     # there's nothing after the mathematics. E.g.
@@ -69,7 +68,7 @@ class SBMLParsingError(myokit.ImportError):
         if element is not None:
             try:
                 line = str(element.sourceline)
-                message = 'Error on line ' + line + '. ' + message
+                message = f'Error on line {line}. {message}'
             except AttributeError:  # pragma: no cover
                 pass
         super().__init__(message)
@@ -101,8 +100,8 @@ class SBMLParser:
         for attribute in attributes:
             if element.get(attribute) is None:
                 raise SBMLParsingError(
-                    'Element ' + self._tag(element) + ' is missing required'
-                    ' attribute "' + str(attribute) + '".', element)
+                    f'Element {self._tag(element)} is missing required'
+                    f' attribute "{attribute}".', element)
 
     def parse_file(self, path):
         """
@@ -113,7 +112,7 @@ class SBMLParser:
             parser = etree.XMLParser(remove_comments=True)
             tree = etree.parse(path, parser=parser)
         except Exception as e:
-            raise SBMLParsingError('Unable to parse XML: ' + str(e))
+            raise SBMLParsingError(f'Unable to parse XML: {e}')
 
         # Parse content
         return self.parse(tree.getroot())
@@ -127,7 +126,7 @@ class SBMLParser:
         try:
             root = etree.fromstring(text)
         except Exception as e:
-            raise SBMLParsingError('Unable to parse XML: ' + str(e))
+            raise SBMLParsingError(f'Unable to parse XML: {e}')
 
         # Parse content
         return self.parse(root)
@@ -148,8 +147,8 @@ class SBMLParser:
         try:
             if self._ns not in supported:
                 warnings.warn(
-                    'Unknown SBML namespace ' + str(self._ns) + '. This'
-                    ' version of SBML may not be supported.')
+                    f'Unknown SBML namespace {self._ns}. This version of SBML'
+                    ' may not be supported.')
 
             # Get model and parse
             model = element.find(self._path('model'))
@@ -171,7 +170,7 @@ class SBMLParser:
         # size can be changed.
 
         # Note: Any place we check required attributes, we could also check for
-        # allowed attributes (e.g. errors for unrecognised ones). Bit tricky
+        # allowed attributes (e.g. errors for unrecognized ones). Bit tricky
         # for multiple SBML versions. For now we're being lenient.
 
         sid = element.get('id')
@@ -186,7 +185,7 @@ class SBMLParser:
                     units = model.unit(units)
                 except myokit.formats.sbml.SBMLError:
                     raise SBMLParsingError(
-                        'Unknown units "' + units + '".', element)
+                        f'Unknown units "{units}".', element)
                 compartment.set_size_units(units)
 
             # Get spatial dimensions, if given
@@ -196,8 +195,8 @@ class SBMLParser:
                     dim = float(dim)
                 except ValueError:
                     raise SBMLParsingError(
-                        'Unable to convert spatial dimensions value "'
-                        + str(dim) + '" to float.', element)
+                        f'Unable to convert spatial dimensions value "{dim}"'
+                        ' to float.', element)
                 compartment.set_spatial_dimensions(dim)
 
             # Get compartment size, if set
@@ -207,7 +206,7 @@ class SBMLParser:
                     size = float(size)
                 except ValueError:
                     raise SBMLParsingError(
-                        'Unable to convert size "' + str(size) + '" to float.',
+                        f'Unable to convert size "{size}" to float.',
                         element)
 
                 # Ignore units in RHS
@@ -215,7 +214,7 @@ class SBMLParser:
 
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Unable to parse compartment "' + sid + '": ' + str(e),
+                f'Unable to parse compartment "{sid}": {e}',
                 element)
 
     def _parse_initial_assignment(self, element, model):
@@ -230,9 +229,9 @@ class SBMLParser:
             var = model.assignable(var)
         except KeyError:
             raise SBMLParsingError(
-                'Unable to parse rule: The given SId "' + str(var) + '" does'
-                ' not refer to a Compartment, Species, SpeciesReference, or'
-                ' Parameter in this model.')
+                f'Unable to parse rule: The given SId "{var}" does not refer'
+                ' to a Compartment, Species, SpeciesReference, or Parameter in'
+                ' this model.')
 
         try:
             # Find mathematics
@@ -241,7 +240,7 @@ class SBMLParser:
                 # This is allowed, so that SBML extensions can do mysterious
                 # things.
                 warnings.warn(
-                    'Initial assignment does not define any mathematics')
+                    'Initial assignment does not define any mathematics.')
                 return
 
             # Parse rule and apply
@@ -252,7 +251,7 @@ class SBMLParser:
 
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Unable to parse initial assignment: ' + str(e), element)
+                f'Unable to parse initial assignment: {e}', element)
 
     def _parse_kinetic_law(self, element, model, reaction):
         """
@@ -283,7 +282,7 @@ class SBMLParser:
             return _parse_mathml(expr, name)
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Unable to parse kinetic law: ' + str(e), element)
+                f'Unable to parse kinetic law: {e}', element)
 
     def _parse_model(self, element):
         """Parses a ``model`` element in an SBML document."""
@@ -363,7 +362,7 @@ class SBMLParser:
 
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Error parsing model element: ' + str(e), element)
+                f'Error parsing model element: {e}', element)
 
         # Parse parameters
         for parameter in element.findall(self._path(
@@ -377,8 +376,8 @@ class SBMLParser:
                 factor = model.parameter(factor)
             except KeyError:
                 raise SBMLParsingError(
-                    'Model conversion factor "' + str(factor) + '" does not'
-                    ' refer to a parameter SId.', element)
+                    f'Model conversion factor "{factor}" does not refer to a'
+                    ' parameter SId.', element)
             model.set_conversion_factor(factor)
 
         # Parse compartments
@@ -438,7 +437,7 @@ class SBMLParser:
                     unit = model.unit(unit)
                 except myokit.formats.sbml.SBMLError:
                     raise SBMLParsingError(
-                        'Unknown units "' + unit + '".', element)
+                        f'Unknown units "{unit}".', element)
                 parameter.set_units(unit)
 
             # Get optional initial value
@@ -448,15 +447,15 @@ class SBMLParser:
                     value = float(value)
                 except ValueError:
                     raise SBMLParsingError(
-                        'Unable to convert parameter value "' + str(value)
-                        + '" to float.', element)
+                        f'Unable to convert parameter value "{value}" to'
+                        ' float.', element)
 
                 # Ignore unit
                 parameter.set_initial_value(myokit.Number(value))
 
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Unable to parse ' + self._tag(element) + ': ' + str(e),
+                f'Unable to parse {self._tag(element)}: {e}',
                 element)
 
     def _parse_reaction(self, element, model):
@@ -479,7 +478,7 @@ class SBMLParser:
             reaction = model.add_reaction(element.get('id'))
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Unable to parse ' + self._tag(element) + ': ' + str(e),
+                f'Unable to parse {self._tag(element)}: {e}',
                 element)
 
         # Add reactants, products, modifiers
@@ -516,7 +515,7 @@ class SBMLParser:
             kinetic_law = self._parse_kinetic_law(kinetic_law, model, reaction)
         if kinetic_law is None:
             warnings.warn(
-                'No kinetic law set for reaction "' + reaction.sid() + '".')
+                f'No kinetic law set for reaction "{reaction.sid()}".')
         else:
             reaction.set_kinetic_law(kinetic_law)
 
@@ -532,9 +531,9 @@ class SBMLParser:
             var = model.assignable(var)
         except KeyError:
             raise SBMLParsingError(
-                'Unable to parse rule: The given SId "' + str(var) + '" does'
-                ' not refer to a Compartment, Species, SpeciesReference, or'
-                ' Parameter in this model.')
+                f'Unable to parse rule: The given SId "{var}" does not refer'
+                ' to a Compartment, Species, SpeciesReference, or Parameter in'
+                ' this model.')
 
         try:
             # Check that this assignable can be changed with assignment rules
@@ -551,7 +550,7 @@ class SBMLParser:
             if expr is None:
                 # This is allowed, so that SBML extensions can do mysterious
                 # things.
-                warnings.warn('Rule does not define any mathematics')
+                warnings.warn('Rule does not define any mathematics.')
                 return
 
             # Parse rule and apply
@@ -561,7 +560,7 @@ class SBMLParser:
             ), rate)
 
         except myokit.formats.sbml.SBMLError as e:
-            raise SBMLParsingError('Unable to parse rule: ' + str(e), element)
+            raise SBMLParsingError(f'Unable to parse rule: {e}', element)
 
     def _parse_species(self, element, model):
         """
@@ -569,7 +568,7 @@ class SBMLParser:
         """
         # Check required attributes (note: constant is also required in L3)
         self._check_required_attributes(element, 'id', 'compartment')
-        # The attributes 'hasOnlySubstaneUnits', 'boundaryCondition', and
+        # The attributes 'hasOnlySubstanceUnits', 'boundaryCondition', and
         # 'constant' are required in level 3, but optional in level 2 (default
         # is false for all three).
 
@@ -589,7 +588,7 @@ class SBMLParser:
             compartment = model.compartment(compartment)
         except KeyError:
             raise SBMLParsingError(
-                'Unknown compartment "' + compartment + '"', element)
+                f'Unknown compartment "{compartment}".', element)
 
         # Create
         try:
@@ -607,7 +606,7 @@ class SBMLParser:
                     units = model.unit(units)
                 except myokit.formats.sbml.SBMLError:
                     raise SBMLParsingError(
-                        'Unknown units "' + units + '"', element)
+                        f'Unknown units "{units}".', element)
 
                 # Set substance units, not concentration units
                 species.set_substance_units(units)
@@ -639,8 +638,8 @@ class SBMLParser:
                     value = float(value)
                 except ValueError:
                     raise SBMLParsingError(
-                        'Unable to convert initial species value to float "'
-                        + str(value) + '".', element)
+                        'Unable to convert initial species value to float'
+                        f' "{value}".', element)
 
                 # Ignore units in equations
                 species.set_initial_value(
@@ -653,13 +652,13 @@ class SBMLParser:
                     factor = model.parameter(factor)
                 except KeyError:
                     raise SBMLParsingError(
-                        'Unknown parameter "' + str(factor) + '" set as'
-                        ' conversion factor.', element)
+                        f'Unknown parameter "{factor}" set as conversion'
+                        ' factor.', element)
                 species.set_conversion_factor(factor)
 
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Unable to parse ' + self._tag(element) + ': ' + str(e),
+                f'Unable to parse {self._tag(element)}: {e}',
                 element)
 
     def _parse_species_reference(self, element, model, reaction, ref_type):
@@ -675,7 +674,7 @@ class SBMLParser:
             species = model.species(species)
         except KeyError:
             raise SBMLParsingError(
-                'Reference to unknown species "' + species + '"', element)
+                f'Reference to unknown species "{species}".', element)
 
         # Get optional SId
         sid = element.get('id')
@@ -697,13 +696,13 @@ class SBMLParser:
                     stoichiometry = float(stoichiometry)
                 except ValueError:
                     raise SBMLParsingError(
-                        'Unable to convert stoichiometry value "'
-                        + str(stoichiometry) + '" to float.', element)
+                        'Unable to convert stoichiometry value'
+                        f' "{stoichiometry}" to float.', element)
                 reference.set_initial_value(myokit.Number(stoichiometry))
 
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Unable to parse species reference: ' + str(e), element)
+                f'Unable to parse species reference: {e}', element)
 
         return reference
 
@@ -724,7 +723,7 @@ class SBMLParser:
             model.add_unit(sid, myokit_unit)
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Unable to parse unit definition for "' + sid + '": ' + str(e),
+                f'Unable to parse unit definition for "{sid}": {e}',
                 element)
 
     def _parse_unit(self, element, model):
@@ -740,7 +739,7 @@ class SBMLParser:
             unit = model.base_unit(element.get('kind'))
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
-                'Unable to parse unit kind: ' + str(e), element)
+                f'Unable to parse unit kind: {e}', element)
 
         # Parse remaining parts and return
         try:
@@ -748,7 +747,7 @@ class SBMLParser:
             unit *= 10 ** float(element.get('scale', default=0))
             unit **= float(element.get('exponent', default=1))
         except ValueError:
-            raise SBMLParsingError('Unable to parse unit attributes', element)
+            raise SBMLParsingError('Unable to parse unit attributes.', element)
 
         return unit
 
@@ -776,12 +775,12 @@ class SBMLParser:
         _, el = myokit.formats.xml.split(element.tag)
 
         # Replace known namespaces
-        tag = 'sbml:' + el
+        tag = f'sbml:{el}'
 
         # Add id if known
         sid = element.get('id', element.get('unitsid'))
         if sid is not None:
-            tag += '[@id=' + str(sid) + ']'
+            tag += f'[@id={sid}]'
 
         return tag
 

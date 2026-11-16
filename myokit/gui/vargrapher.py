@@ -139,7 +139,7 @@ class VarGrapher(QtWidgets.QDialog):
         """
         n = len(self._args)
         if n == 0:
-            raise Exception('Cannot graph constant')
+            raise Exception('Cannot graph constant.')
         elif n == 1:
             steps = 10000
         else:
@@ -162,7 +162,7 @@ class VarGrapher(QtWidgets.QDialog):
         def label(lhs):
             label = str(lhs)
             unit = lhs.var().unit()
-            return label if unit is None else label + ' ' + str(unit)
+            return label if unit is None else f'{label} {unit}'
 
         # Redraw figure
         try:

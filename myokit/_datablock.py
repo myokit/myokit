@@ -180,10 +180,10 @@ class DataBlock1d:
         else:
             border = int(border)
             if border < 0:
-                raise ValueError('The argument `border` cannot be negative.')
+                raise ValueError('The argument "border" cannot be negative.')
             elif border >= self._nx // 2:
                 raise ValueError(
-                    'The argument `border` must be less than half the number'
+                    'The argument "border" must be less than half the number'
                     ' of cells.')
 
         # Get indices of selected cells
@@ -231,7 +231,7 @@ class DataBlock1d:
         if not have_crossing:
             return 0
 
-        # No propagation: all depolarisations at the same time
+        # No propagation: all depolarizations at the same time
         if np.all(t == t[0]):
             return 0
 
@@ -278,7 +278,7 @@ class DataBlock1d:
             if d not in (0, 1):
                 raise ValueError(
                     'The given simulation log should only contain 0d or 1d'
-                    f' variables. Found <{name}> with d = {d}.')
+                    f' variables. Found "{name}" with d = {d}.')
             if d == 1:
                 if size is None:
                     size = info.size()
@@ -461,7 +461,7 @@ class DataBlock1d:
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Get size of single and double types on this machine
         dsize = {
@@ -527,8 +527,8 @@ class DataBlock1d:
             dtype = next(head)[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock1d: Unrecognized data type "'
-                    + dtype + '".')
+                    'Unable to read DataBlock1d: Unrecognized data type'
+                    f' "{dtype}".')
             names_0d = []
             names_1d = []
             name = next(head)
@@ -645,7 +645,7 @@ class DataBlock1d:
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Data type
         dtype = 'd'     # Only supporting doubles right now
@@ -1067,7 +1067,7 @@ class DataBlock2d:
             if d not in (0, 2):
                 raise ValueError(
                     'The given simulation log should only contain 0d or 2d'
-                    f' variables. Found <{name}> with d = {d}.')
+                    f' variables. Found "{name}" with d = {d}.')
             if d == 2:
                 if size is None:
                     size = info.size()
@@ -1223,7 +1223,7 @@ class DataBlock2d:
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Get size of single and double types on this machine
         dsize = {
@@ -1301,8 +1301,8 @@ class DataBlock2d:
             dtype = next(head)[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock2d: Unrecognized data type "'
-                    + str(dtype) + '".')
+                    'Unable to read DataBlock2d: Unrecognized data type'
+                    f' "{dtype}".')
 
             names_0d = []
             names_2d = []
@@ -1425,7 +1425,7 @@ class DataBlock2d:
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Data type
         dtype = 'd'     # Only supporting doubles right now

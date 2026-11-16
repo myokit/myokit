@@ -56,10 +56,10 @@ class TestCellMLParser(unittest.TestCase):
         return (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<model name="test"'
-            '       xmlns="http://www.cellml.org/cellml/' + v + '#"'
-            '       xmlns:cellml="http://www.cellml.org/cellml/' + v + '#"'
+            f'       xmlns="http://www.cellml.org/cellml/{v}#"'
+            f'       xmlns:cellml="http://www.cellml.org/cellml/{v}#"'
             '       >'
-            + xml +
+            f'{xml}'
             '</model>')
 
     def test_component(self):
@@ -370,7 +370,7 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
 
         # Constants
-        m = self.parse(x + '<apply><eq /><ci>x</ci> <pi /> </apply>' + z)
+        m = self.parse(f'{x}<apply><eq /><ci>x</ci> <pi /> </apply>{z}')
         var = m['a']['x']
         self.assertEqual(var.rhs().unit(), myokit.units.dimensionless)
 
@@ -416,7 +416,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Attributes from the MathML namespace
         self.assertBad(
-            '<component name="c" mathml:name="d" '
+            '<component name="c" mathml:name="d"'
             ' xmlns:mathml="http://www.w3.org/1998/Math/MathML" />',
             'Unexpected attribute mathml:name',
         )
@@ -618,7 +618,7 @@ class TestCellMLParser(unittest.TestCase):
     def test_units(self):
         # Test parsing a units definition
 
-        # Valid has already been testsed
+        # Valid has already been tested
 
         # New base units are not supported
         x = '<units name="base" />'
@@ -659,7 +659,7 @@ class TestCellMLParser(unittest.TestCase):
         def u(units):
             m = self.parse(
                 '<component name="c">'
-                '  <variable name="x" units="' + units + '"'
+                f'  <variable name="x" units="{units}"'
                 '   initial_value="1" />'
                 '</component>'
             )

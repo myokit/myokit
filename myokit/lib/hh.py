@@ -105,8 +105,8 @@ class HHModel:
             vm = model.label('membrane_potential')
         if vm is None:
             raise HHModelError(
-                'A membrane potential must be specified as `vm` or using the'
-                ' label `membrane_potential`.')
+                'A membrane potential must be specified as "vm" or using the'
+                ' label "membrane_potential".')
         if isinstance(vm, myokit.Variable):
             vm = vm.qname()
 
@@ -123,12 +123,12 @@ class HHModel:
             try:
                 state = self._model.get(str(state), myokit.Variable)
             except KeyError:
-                raise HHModelError(f'Unknown state: <{state}>.')
+                raise HHModelError(f'Unknown state: "{state}".')
             if not state.is_state():
                 raise HHModelError(
-                    f'Variable <{state.qname()}> is not a state.')
+                    f'Variable "{state.qname()}" is not a state.')
             if state in self._states:
-                raise HHModelError(f'State <{state.qname()}> was added twice.')
+                raise HHModelError(f'State "{state.qname()}" was added twice.')
             self._states.append(state)
         del states
 
@@ -143,11 +143,11 @@ class HHModel:
             try:
                 parameter = self._model.get(parameter, myokit.Variable)
             except KeyError:
-                raise HHModelError(f'Unknown parameter: <{parameter}>.')
+                raise HHModelError(f'Unknown parameter: "{parameter}".')
             if not parameter.is_literal():
-                raise HHModelError(f'Unsuitable parameter: <{parameter}>.')
+                raise HHModelError(f'Unsuitable parameter: "{parameter}".')
             if parameter in unique:
-                raise HHModelError(f'Parameter listed twice: <{parameter}>.')
+                raise HHModelError(f'Parameter listed twice: "{parameter}".')
             unique.add(parameter)
             self._parameters.append(parameter)
         del unique
@@ -213,10 +213,10 @@ class HHModel:
         for state in self._states:
             if not has_inf_tau_form(state, self._membrane_potential):
                 raise HHModelError(
-                    f'State `{state.qname()}` must have "inf-tau form" or'
+                    f'State "{state.qname()}" must have "inf-tau form" or'
                     ' "alpha-beta form". See'
-                    ' `myokit.lib.hh.has_inf_tau_form()` and'
-                    ' `myokit.lib.hh.has_alpha_beta_form()`.'
+                    ' "myokit.lib.hh.has_inf_tau_form()" and'
+                    ' "myokit.lib.hh.has_alpha_beta_form()".'
                 )
 
         #
@@ -271,7 +271,7 @@ class HHModel:
         f = []
         args = ['_y0', '_t'] + [i.uname() for i in self._inputs]
         f.append('def _f(' + ', '.join(args) + '):')
-        f.append('_y = [0]*' + str(len(self._states)))
+        f.append(f'_y = [0]*{len(self._states)}')
 
         # Add equations to calculate all infs and taus
         w = myokit.numpy_writer()
@@ -296,14 +296,14 @@ class HHModel:
 
         # Add current calculation
         if self._current is not None:
-            f.append('_i = ' + w.ex(self._current.rhs()))
+            f.append(f'_i = {w.ex(self._current.rhs())}')
         else:
             f.append('_i = None')
 
         # Add return statement and create python function from f
         f.append('return _y, _i')
         for i in range(1, len(f)):
-            f[i] = '    ' + f[i]
+            f[i] = f'    {f[i]}'
         f = '\n'.join(f)
         local = {}
         exec(f, {'numpy': np}, local)  # noqa: S102
@@ -317,7 +317,7 @@ class HHModel:
         g = []
         args = [i.uname() for i in self._inputs]
         g.append('def _g(' + ', '.join(args) + '):')
-        g.append('_y = [0]*' + str(len(self._states)))
+        g.append(f'_y = [0]*{len(self._states)}')
         for k, state in enumerate(self._states):
             k = str(k)
             inf, tau = get_inf_and_tau(state, self._membrane_potential)
@@ -327,7 +327,7 @@ class HHModel:
         # Create python function from g
         g.append('return _y')
         for i in range(1, len(g)):
-            g[i] = '    ' + g[i]
+            g[i] = f'    {g[i]}'
         g = '\n'.join(g)
         local = {}
         exec(g, {'numpy': np}, local)  # noqa: S102
@@ -422,7 +422,7 @@ class HHModel:
                 raise HHModelError(
                     'The given component has more than one variable that could'
                     ' be a current: '
-                    + ', '.join([f'<{x.qname()}>' for x in currents]) + '.')
+                    + ', '.join([f'"{x.qname()}"' for x in currents]) + '.')
             try:
                 current = currents[0]
             except IndexError:
@@ -577,14 +577,14 @@ class AnalyticalSimulation:
 
         # Check model
         if not isinstance(model, HHModel):
-            raise TypeError('First parameter must be a `HHModel`.')
+            raise TypeError('First parameter must be a "HHModel".')
         self._model = model
 
         # Check protocol
         if protocol is None:
             self._protocol = None
         elif not isinstance(protocol, myokit.Protocol):
-            raise TypeError('Protocol must be a myokit.Protocol object')
+            raise TypeError('Protocol must be a myokit.Protocol object.')
         else:
             self._protocol = protocol.clone()
 
@@ -753,7 +753,7 @@ class AnalyticalSimulation:
                     log[key] = np.concatenate((
                         log[key], np.zeros(log_times.shape)))
             except KeyError:
-                raise ValueError(f'Invalid log: missing entry for <{key}>.')
+                raise ValueError(f'Invalid log: missing entry for "{key}".')
 
         # Run simulation
         if self._protocol is None:
@@ -840,8 +840,8 @@ class AnalyticalSimulation:
         state = np.array(state, copy=True, dtype=float)
         if len(state) != len(self._state):
             raise ValueError(
-                'Wrong size state vector, expecing (' + str(len(self._state))
-                + ') values.')
+                'Wrong size state vector, expecting'
+                f' {len(self._state)} values.')
         if np.any(state < 0) or np.any(state > 1):
             raise ValueError('All states must be in the range [0, 1].')
         self._default_state = state
@@ -861,7 +861,7 @@ class AnalyticalSimulation:
         """
         if len(parameters) != len(self._parameters):
             raise ValueError('Wrong size parameter vector, expecting'
-                             f' ({len(self._parameters)}) values.')
+                             f' {len(self._parameters)} values.')
         self._parameters = np.array(parameters, copy=True, dtype=float)
 
     def set_state(self, state):
@@ -871,7 +871,7 @@ class AnalyticalSimulation:
         state = np.array(state, copy=True, dtype=float)
         if len(state) != len(self._state):
             raise ValueError('Wrong size state vector, expecting'
-                             f' ({len(self._state)}) values.')
+                             f' {len(self._state)} values.')
         if np.any(state < 0) or np.any(state > 1):
             raise ValueError('All states must be in the range [0, 1].')
         self._state = state
@@ -939,7 +939,7 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
         A :class:`myokit.Model` object to convert.
     ``v``
         An optional :class:`myokit.Variable`` representing the membrane
-        potential. If not given, the method will search for a variable labelled
+        potential. If not given, the method will search for a variable labeled
         ``membrane_potential``. An error is raised if no membrane potential
         variable can be found.
 
@@ -947,7 +947,7 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
     """
     # Clone the model before editing
     if not isinstance(model, myokit.Model):
-        raise TypeError('Given `model` must be a myokit.Model.')
+        raise TypeError('Given "model" must be a myokit.Model.')
     model = model.clone()
 
     # Check membrane potential variable is known.
@@ -955,8 +955,8 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
         v = model.label('membrane_potential')
         if v is None:
             raise ValueError(
-                'Membrane potential must be given as `v` or by setting the'
-                ' label `membrane_potential` in the model.')
+                'Membrane potential must be given as "v" or by setting the'
+                ' label "membrane_potential" in the model.')
     else:
         # Ensure v is a variable, and from the cloned model
         if isinstance(v, myokit.Variable):
@@ -968,7 +968,7 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
     for x in model.states():
         res = get_alpha_and_beta(x, v)
         if res is not None:
-            # Create variabless for inf and tau
+            # Create variables for inf and tau
             a = myokit.Name(res[0])
             b = myokit.Name(res[1])
             tau = x.add_variable_allow_renaming('tau')
@@ -1015,7 +1015,7 @@ def get_alpha_and_beta(x, v=None):
 
     """
     #TODO: This method _could_ perhaps be made to allow arbitrary inline
-    # expressions for alpha and beta, so that it would recognise that e.g.
+    # expressions for alpha and beta, so that it would recognize that e.g.
     # (1 - x) * 0.5 - x * log(3) is suitable. Guessing this could work if you
     # collected x terms to get e1 - e2 * x, and then use e1 = alpha, and
     # e2 = alpha + beta = e1 + beta; beta = e2 - e1.
@@ -1064,7 +1064,7 @@ def get_alpha_and_beta(x, v=None):
     # Check that, with the possible exception of v, alpha and beta don't depend
     # on any states
 
-    # Get model from state varible
+    # Get model from state variable
     model = x.model()
 
     # Check membrane potential variable is known.
@@ -1077,8 +1077,8 @@ def get_alpha_and_beta(x, v=None):
         v = model.get(v)
     if v is None:
         raise ValueError(
-            'Membrane potential must be given as `v` or by setting the'
-            ' label `membrane_potential` in the model.')
+            'Membrane potential must be given as "v" or by setting the'
+            ' label "membrane_potential" in the model.')
 
     # Check alpha and beta
     for term in (alpha, beta):
@@ -1159,7 +1159,7 @@ def get_inf_and_tau(x, v=None):
 
     # Check that, with the possible exception of v, xinf and xtau do not depend
     # on any states
-    # Get model from state varible
+    # Get model from state variable
     model = x.model()
 
     # Check membrane potential variable is known.
@@ -1172,8 +1172,8 @@ def get_inf_and_tau(x, v=None):
         v = model.get(v)
     if v is None:
         raise ValueError(
-            'Membrane potential must be given as `v` or by setting the'
-            ' label `membrane_potential` in the model.')
+            'Membrane potential must be given as "v" or by setting the'
+            ' label "membrane_potential" in the model.')
 
     # Check xinf and xtau
     for term in (xinf, xtau):
@@ -1241,7 +1241,7 @@ def get_rl_expression(x, dt, v=None):
     """
     # Test dt is an expression
     if not isinstance(dt, myokit.Expression):
-        raise TypeError('Argument `dt` must be a myokit.Expression.')
+        raise TypeError('Argument "dt" must be a myokit.Expression.')
 
     # Get x_inf and tau_x, if possible
     res = get_inf_and_tau(x, v)

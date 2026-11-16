@@ -331,8 +331,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 return
             line, char = token[2], token[3]
             self._editor_tabs.setCurrentWidget(self._model_tab)
-            self.statusBar().showMessage(
-                'Jumping to (' + str(line) + ',' + str(char) + ').')
+            self.statusBar().showMessage(f'Jumping to ({line},{char}).')
             self._model_editor.jump_to(line - 1, char)
         except Exception:
             self.show_exception()
@@ -356,8 +355,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 return
             line, char = token[2], token[3]
             self._editor_tabs.setCurrentWidget(self._model_tab)
-            self.statusBar().showMessage(
-                'Jumping to (' + str(line) + ',' + str(char) + ').')
+            self.statusBar().showMessage(f'Jumping to ({line},{char}).')
             self._model_editor.jump_to(line - 1, char)
         except Exception:
             self.show_exception()
@@ -398,7 +396,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
     def action_component_cycles(self):
         """
-        Checks for interdependency-cycles amongst the components and displays
+        Checks for interdependency-cycles among the components and displays
         them if found.
         """
         try:
@@ -524,7 +522,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             # Create exporter
             e = myokit.formats.exporter(name)
             if not e.supports_model():
-                raise Exception('Exporter does not support export of model')
+                raise Exception('Exporter does not support export of model.')
 
             # Suggest a path
             if ext is None:
@@ -553,7 +551,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 except myokit.ExportError:
                     pass
             for w in ws:
-                self._console.write('Warning: ' + str(w.message))
+                self._console.write(f'Warning: {w.message}')
 
             if ex is None:
                 self._console.write('Export successful.')
@@ -589,7 +587,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             # Create exporter & test compatibility
             e = myokit.formats.exporter(name)
             if not e.supports_runnable():
-                raise Exception('Exporter does not support export of runnable')
+                raise Exception(
+                    'Exporter does not support export of runnable.')
 
             # Select dir
             path = QtWidgets.QFileDialog.getSaveFileName(
@@ -604,7 +603,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 except myokit.ExportError:
                     pass
             for w in ws:
-                self._console.write('Warning: ' + str(w.message))
+                self._console.write(f'Warning: {w.message}')
 
             if ex is None:
                 self._console.write('Export successful.')
@@ -812,8 +811,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 # Show error
                 line = self._last_model_error.line
                 char = self._last_model_error.char
-                self.statusBar().showMessage(
-                    'Jumping to (' + str(line) + ',' + str(char) + ').')
+                self.statusBar().showMessage(f'Jumping to ({line},{char}).')
                 self._model_editor.jump_to(line - 1, char)
 
             elif t is self._protocol_tab:
@@ -826,8 +824,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 # Show error
                 line = self._last_protocol_error.line
                 char = self._last_protocol_error.char
-                self.statusBar().showMessage(
-                    'Jumping to (' + str(line) + ',' + str(char) + ').')
+                self.statusBar().showMessage(f'Jumping to ({line},{char}).')
                 self._protocol_editor.jump_to(line - 1, char)
 
             # Can't be called on script tab -- or does nothing
@@ -849,12 +846,12 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             text.append('----------------')
             # Add statistics about the model code
             if model:
-                text.append('Name: ' + model.name())
-            text.append('Number of lines: ' + str(len(code.splitlines())))
+                text.append(f'Name: {model.name()}')
+            text.append(f'Number of lines: {len(code.splitlines())}')
             code = code.replace('\n', '')
-            text.append('Number of characters: ' + str(len(code)))
+            text.append(f'Number of characters: {len(code)}')
             code = code.replace(' ', '')
-            text.append('  without whitespace: ' + str(len(code)))
+            text.append(f'  without whitespace: {len(code)}')
             # Add statistics about the model
             if model is None:
                 text.append('No model to parse')
@@ -862,23 +859,22 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 text.append('Unable to parse model')
             else:
                 text.append(
-                    'Number of components: '
-                    + str(model.count_components()))
+                    f'Number of components: {model.count_components()}')
                 text.append(
-                    'Number of variables: '
-                    + str(model.count_variables(deep=True)))
+                    'Number of variables:'
+                    f' {model.count_variables(deep=True)}')
                 text.append(
                     '              bound: '
-                    + str(model.count_variables(bound=True, deep=True)))
+                    f' {model.count_variables(bound=True, deep=True)}')
                 text.append(
                     '              state: '
-                    + str(model.count_variables(state=True, deep=True)))
+                    f' {model.count_variables(state=True, deep=True)}')
                 text.append(
                     '       intermediary: '
-                    + str(model.count_variables(inter=True, deep=True)))
+                    f' {model.count_variables(inter=True, deep=True)}')
                 text.append(
                     '           constant: '
-                    + str(model.count_variables(const=True, deep=True)))
+                    f' {model.count_variables(const=True, deep=True)}')
             self._console.write('\n'.join(text))
         except Exception:
             self.statusBar().showMessage('"New file" failed.')
@@ -1020,7 +1016,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 # Garbage collection
                 gc.collect()
             except myokit.SimulationCancelledError:
-                self._console.write('Simulation cancelled by user.')
+                self._console.write('Simulation canceled by user.')
             except Exception:
                 self._console.write('An error has occurred')
                 self._console.write(traceback.format_exc())
@@ -1057,7 +1053,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
     def action_state_derivatives(self):
         """
         Evaluates all the state derivatives and displays the results. Numerical
-        erorrs raised will be displayed.
+        errors raised will be displayed.
         """
         self._action_state_derivatives_inner(False)
 
@@ -1168,7 +1164,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 return
             # Jump! (you might as well)
             line = var.model().show_line_of(var, raw=True)
-            self.statusBar().showMessage('Jumping to line ' + str(line) + '.')
+            self.statusBar().showMessage(f'Jumping to line {line}.')
             self._model_editor.jump_to(line - 1, 0)
         except Exception:
             self.show_exception()
@@ -1231,7 +1227,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 return
             self._console.write(var.model().show_evaluation_of(var))
         except myokit.NumericalError as e:
-            self._console.write('Numerical Error' + str(e))
+            self._console.write(f'Numerical Error{e}')
         except Exception:
             self.show_exception()
 
@@ -1259,7 +1255,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self._console.write('Cannot graph bound variables.')
                 return
             f, a = var.pyfunc(arguments=True)
-            title = 'Graphing ' + var.lhs().var().qname()
+            title = f'Graphing {var.lhs().var().qname()}'
             grapher = vargrapher.VarGrapher(self, title, var, f, a)
             grapher.show()
         except Exception:
@@ -1311,19 +1307,19 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 users = list(var.refs_by(state_refs=False))
                 if users:
                     out.append(
-                        'The following variables depend on ' + name + ':')
+                        f'The following variables depend on {name}:')
                     for v in sorted([v.qname() for v in users]):
-                        out.append('  ' + v)
+                        out.append(f'  {v}')
                 else:
-                    out.append('No variables depend on ' + name + '.')
+                    out.append(f'No variables depend on {name}.')
             name = var.qname()
             users = list(var.refs_by(state_refs=var.is_state()))
             if users:
-                out.append('The following variables depend on ' + name + ':')
+                out.append(f'The following variables depend on {name}:')
                 for v in sorted([v.qname() for v in users]):
-                    out.append('  ' + v)
+                    out.append(f'  {v}')
             else:
-                out.append('No variables depend on ' + name + '.')
+                out.append(f'No variables depend on {name}.')
             self._console.write('\n'.join(out))
         except Exception:
             self.show_exception()
@@ -1656,7 +1652,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Edit > Format protocol
         self._tool_format_protocol = QtGui.QAction('Format protocol', self)
         self._tool_format_protocol.setStatusTip(
-            'Standardise the formatting of the protocol section.')
+            'Standardize the formatting of the protocol section.')
         self._tool_format_protocol.triggered.connect(
             self.action_format_protocol)
         self._menu_edit.addAction(self._tool_format_protocol)
@@ -2541,8 +2537,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Show the exception
         QtWidgets.QMessageBox.warning(
             self, TITLE,
-            '<h1>An error has occurred.</h1>'
-            '<pre>' + text + '</pre>')
+            f'<h1>An error has occurred.</h1><pre>{text}</pre>')
 
     def update_navigator(self):
         """ Updates the model navigator contents. """
@@ -2761,7 +2756,7 @@ class Console(QtWidgets.QPlainTextEdit):
         #if not text:
         #    return
         # Write text
-        self.appendPlainText('[' + myokit.time() + '] ' + str(text))
+        self.appendPlainText(f'[{myokit.time()}] {text}')
         # Autoscroll
         self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
         # Autoflush

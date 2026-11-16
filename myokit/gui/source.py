@@ -269,7 +269,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         mod = event.modifiers()
         # Possible modifiers:
         #  NoModifier
-        #  ShiftModifier, ControlModifier, AltModifiier
+        #  ShiftModifier, ControlModifier, AltModifier
         #  MetaModifier (i.e. super key)
         #  KeyPadModifier (button is part of keypad)
         #  GroupSwitchModifier (x11 thing)
@@ -457,12 +457,12 @@ class Editor(QtWidgets.QPlainTextEdit):
             if key == K.Key_Up:
                 cursor.deletePreviousChar()
                 cursor.movePosition(MO.StartOfLine)
-                cursor.insertText(line + '\n')
+                cursor.insertText(f'{line}\n')
                 cursor.movePosition(MO.Left)
             else:
                 cursor.deleteChar()
                 cursor.movePosition(MO.EndOfLine)
-                cursor.insertText('\n' + line)
+                cursor.insertText(f'\n{line}')
             cursor.endEditBlock()
             # Cursor is at the end of the moved lines.
             # Set moved lines as selection
@@ -870,7 +870,7 @@ class FindReplaceWidget(QtWidgets.QWidget):
         line = 1 + cursor.blockNumber()
         char = cursor.selectionStart() - cursor.block().position()
         self.find_action.emit(
-            'Match found on line ' + str(line) + ' char ' + str(char) + '.')
+            f'Match found on line {line} char {char}.')
 
     def action_replace(self):
         """ Qt slot: Replace found item with replacement. """
@@ -931,7 +931,7 @@ class FindReplaceWidget(QtWidgets.QWidget):
         grouping.endEditBlock()
         self._editor.setTextCursor(grouping)
         self._editor.verticalScrollBar().setValue(scrollpos)
-        self.find_action.emit('Replaced ' + str(n) + ' occurrences.')
+        self.find_action.emit(f'Replaced {n} occurrences.')
 
     def activate(self):
         """ Updates the contents of the search field and gives it focus. """
@@ -1165,7 +1165,7 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
                 m = i.next()
                 self.setFormat(m.capturedStart(), m.capturedLength(), style)
 
-        # Protocol header (must be at strart of string)
+        # Protocol header (must be at start of string)
         m = self._rule_head.match(text)
         if m.hasMatch():
             self.setFormat(

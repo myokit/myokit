@@ -60,7 +60,7 @@ class LatexArticleExporter(myokit.formats.Exporter):
             f.write('\\usepackage{breqn}\n')
             f.write('\\begin{document}\n')
             title = model.name() or 'Model'
-            author = 'Dr. ' + self._clean(self.__class__.__name__)
+            author = f'Dr. {self._clean(self.__class__.__name__)}'
             f.write('\\title{' + title + '}\n')
             f.write('\\author{' + author + '}\n')
             f.write('\\maketitle\n')
@@ -97,7 +97,7 @@ class LatexArticleExporter(myokit.formats.Exporter):
                     pass
                 for v in c.variables(deep=True):
                     f.write('\\begin{dmath}\n')
-                    f.write(e.eq(v.eq()) + '\n')
+                    f.write(f'{e.eq(v.eq())}\n')
                     f.write('\\end{dmath}\n')
 
             # End of document
@@ -169,7 +169,7 @@ class LatexPosterExporter(myokit.formats.Exporter):
             for c in model.components():
                 for v in c.variables(deep=True):
                     f.write('\\(\n')
-                    f.write(e.eq(v.eq()) + '\n')
+                    f.write(f'{e.eq(v.eq())}\n')
                     f.write('\\)\n')
 
             # End of document

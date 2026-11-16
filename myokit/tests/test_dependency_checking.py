@@ -55,18 +55,18 @@ class DepTest(unittest.TestCase):
         # Show what will be tested
         if debug:
             if deps:
-                print('Testing if ' + repr(key) + ' has ')
+                print(f'Testing if {key!r} has ')
                 print('  [' + ', '.join([repr(d) for d in deps]) + ']')
                 print('It has:')
                 print('  [' + ', '.join([repr(d) for d in dmap]) + ']')
             else:
                 if isinstance(key, myokit.Expression):
                     if key.var().is_state():
-                        print(repr(key) + ' is a state')
+                        print(f'{key!r} is a state')
                     else:
-                        print(repr(key) + ' is a constant')
+                        print(f'{key!r} is a constant')
                 else:
-                    print(repr(key) + ' is empty')
+                    print(f'{key!r} is empty')
 
         # Check all dependencies
         for dep in deps:
@@ -101,7 +101,7 @@ class DepTest(unittest.TestCase):
                     comp.name() + ' has deps ('
                     + ', '.join([d.name() for d in deps]) + ')')
             else:
-                print(comp.name() + ' has no dependencies')
+                print(f'{comp.name()} has no dependencies')
 
     def head(self, text):
         if debug:
@@ -1150,7 +1150,7 @@ class ComponentDepTest(DepTest):
         rl_states = {}
         for state in ['ina.m', 'ina.h', 'ik.x', 'ica.f']:
             rl_states[self.m.get(state)] = (
-                self.m.get(state + '.inf'), self.m.get(state + '.tau'))
+                self.m.get(f'{state}.inf'), self.m.get(f'{state}.tau'))
         d1, d2 = self.m.map_component_io(
             omit_states=True,
             omit_derivatives=False,
@@ -1189,7 +1189,7 @@ class ComponentDepTest(DepTest):
         rl_states = {}
         for state in ['ina.m', 'ina.h', 'ik.x', 'ica.f']:
             rl_states[self.m.get(state)] = (
-                self.m.get(state + '.inf'), self.m.get(state + '.tau'))
+                self.m.get(f'{state}.inf'), self.m.get(f'{state}.tau'))
         d1, d2 = self.m.map_component_io(
             omit_states=True,
             omit_derivatives=False,
@@ -1342,10 +1342,10 @@ class SolvableOrderTest(DepTest):
         def before(lhs1, *lhs2s):
             """ Asserts lhs1 comes before lhs2 in the current component """
             if isinstance(lhs1, str):
-                lhs1 = self.m.get(self.ccomp + '.' + lhs1).lhs()
+                lhs1 = self.m.get(f'{self.ccomp}.{lhs1}').lhs()
             for lhs2 in lhs2s:
                 if isinstance(lhs2, str):
-                    lhs2 = self.m.get(self.ccomp + '.' + lhs2).lhs()
+                    lhs2 = self.m.get(f'{self.ccomp}.{lhs2}').lhs()
                 i1 = i2 = None
                 for i, eq in enumerate(self.order[self.ccomp]):
                     if eq.lhs == lhs1:

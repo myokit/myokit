@@ -393,7 +393,7 @@ class DataBlock1dTest(unittest.TestCase):
             myokit.DataBlockReadError, 'more time data',
             myokit.DataBlock1d.load, path)
 
-        # Not enoug data: detected at 0d level
+        # Not enough data: detected at 0d level
         path = DIR_IO / 'bad1d-7-0d-too-short.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'more 0d data',
@@ -417,7 +417,7 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertTrue(p.exited)
         self.assertTrue(p.updated)
 
-        # Test cancelling in progress reporter
+        # Test canceling in progress reporter
         p = CancellingReporter()
         b = myokit.DataBlock1d.load(path, p)
         self.assertIsNone(b)
@@ -1341,7 +1341,7 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertTrue(p.exited)
         self.assertTrue(p.updated)
 
-        # Test cancelling in progress reporter
+        # Test canceling in progress reporter
         p = CancellingReporter()
         b = myokit.DataBlock2d.load(path, p)
         self.assertIsNone(b)

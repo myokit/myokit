@@ -24,7 +24,7 @@ class CudaExpressionWriter(CBasedExpressionWriter):
 
     def _ex_number(self, e):
         x = super()._ex_number(e)
-        return x + 'f' if self._sp else x
+        return f'{x}f' if self._sp else x
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):
@@ -76,8 +76,7 @@ class CudaExpressionWriter(CBasedExpressionWriter):
         f = 'logf' if self._sp else 'log'
         if len(e) == 1:
             return self._ex_function(e, f)
-        return '(' + f + '(' + self.ex(e[0]) + ') / ' + f + '(' \
-            + self.ex(e[1]) + '))'
+        return f'({f}({self.ex(e[0])}) / {f}({self.ex(e[1])}))'
 
     def _ex_log10(self, e):
         f = 'log10f' if self._sp else 'log10'

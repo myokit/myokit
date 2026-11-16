@@ -514,7 +514,7 @@ class DataLogTest(unittest.TestCase):
         e['v'] = v
         self.assertEqual(e.keys_like('v'), [])
 
-        # Non-existant variable
+        # Non-existent variable
         self.assertEqual(e.keys_like('w'), [])
 
         # 1-d
@@ -2461,11 +2461,11 @@ class DataLogTest(unittest.TestCase):
         viter = v.keys()
         for vid in vids:
             self.assertEqual(
-                str(vid[0]) + '.' + str(vid[1]) + '.' + 'v', next(viter))
+                f'{vid[0]}.{vid[1]}.v', next(viter))
         witer = w.keys()
         for wid in wids:
             self.assertEqual(
-                str(wid[0]) + '.' + str(wid[1]) + '.' + 'w', next(witer))
+                f'{wid[0]}.{wid[1]}.w', next(witer))
 
         # Check size
         self.assertEqual(v.size(), (3, 2))

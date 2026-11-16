@@ -52,7 +52,7 @@ class Benchmarker:
         if time is None:
             time = self.time()
         if time < 60:
-            return '1 second' if time == 1 else str(time) + ' seconds'
+            return '1 second' if time == 1 else f'{time} seconds'
         output = []
         time = int(round(time))
         units = [
@@ -64,9 +64,9 @@ class Benchmarker:
         for k, name in units:
             f = time // k
             if f > 0 or output:
-                output.append(str(f) + ' ' + (name if f == 1 else name + 's'))
+                output.append(f'{f} {name}' + ('' if f == 1 else 's'))
             time -= f * k
-        output.append('1 second' if time == 1 else str(time) + ' seconds')
+        output.append('1 second' if time == 1 else f'{time} seconds')
         return ', '.join(output)
 
     def print(self, message):
@@ -128,7 +128,7 @@ class capture:
 
     By default, this method works by simply redirecting ``sys.stdout`` and
     ``sys.stderr``. This captures any output written by the Python interpreter,
-    but does not catch output from C/C++ extensions or subrocesses. To also
+    but does not catch output from C/C++ extensions or subprocesses. To also
     catch that output start the capture with the optional argument
     ``fd=True``, which enables a file descriptor duplication method of
     redirection.
@@ -415,7 +415,7 @@ def format_path(path, root='.'):
     """
     # Deprecated since 2026-11-02
     import warnings
-    warnings.warn('The method `myokit.tools.format_path` is deprecated.'
+    warnings.warn('The method "myokit.tools.format_path()" is deprecated.'
                   ' It will be removed in future versions of Myokit.')
 
     # Ensure path and root are Path objects

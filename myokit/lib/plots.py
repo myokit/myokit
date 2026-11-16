@@ -20,7 +20,7 @@ def simulation_times(
     Data can be passed in as ``time`` (simulation time) ``realtime``
     (benchmarked time during the simulation) and ``evaluations`` (the number
     of evaluations needed for each step). Which of these fields are required
-    dependens on the chosen plot ``mode``:
+    depends on the chosen plot ``mode``:
 
     ``stair``
         Draws ``time`` on the x-axis, and the step number on the y-axis.
@@ -127,9 +127,9 @@ def simulation_times(
     try:
         fn = modes[mode]
     except KeyError:
+        modes = ', '.join([f'"{x}"' for x in modes])
         raise ValueError(
-            'Selected mode not found. Avaiable modes are: '
-            + ', '.join([f'"{x}"' for x in modes]))
+            f'Selected mode not found. Available modes are: {modes}')
     return fn(axes, time, realtime, evaluations)
 
 
@@ -174,7 +174,7 @@ def current_arrows(log, voltage, currents, axes=None):
     threshold_abs = 0.1
     for ii, I in enumerate(traces):
 
-        # Capture parts where abs(I) is greather than the threshold and the
+        # Capture parts where abs(I) is greater than the threshold and the
         # sign doesn't change
         parts = []
         indices = None
@@ -245,7 +245,7 @@ def current_arrows(log, voltage, currents, axes=None):
                     ars = 'larrow'
 
             bbox_props = dict(
-                boxstyle=ars + ',pad=0.3',
+                boxstyle=f'{ars},pad=0.3',
                 fc='w',
                 ec='black',
                 lw=1)
@@ -313,8 +313,8 @@ def cumulative_current(
     if normalise is not None:
         import warnings
         warnings.warn(
-            'The keyword argument `normalise` is deprecated. Please use'
-            ' `normalize` instead.')
+            'The keyword argument "normalise" is deprecated. Please use'
+            ' "normalize" instead.')
         normalize = normalise
     del normalise
 

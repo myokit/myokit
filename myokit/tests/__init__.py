@@ -249,7 +249,7 @@ class ExpressionWriterTestCase(unittest.TestCase):
             v1 = ex.dependent_expression()
             v2 = ex.independent_expression()
             return f'partial({v1.var().name()}, {v2.var().name()})'
-        raise ValueError(f'Untested LHS type {type(ex)}')
+        raise ValueError(f'Untested LHS type {type(ex)}.')
 
     def test_fetching(self):
         # Test fetching using ewriter method

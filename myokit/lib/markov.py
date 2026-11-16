@@ -137,13 +137,13 @@ class LinearModel:
             try:
                 state = self._model.get(str(state), myokit.Variable)
             except KeyError:
-                raise LinearModelError('Unknown state: <' + str(state) + '>.')
+                raise LinearModelError(f'Unknown state: "{state}".')
             if not state.is_state():
                 raise LinearModelError(
-                    'Variable <' + state.qname() + '> is not a state.')
+                    f'Variable "{state.qname()}" is not a state.')
             if state in self._states:
                 raise LinearModelError(
-                    'State <' + state.qname() + '> was added twice.')
+                    f'State "{state.qname()}" was added twice.')
             self._states.append(state)
         del states
 
@@ -159,13 +159,13 @@ class LinearModel:
                 parameter = self._model.get(parameter, myokit.Variable)
             except KeyError:
                 raise LinearModelError(
-                    'Unknown parameter: <' + str(parameter) + '>.')
+                    f'Unknown parameter: "{parameter}".')
             if not parameter.is_literal():
                 raise LinearModelError(
-                    'Unsuitable parameter: <' + str(parameter) + '>.')
+                    f'Unsuitable parameter: "{parameter}".')
             if parameter in unique:
                 raise LinearModelError(
-                    'Parameter listed twice: <' + str(parameter) + '>.')
+                    f'Parameter listed twice: "{parameter}".')
             unique.add(parameter)
             self._parameters.append(parameter)
         del unique
@@ -186,8 +186,8 @@ class LinearModel:
             vm = self._model.label('membrane_potential')
         if vm is None:
             raise LinearModelError(
-                'A membrane potential must be specified as `vm` or using the'
-                ' label `membrane_potential`.')
+                'A membrane potential must be specified as "vm" or using the'
+                ' label "membrane_potential".')
         if isinstance(vm, myokit.Variable):
             vm = vm.qname()
         self._membrane_potential = self._model.get(vm)
@@ -263,23 +263,23 @@ class LinearModel:
             for d in s.refs_to(state_refs=True):
                 if s not in d.refs_to(state_refs=True):
                     raise LinearModelError(
-                        'State <' + s.qname() + '> depends on <' + d.qname()
-                        + '> but not vice versa.')
+                        f'State "{s.qname()}" depends on "{d.qname()}" but'
+                        ' not vice versa.')
 
         # Check the sum of all states is 1
         tolerance = 1e-8
         x = np.sum(self._default_state)
         if np.abs(x - 1) > tolerance:
             raise LinearModelError(
-                'The sum of states is not equal to 1: ' + str(x))
+                f'The sum of states is not equal to 1: {x}')
 
         # Check the sum of all derivatives per column
         A, B = self.matrices()
         for k, x in enumerate(np.sum(A, axis=0)):
             if abs(x) > tolerance:
                 raise LinearModelError(
-                    'Derivatives in column ' + str(1 + k) + ' sum to non-zero'
-                    ' value: ' + str(x) + '.')
+                    f'Derivatives in column {1 + k} sum to non-zero'
+                    f' value: {x}.')
 
     def _generate_functions(self):
         """
@@ -304,7 +304,7 @@ class LinearModel:
             current_expression = self._current.rhs().clone(
                 expand=True, retain=self._inputs)
 
-        # Create parametrisable matrices to evaluate the state & current
+        # Create parametrizable matrices to evaluate the state & current
         # This checks that each state's RHS can be written as a linear
         # combination of the states, and gathers the corresponding multipliers.
 
@@ -324,7 +324,7 @@ class LinearModel:
             except ValueError:
                 raise LinearModelError(
                     'Unable to write expression as linear combination of'
-                    ' states: ' + str(e) + '.')
+                    f' states: {e}.')
 
             # Scan factors
             for col, state in enumerate(self._states):
@@ -337,7 +337,7 @@ class LinearModel:
                     if row != col:
                         T.add((col, row))   # A is mirrored
 
-        # Create a parametrisable matrix for the current
+        # Create a parametrizable matrix for the current
         B = [myokit.Number(0) for i in range(n)]
         if self._current is not None:
             try:
@@ -345,7 +345,7 @@ class LinearModel:
             except ValueError:
                 raise LinearModelError(
                     'Unable to write expression as linear combination of'
-                    ' states: ' + str(e) + '.')
+                    f' states: {e}.')
 
             for col, state in enumerate(self._states):
                 factor = factors[col]
@@ -363,7 +363,7 @@ class LinearModel:
         del T
 
         #
-        # Create function to create parametrisable matrices
+        # Create function to create parametrizable matrices
         #
         self._model.reserve_unique_names('A', 'B', 'n', 'numpy')
         writer = myokit.numpy_writer()
@@ -377,11 +377,11 @@ class LinearModel:
         for i, row in enumerate(A):
             for j, e in enumerate(row):
                 if e != zero:
-                    body.append('A[' + str(i) + ',' + str(j) + '] = ' + w(e))
+                    body.append(f'A[{i},{j}] = {w(e)}')
         body.append('B = numpy.zeros(n)')
         for j, e in enumerate(B):
             if e != zero:
-                body.append('B[' + str(j) + '] = ' + w(e))
+                body.append(f'B[{j}] = {w(e)}')
         body.append('return A, B')
         code = head + '\n' + '\n'.join(['    ' + line for line in body])
         globl = {'numpy': np, 'n': n}
@@ -401,7 +401,7 @@ class LinearModel:
         body.append('R = []')
         for i, j, e in R:
             body.append(
-                'R.append((' + str(i) + ',' + str(j) + ',' + w(e) + '))')
+                f'R.append(({i},{j},{w(e)}))')
         body.append('return R')
         code = head + '\n' + '\n'.join(['    ' + line for line in body])
         globl = {'numpy': np}
@@ -495,11 +495,10 @@ class LinearModel:
                         currents.append(x)
                         break
             if len(currents) > 1:
+                c = ', '.join([f'"{x.qname()}"' for x in currents])
                 raise LinearModelError(
                     'The given component has more than one variable that could'
-                    ' be a current: '
-                    + ', '.join(['<' + x.qname() + '>' for x in currents])
-                    + '.')
+                    f' be a current: {c}.')
             try:
                 current = currents[0]
             except IndexError:
@@ -544,9 +543,8 @@ class LinearModel:
         if parameters is not None:
             if len(parameters) != len(self._parameters):
                 raise ValueError(
-                    'Illegal parameter vector size: '
-                    + str(len(self._parameters)) + ' required, '
-                    + str(len(parameters)) + ' provided.')
+                    f'Illegal parameter vector size: {len(self._parameters)}'
+                    f' required, {len(parameters)} provided.')
             inputs[:-1] = [float(x) for x in parameters]
         return self._matrix_function(*inputs)
 
@@ -586,9 +584,8 @@ class LinearModel:
         if parameters is not None:
             if len(parameters) != len(self._parameters):
                 raise ValueError(
-                    'Illegal parameter vector size: '
-                    + str(len(self._parameters)) + ' required, '
-                    + str(len(parameters)) + ' provided.')
+                    f'Illegal parameter vector size: {len(self._parameters)}'
+                    f' required, {len(parameters)} provided.')
             inputs[:-1] = [float(x) for x in parameters]
         return self._rate_list_function(*inputs)
 
@@ -690,14 +687,14 @@ class AnalyticalSimulation:
         super().__init__()
         # Check model
         if not isinstance(model, LinearModel):
-            raise TypeError('First parameter must be a `LinearModel`.')
+            raise TypeError('First parameter must be a "LinearModel".')
         self._model = model
 
         # Check protocol
         if protocol is None:
             self._protocol = None
         elif not isinstance(protocol, myokit.Protocol):
-            raise TypeError('Protocol must be a myokit.Protocol object')
+            raise TypeError('Protocol must be a myokit.Protocol object.')
         else:
             self._protocol = protocol.clone()
 
@@ -895,7 +892,7 @@ class AnalyticalSimulation:
                         log[key], np.zeros(log_times.shape)))
             except KeyError:
                 raise ValueError(
-                    'Invalid log: missing entry for <' + str(key) + '>.')
+                    f'Invalid log: missing entry for "{key}".')
 
         # Run simulation
         if self._protocol is None:
@@ -986,13 +983,13 @@ class AnalyticalSimulation:
         state = np.array(state, copy=True, dtype=float)
         if len(state) != len(self._state):
             raise ValueError(
-                'Wrong size state vector, expecing (' + str(len(self._state))
-                + ') values.')
+                'Wrong size state vector, expecting'
+                f' {len(self._state)} values.')
         if np.any(state < 0):
             raise ValueError(
                 'The fraction of channels in a state cannot be negative.')
         if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+            raise ValueError('The values in "state" must sum to 1.')
         self._default_state = state
 
     def set_membrane_potential(self, v):
@@ -1010,8 +1007,8 @@ class AnalyticalSimulation:
         """
         if len(parameters) != len(self._parameters):
             raise ValueError(
-                'Wrong size parameter vector, expecting ('
-                + str(len(self._parameters)) + ') values.')
+                'Wrong size parameter vector, expecting'
+                f' {len(self._parameters)} values.')
         self._parameters = np.array(parameters, copy=True, dtype=float)
 
         # Invalidate cache
@@ -1025,13 +1022,13 @@ class AnalyticalSimulation:
         state = np.array(state, copy=True, dtype=float)
         if len(state) != len(self._state):
             raise ValueError(
-                'Wrong size state vector, expecing (' + str(len(self._state))
-                + ') values.')
+                'Wrong size state vector, expecting'
+                f' {len(self._state)} values.')
         if np.any(state < 0):
             raise ValueError(
                 'The fraction of channels in a state cannot be negative.')
         if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+            raise ValueError('The values in "state" must sum to 1.')
         self._state = state
 
     def solve(self, times):
@@ -1157,14 +1154,14 @@ class DiscreteSimulation:
     def __init__(self, model, protocol=None, nchannels=100):
         # Check model
         if not isinstance(model, LinearModel):
-            raise TypeError('First parameter must be a `LinearModel`.')
+            raise TypeError('First parameter must be a "LinearModel".')
         self._model = model
 
         # Check protocol
         if protocol is None:
             self._protocol = None
         elif not isinstance(protocol, myokit.Protocol):
-            raise TypeError('Protocol must be a myokit.Protocol object')
+            raise TypeError('Protocol must be a myokit.Protocol object.')
         else:
             self._protocol = protocol.clone()
 
@@ -1369,7 +1366,7 @@ class DiscreteSimulation:
                     log[key]
             except KeyError:
                 raise ValueError(
-                    'Invalid log: missing entry for <' + str(key) + '>.')
+                    f'Invalid log: missing entry for "{key}".')
 
         if self._protocol is None:
             # Simulate with fixed V
@@ -1506,8 +1503,8 @@ class DiscreteSimulation:
         state = np.asarray(state, dtype=int)
         if len(state) != len(self._state):
             raise ValueError(
-                'Wrong size state vector, expecing (' + str(len(self._state))
-                + ') values.')
+                'Wrong size state vector, expecting'
+                f' {len(self._state)} values.')
         if np.min(state) < 0:
             raise ValueError(
                 'The number of channels in a markov model state can not be'
@@ -1515,7 +1512,7 @@ class DiscreteSimulation:
         if np.sum(state) != self._nchannels:
             raise ValueError(
                 'The number of channels in the default state vector must'
-                ' equal ' + str(self._nchannels) + '.')
+                f' equal {self._nchannels}.')
         self._default_state = list(state)
 
     def set_membrane_potential(self, v):
@@ -1535,8 +1532,8 @@ class DiscreteSimulation:
         """
         if len(parameters) != len(self._parameters):
             raise ValueError(
-                'Wrong size parameter vector, expecting ('
-                + str(len(self._parameters)) + ') values.')
+                'Wrong size parameter vector, expecting'
+                f' {len(self._parameters)} values.')
         self._parameters = np.array(parameters, copy=True, dtype=float)
         self._cached_rates = None
         self._cached_matrix = None
@@ -1549,15 +1546,15 @@ class DiscreteSimulation:
         state = np.asarray(state, dtype=int)
         if len(state) != len(self._state):
             raise ValueError(
-                'Wrong size state vector, expecing (' + str(len(self._state))
-                + ') values.')
+                'Wrong size state vector, expecting'
+                f' {len(self._state)} values.')
         if np.min(state) < 0:
             raise ValueError(
                 'The state must be given as a list of non-negative integers.')
         if np.sum(state) != self._nchannels:
             raise ValueError(
-                'The number of channels in the state vector must equal '
-                + str(self._nchannels) + '.')
+                'The number of channels in the state vector must equal'
+                f' {self._nchannels}.')
         self._state = list(state)
 
     def state(self):
@@ -1637,8 +1634,8 @@ def _split_factor(term, variables):
     n_refs = len(names & refs)
     if n_refs != 1:
         raise ValueError(
-            'The expression `term` must reference exactly one variable from'
-            ' the list `variables` (found ' + str(n_refs) + ').')
+            'The expression "term" must reference exactly one variable from'
+            f' the list "variables", found {n_refs}.')
 
     # Get Name of variable referenced in this term
     name = (names & refs).pop()
@@ -1663,8 +1660,8 @@ def _split_factor(term, variables):
             a, b = term
             if name in b.references():
                 raise ValueError(
-                    'Non-linear function (division) of ' + str(name)
-                    + ' found in ' + str(term) + '.')
+                    f'Non-linear function (division) of {name} found in'
+                    f' {term}.')
             term = a
             m = myokit.Divide(myokit.Number(1) if m is None else m, b)
         elif t in (myokit.Plus, myokit.Minus):
@@ -1672,8 +1669,7 @@ def _split_factor(term, variables):
                 'Expression passed to _split_factor must be a single term.')
         else:
             raise ValueError(
-                'Non-linear function of ' + str(name) + ' found in '
-                + str(term) + '.')
+                f'Non-linear function of {name} found in {term}.')
 
     # Finalize multiplier
     if m is None:

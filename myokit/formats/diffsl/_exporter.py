@@ -94,9 +94,9 @@ class DiffSLExporter(myokit.formats.Exporter):
         if protocols:
             if final_time is None:
                 raise myokit.ExportError(
-                    'A final_time must be provided when exporting with a '
-                    'protocol so events can be expanded to a finite list of '
-                    'transitions.'
+                    'A final_time must be provided when exporting with a'
+                    ' protocol so events can be expanded to a finite list of'
+                    ' transitions.'
                 )
             else:
                 final_time = float(final_time)
@@ -115,8 +115,8 @@ class DiffSLExporter(myokit.formats.Exporter):
                 # Validate that the variable belongs to this model
                 if v.model() != model:
                     raise myokit.ExportError(
-                        f'Input variable {v.qname()} does not belong to the '
-                        f'model being exported.'
+                        f'Input variable {v.qname()} does not belong to the'
+                        f' model being exported.'
                     )
                 # Validate that inputs are constants (bound inputs are allowed)
                 if (
@@ -128,8 +128,8 @@ class DiffSLExporter(myokit.formats.Exporter):
                     )
                 if v.binding() in protocol_bindings:
                     raise myokit.ExportError(
-                        f'Input variable {v.qname()} cannot be both an input '
-                        f'and be driven by protocol binding "{v.binding()}".'
+                        f'Input variable {v.qname()} cannot be both an input'
+                        f' and be driven by protocol binding "{v.binding()}".'
                     )
                 input_qnames.append(v.qname())
 
@@ -141,14 +141,14 @@ class DiffSLExporter(myokit.formats.Exporter):
                 # Validate that the variable belongs to this model
                 if v.model() != model:
                     raise myokit.ExportError(
-                        f'Output variable {v.qname()} does not belong to the '
-                        f'model being exported.'
+                        f'Output variable {v.qname()} does not belong to the'
+                        f' model being exported.'
                     )
                 # Validate that outputs are not constants
                 if v.is_constant():
                     raise myokit.ExportError(
-                        f'Output variable {v.qname()} must be time-varying. '
-                        f'Constant variables cannot be used as outputs.'
+                        f'Output variable {v.qname()} must be time-varying.'
+                        f' Constant variables cannot be used as outputs.'
                     )
                 output_qnames.append(v.qname())
 
@@ -307,7 +307,7 @@ class DiffSLExporter(myokit.formats.Exporter):
         elif isinstance(e, myokit.Variable):
             return self._var_to_name[e]
         raise ValueError(  # pragma: no cover
-            'Not a variable or LhsExpression: ' + str(e)
+            f'Not a variable or LhsExpression: {e}'
         )
 
     def _generate_diffsl(
@@ -595,8 +595,8 @@ class DiffSLExporter(myokit.formats.Exporter):
             var.convert_unit(unit, helpers=helpers)
         except myokit.IncompatibleUnitError:
             warnings.warn(
-                'Unable to convert ' + var.qname() + ' to recommended'
-                ' units of ' + str(unit) + '.'
+                f'Unable to convert {var.qname()} to recommended units of'
+                f' {unit}.'
             )
 
     def _create_diffsl_variable_names(self, model):
@@ -617,8 +617,7 @@ class DiffSLExporter(myokit.formats.Exporter):
             var_to_name[var] = self._convert_name(var.qname())
             if var.is_state():
                 var_to_name[var.lhs()] = self._convert_name(
-                    'diff_' + var.qname()
-                )
+                    f'diff_{var.qname()}')
 
         # Check for conflicts with known keywords
         from . import keywords
@@ -741,9 +740,8 @@ class DiffSLExporter(myokit.formats.Exporter):
         """
         if not hasattr(self, '_state_qnames'):
             raise RuntimeError(
-                'get_state_index() can only be called after model() has been '
-                'called to export a model.'
-            )
+                '"get_state_index()" can only be called after "model()" has'
+                ' been called to export a model.')
 
         # Find the index using the variable's qualified name
         try:

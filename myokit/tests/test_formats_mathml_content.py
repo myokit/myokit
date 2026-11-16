@@ -105,7 +105,7 @@ class ContentMathMLParserTest(unittest.TestCase):
         e = myokit.If(cond1, a, b)
         x = (
             '<piecewise>'
-            '<piece><ci>c.a</ci>' + c1 + '</piece>'
+            f'<piece><ci>c.a</ci>{c1}</piece>'
             '<otherwise><cn>1.0</cn></otherwise>'
             '</piecewise>'
         )
@@ -115,8 +115,8 @@ class ContentMathMLParserTest(unittest.TestCase):
         e = myokit.Piecewise(cond1, a, cond2, b, myokit.Number(100))
         x = (
             '<piecewise>'
-            '<piece><ci>c.a</ci>' + c1 + '</piece>'
-            '<piece><cn>1.0</cn>' + c2 + '</piece>'
+            f'<piece><ci>c.a</ci>{c1}</piece>'
+            f'<piece><cn>1.0</cn>{c2}</piece>'
             '<otherwise><cn>100.0</cn></otherwise>'
             '</piecewise>'
         )
@@ -188,7 +188,7 @@ class ContentMathMLParserTest(unittest.TestCase):
             mathml.MathMLError, '<otherwise> element must have exactly 1',
             self.p, x)
 
-        # Unexpected tag in piecwise
+        # Unexpected tag in piecewise
         x = (
             '<piecewise>'
             '  <piece>'
@@ -597,17 +597,17 @@ class ContentMathMLParserTest(unittest.TestCase):
         c1 = '<apply><gt/><cn>5.0</cn><cn>3.0</cn></apply>'
         c2 = '<apply><lt/><cn>2.0</cn><cn>1.0</cn></apply>'
         e = myokit.Not(cond1)
-        x = '<apply><not/>' + c1 + '</apply>'
+        x = f'<apply><not/>{c1}</apply>'
         self.assertEqual(self.p(x), e)
 
         # And
         e = myokit.And(cond1, cond2)
-        x = '<apply><and/>' + c1 + c2 + '</apply>'
+        x = f'<apply><and/>{c1}{c2}</apply>'
         self.assertEqual(self.p(x), e)
 
         # Or
         e = myokit.Or(cond1, cond2)
-        x = '<apply><or/>' + c1 + c2 + '</apply>'
+        x = f'<apply><or/>{c1}{c2}</apply>'
         self.assertEqual(self.p(x), e)
 
         # Xor
@@ -615,7 +615,7 @@ class ContentMathMLParserTest(unittest.TestCase):
             myokit.Or(cond1, cond2),
             myokit.Not(myokit.And(cond1, cond2))
         )
-        x = '<apply><xor/>' + c1 + c2 + '</apply>'
+        x = f'<apply><xor/>{c1}{c2}</apply>'
         self.assertEqual(self.p(x), e)
 
     def test_parse_mathml_string(self):
@@ -1004,7 +1004,7 @@ class ContentMathMLWriterTest(unittest.TestCase):
         e = myokit.If(cond1, a, b)
         x = (
             '<piecewise>'
-            '<piece><ci>a</ci>' + c1 + '</piece>'
+            f'<piece><ci>a</ci>{c1}</piece>'
             '<otherwise><cn>1.0</cn></otherwise>'
             '</piecewise>'
         )
@@ -1014,8 +1014,8 @@ class ContentMathMLWriterTest(unittest.TestCase):
         e = myokit.Piecewise(cond1, a, cond2, b, myokit.Number(100))
         x = (
             '<piecewise>'
-            '<piece><ci>a</ci>' + c1 + '</piece>'
-            '<piece><cn>1.0</cn>' + c2 + '</piece>'
+            f'<piece><ci>a</ci>{c1}</piece>'
+            f'<piece><cn>1.0</cn>{c2}</piece>'
             '<otherwise><cn>100.0</cn></otherwise>'
             '</piecewise>'
         )
@@ -1157,17 +1157,17 @@ class ContentMathMLWriterTest(unittest.TestCase):
         c1 = '<apply><gt/><cn>5.0</cn><cn>3.0</cn></apply>'
         c2 = '<apply><lt/><cn>2.0</cn><cn>1.0</cn></apply>'
         e = myokit.Not(cond1)
-        x = '<apply><not/>' + c1 + '</apply>'
+        x = f'<apply><not/>{c1}</apply>'
         self.assertWrite(e, x)
 
         # And
         e = myokit.And(cond1, cond2)
-        x = '<apply><and/>' + c1 + c2 + '</apply>'
+        x = f'<apply><and/>{c1}{c2}</apply>'
         self.assertWrite(e, x)
 
         # Or
         e = myokit.Or(cond1, cond2)
-        x = '<apply><or/>' + c1 + c2 + '</apply>'
+        x = f'<apply><or/>{c1}{c2}</apply>'
         self.assertWrite(e, x)
 
     def test_name_and_numbers(self):

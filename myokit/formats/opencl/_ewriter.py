@@ -37,7 +37,7 @@ class OpenCLExpressionWriter(CBasedExpressionWriter):
 
     def _ex_number(self, e):
         x = super()._ex_number(e)
-        return x + 'f' if self._sp else x
+        return f'{x}f' if self._sp else x
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):

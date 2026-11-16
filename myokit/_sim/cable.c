@@ -160,10 +160,10 @@ double tpace;           /* Next event start or end */
 ESys pacing;            /* Pacing system */
 
 /* Temporary objects: decref before re-using for another var :)
-   (Unless you got it through PyList_GetItem or PyTuble_GetItem) */
+   (Unless you got it through PyList_GetItem or PyTuple_GetItem) */
 PyObject *flt;              /* PyFloat, various uses */
 PyObject *ret;              /* PyFloat, used as return value from python calls */
-PyObject *list_update_str;  /* PyUnicode, ssed to call "append" method */
+PyObject *list_update_str;  /* PyUnicode, used to call "append" method */
 
 /*
  * Given a current state, this method calculates all diffusion currents, sets

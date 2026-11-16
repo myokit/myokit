@@ -70,7 +70,7 @@ class ProgressPrinterTests(unittest.TestCase):
 
 class TimeoutTest(unittest.TestCase):
     """
-    Tests cancelling a simulation with the ``Timeout`` class.
+    Tests canceling a simulation with the ``Timeout`` class.
     """
     def test_timeout_progress_reporter(self):
 

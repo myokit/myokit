@@ -58,7 +58,7 @@ typedef <?= ('float' if precision == myokit.SINGLE_PRECISION else 'double') ?> R
  * Print function that uses python's stdout
  * (Adapted from http://stackoverflow.com/a/2420977/423420)
  *
- * Not optimised for performance. Use this sparingly!
+ * Not optimized for performance. Use this sparingly!
  */
 void pyprint(const char* text)
 {
@@ -219,7 +219,7 @@ unsigned long n_inter_f; // The number of unique intermediary variables logged
 unsigned long n_inter_t; // The number of unique intermediary variables logged
 
 // Temporary objects: decref before re-using for another var
-// (Unless you got it through PyList_GetItem or PyTuble_GetItem)
+// (Unless you got it through PyList_GetItem or PyTuple_GetItem)
 PyObject* flt;              // PyFloat, various uses
 PyObject* ret;              // PyFloat, used as return value
 PyObject* list_update_str;  // PyUnicode, used to call "append" method

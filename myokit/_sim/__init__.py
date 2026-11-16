@@ -92,7 +92,7 @@ class CModule:
             If ``myokit.DEBUG_SG`` or ``myokit.DEBUG_WG`` are set, the
             generated code will be printed to screen and/or written to disk,
             and ``sys.exit(1)`` will be called. Set ``continue_in_debug_mode``
-            to ``True`` to skip the exitting and keep going instead.
+            to ``True`` to skip the exiting and keep going instead.
 
         Returns a tuple ``(module, build_path)``, where ``module`` is the
         compiled and imported module, and ``build_path`` is either ``None``
@@ -225,7 +225,7 @@ class CModule:
                 t.append(trace)
                 t.append('Compiler output:')
                 captured = s.text().strip()
-                t.extend(['    ' + x for x in captured.splitlines()])
+                t.extend([f'    {x}' for x in captured.splitlines()])
                 raise myokit.CompilationError('\n'.join(t))
 
             # Import module
@@ -244,7 +244,7 @@ class CModule:
             # Revert changes to working directory
             os.chdir(working_dir)
 
-            # Delete cache dir (and build dir, if not stored separetely)
+            # Delete cache dir (and build dir, if not stored separately)
             myokit.tools.rmtree(d_cache, silent=True)
 
     def _debug_show(self, template, variables):  # pragma: no cover
@@ -257,8 +257,8 @@ class CModule:
     def _debug_write(self, template, variables):  # pragma: no cover
         """ Processes ``template`` and writes the output to file. """
         self._debug_file_count += 1
-        fname = 'debug-' + str(self._debug_file_count) + '.c'
-        print('DEBUG: Writing generated code to ' + fname)
+        fname = f'debug-{self._debug_file_count}.c'
+        print(f'DEBUG: Writing generated code to {fname}')
         with open(fname, 'w') as f:
             f.write(self._export_inner(template, variables))
 
@@ -296,7 +296,7 @@ class CModule:
                 # temporary directory
                 if os.path.isdir(target):
                     raise OSError('Unable to create output file. A directory'
-                                  f' already exists at {target}')
+                                  f' already exists at {target}.')
             # Open output file
             handle = open(target, 'w')  # noqa: SIM115
 

@@ -17,7 +17,7 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
     acting as a source, negative when it acts like a sink. In other words, it
     is defined as an outward current.
 
-    The membrane potential must be labelled as ``membrane_potential``.
+    The membrane potential must be labeled as ``membrane_potential``.
 
     By default, the simulation is set to log all state variables. This is nice
     to explore results with, but quite slow...
@@ -47,11 +47,11 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
 
         # Check if model has binding to diffusion_current
         if model.binding('diffusion_current') is None:
-            raise ValueError('No variable bound to `diffusion_current`.')
+            raise ValueError('No variable bound to "diffusion_current".')
 
         # Check if model has label membrane_potential
         if model.label('membrane_potential') is None:
-            raise ValueError('No variable labelled `membrane_potential`.')
+            raise ValueError('No variable labeled "membrane_potential".')
 
         # Clone model, and adapt to inf-tau form if in RL mode
         rl_states = {}
@@ -84,7 +84,7 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
         # Reserve keywords
         model.reserve_unique_names(*keywords)
         model.reserve_unique_names(
-            *['calc_' + c.name() for c in model.components()])
+            *[f'calc_{c.name()}' for c in model.components()])
         model.reserve_unique_names(
             'cid',
             'dt',

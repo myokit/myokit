@@ -5,7 +5,7 @@ DataBlock Viewer
 ****************
 
 Viewer for :class:`myokit.DataBlock1d` or :class:`myokit.DataBlock2d` objects.
-Allows loading blocks from disk, and then visualising as interactive movies.
+Allows loading blocks from disk, and then visualizing as interactive movies.
 Any point in the movie can be clicked to obtain the local action potential (or
 other variables).
 

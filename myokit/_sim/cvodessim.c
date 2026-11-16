@@ -225,7 +225,7 @@ check_cvode_flag(int flag)
 #if SUNDIALS_VERSION_MAJOR >= 7
 /*
  * Check sundials error code (Sundials 7 and above)
- *  sunerr   : The SunErroCode to check
+ *  sunerr   : The SUNErrCode to check
  *  funcname : The name of the function that returned the flag
  */
 int
@@ -269,7 +269,7 @@ ErrorHandler(int error_code, const char *module, const char *function,
 #endif
 
 /*
- * Initialisation status.
+ * Initialization status.
  * Proper sequence is init(), repeated step() calls till finished, then clean.
  */
 int initialized = 0; /* Has the simulation been initialized */
@@ -339,7 +339,7 @@ N_Vector* sz;
 N_Vector ylast;
 
 /*
- * Customisable constants, passed in from Python
+ * Customizable constants, passed in from Python
  */
 PyObject* literals;     /* A list of literal constant values */
 PyObject* parameters;   /* A list of parameter values */
@@ -594,7 +594,7 @@ sim_clean(void)
         #endif
         Py_XDECREF(benchmarker_time_str); benchmarker_time_str = NULL;
 
-        /* Deinitialisation complete */
+        /* Deinitialization complete */
         initialized = 0;
     }
 
@@ -772,7 +772,7 @@ sim_init(PyObject *self, PyObject *args)
        themselves are destructed.
        This _only_ holds for the SetItem functions, and _only_ for list and
        tuple.
-       The reasonining behind this is that it's a very common scenario for
+       The reasoning behind this is that it's a very common scenario for
        populating lists and tuples.
     4. PyList_GetItem and PyTuple_GetItem are exceptions to the rule: they
        return a "borrowed" reference to an item. This means you should never
@@ -1459,7 +1459,7 @@ sim_step(PyObject *self, PyObject *args)
     /*
      * Set start time for logging of realtime.
      * This is handled here instead of in sim_init so it only includes time
-     * taken performing steps, not time initialising memory etc.
+     * taken performing steps, not time initializing memory etc.
      */
     if (log_realtime && realtime_start == 0) {
         realtime_start = benchmarker_realtime();
@@ -1995,7 +1995,7 @@ sim_evaluate_derivatives(PyObject *self, PyObject *args)
         /* PyList_SetItem steals a reference: no need to decref the double! */
     }
 
-    /* Finished succesfully, free memory and return */
+    /* Finished successfully, free memory and return */
     success = 1;
 error:
     /* Free model space */

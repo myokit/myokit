@@ -33,7 +33,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
             elif isinstance(lhs, myokit.InitialValue):
                 return v + r'(\text{' + self._time + '} = 0)'
             else:   # pragma: no cover
-                raise ValueError(f'Unsupported LHS type {type(lhs)}')  # noqa: TRY004
+                raise ValueError(f'Unsupported LHS type {type(lhs)}.')  # noqa: TRY004
 
         self._flhs = None
         self.set_lhs_function(flhs)
@@ -55,7 +55,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
 
     def eq(self, eq):
         """ See :meth:`myokit.formats.ExpressionWriter.eq()`. """
-        return self.ex(eq.lhs) + ' = ' + self.ex(eq.rhs)
+        return f'{self.ex(eq.lhs)} = {self.ex(eq.rhs)}'
 
     def ex(self, e):
         """ See :meth:`myokit.formats.ExpressionWriter.ex()`. """
@@ -64,14 +64,14 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         return ''.join(b)
 
     def _prepare_name(self, text):
-        """ Sanitises a name for use in latex. """
+        """ Sanitizes a name for use in latex. """
         return str(text).replace('_', r'\_')
 
     def _ex(self, e, b):
         try:
             action = self._op_map[type(e)]
         except KeyError:
-            raise ValueError('Unknown expression type: ' + str(type(e)))
+            raise ValueError(f'Unknown expression type: {type(e)}.')
         action(e, b)
 
     def _ex_prefix(self, e, b, op):
@@ -263,9 +263,9 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         self._ex_infix_condition(e, b, r'\or')
 
     def _ex_if(self, e, b):
-        # Not suported
+        # Not supported
         self._ex_function(e, b, r'\text{if}')
 
     def _ex_piecewise(self, e, b):
-        # Not suported
+        # Not supported
         self._ex_function(e, b, r'\text{piecewise}')

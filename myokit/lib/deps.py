@@ -104,7 +104,7 @@ def plot_state_dependency_matrix(
 
     Variables can be "knocked out" by adding them to the list in the
     ``knockout`` parameter. If x depends on y and y depends on z, knocking out
-    y will prevent the method from findind x's dependency on z.
+    y will prevent the method from finding x's dependency on z.
 
     Returns a matplotlib axes object.
     """
@@ -229,10 +229,10 @@ class DiGraph:
             node = Node(node)
         uid = node.uid
         if uid in self.nodes:
-            raise ValueError('Duplicate node id: "' + str(node) + '"')
+            raise ValueError(f'Duplicate node id: "{node}"')
         if node.graph is not None and node.graph != self:
             raise ValueError(
-                'Node already in another graph: "' + str(node) + '"')
+                f'Node already in another graph: "{node}"')
         self.nodes[uid] = node
         node.graph = self
         return node
@@ -250,7 +250,7 @@ class DiGraph:
         n = len(matrix)
         for row in matrix:
             if len(row) != n:
-                raise ValueError('Matrix must be n by n')
+                raise ValueError('Matrix must be n by n.')
         if edges_only:
             # Test if matrix size is same as current graph
             if n != len(self.nodes):
@@ -355,7 +355,7 @@ class DiGraph:
         nodes.
 
         [1] An algorithm for finding a minimal equivalent graph of a digraph.
-            Harry T. Hsu (1975) Journal of the Assoclatlon for Computing
+            Harry T. Hsu (1975) Journal of the Association for Computing
             Machinery, Vol 22, No. 1, January 1975, pp 11-16
         """
         m = self.path_matrix()
@@ -393,7 +393,7 @@ class DiGraph:
         Returns the node with this id
         """
         if uid not in self.nodes:
-            raise ValueError('Node not found: "' + str(uid) + '"')
+            raise ValueError(f'Node not found: "{uid}"')
         return self.nodes[uid]
 
     def path_matrix(self):
@@ -427,10 +427,9 @@ class DiGraph:
             if self.nodes:
                 out = []
                 for node in self.nodes.values():
-                    out.append('Node "' + str(node) + '"')
+                    out.append(f'Node "{node}"')
                     for edge in node.edgo:
-                        out.append('  > Node "' + str(edge) + '"')
-                    #out.append('')
+                        out.append(f'  > Node "{edge}"')
                 return '\n'.join(out)
             else:
                 return 'Empty graph'
@@ -528,7 +527,7 @@ class DiGraph:
         if not isinstance(test, Node):
             return self.node(test)
         if test.graph != self:
-            raise ValueError('Node from another graph: "' + str(test) + '"')
+            raise ValueError(f'Node from another graph: "{test}"')
         assert (test.uid in self.nodes and self.nodes[test.uid] == test)
         return test
 
@@ -733,7 +732,7 @@ def create_variable_dependency_graph(model):
         # Set node label
         node.label = lhs.var().qname()
         if type(lhs) is myokit.Derivative:
-            node.label = 'd(' + node.label + ')'
+            node.label = f'd({node.label})'
         # Set color
         node.rgba = (random.random(), random.random(), random.random(), 0.9)
     # Create edges

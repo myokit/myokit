@@ -137,9 +137,9 @@ def _create(path):
         # All windowses
         c64 = 'C:\\Program Files\\'
         config.set('opencl', 'lib', ';'.join([
-            c64 + 'Intel\\OpenCL SDK\\6.3\\lib\\x64',
-            c64 + 'AMD APP SDK\\2.9\\bin\\x64',
-            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v11.8\\lib\\x64',
+            f'{c64}Intel\\OpenCL SDK\\6.3\\lib\\x64',
+            f'{c64}AMD APP SDK\\2.9\\bin\\x64',
+            f'{c64}NVIDIA GPU Computing Toolkit\\CUDA\\v11.8\\lib\\x64',
         ]))
     else:
         # Linux and mac
@@ -178,7 +178,7 @@ def _create(path):
         with open(path, 'w') as configfile:
             config.write(configfile)
     except OSError:  # pragma: no cover
-        warnings.warn('Warning: Unable to write settings to ' + str(path))
+        warnings.warn(f'Warning: Unable to write settings to {path}.')
 
 
 def _load():

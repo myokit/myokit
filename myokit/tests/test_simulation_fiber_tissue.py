@@ -198,20 +198,20 @@ class FiberTissueSimulationTest(unittest.TestCase):
         self.assertEqual(len(logf), 1 + 2 * nfx * nfy)
         self.assertIn('engine.time', logf)
         self.assertIn('0.0.membrane.V', logf)
-        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.membrane.V', logf)
+        self.assertIn(f'{nfx - 1}.{nfy - 1}.membrane.V', logf)
         self.assertIn('0.0.isi.isiCa', logf)
-        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.isi.isiCa', logf)
+        self.assertIn(f'{nfx - 1}.{nfy - 1}.isi.isiCa', logf)
 
         self.assertEqual(len(logt), 3 * ntx * nty)
         self.assertIn('0.0.membrane.V', logt)
-        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.membrane.V', logt)
+        self.assertIn(f'{ntx - 1}.{nty - 1}.membrane.V', logt)
         self.assertIn('0.0.ica.Ca_i', logt)
-        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.Ca_i', logt)
+        self.assertIn(f'{ntx - 1}.{nty - 1}.ica.Ca_i', logt)
         self.assertIn('0.0.ica.ICa', logt)
-        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.ICa', logt)
+        self.assertIn(f'{ntx - 1}.{nty - 1}.ica.ICa', logt)
 
     def test_creation(self):
-        # Tests fiber tisue simulation creation
+        # Tests fiber tissue simulation creation
         mf, mt, p = self.mf, self.mt, self.p
         FT = myokit.FiberTissueSimulation
 
@@ -814,7 +814,7 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
         cls.p3 = myokit.Protocol()
         cls.p3.schedule(period=0, duration=5, level=-1, start=1.234)
         v = cls.mt.get('ina.m')
-        v.set_rhs('if(membrane.V < -100, 1e4, ' + v.rhs().code() + ')')
+        v.set_rhs(f'if(membrane.V < -100, 1e4, {v.rhs().code()})')
 
         # Shared simulations
         cls._s1 = None

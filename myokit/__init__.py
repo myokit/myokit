@@ -85,7 +85,7 @@ del pathlib, _home
 # Ensure the user config directory exists and is a directory
 if DIR_USER.exists():
     if not DIR_USER.is_dir():  # pragma: no cover
-        raise Exception(f'Non-directory found at {DIR_USER}')
+        raise Exception(f'Non-directory found at {DIR_USER}.')
 elif DIR_USER_OLD.exists():  # pragma: no cover
     # Old user directory exists: move it to the new location
     import shutil

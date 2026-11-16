@@ -53,7 +53,7 @@ For convenience, the most important commands are listed here:
     arguments to obtain the current limits.
 
 ``legend()``
-    Using plot(x,y,label='abc') you can create labelled plots. The ``legend()``
+    Using plot(x,y,label='abc') you can create labeled plots. The ``legend()``
     commands will use these to build a legend.
 
     The legend's location can be set with the ``loc`` keyword and string values

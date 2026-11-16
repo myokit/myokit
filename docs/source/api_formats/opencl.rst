@@ -10,7 +10,7 @@ and a quick plot script is included.
 Notes:
 
   - The generated code requires OpenCL enabled drivers for the GPU or CPU
-    it's runnning on to be pre-installed, as well as an implementation of the
+    it's running on to be pre-installed, as well as an implementation of the
     OpenCL libraries. These can be downloaded from various hardware
     manufacturers' websites.
 

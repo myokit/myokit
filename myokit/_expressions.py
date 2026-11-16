@@ -121,7 +121,7 @@ class Expression:
         """
         Returns this expression formatted in ``mmt`` syntax.
 
-        When :class:`Name` objects are encountered, the fullly qualified name
+        When :class:`Name` objects are encountered, the fully qualified name
         of the :class:`myokit.Variable` that they refer to is rendered, with
         the following exceptions:
 
@@ -767,7 +767,7 @@ class Expression:
         if isinstance(self, myokit.Condition):
             me = 'initial value' if is_init else 'right-hand side'
             raise myokit.IntegrityError(
-                f'The {me} expression for <{var.qname()}> should not be a'
+                f'The {me} expression for "{var.qname()}" should not be a'
                 ' condition.')
 
         # Any dot() operators refer to a state variable
@@ -775,9 +775,9 @@ class Expression:
             me = 'initial value' if is_init else 'right-hand side'
             if not ex._op._value.is_state():
                 raise myokit.IntegrityError(
-                    f'The {me} expression for <{var.qname()}> contains a'
+                    f'The {me} expression for "{var.qname()}" contains a'
                     ' reference to the time-derivative of a non-state variable'
-                    f' <{ex.code()}>.')
+                    f' "{ex.code()}".')
 
         # Any LhsExpressions are proper
         for ex in self._references:
@@ -785,16 +785,16 @@ class Expression:
                 me = 'initial value' if is_init else 'right-hand side'
                 if isinstance(ex, PartialDerivative):
                     raise myokit.IntegrityError(
-                        f'The {me} expression for <{var.qname()}> contains a'
-                        f' reference to a PartialDerivative <{ex.code()}>.')
+                        f'The {me} expression for "{var.qname()}" contains a'
+                        f' reference to a PartialDerivative "{ex.code()}".')
                 elif isinstance(ex, InitialValue):
                     raise myokit.IntegrityError(
-                        f'The {me} expression for <{var.qname()}> contains a'
-                        f' reference to an InitialValue <{ex.code()}>.')
+                        f'The {me} expression for "{var.qname()}" contains a'
+                        f' reference to an InitialValue "{ex.code()}".')
                 else:
                     raise myokit.IntegrityError(
-                        f'The {me} expression for <{var.qname()}> contains a'
-                        f' reference to a non-variable <{ex.code()}>.')
+                        f'The {me} expression for "{var.qname()}" contains a'
+                        f' reference to a non-variable "{ex.code()}".')
 
     # This is a relatively slow operation. Do _not_ use in performance
     # sensitive parts of the expression system code.
@@ -911,7 +911,7 @@ class Number(Expression):
             self._str = '-infinity'
         # nan is fine
         if self._unit and self._unit != myokit.units.dimensionless:
-            self._str += ' ' + str(self._unit)
+            self._str += f' {self._unit}'
 
     def bracket(self, op=None):
         """See :meth:`Expression.bracket()`."""
@@ -1042,7 +1042,7 @@ class Name(LhsExpression):
 
         # Is this a "real" Name, or a different application of the expression
         # system (e.g. strings for debugging, or CellML vars). Not the idea of
-        # improper names is not a publicised bit of the API.
+        # improper names is not a publicized bit of the API.
         self._proper = isinstance(self._value, myokit.Variable)
 
     def bracket(self, op=None):
@@ -1251,7 +1251,7 @@ class Derivative(LhsExpression):
         # Get numerator (never None in strict mode)
         unit1 = self._op._eval_unit(mode)
 
-        # Get denomenator
+        # Get denominator
         unit2 = \
             myokit.units.dimensionless if mode == myokit.UNIT_STRICT else None
         if self._proper:
@@ -2129,7 +2129,8 @@ class Function(Expression):
                 exp = ' or '.join([str(x) for x in self._nargs])
                 raise myokit.IntegrityError(
                     f'Function ({self._fname}) created with wrong number of'
-                    f' arguments ({len(ops)}, expecting {exp}).', self._token)
+                    f' arguments: got {len(ops)}, expecting {exp}.',
+                    self._token)
 
     def bracket(self, op=None):
         """See :meth:`Expression.bracket()`."""
@@ -2627,7 +2628,7 @@ class Floor(UnaryNumericalFunction):
 
 class Ceil(UnaryNumericalFunction):
     """
-    Represents a rounding towards positve infinity ``ceil(x)``.
+    Represents a rounding towards positive infinity ``ceil(x)``.
 
     >>> from myokit import *
     >>> x = Ceil(Number(5.2))
@@ -2786,7 +2787,7 @@ class If(Function):
 
         # Mismatching units
         raise EvalUnitError(
-            self, 'Units of `then` and `else` part of an `if` must match.'
+            self, 'Units of "then" and "else" part of an "if" must match.'
             f' Got {unit2} and {unit3}.')
 
     def is_conditional(self):
@@ -2830,7 +2831,7 @@ class Piecewise(Function):
 
     This will return ``5 * V + 100`` for any value smaller than 10, ``6 * V``
     for any value greater or equal to 10 but smaller than 20, and ``7 * V`` for
-    any values greather than or equal to 20.
+    any values greater than or equal to 20.
 
     *Extends:* :class:`Function`
     """

@@ -132,7 +132,7 @@ class DataLog(collections.OrderedDict):
         Calculates one or more Action Potential Durations (APDs) in a single
         cell's membrane potential.
 
-        *Note 1: More accuracte APD measurements can be obtained using the*
+        *Note 1: More accurate APD measurements can be obtained using the*
         :class:`Simulation` *object's APD tracking functionality. See*
         :meth:`Simulation.run()` *for details.*
 
@@ -191,7 +191,7 @@ class DataLog(collections.OrderedDict):
         for time, slope in crossings(t, v, threshold):
             if slope < 0:
                 # End of AP
-                if last != t[0]:    # Don't inlcude AP started before t[0]
+                if last != t[0]:    # Don't include AP started before t[0]
                     apds['start'].append(last)
                     apds['duration'].append(time - last)
             last = time
@@ -494,7 +494,7 @@ class DataLog(collections.OrderedDict):
         ``['0.membrane.V', '1.membrane.V', '2.membrane,V', ...]``, or
         ``['0.0.membrane.V', '0.1.membrane.V', '1.0.membrane,V', ...]``.
         """
-        keys = [x for x in self.keys() if x.endswith('.' + str(query))]
+        keys = [x for x in self.keys() if x.endswith(f'.{query}')]
         keys.sort()
         return keys
 
@@ -530,7 +530,7 @@ class DataLog(collections.OrderedDict):
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Get size of single and double types on this machine
         dsize = {
@@ -606,7 +606,7 @@ class DataLog(collections.OrderedDict):
                 meta = json.loads(meta)
             except json.JSONDecodeError as e:   # pragma: no cover
                 raise myokit.DataLogReadError(
-                    f'Invalid meta data JSON file: {e}.')
+                    f'Invalid meta data JSON file: {e}')
             DataLog._load_meta_json(meta, log)
 
         # Get size of each entry on disk
@@ -676,10 +676,9 @@ class DataLog(collections.OrderedDict):
         # Error raising function
         def e(line, char, msg):
             raise myokit.DataLogReadError(
-                'Syntax error on line ' + str(line) + ', character '
-                + str(1 + char) + ': ' + msg)
+                f'Syntax error on line {line}, character {1 + char}: {msg}')
 
-        # Detect Microsoft's annyoing utf-8-sig encoding
+        # Detect Microsoft's annoying utf-8-sig encoding
         # Note: We have to perform the first read in utf-8 mode, because the
         # default encoding on windows will turn the BOM into a different set of
         # characters, so that f.read(1) won't actually equal \ufeff
@@ -751,7 +750,7 @@ class DataLog(collections.OrderedDict):
                                     run2 = False
                                 else:
                                     e(1, i, 'Expecting double quote, delimiter'
-                                        ' or end-of-line. Found "' + c + '".')
+                                            f' or end-of-line. Found "{c}".')
                             except StopIteration:
                                 run1 = run2 = False
                         else:
@@ -839,9 +838,8 @@ class DataLog(collections.OrderedDict):
                 n += 1
                 if len(row) != m:
                     e(
-                        n, 0, 'Wrong number of columns found in row '
-                        + str(n) + '. Expecting ' + str(m) + ', found '
-                        + str(len(row)) + '.')
+                        n, 0, f'Wrong number of columns found in row {n}.'
+                              f' Expecting {m}, found {len(row)}.')
                 try:
                     for k, v in enumerate(row):
                         lists[k].append(float(v))
@@ -989,7 +987,7 @@ class DataLog(collections.OrderedDict):
         # Deprecated since 2023-06-06
         import warnings
         warnings.warn(
-            'The method `regularize` is deprecated and will be removed in'
+            'The method "regularize()" is deprecated and will be removed in'
             ' future versions of Myokit.')
 
         from scipy.interpolate import UnivariateSpline as Spline
@@ -1056,7 +1054,7 @@ class DataLog(collections.OrderedDict):
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the `zlib` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Data type
         dtype = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
@@ -1077,7 +1075,7 @@ class DataLog(collections.OrderedDict):
         enc = 'utf8'
         for k, v in self.items():
             head_str.append(k)
-            # Create array, ensure it's litte-endian
+            # Create array, ensure it's little-endian
             ar = array.array(dtype, v)
             if sys.byteorder == 'big':  # pragma: no cover
                 ar.byteswap()
@@ -1180,7 +1178,7 @@ class DataLog(collections.OrderedDict):
                 order = [str(x) for x in order]
                 if set(order) != set(self.keys()):
                     raise ValueError(
-                        'The given `order` sequence must contain all the same'
+                        'The given "order" sequence must contain all the same'
                         ' keys present in the log.')
                 keys = order
                 data = [self[x] for x in keys]
@@ -1315,7 +1313,7 @@ class DataLog(collections.OrderedDict):
         # Check period
         period = float(period)
         if period <= 0:
-            raise ValueError('Period must be greater than zero')
+            raise ValueError('Period must be greater than zero.')
 
         # Get start, end, etc
         tmin = 0    # time[0]
@@ -1408,8 +1406,7 @@ class DataLog(collections.OrderedDict):
                 raise myokit.InvalidDataLogError('No time variable set.')
             else:
                 raise myokit.InvalidDataLogError(
-                    'Invalid key <' + str(self._time)
-                    + '> set for time variable.')
+                    f'Invalid key "{self._time}" set for time variable.')
 
     def time_key(self):
         """
@@ -1467,8 +1464,8 @@ class DataLog(collections.OrderedDict):
         if self._time:
             if self._time not in self:
                 raise myokit.InvalidDataLogError(
-                    'Time variable <' + str(self._time)
-                    + '> specified but not found in log.')
+                    f'Time variable "{self._time}" specified but not found'
+                    ' in log.')
             dt = np.asarray(self[self._time])
             if np.any(dt[1:] - dt[:-1] < 0):
                 raise myokit.InvalidDataLogError(
@@ -1490,7 +1487,7 @@ class DataLog(collections.OrderedDict):
         - Per variable, the data must have a consistent dimensionality. For
           example having a key ``0.membrane.V`` and a key ``1.1.membrane.V``
           would violate this constraint.
-        - Per variable, the data must be regular accross dimensions. For
+        - Per variable, the data must be regular across dimensions. For
           example if there are ``n`` entries ``0.x.membrane.V``, and there are
           also entries of the form ``1.x.membrane.V`` then the values of ``x``
           must be the same for both cases.
@@ -1543,8 +1540,8 @@ class DataLog(collections.OrderedDict):
                 key1 = '.'.join([str(x) for x in id_list[0]]) + '.' + name
                 key2 = '.'.join([str(x) for x in idx]) + '.' + name
                 raise RuntimeError(
-                    'Different dimensions used for the same variable. Found: <'
-                    + key1 + '> and <' + key2 + '>.')
+                    'Different dimensions used for the same variable.'
+                    f' Found: "{key1}" and "{key2}".')
 
             # Update the id list
             id_list.append(idx)
@@ -1566,7 +1563,7 @@ class DataLog(collections.OrderedDict):
 
             if n != m:
                 raise RuntimeError(
-                    'Irregular data used for variable <' + str(name) + '>')
+                    f'Irregular data used for variable "{name}".')
 
             # Create variable info object
             infos[name] = info = LoggedVariableInfo()
@@ -1580,7 +1577,7 @@ class DataLog(collections.OrderedDict):
             info._ids = id_list
 
             # Add sorted keys
-            s = '.' + name if id_list[0] else name
+            s = f'.{name}' if id_list[0] else name
             info._keys = ['.'.join([str(x) for x in y]) + s for y in id_list]
 
         return infos
@@ -1699,7 +1696,7 @@ class LoggedVariableInfo:
         This would return ``(2,3)``.
 
         Similarly, in a single cell scenario or for global variables, for
-        exmaple::
+        example::
 
             engine.time
 
@@ -1715,10 +1712,10 @@ class LoggedVariableInfo:
 
     def to_long_string(self):   # pragma: no cover (debug function)
         out = [self._name]
-        out.append('  dimension: ' + str(self._dimension))
+        out.append(f'  dimension: {self._dimension}')
         out.append('  size: ' + ', '.join([str(x) for x in self._size]))
         out.append('  keys:')
-        out.extend(['    ' + x for x in self._keys])
+        out.extend([f'    {x}' for x in self._keys])
         return '\n'.join(out)
 
 
@@ -1738,15 +1735,15 @@ class ColumnMetaData(dict):
                 s.__setitem__(key, myokit.MetaDataContainer(value))
         elif other is not None:
             raise ValueError(
-                'Argument `other` must be a ColumnMetaData or None.')
+                'Argument "other" must be a ColumnMetaData or None.')
 
     def __delitem__(self, key):
         raise ValueError(
-            'Entries in column meta data should be managed by a DataLog')
+            'Entries in column meta data should be managed by a DataLog.')
 
     def __setitem__(self, key, value):
         raise ValueError(
-            'Entries in column meta data should be managed by a DataLog')
+            'Entries in column meta data should be managed by a DataLog.')
 
     def _add(self, key):
         super().__setitem__(key, myokit.MetaDataContainer())
@@ -1846,7 +1843,7 @@ def prepare_log(
                 v = model.get(var)
             except KeyError:
                 raise ValueError(
-                    f'Unknown variable specified in global_vars <{var}>.')
+                    f'Unknown variable specified in global_vars "{var}".')
             if v.is_state():
                 raise ValueError('State cannot be global variable.')
 
@@ -1854,18 +1851,18 @@ def prepare_log(
     def check_if_allowed_class(var):
         if var.is_constant():
             raise ValueError(
-                f'This log does not support constants, got <{var}>.')
+                f'This log does not support constants, got "{var}".')
         elif var.is_state():
             if not myokit.LOG_STATE & allowed_classes:
                 raise ValueError(
-                    f'This log does not support state variables, got <{var}>.')
+                    f'This log does not support state variables, got "{var}".')
         elif var.is_bound():
             if not myokit.LOG_BOUND & allowed_classes:
                 raise ValueError(
-                    f'This log does not support bound variables, got <{var}>.')
+                    f'This log does not support bound variables, got "{var}".')
         elif not myokit.LOG_INTER & allowed_classes:
             raise ValueError('This log does not support intermediary'
-                             f' variables, got <{var}>.')
+                             f' variables, got "{var}".')
 
     # Function to add meta data about variables
     def add_meta(log, key, var, time_unit=None):
@@ -1888,7 +1885,7 @@ def prepare_log(
         else:
             # This one's only for programmers :-)
             raise ValueError(
-                'The option given for `if_empty` should be an allowed class.')
+                'The option given for "if_empty" should be an allowed class.')
 
     #
     # Second option, log given as integer flag: create a simulation log and
@@ -2023,16 +2020,16 @@ def prepare_log(
             try:
                 var = model.get(kname)
             except KeyError:
-                raise ValueError(f'Unknown variable <{kname}> in log.')
+                raise ValueError(f'Unknown variable "{kname}" in log.')
 
             # Check if in class of allowed variables
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
                     raise ValueError(
-                        f'This log does not support derivatives, got <{key}>.')
+                        f'This log does not support derivatives, got "{key}".')
                 if not var.is_state():
                     raise ValueError('Cannot log time derivative of non-state'
-                                     f' <{var.qname()}>.')
+                                     f' "{var.qname()}".')
             else:
                 check_if_allowed_class(var)
 
@@ -2042,18 +2039,18 @@ def prepare_log(
                 # Raise error if global
                 if kname in global_vars:
                     raise ValueError('Cannot specify a cell index for global'
-                                     f' logging variable <{kname}>.')
+                                     f' logging variable "{kname}".')
 
                 # Test dim key
                 if kdims not in dcombos:
-                    raise ValueError(f'Invalid index <{kdims}> in log.')
+                    raise ValueError(f'Invalid index "{kdims}" in log.')
 
             elif dims:
 
                 # Raise error if non-global variable is used in multi-cell log
                 if kname not in global_vars:
                     raise ValueError('DataLog contains non-indexed entry for'
-                                     f' cell-specific variable <{kname}>.')
+                                     f' cell-specific variable "{kname}".')
 
         # Check dict values can be appended to
         m = 'append'
@@ -2075,10 +2072,10 @@ def prepare_log(
         if len(log) > 0:
             log[0]
     except Exception:
-        raise TypeError('Argument `log` has unexpected type. Expecting None,'
+        raise TypeError('Argument "log" has unexpected type. Expecting None,'
                         ' integer flag, sequence of names, dict or DataLog.')
     if isinstance(log, str):
-        raise TypeError('String passed in as `log` argument, should be list'
+        raise TypeError('String passed in as "log" argument, should be list'
                         ' or other sequence containing strings.')
 
     # Time variable and unit
@@ -2114,17 +2111,17 @@ def prepare_log(
             try:
                 var = model.get(kname)
             except KeyError:
-                raise ValueError(f'Unknown variable <{kname}> in list.')
+                raise ValueError(f'Unknown variable "{kname}" in list.')
 
             # Check if in class of allowed variables
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
                     raise ValueError(
-                        f'This log does not support derivatives, got <{key}>.')
+                        f'This log does not support derivatives, got "{key}".')
 
                 if not var.is_state():
                     raise ValueError('Cannot log time derivative of non-state'
-                                     f' <{var.qname()}>.')
+                                     f' "{var.qname()}".')
             else:
                 check_if_allowed_class(var)
             checked_knames[kname] = var
@@ -2135,11 +2132,11 @@ def prepare_log(
             # Raise error if global
             if kname in global_vars:
                 raise ValueError('Cannot specify a cell index for global'
-                                 f' logging variable <{kname}>.')
+                                 f' logging variable "{kname}".')
 
             # Test dim key
             if kdims not in dcombos:
-                raise ValueError(f'Invalid index <{kdims}> in list.')
+                raise ValueError(f'Invalid index "{kdims}" in list.')
 
             key = kdims + kname if not deriv else f'dot({kdims}{kname})'
             log[key] = array.array(typecode)
