@@ -5,6 +5,7 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
+import logging
 import os
 import platform
 import sys
@@ -208,6 +209,11 @@ class CModule:
             capture = not (myokit.DEBUG_SC or myokit.COMPAT_NO_CAPTURE)
             fd = not myokit.COMPAT_NO_FD_CAPTURE
             error, trace = None, None
+
+            # Undo changes to logging made by Setuptools
+            logger = logging.getLogger()
+            log_handlers, log_level = list(logger.handlers), logger.level
+
             with myokit.tools.capture(fd=fd, enabled=capture) as s:
                 try:
                     os.chdir(d_build)
@@ -219,6 +225,13 @@ class CModule:
                 except (Exception, SystemExit) as e:  # pragma: no cover
                     error = e
                     trace = traceback.format_exc()
+                finally:
+                    # Restore logging
+                    logger.setLevel(log_level)
+                    for handler in list(log_handlers.handlers):
+                        if handler not in log_handlers:
+                            logger.removeHandler(handler)
+
             if error is not None:  # pragma: no cover
                 t = ['Unable to compile.', 'Error message:']
                 t.append(str(error))
