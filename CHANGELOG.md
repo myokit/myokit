@@ -6,11 +6,13 @@ This page lists the main changes made to Myokit in each release.
 - Added
 - Changed
   - [#1244](https://github.com/myokit/myokit/pull/1244) `Model.validate()`, `Component.validate()` and `Variable.validate()` will now raise `AssertionError`s instead of `myokit.IntegrityError`s for issues that cannot arise in models manipulated through the model API.
+  - [#1257](https://github.com/myokit/myokit/pull/1257) Model validation status is now cached, making successive calls to `validate()` on a valid model much cheaper. `Model.solvable_order` and `Model.expressions_for` will now validate the model first, raising an `IntegrityError` if the equation ordering fails. 
 - Deprecated
   - [#1236](https://github.com/myokit/myokit/pull/1236) User-defined functions in models are deprecated.
   - [#1246](https://github.com/myokit/myokit/pull/1246) The method `Expression.validate()` no longer does anything, and is deprecated.
   - [#1246](https://github.com/myokit/myokit/pull/1246) The method `Expression.contains_type()` is deprecated. 
 - Removed
+  - [#1257](https://github.com/myokit/myokit/pull/1257) Removed the deprecated method `Model.inits()`.
 - Fixed
   - [#1250](https://github.com/myokit/myokit/pull/1250) Variables used by initial expressions are now marked as "used".
 
