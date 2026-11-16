@@ -228,7 +228,7 @@ class CModule:
                 finally:
                     # Restore logging
                     logger.setLevel(log_level)
-                    for handler in list(log_handlers.handlers):
+                    for handler in list(logger.handlers):
                         if handler not in log_handlers:
                             logger.removeHandler(handler)
 
