@@ -103,8 +103,10 @@ class AuxTest(unittest.TestCase):
         # Test the model comparison class.
 
         with WarningCollector():
-            m1 = myokit.load_model(DIR_DATA / 'beeler-1977-model-compare-a.mmt')
-            m2 = myokit.load_model(DIR_DATA / 'beeler-1977-model-compare-b.mmt')
+            m1 = myokit.load_model(
+                DIR_DATA / 'beeler-1977-model-compare-a.mmt')
+            m2 = myokit.load_model(
+                DIR_DATA / 'beeler-1977-model-compare-b.mmt')
 
         with myokit.tools.capture() as capture:
             c = myokit.ModelComparison(m1, m2, live=True)
