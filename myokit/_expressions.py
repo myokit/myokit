@@ -153,7 +153,7 @@ class Expression:
         """
         # Deprecated since 2026-11-11
         warnings.warn(
-            'The method Expression.validate() is deprecated and will be'
+            'The method Expression.contains_type() is deprecated and will be'
             ' removed in future versions of Myokit.')
 
         if isinstance(self, kind):
