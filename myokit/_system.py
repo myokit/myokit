@@ -36,14 +36,12 @@ def system(live_printing=False):
 
     # Basic system information
     out.append('== System information ==')
-    out.append('Myokit: ' + myokit.version(raw=True))
+    out.append(f'Myokit: {myokit.version(raw=True)}')
     ver = iter(sys.version.splitlines())
-    out.append('Python: ' + next(ver))
+    out.append(f'Python: {next(ver)}')
     out.extend([' ' * 8 + v for v in ver])
-    out.append(
-        'OS: ' + platform.system()
-        + ' (' + sys.platform + ', ' + os.name + ')')
-    out.append('    ' + platform.platform())
+    out.append(f'OS: {platform.system()} ({sys.platform}, {os.name})')
+    out.append(f'    {platform.platform()}')
     out.append('')
 
     # Python requirements
@@ -66,7 +64,7 @@ def system(live_printing=False):
 
     try:    # pragma: no cover
         from PyQt6.QtCore import QT_VERSION_STR
-        out.append('PyQt6: ' + QT_VERSION_STR)
+        out.append(f'PyQt6: {QT_VERSION_STR}')
         out.append('  Sip: ' + _module_version('sip'))
         del QT_VERSION_STR
     except ImportError:
@@ -74,7 +72,7 @@ def system(live_printing=False):
 
     try:    # pragma: no cover
         from PyQt5.QtCore import QT_VERSION_STR
-        out.append('PyQt5: ' + QT_VERSION_STR)
+        out.append(f'PyQt5: {QT_VERSION_STR}')
         out.append('  Sip: ' + _module_version('sip'))
         del QT_VERSION_STR
     except ImportError:
@@ -98,7 +96,7 @@ def system(live_printing=False):
         out.append('Sundials: Compiler not found')
         out.append('OpenCL: Compiler not found')
     else:
-        out.append('Compiler: ' + compiler)
+        out.append(f'Compiler: {compiler}')
         out.append('Sundials: ' + (myokit.Sundials.version() or 'Not found'))
 
         opencl = myokit.OpenCL()
@@ -108,10 +106,10 @@ def system(live_printing=False):
             devices = []
             for p in opencl.info().platforms:
                 for d in p.devices:
-                    devices.append(d.name + ' on ' + p.name)
-            out.append('OpenCL: ' + str(len(devices)) + ' device(s) found')
+                    devices.append(f'{d.name} on {p.name}')
+            out.append(f'OpenCL: {len(devices)} device(s) found')
             for d in devices:
-                out.append('  ' + d)
+                out.append(f'  {d}')
             out.append('  Use `python -m myokit opencl` for more information.')
 
     if not live_printing:

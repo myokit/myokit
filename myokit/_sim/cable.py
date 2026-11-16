@@ -171,7 +171,7 @@ class Simulation1d(myokit.CModule):
             raise ValueError(
                 'This simulation requires a variable to be bound to'
                 ' "diffusion_current" to pass current from one cell to the'
-                ' next')
+                ' next.')
 
         # Set state and default state
         self._state = self._model.initial_values(True) * ncells
@@ -179,8 +179,7 @@ class Simulation1d(myokit.CModule):
 
         # Unique simulation id
         Simulation1d._index += 1
-        module_name = 'myokit_sim1d_' + str(Simulation1d._index)
-        module_name += '_' + str(myokit.pid_hash())
+        module_name = f'myokit_sim1d_{Simulation1d._index}_{myokit.pid_hash()}'
 
         # Arguments
         args = {

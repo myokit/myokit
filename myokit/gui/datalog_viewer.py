@@ -1038,7 +1038,7 @@ class TxtTab(GraphTabWidget):
             # Create tabs
             for k, column in enumerate(data):
                 tab = self.create_graph_tab(time, data)
-                self.addTab(tab, 'series ' + str(1 + k))
+                self.addTab(tab, f'series {1 + k}')
         else:
             # Nothing that can be used? Show error
             QtWidgets.QMessageBox.critical(

@@ -129,9 +129,9 @@ class LinearModelTest(unittest.TestCase):
         # Set bad config, but with columns still summing to zero
         m2.get('ina.C3').set_rhs('ina.C1')
         x = m2.get('ina.C2')
-        x.set_rhs(str(x.rhs()) + '+ a12 * C2 + - b12 * C1')
+        x.set_rhs(f'{x.rhs()}+ a12 * C2 + - b12 * C1')
         x = m2.get('ina.C1')
-        x.set_rhs(str(x.rhs()) + ' - ina.C1')
+        x.set_rhs(f'{x.rhs()} - ina.C1')
         self.assertRaisesRegex(
             markov.LinearModelError, 'not vice versa',
             markov.LinearModel, m2, states, parameters, current)
@@ -147,7 +147,7 @@ class LinearModelTest(unittest.TestCase):
         # Derivatives per column don't sum to zero
         m2 = model.clone()
         x = m2.get(states[0])
-        x.set_rhs('2 * ' + str(x.rhs()))
+        x.set_rhs(f'2 * {x.rhs()}')
         self.assertRaisesRegex(
             markov.LinearModelError, 'sum to non-zero',
             markov.LinearModel, m2, states, parameters, current)
@@ -157,8 +157,8 @@ class LinearModelTest(unittest.TestCase):
         x = m2.get(states[0])
         y = m2.get(states[1])
         # Set rhs to something non-linear, make sure columns still sum to 0
-        x.set_rhs(str(x.rhs()) + ' + C1^2')
-        y.set_rhs(str(y.rhs()) + ' - C1^2')
+        x.set_rhs(f'{x.rhs()} + C1^2')
+        y.set_rhs(f'{y.rhs()} - C1^2')
         self.assertRaisesRegex(
             markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)

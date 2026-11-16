@@ -32,7 +32,7 @@ class CModelTest(unittest.TestCase):
 
         # Bad type
         sens = 'Bad type'
-        with self.assertRaisesRegex(ValueError, 'The argument `sensitivities'):
+        with self.assertRaisesRegex(ValueError, 'The argument "sensitivities"'):
             myokit.CModel(self.model, self.pacing_labels, sens)
 
         # Empty deps or indeps

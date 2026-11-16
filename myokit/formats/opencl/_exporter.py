@@ -47,11 +47,11 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
 
         # Check if model has binding to diffusion_current
         if model.binding('diffusion_current') is None:
-            raise ValueError('No variable bound to `diffusion_current`.')
+            raise ValueError('No variable bound to "diffusion_current".')
 
         # Check if model has label membrane_potential
         if model.label('membrane_potential') is None:
-            raise ValueError('No variable labelled `membrane_potential`.')
+            raise ValueError('No variable labelled "membrane_potential".')
 
         # Clone model, and adapt to inf-tau form if in RL mode
         rl_states = {}
@@ -84,7 +84,7 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
         # Reserve keywords
         model.reserve_unique_names(*keywords)
         model.reserve_unique_names(
-            *['calc_' + c.name() for c in model.components()])
+            *[f'calc_{c.name()}' for c in model.components()])
         model.reserve_unique_names(
             'cid',
             'dt',

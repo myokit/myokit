@@ -99,7 +99,7 @@ class ExportTest(unittest.TestCase):
         methods = [x for x in dir(self) if x[:5] == 'test_']
         for name in myokit.formats.exporters():
             name = name.replace('-', '_')
-            name = 'test_' + name + '_exporter'
+            name = f'test_{name}_exporter'
             self.assertIn(name, methods)
 
     def test_sbml_exporter(self):

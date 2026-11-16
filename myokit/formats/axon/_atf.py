@@ -84,7 +84,8 @@ class AtfFile:
         """ Returns this ATF's header/meta data. """
         # Deprecated since 2023-07-12
         warnings.warn(
-            'The method `info` is deprecated. Please use `meta_str` instead.')
+            'The method "info()" is deprecated. Please use "meta_str()"'
+            ' instead.')
         return self.meta_str()
 
     def items(self):
@@ -119,7 +120,8 @@ class AtfFile:
         """ Deprecated alias of :meth:`log`. """
         # Deprecated since 2023-06-22
         warnings.warn(
-            'The method `myokit_log` is deprecated. Please use `log` instead.')
+            'The method "myokit_log()" is deprecated. Please use "log()"'
+            ' instead.')
         return self.log()
 
     def path(self):
@@ -153,7 +155,7 @@ class AtfFile:
                 line_index += 1
                 if line[0] != '"' or line[-1] != '"':
                     raise Exception(
-                        f'Invalid header on line f{line_index}: expecting '
+                        f'Invalid header on line {line_index}: expecting'
                         f' lines wrapped in double quotes ("like this").')
                 line = line[1:-1].strip()
                 raw.append(line)
@@ -310,7 +312,7 @@ def save_atf(log, path=None, fields=None, *, filename=None):
             try:
                 data.append(iter(log[field]))
             except KeyError:
-                raise ValueError('Variable <' + field + '> not found in log.')
+                raise ValueError(f'Variable <{field}> not found in log.')
     else:
         for k, v in log.items():
             if k != time:
@@ -334,7 +336,7 @@ def save_atf(log, path=None, fields=None, *, filename=None):
 
     # Create header
     header = []
-    header.append(('myokit-version', 'Myokit ' + myokit.version(raw=True)))
+    header.append(('myokit-version', f'Myokit {myokit.version(raw=True)}'))
     header.append(('date-created', myokit.date()))
     header.append(('sampling-interval', dt_ref))
 
@@ -346,7 +348,7 @@ def save_atf(log, path=None, fields=None, *, filename=None):
     # Write file
     with open(path, 'wb') as f:
         # Write version number
-        f.write(('ATF 1.0' + eol).encode(_ENC))
+        f.write(f'ATF 1.0{eol}'.encode(_ENC))
 
         # Write number of header lines, number of fields
         f.write(f'{nh}{delim}{nf}{eol}'.encode(_ENC))

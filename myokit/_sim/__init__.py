@@ -225,7 +225,7 @@ class CModule:
                 t.append(trace)
                 t.append('Compiler output:')
                 captured = s.text().strip()
-                t.extend(['    ' + x for x in captured.splitlines()])
+                t.extend([f'    {x}' for x in captured.splitlines()])
                 raise myokit.CompilationError('\n'.join(t))
 
             # Import module
@@ -257,8 +257,8 @@ class CModule:
     def _debug_write(self, template, variables):  # pragma: no cover
         """ Processes ``template`` and writes the output to file. """
         self._debug_file_count += 1
-        fname = 'debug-' + str(self._debug_file_count) + '.c'
-        print('DEBUG: Writing generated code to ' + fname)
+        fname = f'debug-{self._debug_file_count}.c'
+        print(f'DEBUG: Writing generated code to {fname}')
         with open(fname, 'w') as f:
             f.write(self._export_inner(template, variables))
 
@@ -296,7 +296,7 @@ class CModule:
                 # temporary directory
                 if os.path.isdir(target):
                     raise OSError('Unable to create output file. A directory'
-                                  f' already exists at {target}')
+                                  f' already exists at {target}.')
             # Open output file
             handle = open(target, 'w')  # noqa: SIM115
 

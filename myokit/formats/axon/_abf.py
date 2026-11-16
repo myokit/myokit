@@ -736,7 +736,7 @@ class AbfFile(myokit.formats.SweepSource):
                             use = True
                             warnings.warn(
                                 f'Unsupported epoch type: {epoch_types[t]}:'
-                                ' converting to step')
+                                ' converting to step.')
                         elif t != EPOCH_DISABLED:  # pragma: no cover
                             use = False
                             warnings.warn(
@@ -1127,7 +1127,7 @@ class AbfFile(myokit.formats.SweepSource):
             if int_id < 0 or int_id >= self._n_dac:
                 raise IndexError(
                     f'output_id out of range: {output_id} ({self._n_dac}'
-                    ' channel(s) available)')
+                    ' channel(s) available).')
         return int_id
 
     def da(self, output_id, join_sweeps=False):

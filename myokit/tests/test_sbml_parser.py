@@ -43,12 +43,12 @@ class TestSBMLParser(unittest.TestCase):
         Wraps ``xml_content`` into an SBML document of the specified ``level``
         and ``version``.
         """
-        lv = 'level' + str(level) + '/version' + str(version)
+        lv = f'level{level}/version{version}'
         return (
-            '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
-            ' level="' + str(level) + '"'
-            ' version="' + str(version) + '">'
-            + xml_content +
+            f'<sbml xmlns="http://www.sbml.org/sbml/{lv}/core"'
+            f' level="{level}"'
+            f' version="{version}">'
+            f'{xml_content}'
             '</sbml>'
         )
 
@@ -60,8 +60,8 @@ class TestSBMLParser(unittest.TestCase):
 
         # Coinciding compartment and parameter ids
         xml = (
-            '<model id="test" '
-            'timeUnits="second">'
+            '<model id="test"'
+            ' timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someId"/>'
             '</listOfCompartments>'
@@ -73,8 +73,8 @@ class TestSBMLParser(unittest.TestCase):
 
         # Coinciding compartment and species ids
         xml = (
-            '<model id="test" '
-            'timeUnits="second">'
+            '<model id="test"'
+            ' timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someId"/>'
             '</listOfCompartments>'
@@ -88,8 +88,8 @@ class TestSBMLParser(unittest.TestCase):
 
         # Coinciding parameter and species ids
         xml = (
-            '<model id="test" '
-            'timeUnits="second">'
+            '<model id="test"'
+            ' timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -112,18 +112,18 @@ class TestSBMLParser(unittest.TestCase):
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
             '<listOfParameters>'
-            '<parameter id="' + stoich_id + '"/>'
+            f'<parameter id="{stoich_id}"/>'
             '</listOfParameters>'
             '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>'
+            '<species id="someSpecies" hasOnlySubstanceUnits="true"'
+            ' compartment="someComp" constant="false"'
+            ' boundaryCondition="false"/>'
             '</listOfSpecies>'
             '<listOfReactions>'
             '<reaction id="reaction">'
             '<listOfReactants>'
-            '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>'
+            '<speciesReference species="someSpecies"'
+            f' id="{stoich_id}"/>'
             '</listOfReactants>'
             '</reaction>'
             '</listOfReactions>'
@@ -138,18 +138,18 @@ class TestSBMLParser(unittest.TestCase):
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
             '<listOfParameters>'
-            '<parameter id="' + stoich_id + '"/>'
+            f'<parameter id="{stoich_id}"/>'
             '</listOfParameters>'
             '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>'
+            '<species id="someSpecies" hasOnlySubstanceUnits="true"'
+            ' compartment="someComp" constant="false"'
+            ' boundaryCondition="false"/>'
             '</listOfSpecies>'
             '<listOfReactions>'
             '<reaction id="reaction">'
             '<listOfProducts>'
-            '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>'
+            '<speciesReference species="someSpecies"'
+            f' id="{stoich_id}"/>'
             '</listOfProducts>'
             '</reaction>'
             '</listOfReactions>'
@@ -345,7 +345,7 @@ class TestSBMLParser(unittest.TestCase):
         # Function definitions are not supported
 
         xml = (
-            '<model id="test" name="test" timeUnits="second"> '
+            '<model id="test" name="test" timeUnits="second">'
             ' <listOfFunctionDefinitions>'
             '  <functionDefinition id="multiply" name="multiply">'
             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
@@ -748,11 +748,11 @@ class TestSBMLParser(unittest.TestCase):
 
         # Fast=true raises an error
         self.assertBad(
-            a + '<reaction id="r" fast="true" />' + e, 'not supported')
+            f'{a}<reaction id="r" fast="true" />{e}', 'not supported')
 
         # Reactions must have a valid id
-        self.assertBad(a + '<reaction />' + e, 'required attribute "id"')
-        self.assertBad(a + '<reaction id="" />' + e, 'Invalid SId')
+        self.assertBad(f'{a}<reaction />{e}', 'required attribute "id"')
+        self.assertBad(f'{a}<reaction id="" />{e}', 'Invalid SId')
 
         # Reactions must have a product or reactant
         x = ('<reaction id="r" />')
@@ -1452,16 +1452,16 @@ class TestSBMLParser(unittest.TestCase):
         # Test SBML 3.2 namespace
         level = 3
         version = 2
-        lv = 'level' + str(level) + '/version' + str(version)
+        lv = f'level{level}/version{version}'
         sbml_file = (
-            '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
-            ' level="' + str(level) + '"'
-            ' version="' + str(version) + '">'
-            + xml_content +
+            f'<sbml xmlns="http://www.sbml.org/sbml/{lv}/core"'
+            f' level="{level}"'
+            f' version="{version}">'
+            f'{xml_content}'
             '</sbml>')
 
         tag = 'sbml:compartment'
-        message = 'Element ' + tag + ' is missing required'
+        message = f'Element {tag} is missing required'
 
         self.assertRaisesRegex(
             SBMLParsingError, message, self.p.parse_string, sbml_file)

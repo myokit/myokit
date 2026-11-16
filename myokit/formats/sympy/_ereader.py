@@ -32,7 +32,7 @@ class SymPyExpressionReader:
             if isinstance(e, Number):
                 action = self._ex_number
             else:
-                raise ValueError('Unsupported type: ' + str(type(e)))  # noqa: TRY004
+                raise ValueError(f'Unsupported type: {type(e)}')  # noqa: TRY004
         return action(e)
 
     def set_model(self, model=None):

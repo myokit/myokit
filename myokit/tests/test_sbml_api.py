@@ -110,7 +110,7 @@ class TestCompartment(unittest.TestCase):
 
     def test_string_representation(self):
 
-        self.assertEqual(str(self.c), '<Compartment ' + self.sid + '>')
+        self.assertEqual(str(self.c), f'<Compartment {self.sid}>')
 
     def test_value(self):
 
@@ -401,7 +401,7 @@ class TestModel(unittest.TestCase):
         name = 'model'
         model = sbml.Model(name='model')
 
-        self.assertEqual(str(model), '<SBMLModel ' + name + '>')
+        self.assertEqual(str(model), f'<SBMLModel {name}>')
 
     def test_substance_units(self):
 
@@ -425,7 +425,7 @@ class TestModel(unittest.TestCase):
         time = model.time()
         turl = 'http://www.sbml.org/sbml/symbols/time'
         self.assertIsInstance(time, sbml.CSymbolVariable)
-        self.assertEqual(str(time), '<CSymbolVariable ' + turl + '>')
+        self.assertEqual(str(time), f'<CSymbolVariable {turl}>')
         self.assertEqual(time.definition_url(), turl)
 
     def test_time_units(self):
@@ -563,7 +563,7 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(self.p.sid(), self.sid)
 
     def test_string_representation(self):
-        self.assertEqual(str(self.p), '<Parameter ' + self.sid + '>')
+        self.assertEqual(str(self.p), f'<Parameter {self.sid}>')
 
     def test_units(self):
 
@@ -821,7 +821,7 @@ class TestReaction(unittest.TestCase):
         self.assertIsInstance(self.r.species(sid), sbml.Species)
 
     def test_string_representation(self):
-        self.assertEqual(str(self.r), '<Reaction ' + self.sid + '>')
+        self.assertEqual(str(self.r), f'<Reaction {self.sid}>')
 
 
 class TestSpecies(unittest.TestCase):
@@ -1021,7 +1021,7 @@ class TestSpecies(unittest.TestCase):
             compartment=self.c, sid=sid, is_amount=False, is_constant=False,
             is_boundary=False)
 
-        self.assertEqual(str(species), '<Species ' + sid + '>')
+        self.assertEqual(str(species), f'<Species {sid}>')
 
     def test_substance_units(self):
 
@@ -1250,7 +1250,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         m = sbml.Model(name=name)
         m = m.myokit_model()
 
-        self.assertEqual(m.name(), 'underscore' + name)
+        self.assertEqual(m.name(), f'underscore{name}')
 
     def test_notes(self):
 

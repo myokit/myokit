@@ -135,7 +135,7 @@ class PatchMasterFile:
                 path = filepath
             else:
                 raise ValueError(
-                    'The PatchMasterFile argument "filepath" is a deprecated '
+                    'The PatchMasterFile argument "filepath" is a deprecated'
                     ' alias of "path" and should not be set when "path" is'
                     ' set.')
         self._path = pathlib.Path(path).absolute()
@@ -215,11 +215,11 @@ class PatchMasterFile:
                 item = self._items.get(ext)
             except KeyError:        # pragma: no-cover
                 raise NotImplementedError(
-                    'Unsupported bundle item: ' + ext)
+                    f'Unsupported bundle item: {ext}')
             if item is not None:    # pragma: no-cover
                 raise ValueError(
-                    'Invalid or unsupported file. Bundle item appears'
-                    ' more than once: ' + ext)
+                    'Invalid or unsupported file. Bundle item appears more'
+                    f' than once: {ext}')
             self._items[ext] = (start, size)
 
         # Read amplifier tree
@@ -411,7 +411,7 @@ class TreeNode:
         if n != len(levels):
             raise ValueError(
                 'Unexpected number of levels found in tree: expected'
-                f' ({len(levels)}), found ({n}).')
+                f' {len(levels)}, found {n}.')
 
         # Go!
         return TreeNode._read(pfile, handle, reader, levels, sizes)
@@ -1128,8 +1128,8 @@ class Series(TreeNode, myokit.formats.SweepSource):
                 out.append('  R series compensation: not enabled')
             # Current-clamp info
             out.append(f'  Current clamp holding current: {a.i_hold()} pA')
-            out.append('  Current clamp stimulus gain: '
-                       f'{a.current_clamp_stimulus_gain()} pA/mV')
+            out.append('  Current clamp stimulus gain:'
+                       f' {a.current_clamp_stimulus_gain()} pA/mV')
 
         # Info from first trace
         if len(self) and len(self[0]):
@@ -1158,10 +1158,10 @@ class Series(TreeNode, myokit.formats.SweepSource):
             out.append('-' * 60)
             out.append(f'Stimulus "{stim.label()}"')
             out.append(f'  {stim.sweep_count()} sweeps')
-            out.append('  Delay between sweeps: '
-                       f'{stim.sweep_interval() * 1000} ms')
-            out.append('  Sampling interval: '
-                       f'{stim.sampling_interval() * 1000} ms')
+            out.append('  Delay between sweeps:'
+                       f' {stim.sweep_interval() * 1000} ms')
+            out.append('  Sampling interval:'
+                       f' {stim.sampling_interval() * 1000} ms')
             for i, ch in enumerate(stim):
                 out.append(f'  Channel {i}, in {ch.unit()}, amplifier in'
                            f' {ch.amplifier_mode()} mode')
@@ -1873,8 +1873,8 @@ class AmplifierState:
             return gain_values[self._cc_gain]
         except IndexError:  # pragma: no-cover
             raise NotImplementedError(
-                'Unexpected value found for current clamp gain'
-                f' ({self._cc_gain}).')
+                'Unexpected value found for current clamp gain:'
+                f' {self._cc_gain}.')
 
     def current_gain(self):
         """
@@ -2629,7 +2629,7 @@ class StimulusChannel(TreeNode):
         for seg in self:
             if seg.segment_class() is not SegmentClass.Constant:
                 raise NotImplementedError(
-                    'Unsupported segment type: {seg.segment_class()}')
+                    f'Unsupported segment type: {seg.segment_class()}')
 
         # Units are of a supported type
         if self._unit not in (myokit.units.V, myokit.units.nA):
@@ -3124,7 +3124,7 @@ class SegmentIncrement(enum.Enum):
             #indices[1:-1:2] = range(2, n_sweeps, 2)
             #indices[2::2] = range(1, n_sweeps - 1, 2)
             #return indices
-            raise NotImplementedError('Segment with interleaved increase')
+            raise NotImplementedError('Segment with interleaved increase.')
         elif self in (S.DecreaseInterleaved, S.LogDecreaseInterleaved):
             # Interleaved
             # The pattern given in the manual is not explained and only
@@ -3134,7 +3134,7 @@ class SegmentIncrement(enum.Enum):
             #indices[1:-1:2] = range(n_sweeps - 3, -1, -2)
             #indices[2:-2:2] = range(n_sweeps - 2, 2, -2)
             #return indices
-            raise NotImplementedError('Segment with interleaved decrease')
+            raise NotImplementedError('Segment with interleaved decrease.')
         elif self is S.Alternate:
             indices = np.zeros(n_sweeps) * np.nan
             nh = (1 + n_sweeps) // 2

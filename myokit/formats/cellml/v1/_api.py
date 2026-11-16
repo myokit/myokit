@@ -252,7 +252,7 @@ class Component(AnnotatableElement):
         if name in self._units:
             raise CellMLError(
                 'Units defined in the same component cannot have the same'
-                ' name (5.4.1.2)')
+                ' name (5.4.1.2).')
 
         # Create, store, and return
         # Note: there can be units with different names but the same myokit
@@ -558,7 +558,7 @@ class Model(AnnotatableElement):
         component_2 = variable_2.component()
         if component_1 is component_2:
             raise CellMLError('Variables cannot be connected to variables in'
-                              ' the same component (3.4.5.4)')
+                              ' the same component (3.4.5.4).')
 
         # Determine which interfaces connect these variables
         interface_1 = variable_1.public_interface()
@@ -625,7 +625,7 @@ class Model(AnnotatableElement):
         if name in self._units:
             raise CellMLError(
                 'Units defined in the same model cannot have the same name'
-                ' (5.4.1.2)')
+                ' (5.4.1.2).')
 
         # Create, store, and return
         units = Units(name, myokit_unit)
@@ -742,7 +742,7 @@ class Model(AnnotatableElement):
                     else:
                         # But do for `1 + exp(3)`, or `a + b`
                         init_var = state.parent().add_variable_allow_renaming(
-                            state.name() + '_init')
+                            f'{state.name()}_init')
                         init_var.set_rhs(value)
                         init_var.set_unit(state.unit())
                         state.set_initial_value(init_var.lhs())
@@ -1277,7 +1277,7 @@ class Units:
         # Check and store Myokit unit
         if not isinstance(myokit_unit, myokit.Unit):
             raise TypeError(
-                'The argument `myokit_unit` must be a myokit.Unit object.')
+                'The argument "myokit_unit" must be a myokit.Unit object.')
         self._myokit_unit = myokit_unit
 
     @classmethod
@@ -1675,8 +1675,8 @@ class Variable(AnnotatableElement):
         # Deprecated since 2026-10-22
         import warnings
         warnings.warn(
-            'The method `rhs_or_initial_value` is deprecated. Please use'
-            ' `rhs()` or `initial_value` instead.')
+            'The method "rhs_or_initial_value()" is deprecated. Please use'
+            ' "rhs()" or "initial_value()" instead.')
         if self._is_state:
             return self._rhs
         if self._rhs is None and self._initial_value is not None:
@@ -1841,7 +1841,7 @@ class Variable(AnnotatableElement):
                 i = 'public' if self._public_interface == 'in' else 'private'
                 warnings.warn(
                     f'{self} has {i}_interface="in", but is not connected to a'
-                    ' variable with an appropriate "out"')
+                    ' variable with an appropriate "out".')
 
         # Check that state variables define two values
         elif self._is_state:

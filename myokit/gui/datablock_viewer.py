@@ -760,7 +760,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                     self._path = path
             self._recent_files = []
             for i in range(N_RECENT_FILES):
-                opt = 'recent_' + str(i)
+                opt = f'recent_{i}'
                 if config.has_option('files', opt):
                     path = pathlib.Path(config.get('files', opt)).absolute()
                     if path.is_file():

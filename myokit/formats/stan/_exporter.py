@@ -92,7 +92,7 @@ class StanExporter(myokit.formats.TemplatedRunnableExporter):
         # Variable naming function
         def v(var):
             if isinstance(var, myokit.Derivative):
-                return 'd_' + var.var().uname()
+                return f'd_{var.var().uname()}'
             if isinstance(var, myokit.Name):
                 var = var.var()
             if var.is_bound():

@@ -145,7 +145,7 @@ class AuxTest(unittest.TestCase):
             '  [2] beeler-1977-with-differences',
         ] + differences + [
             'Done',
-            '  ' + str(len(differences)) + ' differences found',
+            f'  {len(differences)} differences found',
         ]
 
         caught_differences = set(capture.text().splitlines())
@@ -232,7 +232,7 @@ class AuxTest(unittest.TestCase):
         with myokit.tools.capture():
             myokit.run(m, p, x)
         with myokit.tools.capture():
-            myokit.run(m, p, '[[script]]\n' + x)
+            myokit.run(m, p, f'[[script]]\n{x}')
         self.assertRaises(ZeroDivisionError, myokit.run, m, p, 'print(1 / 0)')
 
         # Test with stringio

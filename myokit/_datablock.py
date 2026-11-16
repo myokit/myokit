@@ -180,10 +180,10 @@ class DataBlock1d:
         else:
             border = int(border)
             if border < 0:
-                raise ValueError('The argument `border` cannot be negative.')
+                raise ValueError('The argument "border" cannot be negative.')
             elif border >= self._nx // 2:
                 raise ValueError(
-                    'The argument `border` must be less than half the number'
+                    'The argument "border" must be less than half the number'
                     ' of cells.')
 
         # Get indices of selected cells
@@ -461,7 +461,7 @@ class DataBlock1d:
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Get size of single and double types on this machine
         dsize = {
@@ -527,8 +527,8 @@ class DataBlock1d:
             dtype = next(head)[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock1d: Unrecognized data type "'
-                    + dtype + '".')
+                    'Unable to read DataBlock1d: Unrecognized data type'
+                    f' "{dtype}".')
             names_0d = []
             names_1d = []
             name = next(head)
@@ -645,7 +645,7 @@ class DataBlock1d:
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Data type
         dtype = 'd'     # Only supporting doubles right now
@@ -1223,7 +1223,7 @@ class DataBlock2d:
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Get size of single and double types on this machine
         dsize = {
@@ -1301,8 +1301,8 @@ class DataBlock2d:
             dtype = next(head)[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock2d: Unrecognized data type "'
-                    + str(dtype) + '".')
+                    'Unable to read DataBlock2d: Unrecognized data type'
+                    f' "{dtype}".')
 
             names_0d = []
             names_2d = []
@@ -1425,7 +1425,7 @@ class DataBlock2d:
             del zlib
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the "zlib" module to be installed.')
 
         # Data type
         dtype = 'd'     # Only supporting doubles right now

@@ -713,7 +713,7 @@ class CellMLParser:
                 warnings.warn(
                     f'The units "{units}" (referenced inside a MathML'
                     ' equation) are not supported and have been replaced by'
-                    f' `dimensionless`. ({e})')
+                    f' "dimensionless". ({e})')
                 units = myokit.units.dimensionless
             except myokit.formats.cellml.v1.CellMLError:
                 raise CellMLParsingError(
@@ -1019,7 +1019,7 @@ class CellMLParser:
             if base == 'yes':
                 warnings.warn(
                     f'Unable to parse definition for units "{name}", using'
-                    ' `dimensionless` instead. (Defining new base units is not'
+                    ' "dimensionless" instead. (Defining new base units is not'
                     ' supported.)')
             else:
                 raise CellMLParsingError(
@@ -1034,7 +1034,7 @@ class CellMLParser:
         except myokit.formats.cellml.v1.UnitsError as e:
             warnings.warn(
                 f'Unable to parse definition for units "{name}", using'
-                f' `dimensionless` instead. ({e})')
+                f' "dimensionless" instead. ({e})')
             myokit_unit = myokit.units.dimensionless
 
         # Add units to owner
@@ -1079,7 +1079,7 @@ class CellMLParser:
             except myokit.formats.cellml.v1.UnitsError as e:
                 warnings.warn(
                     f'The units "{units}" (assigned to a variable) are not'
-                    f' supported and were replaced by `dimensionless`. ({e})')
+                    f' supported and were replaced by "dimensionless". ({e})')
                 units = 'dimensionless'
                 variable = component.add_variable(name, units, pub, pri)
 

@@ -58,12 +58,12 @@ class TestCellMLParser(unittest.TestCase):
         return (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<model name="test"'
-            '       xmlns="http://www.cellml.org/cellml/' + v + '#"'
-            '       xmlns:cellml="http://www.cellml.org/cellml/' + v + '#"'
+            f'       xmlns="http://www.cellml.org/cellml/{v}#"'
+            f'       xmlns:cellml="http://www.cellml.org/cellml/{v}#"'
             '       xmlns:cmeta="http://www.cellml.org/metadata/1.0#"'
-            '       xmlns:rdf="' + cellml.NS_RDF + '"'
-            '       xmlns:bqbiol="' + cellml.NS_BQBIOL + '">'
-            + xml +
+            f'       xmlns:rdf="{cellml.NS_RDF}"'
+            f'       xmlns:bqbiol="{cellml.NS_BQBIOL}">'
+            f'{xml}'
             '</model>')
 
     def test_cellml_namespace(self):
@@ -161,7 +161,7 @@ class TestCellMLParser(unittest.TestCase):
         self.assertIsNone(m['b']['y'].source())
 
         # No map components
-        self.assertBad(x + '<connection />', 'exactly one map_components')
+        self.assertBad(f'{x}<connection />', 'exactly one map_components')
 
         # No map variables
         y = ('<connection>'
@@ -601,17 +601,17 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
 
         # Valid equation inside a semantics element
-        m = self.parse(x + '<semantics>' + y + '</semantics>' + z)
+        m = self.parse(f'{x}<semantics>{y}</semantics>{z}')
         var = m['a']['x']
         self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
 
         # Valid equation with some annotations to ignore
-        m = self.parse(x + '<annotation />' + y + '<annotation-xml />' + z)
+        m = self.parse(f'{x}<annotation />{y}<annotation-xml />{z}')
         var = m['a']['x']
         self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
 
         # Constants
-        m = self.parse(x + '<apply><eq /><ci>x</ci> <pi /> </apply>' + z)
+        m = self.parse(f'{x}<apply><eq /><ci>x</ci> <pi /> </apply>{z}')
         var = m['a']['x']
         self.assertEqual(var.rhs().unit(), myokit.units.dimensionless)
 
@@ -671,7 +671,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Attributes from the MathML namespace
         self.assertBad(
-            '<component name="c" mathml:name="d" '
+            '<component name="c" mathml:name="d"'
             ' xmlns:mathml="http://www.w3.org/1998/Math/MathML" />',
             'Unexpected attribute mathml:name',
         )
@@ -792,7 +792,7 @@ class TestCellMLParser(unittest.TestCase):
         d1a = '<rdf:Description rdf:about="#'
         d1b = '">'
         d2 = '</rdf:Description>'
-        b1 = '<bqbiol:is rdf:resource="' + cellml.NS_OXMETA
+        b1 = f'<bqbiol:is rdf:resource="{cellml.NS_OXMETA}'
         b2 = '"/>'
 
         # Create mini model with 2 rdf tags and 3 annotations
@@ -805,11 +805,11 @@ class TestCellMLParser(unittest.TestCase):
              '            initial_value="1" />'
              '</component>')
         y = r1
-        y += d1a + 'x' + d1b + b1 + 'membrane_voltage' + b2 + d2
-        y += d1a + 'yzie' + d1b + b1 + 'sodium_reversal_potential' + b2 + d2
+        y += f'{d1a}x{d1b}{b1}membrane_voltage{b2}{d2}'
+        y += f'{d1a}yzie{d1b}{b1}sodium_reversal_potential{b2}{d2}'
         y += r2
         y += r1
-        y += d1a + 'zed' + d1b + b1 + 'calcium_reversal_potential' + b2 + d2
+        y += f'{d1a}zed{d1b}{b1}calcium_reversal_potential{b2}{d2}'
         y += r2
 
         # Parse
@@ -852,27 +852,27 @@ class TestCellMLParser(unittest.TestCase):
         self.parse(x + y)
 
         # No about attribute
-        y = r1 + '<rdf:Description />' + r2
+        y = f'{r1}<rdf:Description />{r2}'
         self.parse(x + y)
 
         # Unknown cmeta id
-        y = r1 + d1a + 'xxx' + d1b + d2 + r2
+        y = f'{r1}{d1a}xxx{d1b}{d2}{r2}'
         self.parse(x + y)
 
         # No bqbiol:is
-        y = r1 + d1a + 'x' + d1b + d2 + r2
+        y = f'{r1}{d1a}x{d1b}{d2}{r2}'
         self.parse(x + y)
 
         # No bqbiol:is
-        y = r1 + d1a + 'x' + d1b + d2 + r2
+        y = f'{r1}{d1a}x{d1b}{d2}{r2}'
         self.parse(x + y)
 
         # No resource
-        y = r1 + d1a + 'x' + d1b + '<bqbiol:is/>' + d2 + r2
+        y = f'{r1}{d1a}x{d1b}<bqbiol:is/>{d2}{r2}'
         self.parse(x + y)
 
         # Non oxmeta-resource
-        y = r1 + d1a + 'x' + d1b + '<bqbiol:is rdf:resource="hi"/>' + d2 + r2
+        y = f'{r1}{d1a}x{d1b}<bqbiol:is rdf:resource="hi"/>{d2}{r2}'
         self.parse(x + y)
 
     def test_parse_file(self):
@@ -1092,7 +1092,7 @@ class TestCellMLParser(unittest.TestCase):
         def u(units):
             m = self.parse(
                 '<component name="c">'
-                '  <variable name="x" units="' + units + '"'
+                f'  <variable name="x" units="{units}"'
                 '   initial_value="1" />'
                 '</component>'
             )
@@ -1156,7 +1156,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Unsupported units are ignored
         x = '<variable name="x" units="celsius" initial_value="3" />'
-        x = '<component name="a">' + x + '</component>'
+        x = f'<component name="a">{x}</component>'
         with WarningCollector() as w:
             x = self.parse(x)['a']['x']
         self.assertIn('celsius', w.text())

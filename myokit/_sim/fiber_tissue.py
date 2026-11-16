@@ -144,7 +144,7 @@ class FiberTissueSimulation(myokit.CModule):
             raise ValueError(
                 'This simulation requires models without interdependent'
                 ' components. Please restructure the fiber model and re-run.'
-                ' Cycles:\n' + cycles)
+                f' Cycles:\n{cycles}')
         if tissue_model.has_interdependent_components():
             cycles = '\n'.join([
                 '  ' + ' > '.join([x.name() for x in c])
@@ -152,7 +152,7 @@ class FiberTissueSimulation(myokit.CModule):
             raise ValueError(
                 'This simulation requires models without interdependent'
                 ' components. Please restructure the tissue model and re-run.'
-                ' Cycles:\n' + cycles)
+                f' Cycles:\n{cycles}')
 
         # Clone models, store
         fiber_model = fiber_model.clone()
@@ -284,7 +284,7 @@ class FiberTissueSimulation(myokit.CModule):
         if uvf != uvt:
             raise ValueError(
                 'The membrane potential must have the same unit in the fiber'
-                ' and the tissue model: ' + str(uvf) + ' vs ' + str(uvt) + '.')
+                f' and the tissue model: {uvf} vs {uvt}.')
 
         # Check if diffusion current variables have same unit
         ucf = self._modelf.binding('diffusion_current').unit()
@@ -298,7 +298,7 @@ class FiberTissueSimulation(myokit.CModule):
         if ucf != uct:
             raise ValueError(
                 'The diffusion current must have the same unit in the fiber'
-                ' and the tissue model: ' + str(ucf) + ' vs ' + str(uct) + '.')
+                f' and the tissue model: {ucf} vs {uct}.')
 
         # Set state and default state
         self._statef = self._modelf.initial_values(True) * self._ntotalf
@@ -332,8 +332,8 @@ class FiberTissueSimulation(myokit.CModule):
         """
         # Unique simulation id
         FiberTissueSimulation._index += 1
-        mname = 'myokit_sim_fiber_tissue_' + str(FiberTissueSimulation._index)
-        mname += '_' + str(myokit.pid_hash())
+        mname = (f'myokit_sim_fiber_tissue_{FiberTissueSimulation._index}'
+                 f'_{myokit.pid_hash()}')
 
         # Arguments
         args = {
@@ -506,13 +506,13 @@ class FiberTissueSimulation(myokit.CModule):
                 raise myokit.FindNanError(
                     'Method requires a simulation log from the fiber model'
                     ' containing all states and bound variables. Missing'
-                    ' variable <' + key + '>.')
+                    f' variable <{key}>.')
         for key in lt:
             if key not in logt:
                 raise myokit.FindNanError(
                     'Method requires a simulation log from the tissue model'
                     ' containing all states and bound variables. Missing at'
-                    ' least variable <' + key + '>.')
+                    f' least variable <{key}>.')
         del lf
         del lt
 
@@ -996,7 +996,7 @@ class FiberTissueSimulation(myokit.CModule):
 
                 # Show previous state and derivatives
                 n_states = len(states)
-                txt.append('Obtained ' + str(n_states) + ' previous state(s).')
+                txt.append(f'Obtained {n_states} previous state(s).')
                 if n_states > 1:
                     # Get state and bounds at previous state
                     state = states[1]
@@ -1055,7 +1055,7 @@ class FiberTissueSimulation(myokit.CModule):
             return list(state)
         elif n != self._nstatef:
             raise ValueError('Given state must have the same size as a single'
-                             ' fiber cell state or a full simulation state')
+                             ' fiber cell state or a full simulation state.')
         if x is None:
             return list(state) * ntotalf
         elif y is None:
@@ -1083,7 +1083,7 @@ class FiberTissueSimulation(myokit.CModule):
             return list(state)
         elif n != self._nstatet:
             raise ValueError('Given state must have the same size as a single'
-                             ' tissue cell state or a full simulation state')
+                             ' tissue cell state or a full simulation state.')
         if x is None:
             return list(state) * ntotalt
         elif y is None:

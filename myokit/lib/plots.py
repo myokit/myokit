@@ -245,7 +245,7 @@ def current_arrows(log, voltage, currents, axes=None):
                     ars = 'larrow'
 
             bbox_props = dict(
-                boxstyle=ars + ',pad=0.3',
+                boxstyle=f'{ars},pad=0.3',
                 fc='w',
                 ec='black',
                 lw=1)
@@ -313,8 +313,8 @@ def cumulative_current(
     if normalise is not None:
         import warnings
         warnings.warn(
-            'The keyword argument `normalise` is deprecated. Please use'
-            ' `normalize` instead.')
+            'The keyword argument "normalise" is deprecated. Please use'
+            ' "normalize" instead.')
         normalize = normalise
     del normalise
 

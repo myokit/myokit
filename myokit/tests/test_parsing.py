@@ -1193,7 +1193,7 @@ class PhasedParseTest(unittest.TestCase):
             with tempfile.TemporaryDirectory() as d:
                 path = pathlib.Path(d, 'mmt')
                 with open(path, 'w') as f:
-                    f.write(bad + '\n')
+                    f.write(f'{bad}\n')
                 myokit.format_parse_error(e, source=path),
                 '\n'.join([
                     'Syntax error',
@@ -1207,7 +1207,7 @@ class PhasedParseTest(unittest.TestCase):
             with tempfile.TemporaryDirectory() as d:
                 path = pathlib.Path(d, 'mmt')
                 with open(path, 'w') as f:
-                    f.write(bad + '\n')
+                    f.write(f'{bad}\n')
                 myokit.format_parse_error(e, source=str(path)),
                 '\n'.join([
                     'Syntax error',
@@ -1250,7 +1250,7 @@ class PhasedParseTest(unittest.TestCase):
             '  1 + 2 + / 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 100 + 1000 + ..',
             '          ^',
         ])
-        b = bad[:12] + '/ ' + bad[12:]
+        b = f'{bad[:12]}/ {bad[12:]}'
         try:
             myokit.parse_expression(b)
         except myokit.ParseError as e:
@@ -1263,7 +1263,7 @@ class PhasedParseTest(unittest.TestCase):
             '  ..+ 12 + 13 + 14 + 15 + / 16 + 17 + 18 + 19 + 20 + 21 + 22..',
             '                          ^',
         ])
-        b = bad[:83] + '/ ' + bad[83:]
+        b = f'{bad[:83]}/ {bad[83:]}'
         try:
             myokit.parse_expression(b)
         except myokit.ParseError as e:
@@ -1276,7 +1276,7 @@ class PhasedParseTest(unittest.TestCase):
             '  ..+ 21 + 22 + 23 + 24 + 25 + / 26 + 27 + 28 + 29 + 30 + 31',
             '                               ^',
         ])
-        b = bad[:133] + '/ ' + bad[133:]
+        b = f'{bad[:133]}/ {bad[133:]}'
         try:
             myokit.parse_expression(b)
         except myokit.ParseError as e:

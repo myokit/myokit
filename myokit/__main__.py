@@ -129,7 +129,7 @@ def qtforce(pyqt6=False, pyqt5=False, pyside6=False, pyside2=False):
             myokit.FORCE_PYSIDE2 = True
 
         import myokit.gui
-        print('Using backend: ' + myokit.gui.backend)
+        print(f'Using backend: {myokit.gui.backend}')
 
 
 def add_qtforce_arguments(parser):
@@ -355,7 +355,7 @@ def evaluate(expression):
     try:
         e = myokit.parse_expression(expression)
         e = e.eval() if e.is_literal() else e
-        print(expression + ' = ' + str(e))
+        print(f'{expression} = {e}')
     except myokit.ParseError as ex:
         print(myokit.format_parse_error(ex, iter([expression])))
 
@@ -477,7 +477,7 @@ def install():
               ' See https://github.com/myokit/myokit/issues/38')
 
     else:
-        print('Unknown platform: ' + plat)
+        print(f'Unknown platform: {plat}')
         print('Icons not available.')
 
 
@@ -1320,7 +1320,7 @@ def test_doc_coverage(classes, functions):
                 c_match = re.search(regex_class, line)
                 f_match = re.search(regex_funct, line)
                 if m_match:
-                    module = m_match.group(1) + '.'
+                    module = f'{m_match.group(1)}.'
                 elif c_match:
                     doc_classes.append(module + c_match.group(1))
                 elif f_match:
@@ -1445,7 +1445,7 @@ def test_doc_coverage_get_objects():
                 if full_name in modules:
                     continue
                 modules.add(full_name)
-                mpref = full_name + '.'
+                mpref = f'{full_name}.'
                 mroot = root / name
                 scan(member, mroot, mpref, modules, classes, functions)
 
@@ -1466,7 +1466,7 @@ def test_doc_coverage_get_objects():
     classes = set()
     functions = set()
     root = pathlib.Path(module.__file__).parent
-    pre = module.__name__ + '.'
+    pre = f'{module.__name__}.'
     scan(module, root, pre, modules, classes, functions)
 
     print(f'Found ({len(modules)}) modules, identified ({len(classes)})'
@@ -1734,7 +1734,7 @@ def video(src, key, dst, fps, grow, colormap):
             self._last = 0
 
         def enter(self, msg=None):
-            sys.stdout.write('Loading file: 0%' + chr(8) * 2)
+            sys.stdout.write(f'Loading file: 0%{chr(8) * 2}')
             sys.stdout.flush()
 
         def exit(self):

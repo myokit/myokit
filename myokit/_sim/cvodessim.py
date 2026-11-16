@@ -198,8 +198,8 @@ class Simulation(myokit.CModule):
                         if e.depends_on(i, deep=True):
                             raise NotImplementedError(
                                 'Sensitivities with respect to parameters used'
-                                ' in initial conditions is not implemented ('
-                                + e.code() + ' depends on ' + i.code() + ').')
+                                ' in initial conditions is not implemented'
+                                f' ({e.code()} depends on {i.code()}).')
         else:
             self._sensitivities = None
 
@@ -259,8 +259,7 @@ class Simulation(myokit.CModule):
         """
         # Unique simulation id
         Simulation._index += 1
-        module_name = 'myokit_sim_' + str(Simulation._index)
-        module_name += '_' + str(myokit.pid_hash())
+        module_name = f'myokit_sim_{Simulation._index}_{myokit.pid_hash()}'
 
         # Arguments
         args = {
@@ -458,8 +457,8 @@ class Simulation(myokit.CModule):
         # Deprecated on 2024-03-08
         import warnings
         warnings.warn(
-            'The method `myokit.Simulation.eval_derivatives` is deprecated,'
-            ' please use `evaluate_derivatives(state=sim.state())` instead.'
+            'The method "myokit.Simulation.eval_derivatives()" is deprecated,'
+            ' please use "evaluate_derivatives(state=sim.state())" instead.'
         )
         if y is None:
             y = self.state()
@@ -505,7 +504,7 @@ class Simulation(myokit.CModule):
                 try:
                     ki = self._pacing_labels.index(k)
                 except ValueError:
-                    raise ValueError(f'Unknown binding or pacing label `{k}`.')
+                    raise ValueError(f'Unknown binding or pacing label "{k}".')
                 pacing_values[ki] = float(v)
 
         # Literals and parameters: Can be changed with set_constant
@@ -553,8 +552,8 @@ class Simulation(myokit.CModule):
         """
         # Deprecated on 2024-03-08
         import warnings
-        warnings.warn('The method `myokit.Simulation.last_state` is'
-                      ' deprecated. Please use `crash_state` instead.')
+        warnings.warn('The method "myokit.Simulation.last_state()" is'
+                      ' deprecated. Please use "crash_state()" instead.')
         return self.crash_state()
 
     def pre(self, duration, progress=None, msg='Pre-pacing simulation'):
@@ -789,7 +788,7 @@ class Simulation(myokit.CModule):
             log_interval = 0
         if log_times is not None and log_interval > 0:
             raise ValueError(
-                'The arguments `log_times` and `log_interval` cannot be used'
+                'The arguments "log_times" and "log_interval" cannot be used'
                 ' simultaneously.')
 
         # Check user-specified logging times.
@@ -808,7 +807,7 @@ class Simulation(myokit.CModule):
                 # Must be list (of lists of lists)
                 if not isinstance(sensitivities, list):
                     raise ValueError(
-                        'The argument `sensitivities` must be None or a list.')
+                        'The argument "sensitivities" must be None or a list.')
         else:
             sensitivities = None
 
@@ -819,7 +818,7 @@ class Simulation(myokit.CModule):
         if apd_variable is None:
             if apd_threshold is not None:
                 raise ValueError(
-                    'APD Threshold given but no `apd_variable` specified.')
+                    'APD Threshold given but no "apd_variable" specified.')
         else:
             # Get apd variable from this model
             if isinstance(apd_variable, myokit.Variable):
@@ -827,7 +826,7 @@ class Simulation(myokit.CModule):
             apd_variable = self._model.get(apd_variable)
             if not apd_variable.is_state():
                 raise ValueError(
-                    'The `apd_variable` must be a state variable.')
+                    'The "apd_variable" must be a state variable.')
 
             # Set up root finding
             root_list = []
@@ -840,7 +839,7 @@ class Simulation(myokit.CModule):
         if progress:
             if not isinstance(progress, myokit.ProgressReporter):
                 raise ValueError(
-                    'The argument `progress` must be either a'
+                    'The argument "progress" must be either a'
                     ' subclass of myokit.ProgressReporter or None.')
         if myokit.DEBUG_SP:
             b.print('PP Checked arguments.')
@@ -945,7 +944,7 @@ class Simulation(myokit.CModule):
                 txt = ['A numerical error occurred during simulation at'
                        ' t = ' + myokit.float.str(bound[0]) + '.',
                        'Last reached state: ']
-                txt.extend(['  ' + x for x
+                txt.extend([f'  {x}' for x
                             in self._model.format_state(state).splitlines()])
                 txt.append('Inputs for binding:')
                 for key, value in self._error_inputs.items():
@@ -1041,7 +1040,7 @@ class Simulation(myokit.CModule):
             self._parameters[var] = value
         else:
             raise ValueError(
-                'The given variable <' + var.qname() + '> is not a literal.')
+                f'The given variable <{var.qname()}> is not a literal.')
 
         # Update value in internal model: This is required for error handling,
         # when self._model.evaluate_derivatives is called.
@@ -1096,8 +1095,8 @@ class Simulation(myokit.CModule):
         # Deprecated on 2023-06-02
         import warnings
         warnings.warn(
-            'The method `myokit.Simulation.set_fixed_form_protocol` is '
-            'deprecated. It will be removed in future versions of Myokit.'
+            'The method "myokit.Simulation.set_fixed_form_protocol()" is'
+            ' deprecated. It will be removed in future versions of Myokit.'
         )
 
         if times is None and values is None:
@@ -1124,7 +1123,7 @@ class Simulation(myokit.CModule):
         try:
             index = self._pacing_labels.index(label)
         except ValueError:
-            raise ValueError('Unknown pacing label: ' + str(label))
+            raise ValueError(f'Unknown pacing label: {label}')
 
         # Set new protocol
         self._protocols[index] = None if protocol is None else protocol.clone()

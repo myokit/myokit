@@ -911,7 +911,7 @@ class Number(Expression):
             self._str = '-infinity'
         # nan is fine
         if self._unit and self._unit != myokit.units.dimensionless:
-            self._str += ' ' + str(self._unit)
+            self._str += f' {self._unit}'
 
     def bracket(self, op=None):
         """See :meth:`Expression.bracket()`."""
@@ -2129,7 +2129,8 @@ class Function(Expression):
                 exp = ' or '.join([str(x) for x in self._nargs])
                 raise myokit.IntegrityError(
                     f'Function ({self._fname}) created with wrong number of'
-                    f' arguments ({len(ops)}, expecting {exp}).', self._token)
+                    f' arguments: got {len(ops)}, expecting {exp}.',
+                    self._token)
 
     def bracket(self, op=None):
         """See :meth:`Expression.bracket()`."""
@@ -2786,7 +2787,7 @@ class If(Function):
 
         # Mismatching units
         raise EvalUnitError(
-            self, 'Units of `then` and `else` part of an `if` must match.'
+            self, 'Units of "then" and "else" part of an "if" must match.'
             f' Got {unit2} and {unit3}.')
 
     def is_conditional(self):

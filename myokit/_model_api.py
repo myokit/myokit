@@ -1786,9 +1786,9 @@ class Model(ObjectWithMetaData, VarProvider):
         for comp in external_component:
             if not comp.has_ancestor(ext_model):
                 raise ValueError(
-                    'The imported components must be from the same model, '
-                    f'<{comp.name()}> and <{external_component[0].name()}> are'
-                    ' not.')
+                    'The imported components must be from the same model,'
+                    f' <{comp.name()}> and <{external_component[0].name()}>'
+                    ' are not.')
         if ext_model == self:
             raise ValueError(
                 'The component(s) to import are already part of this model.')
@@ -1868,9 +1868,9 @@ class Model(ObjectWithMetaData, VarProvider):
                 if isinstance(ext_var, myokit.Variable):
                     if not ext_var.has_ancestor(ext_model):
                         raise myokit.VariableMappingError(
-                            'The variable <' + ext_var.qname() + '> in the'
-                            ' given var_map\'s keys but is not part of the'
-                            ' source model.')
+                            f'The variable <{ext_var.qname()}> in the given'
+                            ' var_map\'s keys but is not part of the source'
+                            ' model.')
                 elif isinstance(ext_var, str):
                     try:
                         ext_var = ext_model.var(ext_var)
@@ -1882,7 +1882,7 @@ class Model(ObjectWithMetaData, VarProvider):
                 else:
                     raise TypeError(
                         'Variables in the var_map need to be specified as'
-                        ' Variable objects or fully qualified names. Got '
+                        ' Variable objects or fully qualified names. Got'
                         f' {type(self_var)}.')
 
                 # check for duplicates
@@ -2084,7 +2084,7 @@ class Model(ObjectWithMetaData, VarProvider):
         defining this model's initial values.
         """
         # Deprecated since 2023-02-22
-        warnings.warn('The method `inits` is deprecated.')
+        warnings.warn('The method "inits()" is deprecated.')
 
         def StateDefIterator(model):
             for var, value in zip(model._state_vars, model._state_init):
@@ -2187,7 +2187,7 @@ class Model(ObjectWithMetaData, VarProvider):
         file formatted in any style accepted by :func:`myokit.map_to_state`.
         """
         # Deprecated since 2023-02-22
-        warnings.warn('The method `Model.load_state` is deprecated.')
+        warnings.warn('The method "Model.load_state()" is deprecated.')
         self.set_initial_values(myokit.load_state(filename, self))
 
     def map_component_dependencies(
@@ -2349,7 +2349,7 @@ class Model(ObjectWithMetaData, VarProvider):
         # Convert sets to sorted lists
         def sortkey(lhs):
             key = lhs.var().uname()
-            return '_' + key if lhs.is_derivative() else key
+            return f'_{key}' if lhs.is_derivative() else key
 
         for comp in self.components():
             di[comp] = list(di[comp])
@@ -2445,7 +2445,7 @@ class Model(ObjectWithMetaData, VarProvider):
             if lhs not in shallow:
                 raise RuntimeError(  # pragma: no cover
                     f'Variable {lhs._value} not found in dict of shallow'
-                    ' dependencies')
+                    ' dependencies.')
 
             # Add this var as a dependency
             deps.add(lhs)
@@ -2781,7 +2781,7 @@ class Model(ObjectWithMetaData, VarProvider):
             if refs:
                 # If found, add a new variable to represent dot(state)
                 var = state.parent().add_variable_allow_renaming(
-                    'dot_' + state.name())
+                    f'dot_{state.name()}')
                 var.set_rhs(state.rhs())
 
                 # Set unit for new variable
@@ -2896,7 +2896,7 @@ class Model(ObjectWithMetaData, VarProvider):
         Deprecated method: Saves the model state to a file (as floats).
         """
         # Deprecated since 2023-02-22
-        warnings.warn('The method `save_state` is deprecated.')
+        warnings.warn('The method "save_state()" is deprecated.')
 
         return myokit.save_state(
             filename, self.initial_values(as_floats=True), self)
@@ -2958,8 +2958,8 @@ class Model(ObjectWithMetaData, VarProvider):
         """
         # Deprecated since 2023-02-22
         warnings.warn(
-            'The method `set_state` is deprecated. Please use'
-            ' `set_initial_values` instead.')
+            'The method "set_state()" is deprecated. Please use'
+            ' "set_initial_values()" instead.')
         self.set_initial_values(state)
 
     def set_value(self, qname, value):
@@ -3294,8 +3294,8 @@ class Model(ObjectWithMetaData, VarProvider):
         """
         # Deprecated since 2023-02-22
         warnings.warn(
-            'The method `state` is deprecated. Please use'
-            ' `initial_values(as_floats=True)` instead.')
+            'The method "state()" is deprecated. Please use'
+            ' "initial_values(as_floats=True)" instead.')
         return self.initial_values(as_floats=True)
 
     def states(self):
@@ -3727,7 +3727,7 @@ class Component(VarOwner):
             c = ' and '.join([f'<{c.qname()}>' for c in reffers])
             raise myokit.IntegrityError(
                 f'Can not delete component <{self.qname()}> it is used by'
-                f' components {c}')
+                f' components {c}.')
 
         # No problems? Then delete all variables from component
         for var in self.variables():
@@ -4341,7 +4341,8 @@ class Variable(VarOwner):
 
         # Deprecated on 2023-06-07
         warnings.warn(
-            'The method `indice` is deprecated. Please use `index()` instead.')
+            'The method "indice()" is deprecated. Please use "index()"'
+            ' instead.')
         return self.index()
 
     def initial_value(self, as_float=False):
@@ -4460,7 +4461,7 @@ class Variable(VarOwner):
         ``initial_value``.)
         """
         if self._index is not None:
-            raise Exception('Variable is already a state variable')
+            raise Exception('Variable is already a state variable.')
         if not isinstance(self._parent, Component):
             raise Exception('State variables can only be added to Components.')  # noqa: TRY004
         if self._binding is not None:
@@ -4887,8 +4888,8 @@ class Variable(VarOwner):
         """
         # Deprecated since 2023-02-22
         warnings.warn(
-            'The method `set_state_value` is deprecated. Please use'
-            ' `set_initial_value` instead.')
+            'The method "set_state_value()" is deprecated. Please use'
+            ' "set_initial_value()" instead.')
         self.set_initial_value(value)
 
     def set_unit(self, unit=None):
@@ -4912,8 +4913,8 @@ class Variable(VarOwner):
         """
         # Deprecated since 2023-02-22
         warnings.warn(
-            'The method `state_value` is deprecated. Please use'
-            ' `initial_value(as_float=True)` instead.')
+            'The method "state_value()" is deprecated. Please use'
+            ' "initial_value(as_float=True)" instead.')
         return self.initial_value(as_float=True)
 
     def unit(self, mode=myokit.UNIT_TOLERANT):

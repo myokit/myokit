@@ -353,7 +353,7 @@ class VarOwnerTest(unittest.TestCase):
         r = c.add_variable('r')
         for i in range(10):
             r = c.add_variable_allow_renaming('r')
-            self.assertEqual(r.name(), 'r_' + str(1 + i))
+            self.assertEqual(r.name(), f'r_{1 + i}')
 
 
 class ComponentTest(unittest.TestCase):

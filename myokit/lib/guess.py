@@ -51,7 +51,7 @@ def _distance_to_bound(variable):
     # Remove binding
     binding = variable.binding()
     if binding is None:
-        raise ValueError('Argument `variable` must be a bound variable.')
+        raise ValueError('Argument "variable" must be a bound variable.')
     variable.set_binding(None)
 
     # Find distances

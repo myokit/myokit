@@ -88,7 +88,7 @@ def create_unit_name(unit):
         # Use e-notation if multiple of 10
         multiplier10 = unit.multiplier_log_10()
         if myokit.float.eq(multiplier10, int(multiplier10)):
-            multiplier = '1e' + str(int(multiplier10))
+            multiplier = f'1e{int(multiplier10)}'
 
         # Format as integer
         elif myokit.float.eq(multiplier, int(multiplier)):
@@ -102,7 +102,7 @@ def create_unit_name(unit):
         multiplier = multiplier.replace('+', '')
         multiplier = multiplier.replace('-', '_minus_')
         multiplier = multiplier.replace('.', '_dot_')
-        name += '_times_' + multiplier
+        name += f'_times_{multiplier}'
 
     return name
 
@@ -618,7 +618,7 @@ class Model(AnnotatableElement):
                 else:
                     # But do for `1 + exp(3)`, or `a + b`
                     init_var = state.parent().add_variable_allow_renaming(
-                        state.name() + '_init')
+                        f'{state.name()}_init')
                     init_var.set_rhs(value)
                     init_var.set_unit(state.unit())
                     state.set_initial_value(init_var.lhs())
@@ -1127,7 +1127,7 @@ class Units:
         # Check and store Myokit unit
         if not isinstance(myokit_unit, myokit.Unit):
             raise TypeError(
-                'The argument `myokit_unit` must be a myokit.Unit object.')
+                'The argument "myokit_unit" must be a myokit.Unit object.')
         self._myokit_unit = myokit_unit
 
     @classmethod
@@ -1621,7 +1621,7 @@ class Variable(AnnotatableElement):
             if not isinstance(lhs, myokit.LhsExpression):
                 raise CellMLError(
                     'Model must be in assignment form, where each equation is'
-                    ' of the form `x = ...` or `dx/dt = ...`.')
+                    ' of the form "x = ..." or "dx/dt = ...".')
             if lhs.var() is not self:
                 raise CellMLError(
                     f'Equation for f{lhs.var()} passed to variable {self}.')

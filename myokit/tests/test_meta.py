@@ -64,20 +64,20 @@ class MetaTest(unittest.TestCase):
         # Test simple meta data
         def model(key, value):
             x = list(lines)
-            x.insert(1, key + ':' + value)
+            x.insert(1, f'{key}:{value}')
             m = myokit.parse_model('\n'.join(x))
             self.assertTrue(m.is_valid())
             self.assertEqual(m.meta[key], value)
 
         def component(key, value):
             m = myokit.parse_model('\n'.join(
-                lines + [key + ':' + value]))
+                lines + [f'{key}:{value}']))
             self.assertTrue(m.is_valid())
             self.assertEqual(m.get('a').meta[key], value)
 
         def variable(key, value):
             m = myokit.parse_model('\n'.join(
-                lines + ['    ' + key + ':' + value]))
+                lines + [f'    {key}:{value}']))
             self.assertTrue(m.is_valid())
             self.assertEqual(m.get('a.x').meta[key], value)
 

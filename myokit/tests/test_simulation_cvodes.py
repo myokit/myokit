@@ -517,7 +517,7 @@ class SimulationTest(unittest.TestCase):
 
         # No apd var given, but threshold provided
         self.assertRaisesRegex(
-            ValueError, 'no `apd_variable` specified',
+            ValueError, 'no "apd_variable" specified',
             self.sim.run, 1, apd_threshold=12)
 
     def test_crash_state_inputs_log(self):

@@ -33,8 +33,7 @@ class OpenCL(myokit.CModule):
         super().__init__()
         # Create back-end and cache it
         OpenCL._index += 1
-        mname = 'myokit_opencl_info_' + str(OpenCL._index)
-        mname += '_' + str(myokit.pid_hash())
+        mname = f'myokit_opencl_info_{OpenCL._index}_{myokit.pid_hash()}'
         fname = str(myokit.DIR_CFUNC / SOURCE_FILE)
         args = {'module_name': mname}
 
@@ -73,7 +72,7 @@ class OpenCL(myokit.CModule):
         # Instance creation failed, raise exception
         if OpenCL._instance is False:   # pragma: no cover
             raise NoOpenCLError(
-                'OpenCL support not found.\n' + OpenCL._message)
+                f'OpenCL support not found.\n{OpenCL._message}')
         # Return instance
         return OpenCL._instance
 
@@ -218,9 +217,9 @@ class OpenCL(myokit.CModule):
         for platform in OpenCL.info().platforms:
             for device in platform.devices:
                 specs = clockspeed(device.clock)
-                specs += ', ' + bytesize(device.globl) + ' global'
-                specs += ', ' + bytesize(device.local) + ' local'
-                specs += ', ' + bytesize(device.const) + ' const'
+                specs += f', {bytesize(device.globl)} global'
+                specs += f', {bytesize(device.local)} local'
+                specs += f', {bytesize(device.const)} const'
                 devices.append((platform.name, device.name, specs))
         return devices
 
@@ -275,7 +274,7 @@ class OpenCLInfo:
         selected_platform, selected_device = myokit.OpenCL.load_selection()
         b = []
         for i, platform in enumerate(self.platforms):
-            pname = 'Platform ' + str(i)
+            pname = f'Platform {i}'
             if platform.name == selected_platform:  # pragma: no cover
                 pname += '  <-- Selected platform in myokit.ini'
             b.append(pname)
@@ -329,7 +328,7 @@ class OpenCLPlatformInfo:
         Returns a formatted string version of this object's information.
         """
         b = []
-        b.append('Platform: ' + self.name)
+        b.append(f'Platform: {self.name}')
         self._format(b, pre=' ', name=False)
         return '\n'.join(b)
 
@@ -338,22 +337,22 @@ class OpenCLPlatformInfo:
         Formats the information in this object and adds it to the list ``b``.
         """
         if name:
-            b.append(pre + 'Name       : ' + self.name)
-        b.append(pre + 'Vendor     : ' + self.vendor)
-        b.append(pre + 'Version    : ' + self.version)
-        b.append(pre + 'Profile    : ' + self.profile)
+            b.append(f'{pre}Name       : {self.name}')
+        b.append(f'{pre}Vendor     : {self.vendor}')
+        b.append(f'{pre}Version    : {self.version}')
+        b.append(f'{pre}Profile    : {self.profile}')
         b.append(pre + 'Extensions : ' + ' '.join(self.extensions))
         if self.devices is not None:
-            b.append(pre + 'Devices:')
+            b.append(f'{pre}Devices:')
             for j, device in enumerate(self.devices):
-                dname = pre + ' Device ' + str(j)
+                dname = f'{pre} Device {j}'
                 if self.name == p_selected and device.name == d_selected:  # pragma: no cover # noqa
                     dname += '  <-- Selected device in myokit.ini'
                 b.append(dname)
-                device._format(b, pre + '  ')
+                device._format(b, f'{pre}  ')
 
         if self.device is not None:
-            b.append(pre[:-1] + 'Device: ' + self.device.name)
+            b.append(f'{pre[:-1]}Device: {self.device.name}')
             self.device._format(b, pre, name=False)
 
     def has_extension(self, extension):
@@ -416,16 +415,16 @@ class OpenCLDeviceInfo:
         Formats the information in this object and adds it to the list ``b``.
         """
         if name:
-            b.append(pre + 'Name            : ' + self.name)
-        b.append(pre + 'Vendor          : ' + self.vendor)
-        b.append(pre + 'Version         : ' + self.version)
-        b.append(pre + 'Driver          : ' + self.driver)
-        b.append(pre + 'Clock speed     : ' + str(self.clock) + ' MHz')
-        b.append(pre + 'Global memory   : ' + bytesize(self.globl))
-        b.append(pre + 'Local memory    : ' + bytesize(self.local))
-        b.append(pre + 'Constant memory : ' + bytesize(self.const))
-        b.append(pre + 'Max param size  : ' + str(self.param) + ' bytes')
-        b.append(pre + 'Max work groups : ' + str(self.groups))
+            b.append(f'{pre}Name            : {self.name}')
+        b.append(f'{pre}Vendor          : {self.vendor}')
+        b.append(f'{pre}Version         : {self.version}')
+        b.append(f'{pre}Driver          : {self.driver}')
+        b.append(f'{pre}Clock speed     : {self.clock} MHz')
+        b.append(f'{pre}Global memory   : {bytesize(self.globl)}')
+        b.append(f'{pre}Local memory    : {bytesize(self.local)}')
+        b.append(f'{pre}Constant memory : {bytesize(self.const)}')
+        b.append(f'{pre}Max param size  : {self.param} bytes')
+        b.append(f'{pre}Max work groups : {self.groups}')
         b.append(pre + 'Max work items  : [' +
                  ', '.join([str(x) for x in self.items]) + ']')
 
@@ -447,7 +446,7 @@ def bytesize(size):
     elif size >= 1024:
         return r(0.1 * int(10 * (float(size) / 1024))) + ' KB'
     else:
-        return str(size) + ' B'
+        return f'{size} B'
 
 
 def clockspeed(speed):
@@ -458,7 +457,7 @@ def clockspeed(speed):
     if speed >= 1000:
         return r(0.1 * int(10 * (float(speed) / 1000))) + ' GHz'
     else:
-        return r(speed) + ' MHz'
+        return f'{r(speed)} MHz'
 
 
 class NoOpenCLError(myokit.MyokitError):

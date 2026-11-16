@@ -205,10 +205,10 @@ class CaptureTest(unittest.TestCase):
         # Function to call inside threads
         def f(i):
             with myokit.tools.capture() as c:
-                print(str(i) + 'a ', end='')
+                print(f'{i}a ', end='')
                 time.sleep(times[i])
-                print(str(i) + 'b ', end='')
-                print(str(i) + 'e ', end='', file=sys.stderr)
+                print(f'{i}b ', end='')
+                print(f'{i}e ', end='', file=sys.stderr)
             captured[i] = c.text().strip()
 
         # Call function from threads

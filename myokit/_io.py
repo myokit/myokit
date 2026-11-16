@@ -274,7 +274,7 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
         del zlib
     except ImportError:
         raise Exception(
-            'This method requires the `zlib` module to be installed.')
+            'This method requires the "zlib" module to be installed.')
 
     # Data type
     code = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'

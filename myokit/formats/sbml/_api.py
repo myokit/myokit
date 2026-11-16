@@ -60,8 +60,7 @@ class Quantity:
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                '<' + str(value) + '> needs to be an instance of'
-                ' myokit.Expression.')
+                f'<{value}> needs to be an instance of myokit.Expression.')
 
         self._initial_value = value
 
@@ -83,8 +82,7 @@ class Quantity:
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                '<' + str(value) + '> needs to be an instance of'
-                ' myokit.Expression.')
+                f'<{value}> needs to be an instance of myokit.Expression.')
 
         self._value = value
         self._is_rate = bool(is_rate)
@@ -110,7 +108,7 @@ class CSymbolVariable:
         return self._definition_url
 
     def __str__(self):
-        return '<CSymbolVariable ' + self._definition_url + '>'
+        return f'<CSymbolVariable {self._definition_url}>'
 
 
 class Compartment(Quantity):
@@ -134,7 +132,7 @@ class Compartment(Quantity):
 
         if not isinstance(model, Model):
             raise SBMLError(
-                '<' + str(model) + '> needs to be an instance of'
+                f'<{model}> needs to be an instance of'
                 ' myokit.formats.sbml.Model.')
 
         self._model = model
@@ -155,7 +153,7 @@ class Compartment(Quantity):
         """Sets the :class:`myokit.Unit` for this compartment's size."""
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
-                '<' + str(units) + '> needs to be instance of myokit.Unit')
+                f'<{units}> needs to be instance of myokit.Unit.')
 
         self._size_units = units
         self._model.add_unit_if_possible(units)
@@ -191,7 +189,7 @@ class Compartment(Quantity):
         return self._spatial_dimensions
 
     def __str__(self):
-        return '<Compartment ' + self._sid + '>'
+        return f'<Compartment {self._sid}>'
 
 
 class Model:
@@ -385,8 +383,8 @@ class Model:
         """
         if not isinstance(compartment, Compartment):
             raise SBMLError(
-                '<' + compartment + '> needs to be instance of'
-                ' myokit.formats.sbml.Compartment')
+                f'<{compartment}> needs to be instance of'
+                ' myokit.formats.sbml.Compartment.')
 
         sid = str(sid) if sid else sid
         self._register_sid(sid)
@@ -412,16 +410,16 @@ class Model:
     def add_unit(self, unitsid, unit):
         """Adds a user unit with the given ``unitsid`` and myokit ``unit``."""
         if not _re_id.match(unitsid):
-            raise SBMLError('Invalid UnitSId "' + str(unitsid) + '".')
+            raise SBMLError(f'Invalid UnitSId "{unitsid}".')
         if unitsid in self.base_units or unitsid == 'celsius':
             raise SBMLError(
-                'User unit overrides built-in unit: "' + str(unitsid) + '".')
+                f'User unit overrides built-in unit: "{unitsid}".')
         if unitsid in self._units:
             raise SBMLError(
-                'Duplicate UnitSId: "' + str(unitsid) + '".')
+                f'Duplicate UnitSId: "{unitsid}".')
         if not isinstance(unit, myokit.Unit):
             raise SBMLError(
-                'Unit "' + str(unit) + '" needs to be instance of myokit.Unit')
+                f'Unit "{unit}" needs to be instance of myokit.Unit.')
 
         u = self._units[unitsid] = unit
         return u
@@ -466,7 +464,7 @@ class Model:
             return self.base_units[unitsid]
         except KeyError:
             raise SBMLError(
-                '<' + unitsid + '> is not an SBML base unit.')
+                f'<{unitsid}> is not an SBML base unit.')
 
     def compartment(self, sid):
         """Returns the compartment with the given sid."""
@@ -531,9 +529,9 @@ class Model:
         raises an error if it's not.
         """
         if not _re_id.match(sid):
-            raise SBMLError('Invalid SId "' + sid + '".')
+            raise SBMLError(f'Invalid SId "{sid}".')
         if sid in self._sids:
-            raise SBMLError('Duplicate SId "' + sid + '".')
+            raise SBMLError(f'Duplicate SId "{sid}".')
         self._sids.add(sid)
 
     def set_area_units(self, units):
@@ -550,7 +548,7 @@ class Model:
         """
         if not isinstance(factor, Parameter):
             raise SBMLError(
-                '<' + str(factor) + '> needs to be instance of'
+                f'<{factor}> needs to be instance of'
                 ' myokit.formats.sbml.Parameter.')
 
         self._conversion_factor = factor
@@ -562,7 +560,7 @@ class Model:
         """
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
-                '<' + str(units) + '> needs to be instance of myokit.Unit')
+                f'<{units}> needs to be instance of myokit.Unit.')
 
         self._extent_units = units
         self.add_unit_if_possible(units)
@@ -573,7 +571,7 @@ class Model:
         """
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
-                '<' + str(units) + '> needs to be instance of myokit.Unit')
+                f'<{units}> needs to be instance of myokit.Unit.')
 
         self._length_units = units
         self.add_unit_if_possible(units)
@@ -586,7 +584,7 @@ class Model:
         """Sets the default units for reaction amounts (not concentrations)."""
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
-                '<' + str(units) + '> needs to be instance of myokit.Unit')
+                f'<{units}> needs to be instance of myokit.Unit.')
 
         self._substance_units = units
         self.add_unit_if_possible(units)
@@ -595,7 +593,7 @@ class Model:
         """Sets the time units used throughout the model."""
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
-                '<' + str(units) + '> needs to be instance of myokit.Unit')
+                f'<{units}> needs to be instance of myokit.Unit.')
 
         self._time_units = units
         self.add_unit_if_possible(units)
@@ -606,7 +604,7 @@ class Model:
         """
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
-                '<' + str(units) + '> needs to be instance of myokit.Unit')
+                f'<{units}> needs to be instance of myokit.Unit.')
 
         self._volume_units = units
         self.add_unit_if_possible(units)
@@ -614,7 +612,7 @@ class Model:
     def __str__(self):
         if self._name is None:
             return '<SBMLModel>'
-        return '<SBMLModel ' + str(self._name) + '>'
+        return f'<SBMLModel {self._name}>'
 
     def species(self, sid):
         """Returns the species with the given id."""
@@ -662,8 +660,7 @@ class Model:
                 return self.base_unit(unitsid)
             except SBMLError:
                 raise SBMLError(
-                    'The unit SID <' + unitsid + '> does not exist in the '
-                    'model.')
+                    f'The unit SID <{unitsid}> does not exist in the model.')
 
     def volume_units(self):
         """
@@ -734,7 +731,7 @@ class Parameter(Quantity):
 
         if not isinstance(model, Model):
             raise SBMLError(
-                '<' + str(model) + '> needs to be an instance of'
+                f'<{model}> needs to be an instance of'
                 ' myokit.formats.sbml.Model.')
 
         self._model = model
@@ -746,7 +743,7 @@ class Parameter(Quantity):
         """Sets this parameters units to the given ``units``."""
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
-                '<' + str(units) + '> needs to be instance of myokit.Unit')
+                f'<{units}> needs to be instance of myokit.Unit.')
 
         self._units = units
         self._model.add_unit_if_possible(units)
@@ -764,7 +761,7 @@ class Parameter(Quantity):
         return self._sid
 
     def __str__(self):
-        return '<Parameter ' + self._sid + '>'
+        return f'<Parameter {self._sid}>'
 
     def units(self):
         """Returns the units this parameter is in, or ``None`` if not set."""
@@ -788,7 +785,7 @@ class Reaction:
 
         if not isinstance(model, Model):
             raise SBMLError(
-                '<' + str(model) + '> needs to be an instance of'
+                f'<{model}> needs to be an instance of'
                 ' myokit.formats.sbml.Model.')
 
         self._model = model
@@ -809,8 +806,8 @@ class Reaction:
         """Adds a modifier to this reaction and returns the created object."""
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + str(species) + '> needs to be an instance of'
-                ' myokit.formats.sbml.Species')
+                f'<{species}> needs to be an instance of'
+                ' myokit.formats.sbml.Species.')
 
         sid = str(sid) if sid else sid
         if sid is not None:
@@ -827,8 +824,8 @@ class Reaction:
         """
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + str(species) + '> needs to be an instance of'
-                ' myokit.formats.sbml.Species')
+                f'<{species}> needs to be an instance of'
+                ' myokit.formats.sbml.Species.')
 
         sid = str(sid) if sid else sid
         if sid is not None:
@@ -844,8 +841,8 @@ class Reaction:
         """Adds a reactant to this reaction and returns the created object."""
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + str(species) + '> needs to be an instance of'
-                ' myokit.formats.sbml.Species')
+                f'<{species}> needs to be an instance of'
+                ' myokit.formats.sbml.Species.')
 
         sid = str(sid) if sid else sid
         if sid is not None:
@@ -890,7 +887,7 @@ class Reaction:
         """
         if not isinstance(expression, myokit.Expression):
             raise SBMLError(
-                '<' + str(expression) + '> needs to be an instance of'
+                f'<{expression}> needs to be an instance of'
                 ' myokit.Expression.')
 
         self._kinetic_law = expression
@@ -906,7 +903,7 @@ class Reaction:
         return self._species[sid]
 
     def __str__(self):
-        return '<Reaction ' + self._sid + '>'
+        return f'<Reaction {self._sid}>'
 
 
 class Species(Quantity):
@@ -935,18 +932,18 @@ class Species(Quantity):
 
         if not isinstance(compartment, Compartment):
             raise SBMLError(
-                '<' + compartment + '> needs to be instance of'
-                ' myokit.formats.sbml.Compartment')
+                f'<{compartment}> needs to be instance of'
+                ' myokit.formats.sbml.Compartment.')
         if not isinstance(is_amount, bool):
             raise SBMLError(
-                'Is_amount <' + str(is_amount) + '> needs to be a boolean.')
+                f'Is_amount <{is_amount}> needs to be a boolean.')
         if not isinstance(is_constant, bool):
             raise SBMLError(
-                'Is_constant <' + str(is_constant) + '> needs to be a boolean.'
+                f'Is_constant <{is_constant}> needs to be a boolean.'
             )
         if not isinstance(is_boundary, bool):
             raise SBMLError(
-                'Is_boundary <' + str(is_boundary) + '> needs to be a boolean.'
+                f'Is_boundary <{is_boundary}> needs to be a boolean.'
             )
         self._compartment = compartment
 
@@ -1011,7 +1008,7 @@ class Species(Quantity):
         """
         if not isinstance(factor, Parameter):
             raise SBMLError(
-                '<' + str(factor) + '> needs to be instance of'
+                f'<{factor}> needs to be instance of'
                 ' myokit.formats.sbml.Parameter.')
 
         self._conversion_factor = factor
@@ -1026,8 +1023,7 @@ class Species(Quantity):
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                '<' + str(value) + '> needs to be an instance of'
-                ' myokit.Expression.')
+                f'<{value}> needs to be an instance of myokit.Expression.')
         if (in_amount is not None) and (not isinstance(in_amount, bool)):
             raise SBMLError(
                 '<in_amount> needs to be an instance of bool or None.')
@@ -1039,7 +1035,7 @@ class Species(Quantity):
         """Sets the units this species amount (not concentration) is in."""
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
-                '<' + str(units) + '> needs to be instance of myokit.Unit')
+                f'<{units}> needs to be instance of myokit.Unit.')
 
         self._units = units
         self._compartment._model.add_unit_if_possible(units)
@@ -1049,7 +1045,7 @@ class Species(Quantity):
         return self._sid
 
     def __str__(self):
-        return '<Species ' + self._sid + '>'
+        return f'<Species {self._sid}>'
 
     def substance_units(self):
         """
@@ -1078,8 +1074,8 @@ class SpeciesReference(Quantity):
 
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + species + '> needs to be instance of'
-                ' myokit.formats.sbml.Species')
+                f'<{species}> needs to be instance of'
+                ' myokit.formats.sbml.Species.')
 
         self._species = species
         self._sid = str(sid) if sid else sid
@@ -1093,7 +1089,7 @@ class SpeciesReference(Quantity):
         return self._sid
 
     def __str__(self):
-        return '<SpeciesReference ' + self._sid + '>'
+        return f'<SpeciesReference {self._sid}>'
 
 
 class ModifierSpeciesReference:
@@ -1104,8 +1100,8 @@ class ModifierSpeciesReference:
 
         if not isinstance(species, Species):
             raise SBMLError(
-                '<' + species + '> needs to be instance of'
-                ' myokit.formats.sbml.Species')
+                f'<{species}> needs to be instance of'
+                ' myokit.formats.sbml.Species.')
 
         self._species = species
         self._sid = str(sid) if sid else sid
@@ -1127,7 +1123,7 @@ def convert_name(name):
     underscore.
     """
     if name[:1] == '_':
-        name = 'underscore' + name
+        name = f'underscore{name}'
     return name
 
 
@@ -1320,15 +1316,15 @@ class _MyokitConverter:
                 component = component_references[compartment_sid]
             except KeyError:
                 raise SBMLError(
-                    'The <' + str(compartment) + '> for <' + str(species) + '>'
-                    ' is not referenced in model. Please use the '
-                    '`add_compartment` method to reference a compartment.')
+                    f'The <{compartment}> for <{species}> is not referenced'
+                    ' in model. Please use the "add_compartment()" method to'
+                    ' reference a compartment.')
 
             # Add species in amount to component
             # (needed for reactions, even if species is defined in
             # concentration)
             var = component.add_variable_allow_renaming(
-                convert_name(sid + '_amount'))
+                convert_name(f'{sid}_amount'))
 
             # Set unit of amount
             var.set_unit(species.substance_units())
@@ -1340,7 +1336,7 @@ class _MyokitConverter:
             if not species.is_amount():
                 # Add species in concentration
                 var = component.add_variable_allow_renaming(
-                    convert_name(sid + '_concentration'))
+                    convert_name(f'{sid}_concentration'))
 
                 # Get myokit amount and size variable
                 amount = species_amount_references[sid]
@@ -1384,11 +1380,10 @@ class _MyokitConverter:
                         component = component_references[compartment_sid]
                     except KeyError:
                         raise SBMLError(
-                            'The <' + str(compartment) + '> of <' +
-                            str(species) + '> in <' + str(reaction) + '> is '
-                            'not referenced in the model. Please use the '
-                            '`add_compartment` method to reference the '
-                            'compartment.')
+                            f'The <{compartment}> of <{species}> in'
+                            f' <{reaction}> is not referenced in the model.'
+                            ' Please use the "add_compartment()" method to'
+                            ' reference the compartment.')
 
                     # Add variable to component
                     var = component.add_variable_allow_renaming(
@@ -1441,10 +1436,10 @@ class _MyokitConverter:
                     var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
-                        'Initial value for the size of <' + str(compartment) +
-                        '> contains unreferenced parameters/variables. Please'
-                        ' use e.g. the `add_parameter` method to add reference'
-                        ' to parameters in the model.')
+                        f'Initial value for the size of <{compartment}>'
+                        ' contains unreferenced parameters/variables. Please'
+                        ' use e.g. the "add_parameter()" method to add'
+                        ' reference to parameters in the model.')
 
             if compartment.is_rate():
                 # Get initial state
@@ -1453,9 +1448,9 @@ class _MyokitConverter:
                 except AttributeError:
                     state_value = 1
                     warnings.warn(
-                        'Size of compartment <' + str(compartment) + '> is '
-                        'promoted to state variable without being assigned '
-                        'with an initial value. Default is set to 1.')
+                        f'Size of compartment <{compartment}> is promoted to'
+                        ' state variable without being assigned with an'
+                        ' initial value. Default is set to 1.')
 
                 # Promote size to state variable
                 var.promote(state_value)
@@ -1469,10 +1464,10 @@ class _MyokitConverter:
                     var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
-                        'Value for the size of <' + str(compartment) +
-                        '> contains unreferenced parameters/variables. Please'
-                        ' use e.g. the `add_parameter` method to add reference'
-                        ' to parameters in the model.')
+                        f'Value for the size of <{compartment}> contains'
+                        ' unreferenced parameters/variables. Please use e.g.'
+                        ' the "add_parameter()" method to add reference to'
+                        ' parameters in the model.')
 
     @staticmethod
     def set_rhs_reactants(
@@ -1513,9 +1508,8 @@ class _MyokitConverter:
                     conversion_factor = variable_references[sid]
                 except KeyError:
                     raise SBMLError(
-                        'Species <' + str(species) + '> has conversion factor '
-                        '<' + str(factor) + '> which is not referenced in the '
-                        'model.')
+                        f'Species <{species}> has conversion factor'
+                        f' <{factor}> which is not referenced in the model.')
 
                 # Convert rate expression from units of reaction extent
                 # to amount units
@@ -1527,9 +1521,9 @@ class _MyokitConverter:
                 var = species_amount_references[species.sid()]
             except KeyError:
                 raise SBMLError(
-                    'Kinetic law of <' + str(reaction) + '> contains '
-                    'unreferenced species <' + str(species) + '>. Please, '
-                    'use the `add_species` method to reference species.')
+                    f'Kinetic law of <{reaction}> contains unreferenced'
+                    f' species <{species}>. Please, use the "add_species()"'
+                    ' method to reference species.')
 
             if not var.is_state():
                 # Get initial state
@@ -1538,9 +1532,9 @@ class _MyokitConverter:
                 except AttributeError:
                     state_value = 0
                     warnings.warn(
-                        'Species <' + str(species) + '> is promoted to state '
-                        'variable without being assigned with an initial '
-                        'value. Default is set to 0.')
+                        f'Species <{species}> is promoted to state variable'
+                        ' without being assigned with an initial value.'
+                        ' Default is set to 0.')
 
                 # Promote size to state variable
                 var.promote(state_value)
@@ -1559,10 +1553,11 @@ class _MyokitConverter:
                 var.set_rhs(expr)
             except AttributeError:
                 raise SBMLError(
-                    'Reaction rate expression of <' + str(reaction) + '> for <'
-                    + str(species) + '> contains unreferenced parameters/'
-                    'variables. Please use e.g. the `add_parameter` method to '
-                    'add reference to parameters in the model.')
+                    f'Reaction rate expression of <{reaction}> for'
+                    f' <{species}> contains unreferenced parameters/variables.'
+                    ' Please use'
+                    ' e.g. the "add_parameter()" method to add reference to'
+                    ' parameters in the model.')
 
     @staticmethod
     def set_rhs_products(
@@ -1603,9 +1598,8 @@ class _MyokitConverter:
                     conversion_factor = variable_references[sid]
                 except KeyError:
                     raise SBMLError(
-                        'Species <' + str(species) + '> has conversion factor '
-                        '<' + str(factor) + '> which is not referenced in the '
-                        'model.')
+                        f'Species <{species}> has conversion factor'
+                        f' <{factor}> which is not referenced in the model.')
 
                 # Convert rate expression from units of reaction extent
                 # to amount units
@@ -1617,9 +1611,9 @@ class _MyokitConverter:
                 var = species_amount_references[species.sid()]
             except KeyError:
                 raise SBMLError(
-                    'Kinetic law of <' + str(reaction) + '> contains '
-                    'unreferenced species <' + str(species) + '>. Please, '
-                    'use the `add_species` method to reference species.')
+                    f'Kinetic law of <{reaction}> contains unreferenced'
+                    f' species <{species}>. Please, use the "add_species()"'
+                    ' method to reference species.')
 
             if not var.is_state():
                 # Get initial state
@@ -1628,9 +1622,9 @@ class _MyokitConverter:
                 except AttributeError:
                     state_value = 0
                     warnings.warn(
-                        'Species <' + str(species) + '> is promoted to state '
-                        'variable without being assigned with an initial '
-                        'value. Default is set to 0.')
+                        f'Species <{species}> is promoted to state variable'
+                        ' without being assigned with an initial value.'
+                        ' Default is set to 0.')
 
                 # Promote size to state variable
                 var.promote(state_value)
@@ -1646,10 +1640,11 @@ class _MyokitConverter:
                 var.set_rhs(expr)
             except AttributeError:
                 raise SBMLError(
-                    'Reaction rate expression of <' + str(reaction) + '> for <'
-                    + str(species) + '> contains unreferenced parameters/'
-                    'variables. Please use e.g. the `add_parameter` method to '
-                    'add reference to parameters in the model.')
+                    f'Reaction rate expression of <{reaction}> for'
+                    f' <{species}> contains unreferenced parameters/variables.'
+                    ' Please use'
+                    ' e.g. the "add_parameter()" method to add reference to'
+                    ' parameters in the model.')
 
     @staticmethod
     def set_rhs_species(
@@ -1690,9 +1685,9 @@ class _MyokitConverter:
                     var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
-                        'Initial value of <' + str(species) + '> contains '
-                        'unreferenced parameters/variables. Please use e.g. '
-                        'the `add_parameter` method to reference expressions.')
+                        f'Initial value of <{species}> contains unreferenced'
+                        ' parameters/variables. Please use e.g. the'
+                        ' "add_parameter()" method to reference expressions.')
 
             if species.is_rate():
                 # Get initial state
@@ -1701,9 +1696,9 @@ class _MyokitConverter:
                 except AttributeError:
                     state_value = 0
                     warnings.warn(
-                        'Species <' + str(species) + '> is promoted to state '
-                        'variable without being assigned with an initial '
-                        'value. Default is set to 0.')
+                        f'Species <{species}> is promoted to state variable'
+                        ' without being assigned with an initial value.'
+                        ' Default is set to 0.')
 
                 # Promote size to state variable
                 var.promote(state_value)
@@ -1727,9 +1722,9 @@ class _MyokitConverter:
                     var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
-                        'Value of <' + str(species) + '> contains '
-                        'unreferenced parameters/variables. Please use e.g. '
-                        'the `add_parameter` method to reference expressions.')
+                        f'Value of <{species}> contains unreferenced'
+                        ' parameters/variables. Please use e.g. the'
+                        ' "add_parameter()" method to reference expressions.')
 
     @staticmethod
     def set_rhs_parameters(
@@ -1750,10 +1745,10 @@ class _MyokitConverter:
                     var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
-                        'Initial value of ' + str(parameter) +
-                        ' contains unreferenced parameters/variables. Please'
-                        ' use e.g. the `add_parameter` method to add reference'
-                        ' to parameters in the model.')
+                        f'Initial value of {parameter} contains unreferenced'
+                        ' parameters/variables. Please use e.g. the'
+                        ' "add_parameter()" method to add reference to'
+                        ' parameters in the model.')
 
             if parameter.is_rate():
                 # Get initial state
@@ -1762,9 +1757,9 @@ class _MyokitConverter:
                 except AttributeError:
                     state_value = 0
                     warnings.warn(
-                        'Parameter ' + str(parameter) + ' is promoted to'
-                        ' state variable without being assigned with an'
-                        ' initial value. Default is set to 1.')
+                        f'Parameter {parameter} is promoted to state variable'
+                        ' without being assigned with an initial value.'
+                        ' Default is set to 1.')
 
                 # Promote size to state variable
                 var.promote(state_value)
@@ -1778,9 +1773,9 @@ class _MyokitConverter:
                     var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
-                        'Value of ' + str(parameter) + ' contains unreferenced'
+                        f'Value of {parameter} contains unreferenced'
                         ' parameters/variables. Please use e.g. the'
-                        ' `add_parameter` method to add reference to'
+                        ' "add_parameter()" method to add reference to'
                         ' parameters in the model.')
 
     @staticmethod
@@ -1814,11 +1809,11 @@ class _MyokitConverter:
                         var.set_rhs(expr)
                     except AttributeError:
                         raise SBMLError(
-                            'Initial value of <' + str(species_reference) +
-                            '> (initial stoichiometry) contains unreferenced '
-                            'parameters/variables. Please use e.g. the '
-                            '`add_parameter` method to add reference to '
-                            'parameters in the model.')
+                            f'Initial value of <{species_reference}> (initial'
+                            ' stoichiometry) contains unreferenced'
+                            ' parameters/variables. Please use e.g. the'
+                            ' "add_parameter()" method to add reference to'
+                            ' parameters in the model.')
 
                 if species_reference.is_rate():
                     # Get initial state
@@ -1827,10 +1822,10 @@ class _MyokitConverter:
                     except AttributeError:
                         state_value = 0
                         warnings.warn(
-                            'Stoichiometry of <' + str(species_reference) + '>'
-                            ' is promoted to state variable without being '
-                            'assigned with an initial value. Default is set to'
-                            ' 1.')
+                            f'Stoichiometry of <{species_reference}> is'
+                            ' promoted to state variable without being'
+                            ' assigned with an initial value. Default is set'
+                            ' to 1.')
 
                     # Promote size to state variable
                     var.promote(state_value)
@@ -1844,9 +1839,8 @@ class _MyokitConverter:
                         var.set_rhs(expr)
                     except AttributeError:
                         raise SBMLError(
-                            'Value of <' + str(species_reference) + '> '
-                            '(stroichiometry) contains unreferenced parameters'
-                            '/variables. Please use e.g. the `add_parameter` '
-                            'method to add reference to parameters in the '
-                            'model.')
+                            f'Value of <{species_reference}> (stroichiometry)'
+                            ' contains unreferenced parameters/variables.'
+                            ' Please use e.g. the "add_parameter()" method to'
+                            ' add reference to parameters in the model.')
 

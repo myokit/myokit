@@ -210,7 +210,7 @@ class Asciifier(html.parser.HTMLParser):
             return
 
         # Convert html characters
-        data = html.unescape('&' + name + ';')
+        data = html.unescape(f'&{name};')
 
         # Convert to ascii and back to strip out non-ascii content
         data = data.encode('ascii', 'ignore').decode('ascii')

@@ -68,7 +68,7 @@ def default_script(model=None):
         import myokit.lib.guess
         v = myokit.lib.guess.membrane_potential(model)
         if v is not None:
-            vm = "'" + v.qname() + "'"
+            vm = f'\'{v.qname()}\''
 
         # Get duration in good units
         default_unit = myokit.units.ms
@@ -93,10 +93,10 @@ def default_script(model=None):
         "s = myokit.Simulation(m, p)",
         "",
         "# Run simulation",
-        "d = s.run(" + str(duration) + ")",
+        f'd = s.run({duration})',
         "",
         "# Display the results",
-        "var = " + vm,
+        f'var = {vm}',
         "plt.figure()",
         "plt.plot(d.time(), d[var])",
         "plt.title(var)",
@@ -125,8 +125,8 @@ class ModelComparison:
         # Compare models
         if live:
             print('Comparing:')
-            print('  [1] ' + model1.name())
-            print('  [2] ' + model2.name())
+            print(f'  [1] {model1.name()}')
+            print(f'  [2] {model2.name()}')
 
         # -> Model meta data
         self._meta(model1, model2)
@@ -146,7 +146,7 @@ class ModelComparison:
         # Final report
         if live:
             print('Done')
-            print('  ' + str(len(self._diff)) + ' differences found')
+            print(f'  {len(self._diff)} differences found')
 
     def _components(self, m1, m2):
         """
@@ -158,12 +158,12 @@ class ModelComparison:
             try:
                 c2 = m2[c1.qname()]
             except KeyError:
-                self._write('[2] Missing Component <' + c1.qname() + '>')
+                self._write(f'[2] Missing Component <{c1.qname()}>')
                 continue
             self._comp(c1, c2)
         for c2 in m2.components(sort=True):
             if c2.qname() not in seen:
-                self._write('[1] Missing Component <' + c2.qname() + '>')
+                self._write(f'[1] Missing Component <{c2.qname()}>')
 
     def _comp(self, c1, c2):
         """
@@ -180,13 +180,13 @@ class ModelComparison:
             try:
                 v2 = c2.model().get(name)
             except KeyError:
-                self._write('[2] Missing Variable <' + name + '>')
+                self._write(f'[2] Missing Variable <{name}>')
                 continue
             self._var(v1, v2)
         for v2 in c2.variables(deep=True):
             name = v2.qname()
             if name not in seen:
-                self._write('[1] Missing Variable <' + name + '>')
+                self._write(f'[1] Missing Variable <{name}>')
 
     def equal(self):
         """
@@ -210,24 +210,19 @@ class ModelComparison:
         if isinstance(x1, myokit.Model):
             name = ' in model'
         else:
-            name = ' in <' + x1.qname() + '>'
+            name = f' in <{x1.qname()}>'
         seen = set()
         for key, value in x1.meta.items():
             seen.add(key)
             try:
                 if value != x2.meta[key]:
                     self._write(
-                        '[x] Mismatched Meta property' + name + ': "'
-                        + str(key) + '"')
+                        f'[x] Mismatched Meta property{name}: "{key}"')
             except KeyError:
-                self._write(
-                    '[2] Missing Meta property' + name + ': "' + str(key)
-                    + '"')
+                self._write(f'[2] Missing Meta property{name}: "{key}"')
         for key, value in x2.meta.items():
             if key not in seen:
-                self._write(
-                    '[1] Missing Meta property' + name + ': "' + str(key)
-                    + '"')
+                self._write(f'[1] Missing Meta property{name}: "{key}"')
 
     def _state(self, m1, m2):
         """ Compares two models' states and initial values. """
@@ -239,18 +234,17 @@ class ModelComparison:
             try:
                 v2 = next(s2)
             except StopIteration:
-                self._write('[2] Missing state at position ' + str(k))
+                self._write(f'[2] Missing state at position {k}')
                 continue
             if v1 != v2:
-                self._write(
-                    '[x] Mismatched State at position ' + str(k) + ': [1]<'
-                    + v1 + '> [2]<' + v2 + '>')
+                self._write(f'[x] Mismatched State at position {k}:'
+                            f' [1]<{v1}> [2]<{v2}>')
                 continue
             if c1[k].code() != c2[k].code():
-                self._write('[x] Mismatched Initial value for <' + v1 + '>')
+                self._write(f'[x] Mismatched Initial value for <{v1}>')
         n = m2.count_states()
         for k, v2 in enumerate(s2):
-            self._write('[1] Missing state at position ' + str(n + k))
+            self._write(f'[1] Missing state at position {n + k}')
 
     def text(self):
         """
@@ -266,15 +260,14 @@ class ModelComparison:
         t2 = m2.time()
         if t1 is None:
             if t2 is not None:
-                self._write('[1] Missing Time variable <' + t2.qname() + '>')
+                self._write(f'[1] Missing Time variable <{t2.qname()}>')
                 return
         elif t2 is None:
-            self._write('[2] Missing Time variable <' + t1.qname() + '>')
+            self._write(f'[2] Missing Time variable <{t1.qname()}>')
             return
         if t1.qname() != t2.qname():
-            self._write(
-                '[x] Mismatched Time variable: [1]<' + t1.qname() + '> [2]<'
-                + t2.qname() + '>')
+            self._write(f'[x] Mismatched Time variable: [1]<{t1.qname()}>'
+                        f' [2]<{t2.qname()}>')
 
     def _userfunc(self, m1, m2):
         """
@@ -287,12 +280,12 @@ class ModelComparison:
             seen.add(name)
             try:
                 if func != u2[name]:
-                    self._write('[x] Mismatched User function <' + name + '>')
+                    self._write(f'[x] Mismatched User function <{name}>')
             except KeyError:
-                self._write('[2] Missing User function <' + name + '>')
+                self._write(f'[2] Missing User function <{name}>')
         for name, func in u2.items():
             if name not in seen:
-                self._write('[1] Missing User function <' + name + '>.')
+                self._write(f'[1] Missing User function <{name}>.')
 
     def _var(self, v1, v2):
         """
@@ -303,14 +296,14 @@ class ModelComparison:
         # Left-hand side expression
         c1, c2 = v1.lhs().code(), v2.lhs().code()
         if c1 != c2:
-            self._write('[x] Mismatched LHS <' + name + '>')
+            self._write(f'[x] Mismatched LHS <{name}>')
         # Right-hand side expression
         c1, c2 = v1.rhs().code(), v2.rhs().code()
         if c1 != c2:
-            self._write('[x] Mismatched RHS <' + name + '>')
+            self._write(f'[x] Mismatched RHS <{name}>')
         # Units
         if v1.unit() != v2.unit():
-            self._write('[x] Mismatched unit <' + name + '>')
+            self._write(f'[x] Mismatched unit <{name}>')
         # Meta
         self._meta(v1, v2)
         # Don't test nested variables, this is done component wise
@@ -346,7 +339,7 @@ def numpy_writer():
             u = u.uname() if isinstance(u, myokit.ModelPart) else str(u)
             if u is None:
                 u = x.var().qname().replace('.', '_')
-            return '_d_' + u if x.is_derivative() else u
+            return f'_d_{u}' if x.is_derivative() else u
 
         _numpywriter_.set_lhs_function(name)
 
@@ -375,7 +368,7 @@ def python_writer():
             u = u.uname() if isinstance(u, myokit.ModelPart) else str(u)
             if u is None:
                 u = x.var().qname().replace('.', '_')
-            return '_d_' + u if x.is_derivative() else u
+            return f'_d_{u}' if x.is_derivative() else u
 
         _pywriter_.set_lhs_function(name)
 
@@ -465,7 +458,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     #
     # will raise an exception on line 3.
     #
-    script = '\n' + script
+    script = f'\n{script}'
 
     # Class to run scripts
     class Runner:
@@ -610,14 +603,14 @@ def step(model, state=None, inputs=None, reference=None, ignore_errors=False):
                     log.append('')
                 else:
                     errors += 1
-                    log.append(line + ' sign')
+                    log.append(f'{line} sign')
                     log.append(h + '^' * 24)
 
             # Different exponent, huge error
             elif xx[-4:] != yy[-4:]:
                 errors += 1
-                log.append(line + ' exponent')
-                log.append(i + '^^^^')
+                log.append(f'{line} exponent')
+                log.append(f'{i}^^^^')
 
             # Large error, small error, or no error
             else:
@@ -638,7 +631,7 @@ def step(model, state=None, inputs=None, reference=None, ignore_errors=False):
                     rel_err = abs(x - y) / max(abs(x), abs(y))
                     n_eps = rel_err / sys.float_info.epsilon
                     if n_eps > 1:
-                        line += ' ~ ' + str(round(n_eps, 1)) + ' eps'
+                        line += f' ~ {round(n_eps, 1)} eps'
                     else:
                         line += ' <= 1 eps'
                     if n_eps > 1:
@@ -661,15 +654,14 @@ def step(model, state=None, inputs=None, reference=None, ignore_errors=False):
 
         # Show large mismatches between model and reference
         if errors > 0:
-            log.append(
-                'Found (' + str(errors) + ') large mismatches between output'
-                ' and reference values.')
+            log.append(f'Found ({errors}) large mismatches between output'
+                       ' and reference values.')
         else:
             log.append('Model check completed without errors.')
 
         # Show small mismatches between model and reference
         if warnings > 0:
-            log.append('Found (' + str(warnings) + ') small mismatches.')
+            log.append(f'Found ({warnings}) small mismatches.')
 
     # Finalize and return
     log.append('-' * line_width)
@@ -700,9 +692,9 @@ def version(raw=False):
     if raw:
         return myokit.__version__
     else:
-        t1 = ' Myokit ' + myokit.__version__ + ' '
+        t1 = f' Myokit {myokit.__version__} '
         t2 = '_' * len(t1)
         t1 += '|/\\'
         t2 += '|  |' + '_' * 5
-        return '\n' + t1 + '\n' + t2
+        return f'\n{t1}\n{t2}'
 

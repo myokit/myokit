@@ -116,14 +116,14 @@ class ProgressPrinter(ProgressReporter):
                 p = t * (100 / f - 1)
                 if p > 60:
                     p = str(round(p / 60, 1))
-                    p = ', estimated ' + p + ' minutes remaining'
+                    p = f', estimated {p} minutes remaining'
                 else:
                     p = str(int(round(p, 0)))
-                    p = ', estimated ' + p + ' seconds remaining'
+                    p = f', estimated {p} seconds remaining'
             else:
                 p = ''
             t = str(round(t / 60, 1))
-            print('[' + t + ' minutes] ' + str(f) + ' % done' + p)
+            print(f'[{t} minutes] {f} % done{p}')
         return True
 
 

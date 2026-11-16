@@ -142,7 +142,7 @@ class Unit:
         r2 = repr(self)
         if r1 == r2:
             return r1
-        return r1 + ' (or ' + r2 + ')'
+        return f'{r1} (or {r2})'
 
     @staticmethod
     def close(unit1, unit2, reltol=1e-9, abstol=1e-9):
@@ -311,11 +311,11 @@ class Unit:
 
         # Unable to convert?
         if fw is None:
-            msg = 'Unable to convert from ' + unit1.clarify()
-            msg += ' to ' + unit2.clarify()
+            msg = (f'Unable to convert from {unit1.clarify()}'
+                   f' to {unit2.clarify()}')
             if factors:
-                msg += ' (even with help of conversion factors).'
-            raise myokit.IncompatibleUnitError(msg + '.')
+                msg += ' (even with help of conversion factors)'
+            raise myokit.IncompatibleUnitError(f'{msg}.')
 
         # Create Quantity and return
         fw = myokit.float.round(fw)
@@ -360,8 +360,7 @@ class Unit:
 
         for x in self._x:
             if x != 0:
-                raise TypeError(
-                    'Unable to convert unit ' + str(self) + ' to float.')
+                raise TypeError(f'Unable to convert unit {self} to float.')
         return self.multiplier()
 
     def __hash__(self):
@@ -455,12 +454,11 @@ class Unit:
                 except KeyError:
 
                     if p1 not in Unit._si_quantifiers:
-                        raise KeyError(
-                            'Unknown quantifier: "' + str(p1) + '".')
+                        raise KeyError(f'Unknown quantifier: "{p1}".')
                     else:   # pragma: no cover
                         raise Exception(
-                            'Unit "' + str(p1) + '" listed as quantifiable'
-                            ' does not appear in unit list.')
+                            f'Unit "{p1}" listed as quantifiable does not'
+                            ' appear in unit list.')
 
                 # Return new unit with updated exponent
                 u = Unit._units[p2]
@@ -469,12 +467,11 @@ class Unit:
             elif p1 in Unit._si_quantifiers and p2 in Unit._units:
                 # Attempt to quantify non-quantifiable unit
                 raise KeyError(
-                    'Unit "' + str(p2) + '" cannot have quantifier "' + str(p1)
-                    + '".')
+                    f'Unit "{p2}" cannot have quantifier "{p1}".')
 
             else:
                 # Just plain wrong
-                raise KeyError('Unknown unit: "' + str(name) + '".')
+                raise KeyError(f'Unknown unit: "{name}".')
 
     def __pow__(self, f):
         # Evaluates ``self ^ other``
@@ -513,7 +510,7 @@ class Unit:
         """
         name = myokit.check_name(name)
         if not isinstance(unit, Unit):
-            raise TypeError('Given unit must be myokit.Unit')
+            raise TypeError('Given unit must be myokit.Unit.')
         Unit._units[name] = unit
         if quantifiable:
             # Overwrite existing entries without warning
@@ -545,7 +542,7 @@ class Unit:
         if not isinstance(unit, myokit.Unit):
             raise TypeError(
                 'The second argument to register_preferred_representation must'
-                ' be a myokit.Unit')
+                ' be a myokit.Unit.')
         rep = str(rep)
         if not myokit.parse_unit(rep) == unit:
             raise ValueError(
@@ -595,14 +592,14 @@ class Unit:
                 y = si[k]
                 xabs = abs(x)
                 if xabs > 1:
-                    y += '^' + str(xabs)
+                    y += f'^{xabs}'
                 if x > 0:
                     pos.append(y)
                 else:
                     neg.append(y)
         u = '*'.join(pos) if pos else '1'
         for x in neg:
-            u += '/' + str(x)
+            u += f'/{x}'
 
         # Add conversion factor
         m = self._m
@@ -616,7 +613,7 @@ class Unit:
             else:
                 m = f'{m:<1.0e}'
             u += f' ({m})'
-        return '[' + u + ']'
+        return f'[{u}]'
 
     def __str__(self):
 
@@ -788,7 +785,7 @@ class Quantity:
                 raise ValueError('Two units specified for myokit.Quantity.')
 
         # Create string representation
-        self._str = str(self._value) + ' ' + str(self._unit)
+        self._str = f'{self._value} {self._unit}'
 
     def convert(self, unit):
         """
@@ -847,7 +844,7 @@ class Quantity:
         if isinstance(f, Quantity):
             if f.unit() != myokit.units.dimensionless:
                 raise myokit.IncompatibleUnitError(
-                    'Exponent of power must be dimensionless')
+                    'Exponent of power must be dimensionless.')
             f = f.value()
         return Quantity(self._value ** f, self._unit ** f)
 
@@ -877,8 +874,8 @@ class Quantity:
             other = Quantity(other)
         if self._unit != other._unit:
             raise myokit.IncompatibleUnitError(
-                'Cannot subtract quantities with units ' + self._unit.clarify()
-                + ' and ' + other._unit.clarify() + '.')
+                f'Cannot subtract quantities with units {self._unit.clarify()}'
+                f' and {other._unit.clarify()}.')
         return Quantity(self._value - other._value, self._unit)
 
     def __truediv__(self, other):

@@ -697,7 +697,7 @@ class CellMLParser:
         if not children:
             warnings.warn(
                 f'Unable to parse definition for units "{name}", using'
-                ' `dimensionless instead. (Defining new base units is not'
+                ' "dimensionless" instead. (Defining new base units is not'
                 ' supported.)')
 
         # Parse content
