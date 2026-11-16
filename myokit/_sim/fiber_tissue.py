@@ -506,13 +506,13 @@ class FiberTissueSimulation(myokit.CModule):
                 raise myokit.FindNanError(
                     'Method requires a simulation log from the fiber model'
                     ' containing all states and bound variables. Missing'
-                    f' variable <{key}>.')
+                    f' variable "{key}".')
         for key in lt:
             if key not in logt:
                 raise myokit.FindNanError(
                     'Method requires a simulation log from the tissue model'
                     ' containing all states and bound variables. Missing at'
-                    f' least variable <{key}>.')
+                    f' least variable "{key}".')
         del lf
         del lt
 

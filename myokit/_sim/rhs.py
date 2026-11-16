@@ -170,7 +170,7 @@ class RhsBenchmarker(myokit.CModule):
             state = state.qname()
             if state not in log:
                 raise ValueError(
-                    f'State variable <{state}> not found in simulation log.')
+                    f'State variable "{state}" not found in simulation log.')
             m = len(log[state])
             if n is None:
                 n = m

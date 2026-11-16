@@ -409,7 +409,7 @@ def parse_model_from_stream(stream, syntax_only=False):
             if name in info.initial_values:
                 raise ParseError(
                     'Duplicate initial value', t0[2], t0[3],
-                    f'A value for <{name}> was already specified.')
+                    f'A value for "{name}" was already specified.')
             expect(next(stream), EQUAL)
             expr = parse_proto_expression(stream)
             expect(next(stream), EOL)

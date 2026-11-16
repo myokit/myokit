@@ -137,13 +137,13 @@ class LinearModel:
             try:
                 state = self._model.get(str(state), myokit.Variable)
             except KeyError:
-                raise LinearModelError(f'Unknown state: <{state}>.')
+                raise LinearModelError(f'Unknown state: "{state}".')
             if not state.is_state():
                 raise LinearModelError(
-                    f'Variable <{state.qname()}> is not a state.')
+                    f'Variable "{state.qname()}" is not a state.')
             if state in self._states:
                 raise LinearModelError(
-                    f'State <{state.qname()}> was added twice.')
+                    f'State "{state.qname()}" was added twice.')
             self._states.append(state)
         del states
 
@@ -159,13 +159,13 @@ class LinearModel:
                 parameter = self._model.get(parameter, myokit.Variable)
             except KeyError:
                 raise LinearModelError(
-                    f'Unknown parameter: <{parameter}>.')
+                    f'Unknown parameter: "{parameter}".')
             if not parameter.is_literal():
                 raise LinearModelError(
-                    f'Unsuitable parameter: <{parameter}>.')
+                    f'Unsuitable parameter: "{parameter}".')
             if parameter in unique:
                 raise LinearModelError(
-                    f'Parameter listed twice: <{parameter}>.')
+                    f'Parameter listed twice: "{parameter}".')
             unique.add(parameter)
             self._parameters.append(parameter)
         del unique
@@ -263,7 +263,7 @@ class LinearModel:
             for d in s.refs_to(state_refs=True):
                 if s not in d.refs_to(state_refs=True):
                     raise LinearModelError(
-                        f'State <{s.qname()}> depends on <{d.qname()}> but'
+                        f'State "{s.qname()}" depends on "{d.qname()}" but'
                         ' not vice versa.')
 
         # Check the sum of all states is 1
@@ -495,11 +495,10 @@ class LinearModel:
                         currents.append(x)
                         break
             if len(currents) > 1:
+                c = ', '.join([f'"{x.qname()}"' for x in currents])
                 raise LinearModelError(
                     'The given component has more than one variable that could'
-                    ' be a current: '
-                    + ', '.join(['<' + x.qname() + '>' for x in currents])
-                    + '.')
+                    f' be a current: {c}.')
             try:
                 current = currents[0]
             except IndexError:
@@ -893,7 +892,7 @@ class AnalyticalSimulation:
                         log[key], np.zeros(log_times.shape)))
             except KeyError:
                 raise ValueError(
-                    f'Invalid log: missing entry for <{key}>.')
+                    f'Invalid log: missing entry for "{key}".')
 
         # Run simulation
         if self._protocol is None:
@@ -1367,7 +1366,7 @@ class DiscreteSimulation:
                     log[key]
             except KeyError:
                 raise ValueError(
-                    f'Invalid log: missing entry for <{key}>.')
+                    f'Invalid log: missing entry for "{key}".')
 
         if self._protocol is None:
             # Simulate with fixed V

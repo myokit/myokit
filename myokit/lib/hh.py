@@ -123,12 +123,12 @@ class HHModel:
             try:
                 state = self._model.get(str(state), myokit.Variable)
             except KeyError:
-                raise HHModelError(f'Unknown state: <{state}>.')
+                raise HHModelError(f'Unknown state: "{state}".')
             if not state.is_state():
                 raise HHModelError(
-                    f'Variable <{state.qname()}> is not a state.')
+                    f'Variable "{state.qname()}" is not a state.')
             if state in self._states:
-                raise HHModelError(f'State <{state.qname()}> was added twice.')
+                raise HHModelError(f'State "{state.qname()}" was added twice.')
             self._states.append(state)
         del states
 
@@ -143,11 +143,11 @@ class HHModel:
             try:
                 parameter = self._model.get(parameter, myokit.Variable)
             except KeyError:
-                raise HHModelError(f'Unknown parameter: <{parameter}>.')
+                raise HHModelError(f'Unknown parameter: "{parameter}".')
             if not parameter.is_literal():
-                raise HHModelError(f'Unsuitable parameter: <{parameter}>.')
+                raise HHModelError(f'Unsuitable parameter: "{parameter}".')
             if parameter in unique:
-                raise HHModelError(f'Parameter listed twice: <{parameter}>.')
+                raise HHModelError(f'Parameter listed twice: "{parameter}".')
             unique.add(parameter)
             self._parameters.append(parameter)
         del unique
@@ -422,7 +422,7 @@ class HHModel:
                 raise HHModelError(
                     'The given component has more than one variable that could'
                     ' be a current: '
-                    + ', '.join([f'<{x.qname()}>' for x in currents]) + '.')
+                    + ', '.join([f'"{x.qname()}"' for x in currents]) + '.')
             try:
                 current = currents[0]
             except IndexError:
@@ -753,7 +753,7 @@ class AnalyticalSimulation:
                     log[key] = np.concatenate((
                         log[key], np.zeros(log_times.shape)))
             except KeyError:
-                raise ValueError(f'Invalid log: missing entry for <{key}>.')
+                raise ValueError(f'Invalid log: missing entry for "{key}".')
 
         # Run simulation
         if self._protocol is None:

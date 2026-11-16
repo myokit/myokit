@@ -767,7 +767,7 @@ class Expression:
         if isinstance(self, myokit.Condition):
             me = 'initial value' if is_init else 'right-hand side'
             raise myokit.IntegrityError(
-                f'The {me} expression for <{var.qname()}> should not be a'
+                f'The {me} expression for "{var.qname()}" should not be a'
                 ' condition.')
 
         # Any dot() operators refer to a state variable
@@ -775,9 +775,9 @@ class Expression:
             me = 'initial value' if is_init else 'right-hand side'
             if not ex._op._value.is_state():
                 raise myokit.IntegrityError(
-                    f'The {me} expression for <{var.qname()}> contains a'
+                    f'The {me} expression for "{var.qname()}" contains a'
                     ' reference to the time-derivative of a non-state variable'
-                    f' <{ex.code()}>.')
+                    f' "{ex.code()}".')
 
         # Any LhsExpressions are proper
         for ex in self._references:
@@ -785,16 +785,16 @@ class Expression:
                 me = 'initial value' if is_init else 'right-hand side'
                 if isinstance(ex, PartialDerivative):
                     raise myokit.IntegrityError(
-                        f'The {me} expression for <{var.qname()}> contains a'
-                        f' reference to a PartialDerivative <{ex.code()}>.')
+                        f'The {me} expression for "{var.qname()}" contains a'
+                        f' reference to a PartialDerivative "{ex.code()}".')
                 elif isinstance(ex, InitialValue):
                     raise myokit.IntegrityError(
-                        f'The {me} expression for <{var.qname()}> contains a'
-                        f' reference to an InitialValue <{ex.code()}>.')
+                        f'The {me} expression for "{var.qname()}" contains a'
+                        f' reference to an InitialValue "{ex.code()}".')
                 else:
                     raise myokit.IntegrityError(
-                        f'The {me} expression for <{var.qname()}> contains a'
-                        f' reference to a non-variable <{ex.code()}>.')
+                        f'The {me} expression for "{var.qname()}" contains a'
+                        f' reference to a non-variable "{ex.code()}".')
 
     # This is a relatively slow operation. Do _not_ use in performance
     # sensitive parts of the expression system code.

@@ -1091,7 +1091,7 @@ k = 6
 
             # Test 1: Calling before model() raises error
             with self.assertRaisesRegex(
-                RuntimeError, "can only be called after model"
+                RuntimeError, 'can only be called after "model\\(\\)"'
             ):
                 e.get_state_index(model.get("membrane.V"))
 

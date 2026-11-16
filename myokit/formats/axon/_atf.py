@@ -312,7 +312,7 @@ def save_atf(log, path=None, fields=None, *, filename=None):
             try:
                 data.append(iter(log[field]))
             except KeyError:
-                raise ValueError(f'Variable <{field}> not found in log.')
+                raise ValueError(f'Variable "{field}" not found in log.')
     else:
         for k, v in log.items():
             if k != time:

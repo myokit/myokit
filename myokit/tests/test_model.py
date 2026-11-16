@@ -1655,7 +1655,7 @@ class ModelTest(unittest.TestCase):
         m.set_name('Bert')
         self.assertRaisesRegex(
             myokit.IncompatibleModelError,
-            'Incompatible model <Bert>: No variable found',
+            'Incompatible model "Bert": No variable found',
             m.labelx, 'y')
 
     def test_labels(self):

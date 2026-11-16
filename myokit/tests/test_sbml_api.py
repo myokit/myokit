@@ -29,8 +29,7 @@ class TestCompartment(unittest.TestCase):
 
         model = 'model'
         sid = 'compartment'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.Compartment, model, sid)
+        self.assertRaises(sbml.SBMLError, sbml.Compartment, model, sid)
 
     def test_initial_value(self):
 
@@ -39,8 +38,7 @@ class TestCompartment(unittest.TestCase):
 
         # Check bad value
         expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.c.set_initial_value, expr)
+        self.assertRaises(sbml.SBMLError, self.c.set_initial_value, expr)
 
         # Check good value
         expr = myokit.Number(2)
@@ -91,8 +89,7 @@ class TestCompartment(unittest.TestCase):
 
         # Check bad size units
         unit = 'mL'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.c.set_size_units, unit)
+        self.assertRaises(sbml.SBMLError, self.c.set_size_units, unit)
 
         # Check valid size units
         unit = myokit.units.L * 1E-3
@@ -116,8 +113,7 @@ class TestCompartment(unittest.TestCase):
 
         # Check bad value
         expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.c.set_value, expr)
+        self.assertRaises(sbml.SBMLError, self.c.set_value, expr)
 
         # Check good value
         expr = myokit.Number(2)
@@ -230,8 +226,7 @@ class TestModel(unittest.TestCase):
             'celsius')
 
         # Check bad base unit
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', model.base_unit, 'some unit')
+        self.assertRaises(sbml.SBMLError, model.base_unit, 'some unit')
 
     def test_compartment(self):
 
@@ -261,8 +256,7 @@ class TestModel(unittest.TestCase):
         self.assertIsNone(model.conversion_factor())
 
         # Bad conversion factor
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', model.set_conversion_factor, 10)
+        self.assertRaises(sbml.SBMLError, model.set_conversion_factor, 10)
 
         # Good conversion factor
         factor = sbml.Parameter(model, 'parameter')
@@ -279,8 +273,7 @@ class TestModel(unittest.TestCase):
         self.assertEqual(model.extent_units(), myokit.units.dimensionless)
 
         # Test bad extent units
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', model.set_extent_units, 'mg')
+        self.assertRaises(sbml.SBMLError, model.set_extent_units, 'mg')
 
         # Test good extent units
         model.set_extent_units(myokit.units.g)
@@ -295,8 +288,7 @@ class TestModel(unittest.TestCase):
         self.assertEqual(model.length_units(), myokit.units.dimensionless)
 
         # Test bad length units
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', model.set_length_units, 'm')
+        self.assertRaises(sbml.SBMLError, model.set_length_units, 'm')
 
         # Test good length units
         model.set_length_units(myokit.units.meter)
@@ -366,8 +358,7 @@ class TestModel(unittest.TestCase):
         # Test bad compartment
         comp = 'some compartment'
         sid = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', model.add_species, comp, sid)
+        self.assertRaises(sbml.SBMLError, model.add_species, comp, sid)
 
         # Test bad sid
         c_sid = 'compartment'
@@ -411,8 +402,7 @@ class TestModel(unittest.TestCase):
         self.assertEqual(model.substance_units(), myokit.units.dimensionless)
 
         # Test bad substance units
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', model.set_substance_units, 'mg')
+        self.assertRaises(sbml.SBMLError, model.set_substance_units, 'mg')
 
         # Test good substance units
         model.set_substance_units(myokit.units.g)
@@ -436,8 +426,7 @@ class TestModel(unittest.TestCase):
         self.assertEqual(model.time_units(), myokit.units.dimensionless)
 
         # Test bad time units
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', model.set_time_units, 's')
+        self.assertRaises(sbml.SBMLError, model.set_time_units, 's')
 
         # Test good time units
         model.set_time_units(myokit.units.s)
@@ -451,7 +440,7 @@ class TestModel(unittest.TestCase):
         # Check bad units
         unitsid = 'some_unit'
         self.assertRaisesRegex(
-            sbml.SBMLError, 'The unit SID <', model.unit, unitsid)
+            sbml.SBMLError, 'The unit SID "', model.unit, unitsid)
 
         # Check base unit
         unitsid = 'ampere'
@@ -505,8 +494,7 @@ class TestModel(unittest.TestCase):
         self.assertEqual(model.volume_units(), myokit.units.dimensionless)
 
         # Test bad volume units
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', model.set_volume_units, 'L')
+        self.assertRaises(sbml.SBMLError, model.set_volume_units, 'L')
 
         # Test good volume units
         model.set_volume_units(myokit.units.L)
@@ -529,8 +517,7 @@ class TestParameter(unittest.TestCase):
 
         model = 'model'
         sid = 'parameter'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.Parameter, model, sid)
+        self.assertRaises(sbml.SBMLError, sbml.Parameter, model, sid)
 
     def test_initial_value(self):
 
@@ -539,8 +526,7 @@ class TestParameter(unittest.TestCase):
 
         # Check bad value
         expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.p.set_initial_value, expr)
+        self.assertRaises(sbml.SBMLError, self.p.set_initial_value, expr)
 
         # Check good value
         expr = myokit.Number(2)
@@ -572,8 +558,7 @@ class TestParameter(unittest.TestCase):
 
         # Check bad size units
         unit = 'mL'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.p.set_units, unit)
+        self.assertRaises(sbml.SBMLError, self.p.set_units, unit)
 
         # Check valid size units
         unit = myokit.units.L * 1E-3
@@ -585,8 +570,7 @@ class TestParameter(unittest.TestCase):
 
         # Check bad value
         expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.p.set_value, expr)
+        self.assertRaises(sbml.SBMLError, self.p.set_value, expr)
 
         # Check good value
         expr = myokit.Number(2)
@@ -610,8 +594,7 @@ class TestReaction(unittest.TestCase):
 
         model = 'model'
         sid = 'reaction'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.Reaction, model, sid)
+        self.assertRaises(sbml.SBMLError, sbml.Reaction, model, sid)
 
     def test_kinetic_law(self):
 
@@ -620,8 +603,7 @@ class TestReaction(unittest.TestCase):
 
         # Check bad kinetic law
         expr = '2 * s'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.r.set_kinetic_law, expr)
+        self.assertRaises(sbml.SBMLError, self.r.set_kinetic_law, expr)
 
         # Check good kinetic law
         expr = myokit.Multiply(myokit.Number(2), myokit.Name('s'))
@@ -634,8 +616,7 @@ class TestReaction(unittest.TestCase):
         # Check bad species
         sid = 'modifier'
         species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.r.add_modifier, species, sid)
+        self.assertRaises(sbml.SBMLError, self.r.add_modifier, species, sid)
 
         # Check invalid sid
         sid = ';'
@@ -682,8 +663,7 @@ class TestReaction(unittest.TestCase):
         # Check bad species
         sid = 'product'
         species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.r.add_product, species, sid)
+        self.assertRaises(sbml.SBMLError, self.r.add_product, species, sid)
 
         # Check invalid sid
         sid = ';'
@@ -730,8 +710,7 @@ class TestReaction(unittest.TestCase):
         # Check bad species
         sid = 'reactant'
         species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.r.add_reactant, species, sid)
+        self.assertRaises(sbml.SBMLError, self.r.add_reactant, species, sid)
 
         # Check invalid sid
         sid = ';'
@@ -855,7 +834,7 @@ class TestSpecies(unittest.TestCase):
         # Test bad amount
         sid = 'species'
         self.assertRaisesRegex(
-            sbml.SBMLError, 'Is_amount <', sbml.Species, self.c,
+            sbml.SBMLError, 'Is_amount "', sbml.Species, self.c,
             sid, 'No', False, False)
 
     def test_is_boundary(self):
@@ -879,7 +858,7 @@ class TestSpecies(unittest.TestCase):
         # Test bad boundary
         sid = 'species'
         self.assertRaisesRegex(
-            sbml.SBMLError, 'Is_boundary <', sbml.Species, self.c,
+            sbml.SBMLError, 'Is_boundary "', sbml.Species, self.c,
             sid, False, False, 'No')
 
     def test_compartment(self):
@@ -888,9 +867,8 @@ class TestSpecies(unittest.TestCase):
         sid = 'species'
         comp = 'compartment'
 
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.Species, comp,
-            sid, False, 'No', False)
+        self.assertRaises(
+            sbml.SBMLError, sbml.Species, comp, sid, False, 'No', False)
 
         # Test good compartment
         sid = 'species'
@@ -922,7 +900,7 @@ class TestSpecies(unittest.TestCase):
         # Test bad constant
         sid = 'species'
         self.assertRaisesRegex(
-            sbml.SBMLError, 'Is_constant <', sbml.Species, self.c,
+            sbml.SBMLError, 'Is_constant "', sbml.Species, self.c,
             sid, False, 'No', False)
 
     def test_conversion_factor(self):
@@ -936,8 +914,7 @@ class TestSpecies(unittest.TestCase):
         self.assertIsNone(species.conversion_factor())
 
         # Bad conversion factor
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_conversion_factor, 10)
+        self.assertRaises(sbml.SBMLError, species.set_conversion_factor, 10)
 
         # Good model conversion factor
         factor = sbml.Parameter(self.model, 'parameter')
@@ -965,8 +942,7 @@ class TestSpecies(unittest.TestCase):
 
         # Check bad value
         expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_initial_value, expr)
+        self.assertRaises(sbml.SBMLError, species.set_initial_value, expr)
 
         # Check good value (default in_amount=False)
         expr = myokit.Number(2)
@@ -988,7 +964,7 @@ class TestSpecies(unittest.TestCase):
         expr = myokit.Number(10.1)
         self.assertRaisesRegex(
             sbml.SBMLError,
-            '<in_amount> needs to be an instance of bool or None.',
+            '"in_amount" needs to be an instance of bool or None.',
             species.set_initial_value, expr, 'Yes')
 
     def test_is_rate(self):
@@ -1036,8 +1012,7 @@ class TestSpecies(unittest.TestCase):
 
         # Check bad units
         unit = 'mg'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_substance_units, unit)
+        self.assertRaises(sbml.SBMLError, species.set_substance_units, unit)
 
         # Check model substance units
         unit = myokit.units.g
@@ -1060,8 +1035,7 @@ class TestSpecies(unittest.TestCase):
 
         # Check bad value
         expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_value, expr)
+        self.assertRaises(sbml.SBMLError, species.set_value, expr)
 
         # Check good value
         expr = myokit.Number(2)
@@ -1090,8 +1064,7 @@ class TestSpeciesReference(unittest.TestCase):
 
         # Check bad value
         expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.sr.set_initial_value, expr)
+        self.assertRaises(sbml.SBMLError, self.sr.set_initial_value, expr)
 
         # Check good value
         expr = myokit.Number(2)
@@ -1117,8 +1090,7 @@ class TestSpeciesReference(unittest.TestCase):
 
         # Check bad species
         species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.SpeciesReference, species)
+        self.assertRaises(sbml.SBMLError, sbml.SpeciesReference, species)
 
         # Check good species
         self.assertEqual(self.sr.species(), self.species)
@@ -1127,8 +1099,7 @@ class TestSpeciesReference(unittest.TestCase):
 
         # Check bad value
         expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.sr.set_value, expr)
+        self.assertRaises(sbml.SBMLError, self.sr.set_value, expr)
 
         # Check good value
         expr = myokit.Number(2)
@@ -1157,8 +1128,8 @@ class TestModifierSpeciesReference(unittest.TestCase):
 
         # Check bad species
         species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.ModifierSpeciesReference, species)
+        self.assertRaises(
+            sbml.SBMLError, sbml.ModifierSpeciesReference, species)
 
         # Check good species
         self.assertEqual(self.sr.species(), self.species)

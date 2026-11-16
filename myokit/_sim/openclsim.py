@@ -445,7 +445,7 @@ class SimulationOpenCL(myokit.CModule):
             if key not in log:
                 raise myokit.FindNanError(
                     'Method requires a simulation log containing all states'
-                    f' and bound variables. Missing variable <{key}>.')
+                    f' and bound variables. Missing variable "{key}".')
         del t
 
         # Error criterium
@@ -491,7 +491,7 @@ class SimulationOpenCL(myokit.CModule):
             try:
                 watch_var = self._model.get(watch_var)
             except KeyError:
-                raise myokit.FindNanError(f'Variable <{watch_var}> not found.')
+                raise myokit.FindNanError(f'Variable "{watch_var}" not found.')
             if not watch_var.is_state():
                 raise myokit.FindNanError(
                     'The watched variable must be a state.')
@@ -1431,7 +1431,7 @@ class SimulationOpenCL(myokit.CModule):
         var = self._model.get(var)
         if not var.is_literal():
             raise ValueError(
-                f'The given variable <{var.qname()}> is not a literal.')
+                f'The given variable "{var.qname()}" is not a literal.')
         # Update value in internal model (will update its defined value when
         # the kernel is generated before the next run).
         self._model.set_value(var.qname(), value)

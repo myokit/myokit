@@ -1406,7 +1406,7 @@ class DataLog(collections.OrderedDict):
                 raise myokit.InvalidDataLogError('No time variable set.')
             else:
                 raise myokit.InvalidDataLogError(
-                    f'Invalid key <{self._time}> set for time variable.')
+                    f'Invalid key "{self._time}" set for time variable.')
 
     def time_key(self):
         """
@@ -1464,7 +1464,7 @@ class DataLog(collections.OrderedDict):
         if self._time:
             if self._time not in self:
                 raise myokit.InvalidDataLogError(
-                    f'Time variable <{self._time}> specified but not found'
+                    f'Time variable "{self._time}" specified but not found'
                     ' in log.')
             dt = np.asarray(self[self._time])
             if np.any(dt[1:] - dt[:-1] < 0):
@@ -1541,7 +1541,7 @@ class DataLog(collections.OrderedDict):
                 key2 = '.'.join([str(x) for x in idx]) + '.' + name
                 raise RuntimeError(
                     'Different dimensions used for the same variable.'
-                    f' Found: <{key1}> and <{key2}>.')
+                    f' Found: "{key1}" and "{key2}".')
 
             # Update the id list
             id_list.append(idx)
@@ -1563,7 +1563,7 @@ class DataLog(collections.OrderedDict):
 
             if n != m:
                 raise RuntimeError(
-                    f'Irregular data used for variable <{name}>.')
+                    f'Irregular data used for variable "{name}".')
 
             # Create variable info object
             infos[name] = info = LoggedVariableInfo()
@@ -1843,7 +1843,7 @@ def prepare_log(
                 v = model.get(var)
             except KeyError:
                 raise ValueError(
-                    f'Unknown variable specified in global_vars <{var}>.')
+                    f'Unknown variable specified in global_vars "{var}".')
             if v.is_state():
                 raise ValueError('State cannot be global variable.')
 
@@ -1851,18 +1851,18 @@ def prepare_log(
     def check_if_allowed_class(var):
         if var.is_constant():
             raise ValueError(
-                f'This log does not support constants, got <{var}>.')
+                f'This log does not support constants, got "{var}".')
         elif var.is_state():
             if not myokit.LOG_STATE & allowed_classes:
                 raise ValueError(
-                    f'This log does not support state variables, got <{var}>.')
+                    f'This log does not support state variables, got "{var}".')
         elif var.is_bound():
             if not myokit.LOG_BOUND & allowed_classes:
                 raise ValueError(
-                    f'This log does not support bound variables, got <{var}>.')
+                    f'This log does not support bound variables, got "{var}".')
         elif not myokit.LOG_INTER & allowed_classes:
             raise ValueError('This log does not support intermediary'
-                             f' variables, got <{var}>.')
+                             f' variables, got "{var}".')
 
     # Function to add meta data about variables
     def add_meta(log, key, var, time_unit=None):
@@ -2020,16 +2020,16 @@ def prepare_log(
             try:
                 var = model.get(kname)
             except KeyError:
-                raise ValueError(f'Unknown variable <{kname}> in log.')
+                raise ValueError(f'Unknown variable "{kname}" in log.')
 
             # Check if in class of allowed variables
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
                     raise ValueError(
-                        f'This log does not support derivatives, got <{key}>.')
+                        f'This log does not support derivatives, got "{key}".')
                 if not var.is_state():
                     raise ValueError('Cannot log time derivative of non-state'
-                                     f' <{var.qname()}>.')
+                                     f' "{var.qname()}".')
             else:
                 check_if_allowed_class(var)
 
@@ -2039,18 +2039,18 @@ def prepare_log(
                 # Raise error if global
                 if kname in global_vars:
                     raise ValueError('Cannot specify a cell index for global'
-                                     f' logging variable <{kname}>.')
+                                     f' logging variable "{kname}".')
 
                 # Test dim key
                 if kdims not in dcombos:
-                    raise ValueError(f'Invalid index <{kdims}> in log.')
+                    raise ValueError(f'Invalid index "{kdims}" in log.')
 
             elif dims:
 
                 # Raise error if non-global variable is used in multi-cell log
                 if kname not in global_vars:
                     raise ValueError('DataLog contains non-indexed entry for'
-                                     f' cell-specific variable <{kname}>.')
+                                     f' cell-specific variable "{kname}".')
 
         # Check dict values can be appended to
         m = 'append'
@@ -2111,17 +2111,17 @@ def prepare_log(
             try:
                 var = model.get(kname)
             except KeyError:
-                raise ValueError(f'Unknown variable <{kname}> in list.')
+                raise ValueError(f'Unknown variable "{kname}" in list.')
 
             # Check if in class of allowed variables
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
                     raise ValueError(
-                        f'This log does not support derivatives, got <{key}>.')
+                        f'This log does not support derivatives, got "{key}".')
 
                 if not var.is_state():
                     raise ValueError('Cannot log time derivative of non-state'
-                                     f' <{var.qname()}>.')
+                                     f' "{var.qname()}".')
             else:
                 check_if_allowed_class(var)
             checked_knames[kname] = var
@@ -2132,11 +2132,11 @@ def prepare_log(
             # Raise error if global
             if kname in global_vars:
                 raise ValueError('Cannot specify a cell index for global'
-                                 f' logging variable <{kname}>.')
+                                 f' logging variable "{kname}".')
 
             # Test dim key
             if kdims not in dcombos:
-                raise ValueError(f'Invalid index <{kdims}> in list.')
+                raise ValueError(f'Invalid index "{kdims}" in list.')
 
             key = kdims + kname if not deriv else f'dot({kdims}{kname})'
             log[key] = array.array(typecode)

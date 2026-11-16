@@ -278,7 +278,7 @@ class DataBlock1d:
             if d not in (0, 1):
                 raise ValueError(
                     'The given simulation log should only contain 0d or 1d'
-                    f' variables. Found <{name}> with d = {d}.')
+                    f' variables. Found "{name}" with d = {d}.')
             if d == 1:
                 if size is None:
                     size = info.size()
@@ -1067,7 +1067,7 @@ class DataBlock2d:
             if d not in (0, 2):
                 raise ValueError(
                     'The given simulation log should only contain 0d or 2d'
-                    f' variables. Found <{name}> with d = {d}.')
+                    f' variables. Found "{name}" with d = {d}.')
             if d == 2:
                 if size is None:
                     size = info.size()

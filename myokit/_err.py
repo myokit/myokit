@@ -175,8 +175,8 @@ class IllegalReferenceError(IntegrityError):
     """
     def __init__(self, reference, owner):
         super().__init__(
-            f'Illegal reference: The referenced variable <{reference.qname()}>'
-            f' is outside the scope of <{owner.qname()}>.')
+            f'Illegal reference: The referenced variable "{reference.qname()}"'
+            f' is outside the scope of "{owner.qname()}".')
 
 
 class IllegalReferenceInInitialValueError(IllegalReferenceError):
@@ -188,7 +188,7 @@ class IllegalReferenceInInitialValueError(IllegalReferenceError):
     def __init__(self, reference, owner):
         super(IntegrityError, self).__init__(
             'Illegal reference made in initial value: The referenced variable'
-            f' <{reference.qname()}> is nested.')
+            f' "{reference.qname()}" is nested.')
 
 
 class ImportError(MyokitError):
@@ -206,7 +206,7 @@ class IncompatibleModelError(MyokitError):
     *Extends:* :class:`myokit.MyokitError`.
     """
     def __init__(self, model_name, message):
-        name = f' <{model_name}>' if model_name else ''
+        name = f' "{model_name}"' if model_name else ''
         super().__init__(f'Incompatible model{name}: {message}')
 
 
@@ -290,7 +290,7 @@ class MissingRhsError(IntegrityError):
     *Extends:* :class:`myokit.IntegrityError`
     """
     def __init__(self, var):
-        msg = f'No rhs set for <{var.qname()}>.'
+        msg = f'No rhs set for "{var.qname()}".'
         tok = var._token
         super().__init__(msg, tok)
 
@@ -421,7 +421,7 @@ class UnresolvedReferenceError(IntegrityError):
     """
     def __init__(self, reference, extra_message=None):
         super().__init__(
-            f'Unknown variable: <{reference}>.'
+            f'Unknown variable: "{reference}".'
             + (f' {extra_message}' if extra_message else '')
         )
 
@@ -435,7 +435,7 @@ class UnusedVariableError(IntegrityError):
     *Extends:* :class:`myokit.IntegrityError`
     """
     def __init__(self, var):
-        msg = f'Unused variable: <{var.qname()}>.'
+        msg = f'Unused variable: "{var.qname()}".'
         tok = var.lhs()._token
         super().__init__(msg, tok)
 

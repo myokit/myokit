@@ -1040,7 +1040,7 @@ class Simulation(myokit.CModule):
             self._parameters[var] = value
         else:
             raise ValueError(
-                f'The given variable <{var.qname()}> is not a literal.')
+                f'The given variable "{var.qname()}" is not a literal.')
 
         # Update value in internal model: This is required for error handling,
         # when self._model.evaluate_derivatives is called.
