@@ -320,7 +320,6 @@ class Expression:
         ``a(x) >= 0`` or ``b'(x) = 0``. No errors or warnings are given if the
         derivative is undefined, until the equations are evaluated (note that
         at this point evaluation of ``a(x)^b(x)`` will also fail).
-
         """
         # Check LHS
         if not isinstance(lhs, (Name, InitialValue)):
@@ -395,6 +394,10 @@ class Expression:
         Note: This operation will fail if the expression contains :class:`Name`
         objects with a value other than an :class:`Expression` or (an object
         that can be cast to) a float.
+
+        This method may trigger model validation, raising a
+        :class:`myokit.ValidationError` if the model this expression appears in
+        is not valid.
         """
         # Check subst dict
         if subst:
@@ -413,6 +416,19 @@ class Expression:
                         raise ValueError('All values in "subst" must be'
                                          ' Expression objects or numbers.')
                     subst[k] = myokit.Number(v)
+
+        # Trigger model validation?
+        ref = None
+        for r in self._references:
+            ref = r
+            break
+        if ref is None and subst:
+            for s in subst:
+                for r in s.references():
+                    ref = r
+                    break
+        if ref is not None:
+            ref.var().model().validate()
 
         # Evaluate
         try:

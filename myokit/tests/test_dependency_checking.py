@@ -1460,12 +1460,18 @@ class SolvableOrderTest(DepTest):
         before('inter', 't2')
         self.head('Finished testing solvable_order')
         del self.ccomp
+
+        # Test caching
+        order2 = self.m.solvable_order()
+        self.assertEqual(len(self.order), len(order2))
+        for k1, v1 in self.order.items():
+            self.assertEqual(v1, order2[k1])
         del self.order
 
         # Test with cycles
         self.m.get('ina.j').demote()
         self.assertRaisesRegex(
-            RuntimeError, 'Equation ordering failed.', self.m.solvable_order)
+            myokit.IntegrityError, 'ina.j > ina.j.', self.m.solvable_order)
 
     def test_has_interdependent_components(self):
         # Test Model.has_interdependent_components().
@@ -1598,8 +1604,9 @@ class SolvableOrderTest(DepTest):
         y = c.add_variable('y')
         x.set_rhs('y')
         y.set_rhs('x')
+        c.add_variable('t', rhs=0, binding='time')
         self.assertRaisesRegex(
-            Exception, 'Failed to solve', m.expressions_for, 'c.x')
+            myokit.IntegrityError, 'c.x > c.y > c.x', m.expressions_for, 'c.x')
 
         # Test without arguments
         eqs, vrs = self.m.expressions_for()

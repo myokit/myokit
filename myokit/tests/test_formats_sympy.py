@@ -21,10 +21,9 @@ class SymPyReadWriteTest(unittest.TestCase):
         # Create a model with a variable
         cls._model = myokit.Model()
         component = cls._model.add_component('c')
-        bvar = component.add_variable('b')
-        bvar.set_rhs(1.23)
-        avar = component.add_variable('a')
-        avar.set_rhs('b')
+        component.add_variable('t', rhs=0, binding='time')
+        bvar = component.add_variable('b', rhs=1.23)
+        avar = component.add_variable('a', rhs='b')
         cls._a = myokit.Name(avar)
         cls._b = myokit.Name(bvar)
 

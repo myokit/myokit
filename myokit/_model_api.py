@@ -708,7 +708,7 @@ class VarOwner(ModelPart, VarProvider):
             variable._name = new_name
         finally:
             variable._reset_cache()
-            self.model()._reset_validation()
+            self._model._reset_validation()
 
     def remove_variable(self, variable, recursive=False):
         """
@@ -734,7 +734,7 @@ class VarOwner(ModelPart, VarProvider):
             # Remove from this VarOwner
             del self._variables[variable.name()]
         finally:
-            self.model()._reset_validation()
+            self._model._reset_validation()
 
     def _remove_variable_internal(self, variable):
         """
@@ -747,7 +747,7 @@ class VarOwner(ModelPart, VarProvider):
         """ See :meth:`VarProvider._resolve(). """
         def sa(name):
             # Suggest alternative
-            return self.model().suggest_variable(name)[2]
+            return self._model.suggest_variable(name)[2]
 
         # Try resolving as an alias
         try:
@@ -768,11 +768,10 @@ class VarOwner(ModelPart, VarProvider):
             raise myokit.UnresolvedReferenceError(name, sa(name))
         else:
             # Component given. Resolve as direct child of component
-            model = self.model()
             cname = name[0:dot]
             vname = name[1 + dot:]
             try:
-                comp = model[cname]
+                comp = self._model[cname]
             except KeyError:
                 raise myokit.UnresolvedReferenceError(name, sa(name))
             try:
@@ -854,6 +853,9 @@ class Model(ObjectWithMetaData, VarProvider):
 
         # Validation status: True, False or None (not tested)
         self._valid = None
+
+        # Cached solvable order
+        self._solvable_order = None
 
         # Name meta property
         if name:
@@ -1393,7 +1395,10 @@ class Model(ObjectWithMetaData, VarProvider):
             :class:`IncompatibleModelError` instead (see :meth:`bindingx`) set
             ``ignore_unbound_inputs=False``.
 
+        This method triggers model validation, and will raise a
+        :class:`myokit.IntegrityError` if the model is not valid.
         """
+        # Validation is handled by solvable_order()
         values = {}
 
         # Insert new state (if required)
@@ -1452,7 +1457,13 @@ class Model(ObjectWithMetaData, VarProvider):
         needed to evaluate the given ``variable`` and ``args`` is a list of
         the state variables and bound variables these expressions require as
         input.
+
+        This method triggers model validation, and will raise a
+        :class:`myokit.IntegrityError` if the model is not valid.
         """
+        # Validate, to get nicer message if there are cycles.
+        self.validate()
+
         # Make sure all variables are (locally owned) Variable objects
         temp = []
         for variable in variables:
@@ -1503,8 +1514,9 @@ class Model(ObjectWithMetaData, VarProvider):
                 if len(dps) == 0:
                     eq_list.append(Equation(lhs, equations[lhs]))
                     done.append(lhs)
-            if len(done) == 0:
-                raise Exception('Failed to solve system of equations.')
+            if len(done) == 0:  # pragma: no cover
+                # This should be detected by validate()
+                raise RuntimeError('Failed to solve system of equations.')
             for lhs in done:
                 del shallow[lhs]
                 for dps in shallow.values():
@@ -1537,6 +1549,9 @@ class Model(ObjectWithMetaData, VarProvider):
         ``precision=myokit.DOUBLE_PRECISION``
             An optional precision argument to pass into
             :meth:`myokit.float.str` when formatting the state values.
+
+        This method may trigger model validation, raising a
+        :class:`myokit.IntegrityError` if the model is not valid.
 
         """
         n = len(self._state_vars)
@@ -1588,6 +1603,8 @@ class Model(ObjectWithMetaData, VarProvider):
             derivatives, and to pass into :meth:`myokit.float.str` when
             formatting the state values and derivatives.
 
+        This method may trigger model validation, raising a
+        :class:`myokit.IntegrityError` if the model is not valid.
         """
         n = len(self._state_vars)
         if state is None:
@@ -2077,26 +2094,18 @@ class Model(ObjectWithMetaData, VarProvider):
 
         By default, expressions are returned, but this can be changed to
         a list of floats by setting ``as_floats=True``.
+
+        This method may call :meth:`validate()` if ``as_floats=True``,raising a
+        :class:`myokit.IntegrityError` if the model is not valid.
         """
         if as_floats:
-            if any(not e.is_literal() for e in self._state_init):
-                self.validate()  # Check for cycles before evaluating
+            # Validate before evaluating
+            for e in self._state_init:
+                if not e.is_literal():
+                    self.validate()
+                    break
             return [float(y) for y in self._state_init]
         return list(self._state_init)
-
-    def inits(self):
-        """
-        Deprecated method: Returns an iterator over the ``Equation`` objects
-        defining this model's initial values.
-        """
-        # Deprecated since 2023-02-22
-        warnings.warn('The method "inits()" is deprecated.')
-
-        def StateDefIterator(model):
-            for var, value in zip(model._state_vars, model._state_init):
-                yield Equation(myokit.Name(var), value)
-
-        return StateDefIterator(self)
 
     def is_similar(self, other, check_unames=False):
         """
@@ -2300,7 +2309,13 @@ class Model(ObjectWithMetaData, VarProvider):
         contains every components output values. The values in the lists are
         :class:``LhsExpression`` objects referring to either a variable or its
         derivative.
+
+        This method triggers model validation, and will raise a
+        :class:myokit.IntegrityError` if the model is not valid.
         """
+        # Validate so unames are available
+        self.validate()
+
         # Map shallow dependencies
         shallow = self.map_shallow_dependencies(
             omit_states=omit_states, omit_constants=omit_constants)
@@ -2412,6 +2427,8 @@ class Model(ObjectWithMetaData, VarProvider):
         constant's dependencies (an empty set) can be said to be included in
         all other sets.
         """
+        # No need to validate: this model does almost the same.
+
         # Get map of shallow dependencies
         shallow = self.map_shallow_dependencies(omit_states=omit_states)
 
@@ -2852,9 +2869,10 @@ class Model(ObjectWithMetaData, VarProvider):
 
     def _reset_validation(self):
         """
-        Will reset the model's validation status to not validated.
+        Resets the model's validation status.
         """
         self._valid = None
+        self._solvable_order = None
 
     def _resolve(self, name):
         """ See :meth:`VarProvider._resolve(). """
@@ -2870,6 +2888,8 @@ class Model(ObjectWithMetaData, VarProvider):
         If so, variables from these components will be moved to a new component
         called "remaining" until the issue is resolved.
         """
+        # Validation is required, but already called by solvable_order()
+
         equations = self.solvable_order()
         remaining = equations['*remaining*']
         if len(remaining) < 1:
@@ -2983,15 +3003,11 @@ class Model(ObjectWithMetaData, VarProvider):
 
         The variable's equation and value are displayed, along with the value
         and formula of any nested variables and the values of all dependencies.
-        """
-        # Model must be valid, or cycles can occur
-        self.validate()
 
-        def format_float(number):
-            s = str(number)
-            if len(s) < 10:
-                return s
-            return '%0.17e' % number
+        This method triggers model validation and will raise a
+        :class:`myokit.IntegrityError` if the model is not valid.
+        """
+        # Requires validation, but will be called by eval()
 
         # Add basic info
         spacer = '-' * 60
@@ -3004,7 +3020,7 @@ class Model(ObjectWithMetaData, VarProvider):
             out.append(f'Initial value = {value.code()}')
             if not isinstance(value, myokit.Number):
                 # Number is already shown, if not a number, show evaluation
-                out.append(f'              = {format_float(value)}')
+                out.append(f'              = {myokit.float.str(value.eval())}')
             out.append(spacer)
         varname = var.lhs().code()
 
@@ -3014,30 +3030,35 @@ class Model(ObjectWithMetaData, VarProvider):
         if deps:
             n = max([len(x.code()) for x in deps])
             for dep in deps:
-                out.append(
-                    dep.code() + ' ' * (n - len(dep.code())) + ' = '
-                    + format_float(dep.eval()))
+                code = dep.code()
+                space = ' ' * (n - len(code))
+                out.append(f'{code}{space} = {myokit.float.str(dep.eval())}')
             out.append(spacer)
 
         # Add nested variables
         if len(var) > 0:
             n = max(len(x.name()) for x in var.variables(deep=True))
             for tmp in var.variables(deep=True):
-                out.append(
-                    tmp.name() + ' ' * (n - len(tmp.name())) + ' = '
-                    + tmp.rhs().code())
-                out.append(' ' * n + ' = ' + format_float(tmp.rhs().eval()))
+                code = tmp.name()
+                space = ' ' * (n - len(tmp.name()))
+                out.append(f'{code}{space} = {tmp.rhs().code()}')
+                space = ' ' * n
+                out.append(f'{space} = {myokit.float.str(tmp.rhs().eval())}')
             out.append(spacer)
 
         # Add final value
+        space = ' ' * len(varname)
         out.append(f'{varname} = {rhs.code()}')
-        out.append(' ' * len(varname) + ' = ' + format_float(rhs.eval()))
+        out.append(f'{space} = {myokit.float.str(rhs.eval())}')
         return '\n'.join(out)
 
     def show_expressions_for(self, var):
         """
         Returns a string containing the expressions needed to evaluate the
         given variable from the state variables.
+
+        This method triggers model validation and will raise a
+        :class:`myokit.IntegrityError` if the model is not valid.
         """
         spacer = '-' * 60
         var, out = self._var_info(var, spacer)
@@ -3095,9 +3116,19 @@ class Model(ObjectWithMetaData, VarProvider):
         that contain fully separable components (that is, if the model contains
         only components that depend on each other non-cyclically) this list
         will be empty.
+
+        This method triggers model validation, and will raise a
+        :class:myokit.IntegrityError` if the model is not valid.
         """
-        # TODO: Ensure model has been validated at this point
-        # TODO: Cache this!
+        # Use cached result
+        if self._solvable_order is not None:
+            out = collections.OrderedDict()
+            for key, eqlist in self._solvable_order.items():
+                out[key] = EquationList(eqlist)
+            return out
+
+        # Validate the model, to get nicer error messages about cycles
+        self.validate()
 
         # Get components in solvable order
         # Any components with interdependencies will _not_ be added to this
@@ -3281,10 +3312,15 @@ class Model(ObjectWithMetaData, VarProvider):
                     if lhs in dps:
                         dps.remove(lhs)
 
-        # Any unsolved equations left? Then the equations can't be ordered!
-        # In normal use, this should have been picked up already in validation.
-        if unsolved:
+        # Any unsolved equations left? Then the equations can't be ordered
+        # This should have been detected by validate()
+        if unsolved:  # pragma: no cover
             raise RuntimeError('Equation ordering failed.')
+
+        # Cache result
+        self._solvable_order = collections.OrderedDict()
+        for key, eqlist in out.items():
+            self._solvable_order[key] = EquationList(eqlist)
 
         # Return
         return out
@@ -3439,9 +3475,14 @@ class Model(ObjectWithMetaData, VarProvider):
 
         Any other issues identified in validation will result in a
         :class:`myokit.IntegrityError`.
+
+        A positive validation status is cached, so that successive calls to
+        :meth`validate()` on a valid model will return without re-running.
+        This cache is cleared when the model is altered.
         """
-        # Note: Issues that can not arise from API use will trigger an
-        # AssertionError.
+        # Use cached status?
+        if self._valid and not remove_unused_variables:
+            return
 
         # Reset warnings
         self._warnings = []
@@ -3898,6 +3939,9 @@ class Variable(VarOwner):
         # Right-hand side representation
         self._rhs = None
 
+        # Ensure that ._model is always set
+        self.model()
+
     def binding(self):
         """
         Returns this variable's binding label or ``None`` if no binding is set.
@@ -3915,13 +3959,17 @@ class Variable(VarOwner):
         - If this is a state variable, it will be demoted.
         - Any child variables will be removed.
 
+        If no value is set, this method may trigger model validation, raising
+        a :class:`myokit.ValidationError` if the model is not valid.
         """
         # Get value to set to
         if value is None:
-            self.model().validate()  # Model must be valid before evaluations
             if self._is_state:
                 value = self.initial_value(True)
             else:
+                # Validate before evaluation
+                if not self._rhs.is_literal():
+                    self._model.validate()
                 value = self._rhs.eval()
         else:
             value = float(value)
@@ -3936,6 +3984,8 @@ class Variable(VarOwner):
         # Remove child variables (should never raise an error after clamping
         # the RHS).
         self.remove_child_variables()
+
+        # Note model validation is cleared by demote(), set_rhs, etc.
 
     def _clone1(self, parent):
         """
@@ -4213,9 +4263,8 @@ class Variable(VarOwner):
         # as it's possible to create (invalid) models where non-constants are
         # referenced in initial values (but validate() will pick this up!).
         refs = set()
-        m = self.model()
         n = myokit.Name(self)
-        for v, e in zip(m._state_vars, m._state_init):
+        for v, e in zip(self._model._state_vars, self._model._state_init):
             if n in e.references():
                 refs.add(v)
         if ignore_siblings:
@@ -4252,7 +4301,7 @@ class Variable(VarOwner):
             self.set_label(None)
 
             # Remove any aliases
-            for c in m.components():
+            for c in self._model.components():
                 c.remove_aliases_for(self)
 
         # Delete child variables
@@ -4283,13 +4332,12 @@ class Variable(VarOwner):
                 'Unable to demote variable while references to its derivative'
                 f' are made by {refs}.')
 
-        model = self.model()
         try:
             # Remove initial value
-            del model._state_init[self._index]
+            del self._model._state_init[self._index]
 
             # Remove this variable from the state
-            del model._state_vars[self._index]
+            del self._model._state_vars[self._index]
 
             # Set lhs to name expression
             self._lhs = myokit.Name(self)
@@ -4298,7 +4346,7 @@ class Variable(VarOwner):
             self._index = None
 
             # Reset other states' indices
-            model._reset_indices()
+            self._model._reset_indices()
 
             # All state refs to this variable are now considered ordinary refs
             # (And _refs_by is empty, see check above)
@@ -4309,7 +4357,7 @@ class Variable(VarOwner):
             self._srefs_by = set()
 
         finally:
-            model._reset_validation()
+            self._model._reset_validation()
             self._reset_cache(bubble=True)
 
     def eq(self):
@@ -4325,7 +4373,12 @@ class Variable(VarOwner):
     def eval(self):
         """
         Evaluates this variable's defining equation and returns the result.
+
+        This method may trigger model validation, raising a
+        :class:`myokit.ValidationError` if the model is not valid.
         """
+        if not self._rhs.is_literal():
+            self._model.validate()  # Validate before evaluation
         return self._rhs.eval()
 
     def index(self):
@@ -4354,16 +4407,20 @@ class Variable(VarOwner):
 
         By default, a :class:`myokit.Expression` is returned. To evaluate and
         return a float set ``as_float=True``.
+
+        With ``as_float=True``, this method may trigger model validation,
+        raising a :class:`myokit.ValidationError` if the model is not valid.
         """
         if not self._is_state:
             raise Exception('Only state variables have initial values.')
 
-        model = self.model()
-        expr = model._state_init[self._index]
+        expr = self._model._state_init[self._index]
         if not as_float:
             return expr
+
+        # Validate before evaluation
         if not expr.is_literal():
-            model.validate()
+            self._model.validate()
         return expr.eval()
 
     def is_bound(self):
@@ -4377,8 +4434,8 @@ class Variable(VarOwner):
         Returns ``True`` if this variable has a constant value (even if that
         value is defined in terms of other constants).
 
-        Myokit doesn't discern between mathematical and physical constants,
-        parameters etc. Anything that doesn't change during a simulation is
+        Myokit does not discern between mathematical and physical constants,
+        parameters etc. Anything that does not change during a simulation is
         termed a constant. Note that this specifically excludes variables that
         define a _binding_ to an external input.
         """
@@ -4484,19 +4541,18 @@ class Variable(VarOwner):
         # Parse initial value
         initial_value = self._set_initial_value(initial_value, False)
 
-        model = self.model()
         try:
             # Set lhs to derivative expression
             self._lhs = myokit.Derivative(myokit.Name(self))
 
             # Get new index
-            self._index = len(model._state_vars)
+            self._index = len(self._model._state_vars)
 
             # Add to list of states
-            model._state_vars.append(self)
+            self._model._state_vars.append(self)
 
             # Add initial_value to list of current values
-            model._state_init.append(initial_value)
+            self._model._state_init.append(initial_value)
 
             # All references to this variable are now considered references to
             # its state value
@@ -4508,7 +4564,7 @@ class Variable(VarOwner):
             self._refs_by = set()
 
         finally:
-            model._reset_validation()
+            self._model._reset_validation()
             self._reset_cache(bubble=True)
 
     def pyfunc(self, use_numpy=True, arguments=False):
@@ -4530,12 +4586,12 @@ class Variable(VarOwner):
         ``handle`` is  the function handle and ``vars`` is a list of
         :class:`myokit.LhsExpression` objects in the same order as the function
         arguments.
+
+        This method triggers model validation, and may raise a
+        :class:`myokit.IntegrityError` if the model is not valid.
         """
-        # Expression writer uses unames, so must have called validate() since
-        # last changes
-        model = self.model()
-        if not model.is_valid():
-            model.validate()
+        # Expression writer uses unames, so must have called validate()
+        self._model.validate()
 
         # Get expression writer
         if use_numpy:
@@ -4546,7 +4602,7 @@ class Variable(VarOwner):
             w = myokit.python_writer()
 
         # Get arguments, equations
-        eqs, args = model.expressions_for(self)
+        eqs, args = self._model.expressions_for(self)
 
         # Handle function arguments
         func = [w.ex(x) for x in args]
@@ -4662,7 +4718,7 @@ class Variable(VarOwner):
             self._remove_variable_internal(kid)
 
         # Reset validation
-        self.model()._reset_validation()
+        self._model._reset_validation()
         # Note: If the model was already valid, then nothing referred to the
         # deleted child variables. However, the "unused variable" warnings
         # would still need to be unset. Instead of hacking this in, we can
@@ -4677,8 +4733,7 @@ class Variable(VarOwner):
     def __repr__(self):
         if self._index is not None:
             return f'<State({self.qname()})>'
-        else:
-            return f'<Var({self.qname()})>'
+        return f'<Var({self.qname()})>'
 
     def _reset_cache(self, bubble=False):
         """
@@ -4743,20 +4798,19 @@ class Variable(VarOwner):
                     'State variables cannot be bound to an external value.')
 
         # Set binding (model checks uniqueness)
-        model = self.model()
         try:
             if binding is None:
                 if self._binding is not None:
-                    model._register_binding(self._binding, None)
+                    self._model._register_binding(self._binding, None)
             else:
-                model._register_binding(binding, self)
+                self._model._register_binding(binding, self)
             self._binding = binding
         finally:
             # Clear cache and cache of dependent variables
             self._reset_cache(bubble=True)
 
             # Reset model validation (binding status affects solvability)
-            model._reset_validation()
+            self._model._reset_validation()
 
     def set_initial_value(self, value):
         """
@@ -4776,10 +4830,9 @@ class Variable(VarOwner):
     def _set_initial_value(self, value, make_the_change):
         """ Internal version of `set_initial_value`. """
         # Handle strings and floats
-        model = self.model()
         if not isinstance(value, myokit.Expression):
             if isinstance(value, str):
-                value = myokit.parse_expression(value, context=model)
+                value = myokit.parse_expression(value, context=self._model)
             elif isinstance(value, myokit.Variable):
                 value = myokit.Name(value)
             else:
@@ -4791,10 +4844,10 @@ class Variable(VarOwner):
 
         # Update
         try:
-            model._state_init[self._index] = value
+            self._model._state_init[self._index] = value
         finally:
             # Reset model validation, but not the variable cache
-            model._reset_validation()
+            self._model._reset_validation()
 
     def set_label(self, label=None):
         """
@@ -4806,7 +4859,7 @@ class Variable(VarOwner):
         # Remove label?
         if label is None:
             if self._label is not None:
-                self.model()._register_label(self._label, None)
+                self._model._register_label(self._label, None)
                 self._label = None
             return
 
@@ -4820,7 +4873,7 @@ class Variable(VarOwner):
                 f' "{self._label}".')
 
         # Set label (model checks uniqueness)
-        self.model()._register_label(label, self)
+        self._model._register_label(label, self)
         self._label = label
 
     def set_rhs(self, rhs):
@@ -4881,7 +4934,7 @@ class Variable(VarOwner):
 
         # Set rhs
         self._rhs = rhs
-        self.model()._reset_validation()
+        self._model._reset_validation()
         self._reset_cache(bubble=True)
 
     def set_state_value(self, value):
@@ -4953,8 +5006,6 @@ class Variable(VarOwner):
 
         Attempts to check this variable's validity, raises errors if it isn't.
         """
-        model = self.model()
-
         # Validate rhs
         if self._rhs is None:
             raise myokit.MissingRhsError(self)
@@ -4966,13 +5017,13 @@ class Variable(VarOwner):
         is_deriv = self.lhs().is_derivative()
         if is_state:
             # Sanity checks
-            m = self.model()
             assert is_deriv             # Derivative is set
             assert not self._is_nested  # Not nested
-            assert m._state_vars[self._index] == self  # Index matches model
+            # Index matches model
+            assert self._model._state_vars[self._index] == self
 
             # Validate initial value
-            i = m._state_init[self._index]
+            i = self._model._state_init[self._index]
             assert isinstance(i, myokit.Expression)
             i._validate_for_variable(self, is_init=True)
 
@@ -4987,7 +5038,7 @@ class Variable(VarOwner):
                         f' constant: {i.code()}.')
 
                 # And certainly no other models
-                if var.model() is not model:
+                if var.model() is not self._model:
                     raise myokit.IntegrityError(
                         f'Initial value for variable "{self.qname()}" contains'
                         ' a reference to a variable from a different model:'
@@ -5019,7 +5070,7 @@ class Variable(VarOwner):
                 raise myokit.IllegalReferenceError(var, self)
 
             # Must refer to same model
-            if var.model() is not model:
+            if var.model() is not self._model:
                 raise myokit.IntegrityError(
                     f'Right-hand side expression for variable "{self.qname()}"'
                     ' contains a reference to a variable from a different'
@@ -5034,7 +5085,12 @@ class Variable(VarOwner):
         """
         Will return the value of this variable's defining right-hand side
         expression.
+
+        This method may trigger model validation, raising a
+        :class:`myokit.ValidationError` if the model is not valid.
         """
+        if not self._rhs.is_literal():
+            self._model.validate()
         return self._rhs.eval()
 
 

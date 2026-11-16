@@ -1936,8 +1936,10 @@ class SBMLTestMyokitModel(unittest.TestCase):
         s2 = m.add_species(c, 's2')
         s2.set_initial_value(myokit.Number(1.5))
         r = m.add_reaction('r')
-        r.add_reactant(s1, 'sr1')
-        r.add_product(s2, 'sr2')
+        sr1 = r.add_reactant(s1, 'sr1')
+        sr1.set_initial_value(myokit.Number(2.1))
+        sr2 = r.add_product(s2, 'sr2')
+        sr2.set_initial_value(myokit.Number(3.5))
         r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
         mm = m.myokit_model()
 
