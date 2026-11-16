@@ -263,9 +263,9 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         self._ex_infix_condition(e, b, r'\or')
 
     def _ex_if(self, e, b):
-        # Not suported
+        # Not supported
         self._ex_function(e, b, r'\text{if}')
 
     def _ex_piecewise(self, e, b):
-        # Not suported
+        # Not supported
         self._ex_function(e, b, r'\text{piecewise}')

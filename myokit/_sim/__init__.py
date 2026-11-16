@@ -92,7 +92,7 @@ class CModule:
             If ``myokit.DEBUG_SG`` or ``myokit.DEBUG_WG`` are set, the
             generated code will be printed to screen and/or written to disk,
             and ``sys.exit(1)`` will be called. Set ``continue_in_debug_mode``
-            to ``True`` to skip the exitting and keep going instead.
+            to ``True`` to skip the exiting and keep going instead.
 
         Returns a tuple ``(module, build_path)``, where ``module`` is the
         compiled and imported module, and ``build_path`` is either ``None``
@@ -244,7 +244,7 @@ class CModule:
             # Revert changes to working directory
             os.chdir(working_dir)
 
-            # Delete cache dir (and build dir, if not stored separetely)
+            # Delete cache dir (and build dir, if not stored separately)
             myokit.tools.rmtree(d_cache, silent=True)
 
     def _debug_show(self, template, variables):  # pragma: no cover

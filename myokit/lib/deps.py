@@ -104,7 +104,7 @@ def plot_state_dependency_matrix(
 
     Variables can be "knocked out" by adding them to the list in the
     ``knockout`` parameter. If x depends on y and y depends on z, knocking out
-    y will prevent the method from findind x's dependency on z.
+    y will prevent the method from finding x's dependency on z.
 
     Returns a matplotlib axes object.
     """
@@ -355,7 +355,7 @@ class DiGraph:
         nodes.
 
         [1] An algorithm for finding a minimal equivalent graph of a digraph.
-            Harry T. Hsu (1975) Journal of the Assoclatlon for Computing
+            Harry T. Hsu (1975) Journal of the Association for Computing
             Machinery, Vol 22, No. 1, January 1975, pp 11-16
         """
         m = self.path_matrix()

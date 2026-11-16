@@ -370,7 +370,7 @@ class CVodeSimulationFloatingPointTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(-80, 0, 15400)
 
-        # This will cause an error unles handled explicitly
+        # This will cause an error unless handled explicitly
         s = myokit.Simulation(m, p)
         s.run(15400.000000000002)
 

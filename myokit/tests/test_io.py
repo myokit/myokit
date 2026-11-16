@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Tests the loading/saveing mmt files and states.
+# Tests the loading/saving mmt files and states.
 # See also test_parsing.py
 #
 # This file is part of Myokit.
@@ -227,7 +227,7 @@ class LoadSaveMmtTest(unittest.TestCase):
                 text2 = f.read()
             self.assertEqual(text1, text2)
 
-        # Save all as strings without [[model]] or [[protocol]] tage
+        # Save all as strings without [[model]] or [[protocol]] tags
         with tempfile.TemporaryDirectory() as d:
             opath = pathlib.Path(d, 'test.mmt')
             myokit.save(opath, m, p, x)

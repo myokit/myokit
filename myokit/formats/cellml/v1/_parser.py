@@ -666,7 +666,7 @@ class CellMLParser:
                 'Relationship_refs in each group must have a unique pair of'
                 ' (relationship, name) attributes (6.4.2.5).', element)
 
-        # Store relationsip
+        # Store relationship
         relationships.add(rel)
 
         # Check allowed content

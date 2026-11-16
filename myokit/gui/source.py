@@ -269,7 +269,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         mod = event.modifiers()
         # Possible modifiers:
         #  NoModifier
-        #  ShiftModifier, ControlModifier, AltModifiier
+        #  ShiftModifier, ControlModifier, AltModifier
         #  MetaModifier (i.e. super key)
         #  KeyPadModifier (button is part of keypad)
         #  GroupSwitchModifier (x11 thing)
@@ -1165,7 +1165,7 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
                 m = i.next()
                 self.setFormat(m.capturedStart(), m.capturedLength(), style)
 
-        # Protocol header (must be at strart of string)
+        # Protocol header (must be at start of string)
         m = self._rule_head.match(text)
         if m.hasMatch():
             self.setFormat(

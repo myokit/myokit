@@ -591,7 +591,7 @@ def parse_alias(stream, info, component):
         if token_v[0] != DOT:
             raise ParseError(
                 'Invalid reference', token_v[2], token_v[3],
-                'Aliassed variables must be specified using their fully'
+                'Aliased variables must be specified using their fully'
                 ' qualified name (component.variable)')
         token_v = expect(next(stream), NAME)   # variable
 
@@ -807,7 +807,7 @@ def resolve_alias_map_names(info):
     Updates the alias map in each component from a string:string dictionary to
     a string:variable dictionary and checks if
      - The variables are in another component
-     - No two aliasses are tied to the same variable (within a single
+     - No two aliases are tied to the same variable (within a single
       component)
     """
     for comp, amap in info.alias_map.items():
@@ -911,7 +911,7 @@ def parse_unit_string(string):
 def parse_bracketed_unit(stream):
     """
     Parses a unit wrapped in brackets, catches the unit text and adds a fake
-    UNIT token to the unit, allowing later maniplation.
+    UNIT token to the unit, allowing later manipulation.
     """
     unit_text = stream.start_catching()
     token = expect(next(stream), BRACKET_OPEN)
@@ -1956,7 +1956,7 @@ def format_parse_error(ex, source=None):
 
     If a filename or input stream is passed in as ``source``, this will
     be used to show the line on which an error occurred. If a stream is passed,
-    it should be rewinded to the same point the original parsing started.
+    it should be rewound to the same point the original parsing started.
     """
     out = [ex.name]
     if ex.desc is not None:

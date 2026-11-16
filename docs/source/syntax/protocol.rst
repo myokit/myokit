@@ -33,7 +33,7 @@ whitespace):
 4. For periodic stimuli, the fourth column specifies the stimulus period.
    Non-periodic stimuli can be created by entering ``0`` here.
 5. The number of times a periodic stimulus is given can be specified in the
-   final column, stimuli that are non-periodic or recur indefinetely can use
+   final column, stimuli that are non-periodic or recur indefinitely can use
    the value ``0`` here.
 
 Comments may be added by starting lines with ``#``.
@@ -70,7 +70,7 @@ An example for a voltage clamp experiment::
     -80     1000    1000    1000    0
 
 In this example, the pacing level is taken to denote a voltage. At t=0 the
-voltage is set to -80mV. After 500ms, it changes abrubtly to +40, where it
+voltage is set to -80mV. After 500ms, it changes abruptly to +40, where it
 stays for another 500ms. Finally, at t=1000ms it drops down to -80mV again
 where it stays indefinitely.
 

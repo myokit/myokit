@@ -225,7 +225,7 @@ check_cvode_flag(int flag)
 #if SUNDIALS_VERSION_MAJOR >= 7
 /*
  * Check sundials error code (Sundials 7 and above)
- *  sunerr   : The SunErroCode to check
+ *  sunerr   : The SUNErrCode to check
  *  funcname : The name of the function that returned the flag
  */
 int
@@ -772,7 +772,7 @@ sim_init(PyObject *self, PyObject *args)
        themselves are destructed.
        This _only_ holds for the SetItem functions, and _only_ for list and
        tuple.
-       The reasonining behind this is that it's a very common scenario for
+       The reasoning behind this is that it's a very common scenario for
        populating lists and tuples.
     4. PyList_GetItem and PyTuple_GetItem are exceptions to the rule: they
        return a "borrowed" reference to an item. This means you should never
@@ -1995,7 +1995,7 @@ sim_evaluate_derivatives(PyObject *self, PyObject *args)
         /* PyList_SetItem steals a reference: no need to decref the double! */
     }
 
-    /* Finished succesfully, free memory and return */
+    /* Finished successfully, free memory and return */
     success = 1;
 error:
     /* Free model space */

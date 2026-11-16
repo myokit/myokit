@@ -98,7 +98,7 @@ class Quantity:
 class CSymbolVariable:
     """
     Represents a CSymbol that can appear in SBML expressions, but which has a
-    predetermind value and/or meaning, e.g. "time".
+    predetermined value and/or meaning, e.g. "time".
     """
     def __init__(self, definition_url):
         self._definition_url = str(definition_url)
@@ -445,7 +445,7 @@ class Model:
         :class:`CSymbolVariable` if the given identifier is a known CSymbol
         ``definitionUrl``.
         """
-        # Continas "://"? Then can't be a sid. So this is OK.
+        # Contains "://"? Then can't be a sid. So this is OK.
         if identifier == _SBML_TIME:
             return self._time
         return self._assignables[identifier]
@@ -1192,7 +1192,7 @@ class _MyokitConverter:
         _MyokitConverter.set_rhs_sizes(
             sbml_model, variable_references, expression_references)
 
-        # Set RHS of species (initalAssignemnt, assignmentRule, rateRule)
+        # Set RHS of species (initialAssignment, assignmentRule, rateRule)
         _MyokitConverter.set_rhs_species(
             sbml_model, species_amount_references, variable_references,
             expression_references)
@@ -1839,7 +1839,7 @@ class _MyokitConverter:
                         var.set_rhs(expr)
                     except AttributeError:
                         raise SBMLError(
-                            f'Value of {species_reference} (stroichiometry)'
+                            f'Value of {species_reference} (stoichiometry)'
                             ' contains unreferenced parameters/variables.'
                             ' Please use e.g. the "add_parameter()" method to'
                             ' add reference to parameters in the model.')

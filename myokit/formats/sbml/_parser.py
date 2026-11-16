@@ -568,7 +568,7 @@ class SBMLParser:
         """
         # Check required attributes (note: constant is also required in L3)
         self._check_required_attributes(element, 'id', 'compartment')
-        # The attributes 'hasOnlySubstaneUnits', 'boundaryCondition', and
+        # The attributes 'hasOnlySubstanceUnits', 'boundaryCondition', and
         # 'constant' are required in level 3, but optional in level 2 (default
         # is false for all three).
 

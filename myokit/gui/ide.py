@@ -1053,7 +1053,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
     def action_state_derivatives(self):
         """
         Evaluates all the state derivatives and displays the results. Numerical
-        erorrs raised will be displayed.
+        errors raised will be displayed.
         """
         self._action_state_derivatives_inner(False)
 

@@ -579,7 +579,7 @@ if fiber_tissue:
  * Fiber-to-tissue diffusion program
  * Performs a single diffusion step wherein current flows from a fiber to a
  * single cell on a piece of tissue. This function should only be called once:
- * it isnt't a parallel function but running it on the device prevents an
+ * it isn't a parallel function but running it on the device prevents an
  * unnecessary memory copy.
  *
  * Arguments

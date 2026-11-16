@@ -453,7 +453,7 @@ class MathMLParser:
             return myokit.Divide(
                 self._const(1), myokit.Cos(*self._eat(element, iterator)))
         elif name == 'cot':
-            # Contangent: cot(x) = 1 / tan(x)
+            # Cotangent: cot(x) = 1 / tan(x)
             return myokit.Divide(
                 self._const(1), myokit.Tan(*self._eat(element, iterator)))
         elif name == 'arccsc':
@@ -571,7 +571,7 @@ class MathMLParser:
 
     def _parse_derivative(self, element, iterator):
         """
-        Parses the elements folling a ``<diff>`` element.
+        Parses the elements following a ``<diff>`` element.
 
         Arguments
 

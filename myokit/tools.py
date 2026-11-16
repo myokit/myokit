@@ -128,7 +128,7 @@ class capture:
 
     By default, this method works by simply redirecting ``sys.stdout`` and
     ``sys.stderr``. This captures any output written by the Python interpreter,
-    but does not catch output from C/C++ extensions or subrocesses. To also
+    but does not catch output from C/C++ extensions or subprocesses. To also
     catch that output start the capture with the optional argument
     ``fd=True``, which enables a file descriptor duplication method of
     redirection.

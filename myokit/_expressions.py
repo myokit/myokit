@@ -121,7 +121,7 @@ class Expression:
         """
         Returns this expression formatted in ``mmt`` syntax.
 
-        When :class:`Name` objects are encountered, the fullly qualified name
+        When :class:`Name` objects are encountered, the fully qualified name
         of the :class:`myokit.Variable` that they refer to is rendered, with
         the following exceptions:
 
@@ -1251,7 +1251,7 @@ class Derivative(LhsExpression):
         # Get numerator (never None in strict mode)
         unit1 = self._op._eval_unit(mode)
 
-        # Get denomenator
+        # Get denominator
         unit2 = \
             myokit.units.dimensionless if mode == myokit.UNIT_STRICT else None
         if self._proper:
@@ -2628,7 +2628,7 @@ class Floor(UnaryNumericalFunction):
 
 class Ceil(UnaryNumericalFunction):
     """
-    Represents a rounding towards positve infinity ``ceil(x)``.
+    Represents a rounding towards positive infinity ``ceil(x)``.
 
     >>> from myokit import *
     >>> x = Ceil(Number(5.2))
@@ -2831,7 +2831,7 @@ class Piecewise(Function):
 
     This will return ``5 * V + 100`` for any value smaller than 10, ``6 * V``
     for any value greater or equal to 10 but smaller than 20, and ``7 * V`` for
-    any values greather than or equal to 20.
+    any values greater than or equal to 20.
 
     *Extends:* :class:`Function`
     """

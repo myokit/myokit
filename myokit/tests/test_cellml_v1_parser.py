@@ -462,7 +462,7 @@ class TestCellMLParser(unittest.TestCase):
         self.assertBad(x + y + z, 'hierarchy cannot be circular')
 
     def test_group_relationship_ref(self):
-        # Tests parsing a relationsip_ref element.
+        # Tests parsing a relationship_ref element.
 
         # Valid has already been checked
 
@@ -1017,7 +1017,7 @@ class TestCellMLParser(unittest.TestCase):
     def test_units(self):
         # Test parsing a units definition
 
-        # Valid has already been testsed
+        # Valid has already been tested
 
         # Base units attribute is allowed be no
         x = ('<units name="wooster" base_units="no">'

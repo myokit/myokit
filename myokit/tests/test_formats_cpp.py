@@ -22,7 +22,7 @@ class CppExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
     _target = myokit.formats.cpp.CppExpressionWriter
 
     def test_basics(self):
-        # Test a few arbitrary expressions, just to check the inheritcance has
+        # Test a few arbitrary expressions, just to check the inheritance has
         # worked.
         a, b, c, d = self.abcd
         self.eq(myokit.Number(1), '1.0')

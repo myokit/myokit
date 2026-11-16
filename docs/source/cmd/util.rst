@@ -222,7 +222,7 @@ The syntax is
 
 Here, `<inputfile>` should be the name of a DataBlock1d or 2d file. The
 variable to visualized should be given as `<variable>` and the output file
-should be given as `<outputfile>`. Supported outut formats are `flv`, `gif`,
+should be given as `<outputfile>`. Supported output formats are `flv`, `gif`,
 `mp4`, `mpeg` and `wmv`.
 
 Example::

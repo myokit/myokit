@@ -625,7 +625,7 @@ class SimulationTest(unittest.TestCase):
         sim = myokit.Simulation(model)
         self.assertIsNone(sim.default_state_sensitivities())
 
-        # Check for set sensitvities
+        # Check for set sensitivities
         sensitivities = (
             ['myokit.amount'],
             ['init(myokit.amount)', 'myokit.elimination_rate'])
@@ -871,7 +871,7 @@ class SimulationTest(unittest.TestCase):
         protocol = myokit.pacing.blocktrain(
             1, duration, offset=0, level=amount / duration, limit=0)
 
-        # Set sensitivies
+        # Set sensitivities
         sensitivities = (
             ['myokit.amount'],
             ['init(myokit.amount)', 'myokit.elimination_rate'])
@@ -1110,7 +1110,7 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_constant(self.model.get('cell.Na_i'), 11)
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
 
-        # Parameter (needs sensitivies set)
+        # Parameter (needs sensitivities set)
         m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
         sim = myokit.Simulation(m, p, (['ib.Ib'], ['ib.gb']))
         sim.set_constant('ib.gb', 20)

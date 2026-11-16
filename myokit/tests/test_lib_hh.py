@@ -568,7 +568,7 @@ class HHModelTest(unittest.TestCase):
             'more than one variable that could be a current',
             hh.HHModel.from_component, m2.get('ina'))
 
-        # Explict vm
+        # Explicit vm
         m2 = model.clone()
         m2.get('membrane.V').set_label(None)
         hh.HHModel.from_component(model.get('ina'), vm='membrane.V')

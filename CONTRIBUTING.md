@@ -30,7 +30,7 @@ You now have everything you need to start making changes!
 ### D. Writing your code
 
 6. Commit your changes to your branch with useful, descriptive commit messages.
-   Remember, these messages are publically visible and should still make sense a few months ahead in time. 
+   Remember, these messages are publicly visible and should still make sense a few months ahead in time. 
    While developing, you can keep using the github issue you're working on as a place for discussion.
    [Refer to your commits](https://stackoverflow.com/questions/8910271/how-can-i-reference-a-commit-in-an-issue-comment-on-github) when discussing specific lines of code.
 7. If you want to add a dependency on another library, or re-use code you found somewhere else, have a look at [these guidelines](#dependencies-and-reusing-code), and discuss the new dependency in the project's issue.
@@ -58,17 +58,17 @@ There are no restrictions on using agents or LLMs to prepare code, but the human
 
 ## Project structure
 
-Myokit is written in [Python](https://en.wikipedia.org/wiki/Python_(programming_language)), with occassional bits of (ansi) [C](https://en.wikipedia.org/wiki/ANSI_C).
+Myokit is written in [Python](https://en.wikipedia.org/wiki/Python_(programming_language)), with occasional bits of (ansi) [C](https://en.wikipedia.org/wiki/ANSI_C).
 It uses [CVODE](https://computation.llnl.gov/projects/sundials/cvode) for simulations, and [NumPy](https://en.wikipedia.org/wiki/NumPy) for pre- and post-processing.
 [OpenCL](https://en.wikipedia.org/wiki/OpenCL) is used for parallelized multi-cell simulation.
 
 When you clone the Myokit repository, you will see several directories and files.
 The main directory `myokit`, contains the Python `myokit` module.
 This is the part of the code that will be installed on users systems when they run `pip install myokit`.
-Various configuration files for testing and documentation infracstructure are present, which are described in the [Infrastructure & configuration files](#infrastructure--configuration-files) section below.
+Various configuration files for testing and documentation infrastructure are present, which are described in the [Infrastructure & configuration files](#infrastructure--configuration-files) section below.
 
 Inside the `myokit` module, you'll find various submodules.
-Most of these are hidden (indicated by an underscore before their name), and are used to split the main `myokit` module up into sections for easier maintainance.
+Most of these are hidden (indicated by an underscore before their name), and are used to split the main `myokit` module up into sections for easier maintenance.
 For example, the code for `myokit.Model` lives in the hidden module `myokit._model_api`.
 
 ### Key parts of the code

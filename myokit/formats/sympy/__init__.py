@@ -50,7 +50,7 @@ _sympywriter_ = None
 
 def _sympywriter():
     """
-    Returns a globally shared SymPyExpessionWriter.
+    Returns a globally shared SymPyExpressionWriter.
     """
     global _sympywriter_
     if _sympywriter_ is None:

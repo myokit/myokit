@@ -44,7 +44,7 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(a.convert('V'), Q('0.01 [V]'))
 
     def test_creation_and_str(self):
-        # Test Quanity creation and :meth:`Quantity.__str__()`.
+        # Test Quantity creation and :meth:`Quantity.__str__()`.
         from myokit import Quantity as Q
 
         # Creation and string representation

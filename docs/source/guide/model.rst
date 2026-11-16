@@ -13,7 +13,7 @@ have nested variables of their own, hidden from the rest of the model to avoid
 cluttering up the namespace.
 
 Myokit was built to solve ODE systems: it assumes the current state of a model
-can be accuratly described using a set of variables - the state - and a set of
+can be accurately described using a set of variables - the state - and a set of
 equations describing the derivatives of these state variables.
 
 As a result, a variable in myokit can have one of three characters:

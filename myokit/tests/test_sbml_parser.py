@@ -894,7 +894,7 @@ class TestSBMLParser(unittest.TestCase):
             r.kinetic_law().code(),
             '<Compartment c> * <Parameter k1> * <Species S1>')
 
-        # Check species reactions (no unecessary zeros and all terms present)
+        # Check species reactions (no unnecessary zeros and all terms present)
         model_mmt = m.myokit_model().code()
         S1_rhs = \
             'dot(S1_amount) = -(r1 * (size * global.k1 * S1_concentration)) ' \

@@ -79,7 +79,7 @@ class OpenCL(myokit.CModule):
     @staticmethod
     def available():
         """
-        Returns ``True`` if OpenCL support has been detected on this sytem and
+        Returns ``True`` if OpenCL support has been detected on this system and
         at least one platform and device were detected.
         """
         try:

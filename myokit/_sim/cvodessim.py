@@ -132,7 +132,7 @@ class Simulation(myokit.CModule):
         The model to simulate
     ``protocol``
         A :class:`myokit.Protocol` or :class:`myokit.TimeSeriesProtocol` to use
-        for the variable with binding ``pace``. Atlernatively, a dictionary
+        for the variable with binding ``pace``. Alternatively, a dictionary
         mapping binding labels to :class:`myokit.Protocol` objects can be used
         to run with multiple protocols. Finally, can be ``None`` to run without
         a protocol.
@@ -889,7 +889,7 @@ class Simulation(myokit.CModule):
                 log,
                 # 9. The log interval, or 0
                 log_interval,
-                # 10. A list of predetermind logging times, or None
+                # 10. A list of predetermined logging times, or None
                 log_times,
                 # 11. A list to store calculated sensitivities in
                 sensitivities,

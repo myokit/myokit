@@ -144,7 +144,7 @@ This specifies that the variable ``x`` is in the unit ``kg``, regardless of how
 
 The second way of using units is by attaching them to a literal value. For
 example writing ``5 [kg]`` instead of ``5``. This double specification can be
-used for unig checking, for example, if x is known to be invalid it makes no
+used for unit checking, for example, if x is known to be invalid it makes no
 sense to assign it a value ``7 [m/s]``.
 
 For state variables, the ``in`` keyword refers to *the variable*, not its
@@ -307,7 +307,7 @@ Myokit allows multi-level nesting::
         b = c + 14
             c = 5
 
-Here, the set of ``m`` and ``b`` are refered to as ``c``'s ancestors.
+Here, the set of ``m`` and ``b`` are referred to as ``c``'s ancestors.
 
 Scope and naming
 ================
@@ -405,7 +405,7 @@ The following functions are defined:
 +----------------+------------------------------------------------------------+
 | ``sqrt(x)``    | Square root                                                |
 +----------------+------------------------------------------------------------+
-| ``sin(x)``     | Sine (all trigonomic functions work with radians)          |
+| ``sin(x)``     | Sine (all trigonometric functions work with radians)       |
 +----------------+------------------------------------------------------------+
 | ``cos(x)``     | Cosine                                                     |
 +----------------+------------------------------------------------------------+

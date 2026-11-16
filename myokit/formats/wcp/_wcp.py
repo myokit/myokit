@@ -224,7 +224,7 @@ class WcpFile(myokit.formats.SweepSource):
 
             self._records.append(record)
 
-            # Increase offset beyong data block
+            # Increase offset beyond data block
             offset += rdb_size
 
         # Create time signal

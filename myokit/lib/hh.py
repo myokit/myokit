@@ -968,7 +968,7 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
     for x in model.states():
         res = get_alpha_and_beta(x, v)
         if res is not None:
-            # Create variabless for inf and tau
+            # Create variables for inf and tau
             a = myokit.Name(res[0])
             b = myokit.Name(res[1])
             tau = x.add_variable_allow_renaming('tau')
@@ -1064,7 +1064,7 @@ def get_alpha_and_beta(x, v=None):
     # Check that, with the possible exception of v, alpha and beta don't depend
     # on any states
 
-    # Get model from state varible
+    # Get model from state variable
     model = x.model()
 
     # Check membrane potential variable is known.
@@ -1159,7 +1159,7 @@ def get_inf_and_tau(x, v=None):
 
     # Check that, with the possible exception of v, xinf and xtau do not depend
     # on any states
-    # Get model from state varible
+    # Get model from state variable
     model = x.model()
 
     # Check membrane potential variable is known.

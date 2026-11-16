@@ -87,7 +87,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             self.ex(eq.lhs, t)
             self.ex(eq.rhs, t)
         if element is None:
-            # By default et.tostring() will use ascii enconding. This is good,
+            # By default et.tostring() will use ascii encoding. This is good,
             # because it creates XML entities (numeric character reference) for
             # special characters.
             enc = 'us-ascii'
@@ -108,7 +108,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             tag = element
         self._ex(e, tag)
         if element is None:
-            # By default et.tostring() will use ascii enconding. This is good,
+            # By default et.tostring() will use ascii encoding. This is good,
             # because it creates XML entities (numeric character reference) for
             # special characters.
             enc = 'us-ascii'

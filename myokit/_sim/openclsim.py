@@ -448,7 +448,7 @@ class SimulationOpenCL(myokit.CModule):
                     f' and bound variables. Missing variable "{key}".')
         del t
 
-        # Error criterium
+        # Error criterion
         if watch_var is None:
 
             # NaN/inf detection
@@ -1530,7 +1530,7 @@ class SimulationOpenCL(myokit.CModule):
             raise RuntimeError(
                 'This method is unavailable when diffusion is disabled.')
 
-        # Check nx and x. Allow cell selections outside of the boders!
+        # Check nx and x. Allow cell selections outside of the borders!
         nx = int(nx)
         x = int(x)
         if nx < 0:

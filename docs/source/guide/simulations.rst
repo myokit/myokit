@@ -29,7 +29,7 @@ the ``mmt`` file::
     p = get_protocol()
 
 When running from an independent python script, you'll need to get the model
-and protocol somwhere else, for example from a stored ``.mmt`` file::
+and protocol somewhere else, for example from a stored ``.mmt`` file::
 
     import myokit
 
@@ -194,7 +194,7 @@ containing the logged values::
 In this example, no special instructions were given to the Simulation about
 which variables to log. For large models or longer simulations it is often best
 to specify which variables to store. This can be done in a number of ways, the
-most common of which is to specify the variables explictly using their qnames::
+most common of which is to specify the variables explicitly using their qnames::
 
     d = s.run(1000, log=['engine.time', 'membrane.V'])
 

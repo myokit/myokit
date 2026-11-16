@@ -1020,7 +1020,7 @@ class TestSpecies(unittest.TestCase):
 
         self.assertEqual(species.substance_units(), unit)
 
-        # Check species subtance units
+        # Check species substance units
         unit = myokit.units.g * 1E-3
         species.set_substance_units(unit)
 
@@ -1682,7 +1682,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
                 m.myokit_model)
 
     def test_reaction_bad_kinetic_law(self):
-        # Tests handling of unreferenced variables in ketic law.
+        # Tests handling of unreferenced variables in kinetic law.
         m = sbml.Model()
         p = sbml.Parameter(m, 'parameter')
         c = m.add_compartment('c')
@@ -2131,7 +2131,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Check that initial value is set
         self.assertEqual(var.rhs(), myokit.Number(0, myokit.units.ampere))
 
-        # Chet that variable is time bound
+        # Check that variable is time bound
         self.assertTrue(var.binding(), 'time')
 
     def test_time_variable_is_usable(self):

@@ -102,7 +102,7 @@ class TemplateEngine:
                         raise AttributeError
                 except AttributeError:
                     # No filename or lineno property or filename not equal to
-                    # <string>. Attempt to scan the strack trace for a frame
+                    # <string>. Attempt to scan the stack trace for a frame
                     # with filename <string> and extract the line number.
                     next = error[2]
                     try:

@@ -124,7 +124,7 @@ class LinearModelTest(unittest.TestCase):
             markov.LinearModelError, 'be the current',
             markov.LinearModel, m2, states, parameters, current, vm=current)
 
-        # States must have bidrectional dependencies
+        # States must have bidirectional dependencies
         m2 = model.clone()
         # Set bad config, but with columns still summing to zero
         m2.get('ina.C3').set_rhs('ina.C1')
@@ -218,7 +218,7 @@ class LinearModelTest(unittest.TestCase):
             'more than one variable that could be a current',
             markov.LinearModel.from_component, m2.get('ina'))
 
-        # Explict vm
+        # Explicit vm
         m2 = model.clone()
         m2.get('membrane.V').set_label(None)
         markov.LinearModel.from_component(model.get('ina'), vm='membrane.V')

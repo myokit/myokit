@@ -110,7 +110,7 @@ def add_embedded_protocol(model, protocol, add_oxmeta_annotations=True):
     Attempts to convert a :class:`myokit.Protocol` to a (discontinuous)
     expression and embed it in the given :class`myokit.Model`.
 
-    Returns ``True`` if the model was succesfully updated.
+    Returns ``True`` if the model was successfully updated.
 
     This method is designed for protocols that contain a single, indefinitely
     recurring event (e.g. cell pacing protocols), and doesn't handle other
@@ -310,7 +310,7 @@ def membrane_capacitance(model):
 
 def membrane_currents(model):
     """
-    Gueses which model variables represent ionic currents through the outer
+    Guesses which model variables represent ionic currents through the outer
     membrane and returns them.
 
     This method assumes that all currents follow the same sign convention.
@@ -353,7 +353,7 @@ def membrane_currents(model):
 
 def membrane_potential(model):
     """
-    Gueses which model variable (if any) represents the membrane potential and
+    Guesses which model variable (if any) represents the membrane potential and
     returns it.
 
     Three strategies can be attempted.
@@ -560,7 +560,7 @@ def stimulus_current(model):
        returned. If there is more than one highest scoring candidate an
        arbitrary one is selected.
 
-    If no candiates are found with this approach, a third strategy is tried:
+    If no candidates are found with this approach, a third strategy is tried:
 
     1. All constants are scanned for variables with a known common name and a
        current unit (or None). The first such variable is returned.

@@ -38,7 +38,7 @@ class Asciifier(html.parser.HTMLParser):
         self.text = []  # Current document
         self.line = []  # Current (unwrapped) line
 
-        # Ordered/unorderd lists
+        # Ordered/unordered lists
         self.limode = []
         self.licount = []
 

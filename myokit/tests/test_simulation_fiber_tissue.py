@@ -211,7 +211,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         self.assertIn(f'{ntx - 1}.{nty - 1}.ica.ICa', logt)
 
     def test_creation(self):
-        # Tests fiber tisue simulation creation
+        # Tests fiber tissue simulation creation
         mf, mt, p = self.mf, self.mt, self.p
         FT = myokit.FiberTissueSimulation
 

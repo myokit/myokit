@@ -514,7 +514,7 @@ class DataLogTest(unittest.TestCase):
         e['v'] = v
         self.assertEqual(e.keys_like('v'), [])
 
-        # Non-existant variable
+        # Non-existent variable
         self.assertEqual(e.keys_like('w'), [])
 
         # 1-d

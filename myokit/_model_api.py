@@ -841,7 +841,7 @@ class Model(ObjectWithMetaData, VarProvider):
         self.reserve_unique_names(*myokit.KEYWORDS)
 
         # A dict mapping `prefix` strings to `prepend` strings. When generating
-        # unames any uname startinhg with `prefix` will be prepended by
+        # unames any uname starting with `prefix` will be prepended by
         # `prepend`.
         self._reserved_uname_prefixes = {}
 
@@ -1023,7 +1023,7 @@ class Model(ObjectWithMetaData, VarProvider):
            involves checking rules such as "in ``x + y``, ``x`` and ``y`` must
            have the same units, or "in ``exp(x)`` the units of ``x`` must be
            ``dimensionless``". A :class:`myokit.IncompatibleUnitExpression`
-           will be raised if any inompatibilities are found.
+           will be raised if any incompatibilities are found.
         2. The calculated unit is compared with the variable unit. An
            ``IncompatibleUnitError`` will be triggered if the two units don't
            match.
@@ -1042,7 +1042,7 @@ class Model(ObjectWithMetaData, VarProvider):
         only e.g. ``sin(3 [m] / 1 [m])``).
 
         In tolerant mode, unspecified units will be treated as whatever makes
-        the expression work. So ``? + [mV]`` wil be interpreted as
+        the expression work. So ``? + [mV]`` will be interpreted as
         ``[mV] + [mV]``. In addition, functions that require dimensionless
         input in strict mode won't perform this check in tolerant mode.
 
@@ -1068,7 +1068,7 @@ class Model(ObjectWithMetaData, VarProvider):
         # Get time unit
         t = self.time_unit(mode)
 
-        # Check variable units against calculated units (and check caluclated
+        # Check variable units against calculated units (and check calculated
         # units in the process).
         for var in self.variables(deep=True):
             # Get variable unit
@@ -1574,7 +1574,7 @@ class Model(ObjectWithMetaData, VarProvider):
             used.
         ``derivatives=None``
             An optional list or other sequence of evaluated derivatives. If not
-            given, the values will be calculed from ``state`` using
+            given, the values will be calculated from ``state`` using
             :meth:`evaluate_derivatives()`.
         ``precision=myokit.DOUBLE_PRECISION``
             An optional precision argument to use when evaluating the state
@@ -2386,7 +2386,7 @@ class Model(ObjectWithMetaData, VarProvider):
         references, a :class:`myokit.CyclicalDependencyError` is raised.
 
         If the optional parameter ``collapse`` is set to ``True``
-        nested variables will not be listed separatly. Instead, their
+        nested variables will not be listed separately. Instead, their
         dependencies will be added to the dependency lists of their parents.
 
         By default, dependencies on state variables' current values are
@@ -2528,7 +2528,7 @@ class Model(ObjectWithMetaData, VarProvider):
         ``b``.
 
         If the optional parameter ``collapse`` is set to ``True``
-        nested variables will not be listed separatly. Instead, their
+        nested variables will not be listed separately. Instead, their
         dependencies will be added to the dependency lists of their parents.
 
         By default, dependencies on state variables' current values are
@@ -4165,7 +4165,7 @@ class Variable(VarOwner):
             this variable depend on it, and all child variables will be deleted
             as well.
         ``ignore_siblings``
-            If set to ``True``, no errors will be raised if sibilings of this
+            If set to ``True``, no errors will be raised if siblings of this
             variable depend on it.
 
         """
@@ -4224,7 +4224,7 @@ class Variable(VarOwner):
             refs = ' and '.join([f'"{v.qname()}"' for v in refs])
             raise myokit.IntegrityError(
                 f'Variable "{self.qname()}" can not be removed: it is used in'
-                f' the inital value(s) for {refs}.')
+                f' the initial value(s) for {refs}.')
 
         # At this point it's OK to delete. Rest of the code makes changes,
         # shouldn't raise errors.
@@ -4299,7 +4299,7 @@ class Variable(VarOwner):
             model._reset_indices()
 
             # All state refs to this variable are now considered ordinary refs
-            # (And _refs_by is emtpy, see check above)
+            # (And _refs_by is empty, see check above)
             for r in self._srefs_by:
                 r._srefs_to.remove(self)    # No longer an sref to me
                 r._refs_to.add(self)        # Now an ordinary ref to me
@@ -5127,14 +5127,14 @@ class EquationList(list, VarProvider):
 
 class UserFunction:
     """
-    Represents a user function.
+    Represents a user function - this is a deprecated class.
 
     ``UserFunction`` objects should not be created directly, but only via
     :meth:`Model.add_function()`.
 
     User functions are not ``Expression`` objects, but template expressions
     that are converted upon parsing. They allow common functions (for example
-    a boltzman function) to be used in string expressions.
+    a Boltzmann function) to be used in string expressions.
 
     Arguments:
 

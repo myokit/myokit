@@ -394,7 +394,7 @@ class CModel:
             parameter_derived, v, w):
         """ Generates and returns the model code. """
 
-        # Get states whose initial value is used in sensivitity calculations
+        # Get states whose initial value is used in sensitivity calculations
         initials = [p.var().index() for p in independents
                     if isinstance(p, myokit.InitialValue)]
 

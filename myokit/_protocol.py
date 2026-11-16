@@ -395,7 +395,7 @@ class Protocol:
         Returns a :class:`myokit.DataLog` containing the entries ``time`` and
         ``pace`` representing the value of the pacing stimulus at each point.
 
-        The time entries ``times`` must be an non-descreasing series of
+        The time entries ``times`` must be an non-decreasing series of
         non-negative points.
         """
         log = myokit.DataLog()

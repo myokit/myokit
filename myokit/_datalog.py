@@ -132,7 +132,7 @@ class DataLog(collections.OrderedDict):
         Calculates one or more Action Potential Durations (APDs) in a single
         cell's membrane potential.
 
-        *Note 1: More accuracte APD measurements can be obtained using the*
+        *Note 1: More accurate APD measurements can be obtained using the*
         :class:`Simulation` *object's APD tracking functionality. See*
         :meth:`Simulation.run()` *for details.*
 
@@ -191,7 +191,7 @@ class DataLog(collections.OrderedDict):
         for time, slope in crossings(t, v, threshold):
             if slope < 0:
                 # End of AP
-                if last != t[0]:    # Don't inlcude AP started before t[0]
+                if last != t[0]:    # Don't include AP started before t[0]
                     apds['start'].append(last)
                     apds['duration'].append(time - last)
             last = time
@@ -678,7 +678,7 @@ class DataLog(collections.OrderedDict):
             raise myokit.DataLogReadError(
                 f'Syntax error on line {line}, character {1 + char}: {msg}')
 
-        # Detect Microsoft's annyoing utf-8-sig encoding
+        # Detect Microsoft's annoying utf-8-sig encoding
         # Note: We have to perform the first read in utf-8 mode, because the
         # default encoding on windows will turn the BOM into a different set of
         # characters, so that f.read(1) won't actually equal \ufeff
@@ -1075,7 +1075,7 @@ class DataLog(collections.OrderedDict):
         enc = 'utf8'
         for k, v in self.items():
             head_str.append(k)
-            # Create array, ensure it's litte-endian
+            # Create array, ensure it's little-endian
             ar = array.array(dtype, v)
             if sys.byteorder == 'big':  # pragma: no cover
                 ar.byteswap()
@@ -1487,7 +1487,7 @@ class DataLog(collections.OrderedDict):
         - Per variable, the data must have a consistent dimensionality. For
           example having a key ``0.membrane.V`` and a key ``1.1.membrane.V``
           would violate this constraint.
-        - Per variable, the data must be regular accross dimensions. For
+        - Per variable, the data must be regular across dimensions. For
           example if there are ``n`` entries ``0.x.membrane.V``, and there are
           also entries of the form ``1.x.membrane.V`` then the values of ``x``
           must be the same for both cases.
@@ -1696,7 +1696,7 @@ class LoggedVariableInfo:
         This would return ``(2,3)``.
 
         Similarly, in a single cell scenario or for global variables, for
-        exmaple::
+        example::
 
             engine.time
 

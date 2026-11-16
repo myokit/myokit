@@ -204,7 +204,7 @@ size_t n_inter;             /* The number of intermediary variables to log */
 size_t n_field_data;        /* The number of floats in the field data */
 
 /* Temporary objects: decref before re-using for another var */
-/* (Unless you got it through PyList_GetItem or PyTuble_GetItem) */
+/* (Unless you got it through PyList_GetItem or PyTuple_GetItem) */
 PyObject* flt = NULL;               /* PyObject, various uses */
 PyObject* ret = NULL;               /* PyObject, used as return value */
 PyObject* list_update_str = NULL;   /* PyUnicode, used to call "append" method */
@@ -886,7 +886,7 @@ sim_init(PyObject* self, PyObject* args)
         if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_state))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_arb_step, iarg++, sizeof(cl_mem), &mbuf_idiff))) return sim_clean();
     } else if (gx_field != Py_None) {
-        // Heteogeneous, rectangular diffusion
+        // Heterogeneous, rectangular diffusion
         iarg = 0;
         if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(nx), &nx))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cond, iarg++, sizeof(ny), &ny))) return sim_clean();

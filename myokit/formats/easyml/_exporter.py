@@ -39,7 +39,7 @@ class EasyMLExporter(myokit.formats.Exporter):
         ``protocol``
             This will be ignored: protocol export is not supported.
         ``convert_units``
-            If set to ``True``, the metohd will attempt to convert to CARP's
+            If set to ``True``, the method will attempt to convert to CARP's
             preferred units for voltage (mV), current (A/F), and time (ms).
 
         """

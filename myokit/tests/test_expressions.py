@@ -2958,7 +2958,7 @@ class LogTest(unittest.TestCase):
         myokit.Log(myokit.Number(1))
         myokit.Log(myokit.Number(1), myokit.Number(2))
 
-        # Wrong number of operatnds
+        # Wrong number of operands
         self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Log,
             myokit.Number(1), myokit.Number(2), myokit.Number(3))

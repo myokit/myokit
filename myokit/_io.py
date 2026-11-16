@@ -155,7 +155,7 @@ def save(filename=None, model=None, protocol=None, script=None):
 
     The ``model`` argument can be given as plain text or a
     :class:`myokit.Model` object. Similarly, ``protocol`` can be either a
-    :class:`myokit.Protocol` or its textual represenation.
+    :class:`myokit.Protocol` or its textual representation.
 
     If no filename is given the ``mmt`` code is returned as a string.
     """

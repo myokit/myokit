@@ -516,7 +516,7 @@ class FiberTissueSimulation(myokit.CModule):
         del lf
         del lt
 
-        # Error criterium: NaN/inf detection
+        # Error criterion: NaN/inf detection
         def bisect(ar, lo, hi):
             if not np.isfinite(ar[lo]):
                 return lo
@@ -1016,7 +1016,7 @@ class FiberTissueSimulation(myokit.CModule):
                             state, bound, self._precision, ignore_errors=True)
                         eval_error = str(ee).strip()
 
-                    # Show state and derviatives
+                    # Show state and derivatives
                     txt.append('State before:')
                     txt.append(model.format_state_derivatives(
                         states[1], derivs, self._precision))

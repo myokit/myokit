@@ -354,7 +354,7 @@ class TreeNode:
     calling the constructor with a ``parent`` but no children. (2) Calling the
     method :meth:`_read_properties` which should read record properties from
     the open file handle and update the ``TreeNode`` accordingly. (3) Calling
-    the method :meth:`_read_finalize`, which can handl any actions that require
+    the method :meth:`_read_finalize`, which can handle any actions that require
     children to have been added.
     """
     def __init__(self, parent):
@@ -1453,7 +1453,7 @@ class Trace(TreeNode):
         """
         Returns the "seal resistance" (MOhm) that was determined the last time
         that the "amplifier window" was active (so at some indeterminate time
-        before the Trace was aquired).
+        before the Trace was acquired).
 
         The values returned by :meth:`r_seal` and :meth:`r_pipette` are the
         same measurement ("R-memb") performed at a different time. The value
@@ -1677,7 +1677,7 @@ class AmplifierState:
     manual erroneously described as an on/off switch) can be used to set both
     values independently. If this is done, it becomes unclear what the value in
     the file represents, as only one value is stored. For this reason, if
-    prediction is set seperately from correction, both values must be noted
+    prediction is set separately from correction, both values must be noted
     down by the experimenter and the value from the file should be ignored.
     """
     def __init__(self, handle, reader):
@@ -1992,7 +1992,7 @@ class AmplifierState:
 
     def stimulus_filter(self):
         """
-        Returns a :class:`StimulusFilterSetting` descibing the stimulus filter
+        Returns a :class:`StimulusFilterSetting` describing the stimulus filter
         settings.
 
         For more information, see :class:`StimulusFilterSetting`.
@@ -2001,7 +2001,7 @@ class AmplifierState:
 
     def stimulus_filter_str(self):
         """
-        Returns a string descibing the stimulus filter settings.
+        Returns a string describing the stimulus filter settings.
 
         For more information, see :class:`StimulusFilterSetting`.
         """

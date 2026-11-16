@@ -618,7 +618,7 @@ class TestCellMLParser(unittest.TestCase):
     def test_units(self):
         # Test parsing a units definition
 
-        # Valid has already been testsed
+        # Valid has already been tested
 
         # New base units are not supported
         x = '<units name="base" />'
