@@ -66,8 +66,11 @@ class ProgressBarReporter(myokit.ProgressReporter):
         self._pd.setEnabled(False)
 
     def update(self, f):
-        self._pd.setValue((int)(N * f))
-        QtWidgets.QApplication.processEvents(
-            QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-        self._pd.repaint()
+        value = (int)(N * f)
+        if self._pd.value() != value:
+            self._pd.setValue(value)
+            QtWidgets.QApplication.processEvents(
+                QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+            self._pd.repaint()
         return not self._pd.wasCanceled()
+
