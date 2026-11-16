@@ -354,8 +354,8 @@ class TreeNode:
     calling the constructor with a ``parent`` but no children. (2) Calling the
     method :meth:`_read_properties` which should read record properties from
     the open file handle and update the ``TreeNode`` accordingly. (3) Calling
-    the method :meth:`_read_finalize`, which can handle any actions that require
-    children to have been added.
+    the method :meth:`_read_finalize`, which can handle any actions that
+    require children to have been added.
     """
     def __init__(self, parent):
         self._parent = parent
