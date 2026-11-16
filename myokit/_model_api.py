@@ -3960,7 +3960,7 @@ class Variable(VarOwner):
         - Any child variables will be removed.
 
         If no value is set, this method may trigger model validation, raising
-        a :class:`myokit.ValidationError` if the model is not valid.
+        a :class:`myokit.IntegrityError` if the model is not valid.
         """
         # Get value to set to
         if value is None:
@@ -4375,7 +4375,7 @@ class Variable(VarOwner):
         Evaluates this variable's defining equation and returns the result.
 
         This method may trigger model validation, raising a
-        :class:`myokit.ValidationError` if the model is not valid.
+        :class:`myokit.IntegrityError` if the model is not valid.
         """
         if not self._rhs.is_literal():
             self._model.validate()  # Validate before evaluation
@@ -4409,7 +4409,7 @@ class Variable(VarOwner):
         return a float set ``as_float=True``.
 
         With ``as_float=True``, this method may trigger model validation,
-        raising a :class:`myokit.ValidationError` if the model is not valid.
+        raising a :class:`myokit.IntegrityError` if the model is not valid.
         """
         if not self._is_state:
             raise Exception('Only state variables have initial values.')
@@ -5087,7 +5087,7 @@ class Variable(VarOwner):
         expression.
 
         This method may trigger model validation, raising a
-        :class:`myokit.ValidationError` if the model is not valid.
+        :class:`myokit.IntegrityError` if the model is not valid.
         """
         if not self._rhs.is_literal():
             self._model.validate()

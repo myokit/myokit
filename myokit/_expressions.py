@@ -396,7 +396,7 @@ class Expression:
         that can be cast to) a float.
 
         This method may trigger model validation, raising a
-        :class:`myokit.ValidationError` if the model this expression appears in
+        :class:`myokit.IntegrityError` if the model this expression appears in
         is not valid.
         """
         # Check subst dict
