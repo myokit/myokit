@@ -366,12 +366,11 @@ class ComponentTest(unittest.TestCase):
         # Proper use of add_alias
         m = myokit.Model()
         c1 = m.add_component('c1')
-        a = c1.add_variable('a')
-        a.set_rhs(2)
+        c1.add_variable('t', rhs=0, binding='time')
+        a = c1.add_variable('a', rhs=2)
         c2 = m.add_component('c2')
         c2.add_alias('bert', a)
-        b = c2.add_variable('b')
-        b.set_rhs('3 * bert')
+        b = c2.add_variable('b', rhs='3 * bert')
         self.assertEqual(b.eval(), 6)
 
         # Test alias() and alias_for(), remove_alias()

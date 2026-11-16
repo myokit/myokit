@@ -325,12 +325,11 @@ class ExpressionTest(unittest.TestCase):
         # Test errors with variables
         m = myokit.Model()
         c = m.add_component('c')
-        x = c.add_variable('x')
-        y = c.add_variable('y')
-        z = c.add_variable('z')
-        x.set_rhs(0)
-        y.set_rhs('5 / 2')
-        z.set_rhs('(x + y) / 0')
+        c.add_variable('t', rhs=0, binding='time')
+        x = c.add_variable('x', rhs=0)
+        y = c.add_variable('y', rhs='5 / 2')
+        z = c.add_variable('z', rhs='(x + y) / 0')
+
         self.assertRaisesRegex(
             myokit.NumericalError, 'c.x = 0', z.rhs().eval)
         self.assertRaisesRegex(
@@ -873,12 +872,10 @@ class NameTest(unittest.TestCase):
         # Test Name.clone().
         m = myokit.Model()
         c = m.add_component('c')
-        vx = c.add_variable('x')
-        vy = c.add_variable('y')
-        vz = c.add_variable('z')
-        vx.set_rhs(1)
-        vy.set_rhs('2 * x')
-        vz.set_rhs('2 * x + y')
+        c.add_variable('t', rhs=0, binding='time')
+        vx = c.add_variable('x', rhs=1)
+        vy = c.add_variable('y', rhs='2 * x')
+        vz = c.add_variable('z', rhs='2 * x + y')
         x = myokit.Name(vx)
         y = myokit.Name(vy)
         z = myokit.Name(vz)
@@ -2585,12 +2582,10 @@ class PowerTest(unittest.TestCase):
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
-        x = c.add_variable('x')
-        y = c.add_variable('y')
-        z = c.add_variable('z')
-        x.set_rhs(1)
-        y.set_rhs(2)
-        z.set_rhs(myokit.Power(x.lhs(), y.lhs()))
+        c.add_variable('t', rhs=0, binding='time')
+        x = c.add_variable('x', rhs=1)
+        y = c.add_variable('y', rhs=2)
+        z = c.add_variable('z', rhs='x^y')
 
         # Test in tolerant mode
         self.assertEqual(z.rhs().eval_unit(), None)

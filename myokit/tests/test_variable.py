@@ -339,7 +339,7 @@ class VariableTest(unittest.TestCase):
         z.set_rhs(2)
         self.assertFalse(v.is_referenced())
 
-    def test_labelling(self):
+    def test_labeling(self):
         # Test variable labeling.
 
         m = myokit.Model()
@@ -986,9 +986,11 @@ class VariableTest(unittest.TestCase):
 
         m = myokit.Model()
         c = m.add_component('c')
-        v = c.add_variable('v')
-        v.set_rhs('1 + 2 + 3 + 4')
+        c.add_variable('t', rhs=0, binding='time')
+        v = c.add_variable('v', rhs='1 + 2 + 3 + 4')
+        w = c.add_variable('w', rhs='3 * v')
         self.assertEqual(v.value(), 10)
+        self.assertEqual(w.value(), 30)
 
 
 if __name__ == '__main__':

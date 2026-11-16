@@ -57,8 +57,8 @@ model.reserve_unique_names(
     *['calc_' + c.name() for c in model.components()]
     )
 model.reserve_unique_names(
-    #'time',
-    #'pace',
+    'time',
+    'pace',
     'I_diff',
     'dt',
     'parameters',
@@ -66,19 +66,24 @@ model.reserve_unique_names(
     )
 model.create_unique_names()
 
-# Get initial values (before time binding is removed and model becomes invalid)
-initial_values = model.initial_values(True)
-
 # Process bindings, remove unsupported bindings, get map of bound variables to
 # internal names
 bound_variables = myokit._prepare_bindings(model, {
-    #'time' : 'time',
-    #'pace' : 'pace',
+    'time' : 'time',
+    'pace' : 'pace',
     'diffusion_current' : 'I_diff',
 })
 
 # Get equations
-equations = model.solvable_order()
+try:
+    equations = model.solvable_order()
+except Exception as e:
+    print()
+    print()
+    print(e)
+    print()
+    print()
+    raise
 
 # Delete "*remaning*" group, guaranteed to be empty with independent components
 del(equations['*remaining*'])
@@ -147,9 +152,9 @@ last_component = comp_order[-1]
 
 export = 'CUDA export' + (' with RL updates' if use_rl else '')
 print('/*')
-print(' * CUDA kernel for ' + model.name())
+print(f' * CUDA kernel for {model.name()}')
 print(' *')
-print(' * Generated on ' + myokit.date() + ' by Myokit ' + export)
+print(f' * Generated on {myokit.date()} by Myokit {export}')
 print(' */')
 
 
@@ -175,6 +180,10 @@ else:
 
 /* Accessor macros */
 #define N_FREE_PARAMETERS 0
+
+/* Timing and pacing - to be implemented by user */
+#define time 0
+#define pace 0
 
 <?
 print('/* Constants */')
@@ -298,7 +307,7 @@ int get_default_initial_state(Real *state)
     if (state == 0) return(-1);
 
 <?
-for var, val in zip(model.states(), initial_values):
+for var, val in zip(model.states(), model.initial_values(True)):
     if 'desc' in var.meta:
         print(tab + '// ' + var.meta['desc'])
     print(tab + v(var) + ' = ' + myokit.float.str(val) + ';')

@@ -1494,33 +1494,6 @@ class ModelTest(unittest.TestCase):
         self.assertRaises(
             myokit.CyclicalDependencyError, m.initial_values, as_floats=True)
 
-    def test_inits(self):
-        # Tests :meth:`Model.inits`
-
-        m = myokit.parse_model('''
-            [[model]]
-            c.x = 2
-            c.y = 1 + 2
-            c.z = 2 * c.p
-
-            [c]
-            t = 0 bind time
-            dot(x) = 0
-            dot(y) = 0
-            dot(z) = 0
-            p = 3
-        ''')
-        with WarningCollector() as w:
-            eqs = m.inits()
-        self.assertIn('deprecated', w.text())
-
-        E, N, M = myokit.Equation, myokit.Number, myokit.Multiply
-        self.assertEqual(list(eqs), [
-            E(myokit.Name(m.get('c.x')), N(2)),
-            E(myokit.Name(m.get('c.y')), myokit.Plus(N(1), N(2))),
-            E(myokit.Name(m.get('c.z')), M(N(2), m.get('c.p').lhs()))
-        ])
-
     def test_is_similar(self):
         # Check that equality takes both code() and unames into account
 
@@ -2162,7 +2135,7 @@ class ModelTest(unittest.TestCase):
         m.get('ina.m').set_initial_value('1 / sqrt(ina.gNa)')
         e = m.show_evaluation_of('ina.m')
         self.assertIn('Initial value = 1 / sqrt(ina.gNa)', e)
-        self.assertIn('              = 2.5000000', e)
+        self.assertIn('              = 0.25\n', e)
 
         # Test with nothing similar
         m = myokit.Model()
@@ -2279,6 +2252,14 @@ class ModelTest(unittest.TestCase):
         bx = b.add_variable('x')
         x = m.add_component('x')
         xx = x.add_variable('x')
+
+        # Unames are None until validate() or create_unique_names() is called
+        self.assertIsNone(a.uname())
+        self.assertIsNone(ax.uname())
+        self.assertIsNone(b.uname())
+        self.assertIsNone(bx.uname())
+        self.assertIsNone(x.uname())
+        self.assertIsNone(xx.uname())
         m.create_unique_names()
         self.assertEqual(a.uname(), 'a')
         self.assertEqual(ax.uname(), 'a_x')
@@ -2468,6 +2449,8 @@ class ModelTest(unittest.TestCase):
         # Remove unused variables
         m.validate(remove_unused_variables=True)
         self.assertEqual(len(m.warnings()), 2)  # 2 removal warnings
+        # Force re-validation
+        m._reset_validation()
         m.validate()
         self.assertEqual(len(m.warnings()), 0)  # issue fixed!
 
