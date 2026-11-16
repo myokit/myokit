@@ -60,7 +60,7 @@ There are no restrictions on using agents or LLMs to prepare code, but the human
 
 Myokit is written in [Python](https://en.wikipedia.org/wiki/Python_(programming_language)), with occassional bits of (ansi) [C](https://en.wikipedia.org/wiki/ANSI_C).
 It uses [CVODE](https://computation.llnl.gov/projects/sundials/cvode) for simulations, and [NumPy](https://en.wikipedia.org/wiki/NumPy) for pre- and post-processing.
-[OpenCL](https://en.wikipedia.org/wiki/OpenCL) is used for parallelised multi-cell simulation.
+[OpenCL](https://en.wikipedia.org/wiki/OpenCL) is used for parallelized multi-cell simulation.
 
 When you clone the Myokit repository, you will see several directories and files.
 The main directory `myokit`, contains the Python `myokit` module.
@@ -181,7 +181,7 @@ The C code in Myokit should stick to C89 with some exceptions, see [here](https:
 
 While it's a bad idea to reinvent the wheel, making code that's easy to install and use on different systems gets harder the more dependencies you include.
 For this reason, we try to limit Myokit's dependencies to the bare necessities.
-This is a matter of preference / judgement call, so best to discuss these matters on GitHub whenever you feel a new dependency should be added!
+This is a matter of preference / judgment call, so best to discuss these matters on GitHub whenever you feel a new dependency should be added!
 
 Direct inclusion of code from other packages is possible, as long as their license permits it and is compatible with ours, but again should be considered carefully and discussed first.
 Snippets from blogs and stackoverflow can often be included without attribution, but if they solve a particularly nasty problem (or are very hard to read) it's often a good idea to attribute (and document) them, by making a comment with a link in the source code.
@@ -192,7 +192,7 @@ Myokit includes plotting methods, _but_, these should never be vital for its fun
 
 Secondly, Matplotlib should never be imported at the module level, but always inside methods.
 This means that the `myokit` module can be imported without Matplotlib being installed, and used as long as no Matplotlib-reliant methods are called.
-It also allows user code to call methods that customise matplotlib behaviour (e.g. back-end selection), which must be run before certain matplotlib modules are imported.
+It also allows user code to call methods that customize matplotlib behavior (e.g. back-end selection), which must be run before certain matplotlib modules are imported.
 
 
 

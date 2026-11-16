@@ -4,7 +4,7 @@ Simulation back-ends
 ====================
 
 Simulations are run in C or C++ using custom back-ends built for each model on
-the fly. To do this, Myokit utilises a number of modules detailed here.
+the fly. To do this, Myokit utilizes a number of modules detailed here.
 
 Back-end classes
 ----------------

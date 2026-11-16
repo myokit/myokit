@@ -209,7 +209,7 @@ class SymPyExpressionReader:
                 cond_is_true = True
                 cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
             elif type(cond) is BooleanFalse:    # pragma: no cover
-                # Cover pragma: SymPy currently optimises out BooleanFalse
+                # Cover pragma: SymPy currently optimizes out BooleanFalse
                 cond = myokit.Equal(myokit.Number(0), myokit.Number(1))
             else:
                 cond = self.ex(cond)

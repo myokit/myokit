@@ -304,7 +304,7 @@ class ExpressionWriter:
 
     def _ex_equal(self, e):
         #
-        # To obtain the desired `(0 == 0) == 0` behaviour, this and other
+        # To obtain the desired `(0 == 0) == 0` behavior, this and other
         # conditions are best rendered with brackets.
         #
         raise NotImplementedError
@@ -386,7 +386,7 @@ class Importer:
         model.
 
         The importer may pose restraints on the used model. For example, the
-        model may be required to contain a variable labelled
+        model may be required to contain a variable labeled
         "membrane_potential". For details, check the documentation of the
         individual importers.
 
@@ -717,7 +717,7 @@ def register_external_ewriter(name, ewriter_class):
 
 class SweepSource:
     """
-    Interface for classes that provide time-series data organised into *sweeps*
+    Interface for classes that provide time-series data organized into *sweeps*
     (or *records* or *episodes*) and *channels* (or *traces*).
 
     The :class:`SweepSource` interface defines methods to get the number of
@@ -818,7 +818,7 @@ class SweepSource:
         may be specified as :class:`myokit.Unit` objects or strings.
 
         By default, floating point numbers in the protocol will be rounded to
-        9 digits after the decimal point. This can be customised using the
+        9 digits after the decimal point. This can be customized using the
         argument ``n_digits``.
 
         If a D/A output cannot be converted to a :class:`myokit.Protocol`, a

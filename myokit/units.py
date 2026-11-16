@@ -282,7 +282,7 @@ _rep('um^3')
 _rep('nm^2')
 _rep('nm^3')
 # _rep('m/s')
-# Litres
+# Liters
 _rep('mL')
 _rep('uL')
 _rep('nL')

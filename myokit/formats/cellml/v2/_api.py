@@ -1344,7 +1344,7 @@ class Units:
         myokit.units.weber: 'weber',
     }
 
-    # Recognised unit prefixes, name to multiplier
+    # Recognized unit prefixes, name to multiplier
     _si_prefixes = {
         'yotta': 24,
         'zetta': 21,

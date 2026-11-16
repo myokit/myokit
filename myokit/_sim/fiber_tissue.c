@@ -58,7 +58,7 @@ typedef <?= ('float' if precision == myokit.SINGLE_PRECISION else 'double') ?> R
  * Print function that uses python's stdout
  * (Adapted from http://stackoverflow.com/a/2420977/423420)
  *
- * Not optimised for performance. Use this sparingly!
+ * Not optimized for performance. Use this sparingly!
  */
 void pyprint(const char* text)
 {

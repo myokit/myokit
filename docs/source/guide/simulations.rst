@@ -47,7 +47,7 @@ under :ref:`API::Simulations <api/simulations>`. The most common types are:
 
  * The single cell :class:`Simulation <myokit.Simulation>` class, which uses
    the CVODES solver to perform high-speed single cell simulations.
- * The multi-cell :class:`SimulationOpenCL` class, which runs parallelised 1d
+ * The multi-cell :class:`SimulationOpenCL` class, which runs parallelized 1d
    or 2d simulations using a forward-Euler solver implemented in OpenCL.
 
 All simulation types take a :class:`Model <myokit.Model>` as first argument

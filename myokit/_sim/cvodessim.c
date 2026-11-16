@@ -269,7 +269,7 @@ ErrorHandler(int error_code, const char *module, const char *function,
 #endif
 
 /*
- * Initialisation status.
+ * Initialization status.
  * Proper sequence is init(), repeated step() calls till finished, then clean.
  */
 int initialized = 0; /* Has the simulation been initialized */
@@ -339,7 +339,7 @@ N_Vector* sz;
 N_Vector ylast;
 
 /*
- * Customisable constants, passed in from Python
+ * Customizable constants, passed in from Python
  */
 PyObject* literals;     /* A list of literal constant values */
 PyObject* parameters;   /* A list of parameter values */
@@ -594,7 +594,7 @@ sim_clean(void)
         #endif
         Py_XDECREF(benchmarker_time_str); benchmarker_time_str = NULL;
 
-        /* Deinitialisation complete */
+        /* Deinitialization complete */
         initialized = 0;
     }
 
@@ -1459,7 +1459,7 @@ sim_step(PyObject *self, PyObject *args)
     /*
      * Set start time for logging of realtime.
      * This is handled here instead of in sim_init so it only includes time
-     * taken performing steps, not time initialising memory etc.
+     * taken performing steps, not time initializing memory etc.
      */
     if (log_realtime && realtime_start == 0) {
         realtime_start = benchmarker_realtime();

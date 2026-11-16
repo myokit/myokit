@@ -64,7 +64,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         return ''.join(b)
 
     def _prepare_name(self, text):
-        """ Sanitises a name for use in latex. """
+        """ Sanitizes a name for use in latex. """
         return str(text).replace('_', r'\_')
 
     def _ex(self, e, b):

@@ -206,10 +206,10 @@ class SimulationOpenCL(myokit.CModule):
             if vm is None:
                 raise ValueError(
                     'This simulation requires the membrane potential'
-                    ' variable to be labelled as "membrane_potential".')
+                    ' variable to be labeled as "membrane_potential".')
             if not vm.is_state():
                 raise ValueError(
-                    'The variable labelled as membrane potential must'
+                    'The variable labeled as membrane potential must'
                     ' be a state variable.')
 
         #if vm.is_referenced():

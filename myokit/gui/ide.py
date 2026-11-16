@@ -396,7 +396,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
     def action_component_cycles(self):
         """
-        Checks for interdependency-cycles amongst the components and displays
+        Checks for interdependency-cycles among the components and displays
         them if found.
         """
         try:
@@ -1016,7 +1016,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 # Garbage collection
                 gc.collect()
             except myokit.SimulationCancelledError:
-                self._console.write('Simulation cancelled by user.')
+                self._console.write('Simulation canceled by user.')
             except Exception:
                 self._console.write('An error has occurred')
                 self._console.write(traceback.format_exc())
@@ -1652,7 +1652,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Edit > Format protocol
         self._tool_format_protocol = QtGui.QAction('Format protocol', self)
         self._tool_format_protocol.setStatusTip(
-            'Standardise the formatting of the protocol section.')
+            'Standardize the formatting of the protocol section.')
         self._tool_format_protocol.triggered.connect(
             self.action_format_protocol)
         self._menu_edit.addAction(self._tool_format_protocol)

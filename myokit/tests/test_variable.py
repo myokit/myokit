@@ -340,7 +340,7 @@ class VariableTest(unittest.TestCase):
         self.assertFalse(v.is_referenced())
 
     def test_labelling(self):
-        # Test variable labelling.
+        # Test variable labeling.
 
         m = myokit.Model()
         c = m.add_component('c')

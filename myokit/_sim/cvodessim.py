@@ -103,7 +103,7 @@ class Simulation(myokit.CModule):
     **Storing and loading simulation objects**
 
     There are two ways to store Simulation objects to the file system: 1.
-    using serialisation (the ``pickle`` module), and 2. using the ``path``
+    using serialization (the ``pickle`` module), and 2. using the ``path``
     constructor argument.
 
     Each time a simulation is created, a C module is compiled, imported, and
@@ -115,7 +115,7 @@ class Simulation(myokit.CModule):
     variables such as model state, simulation time, and tolerance are preserved
     when pickling.
 
-    As an alternative to serialisation, Simulations can be created with a
+    As an alternative to serialization, Simulations can be created with a
     ``path`` variable that specifies a location where the generated module can
     be stored. For example, calling ``Simulation(model, path='my-sim.zip')``
     will create a file called ``my-sim.zip`` in which the C extension is
@@ -255,7 +255,7 @@ class Simulation(myokit.CModule):
         Creates and compiles the C simulation module.
 
         If ``path`` is set, also stores the built extension in a zip file at
-        ``path``, along with a serialisation of the Python Simulation object.
+        ``path``, along with a serialization of the Python Simulation object.
         """
         # Unique simulation id
         Simulation._index += 1

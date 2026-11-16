@@ -1347,7 +1347,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
                 sbml.SBMLError, 'Value of <', m.myokit_model)
 
     def test_species(self):
-        # Tests whether species initialisation in amount and concentration
+        # Tests whether species initialization in amount and concentration
         # works.
 
         # Species in amount

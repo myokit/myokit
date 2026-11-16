@@ -726,7 +726,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'not be a condition', p, code)
 
     def test_parse_nan_inf(self):
-        # Nan and inf are recognised as numbers, and can have units
+        # Nan and inf are recognized as numbers, and can have units
         from myokit._parsing import parse_model as p
 
         s = ('[[model]]',

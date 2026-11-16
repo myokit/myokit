@@ -1042,7 +1042,7 @@ class Name(LhsExpression):
 
         # Is this a "real" Name, or a different application of the expression
         # system (e.g. strings for debugging, or CellML vars). Not the idea of
-        # improper names is not a publicised bit of the API.
+        # improper names is not a publicized bit of the API.
         self._proper = isinstance(self._value, myokit.Variable)
 
     def bracket(self, op=None):

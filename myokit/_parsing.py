@@ -749,7 +749,7 @@ def parse_variable(stream, info, parent):
                 parse_binding(stream, info, var)
                 expect(next(stream), EOL)
             elif token[0] == LABEL:
-                # Labelled as unique value
+                # Labeled as unique value
                 parse_label(stream, info, var)
                 expect(next(stream), EOL)
             else:   # pragma: no cover
@@ -1206,7 +1206,7 @@ KEYWORDS = KEYWORD_MAP.keys()
 #  the indenting rules
 tabsize = 8
 
-# Define token recognising regex
+# Define token recognizing regex
 # The syntax r'' is used for raw strings
 _rTOKEN = re.compile('|'.join([
     # Whitespace
@@ -1860,7 +1860,7 @@ def parse_expression_string(string, context=None):
         else:
             info.model = context.model()
 
-    # Tokenise and parse string to proto expression
+    # Tokenize and parse string to proto expression
     s = Tokenizer(string)
     e = parse_proto_expression(s, info=info)
 

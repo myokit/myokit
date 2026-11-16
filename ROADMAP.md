@@ -40,7 +40,7 @@ Two major improvements are planned:
 
 ## Back-burner
 
-Projects which are ongoing but not currently prioritised include
+Projects which are ongoing but not currently prioritized include
 
 - Add new features for working with stimulus protocols ([project](https://github.com/orgs/myokit/projects/9)).
 - Improve support for expressions in initial values ([project](https://github.com/orgs/myokit/projects/8)).

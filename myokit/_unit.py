@@ -488,7 +488,7 @@ class Unit:
                  preferred_representation=False):
         """
         Registers a unit name with the :class:`Unit` class so that it will be
-        recognised when parsing.
+        recognized when parsing.
 
         Arguments:
 

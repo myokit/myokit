@@ -304,7 +304,7 @@ class LinearModel:
             current_expression = self._current.rhs().clone(
                 expand=True, retain=self._inputs)
 
-        # Create parametrisable matrices to evaluate the state & current
+        # Create parametrizable matrices to evaluate the state & current
         # This checks that each state's RHS can be written as a linear
         # combination of the states, and gathers the corresponding multipliers.
 
@@ -337,7 +337,7 @@ class LinearModel:
                     if row != col:
                         T.add((col, row))   # A is mirrored
 
-        # Create a parametrisable matrix for the current
+        # Create a parametrizable matrix for the current
         B = [myokit.Number(0) for i in range(n)]
         if self._current is not None:
             try:
@@ -363,7 +363,7 @@ class LinearModel:
         del T
 
         #
-        # Create function to create parametrisable matrices
+        # Create function to create parametrizable matrices
         #
         self._model.reserve_unique_names('A', 'B', 'n', 'numpy')
         writer = myokit.numpy_writer()

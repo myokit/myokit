@@ -939,7 +939,7 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
         A :class:`myokit.Model` object to convert.
     ``v``
         An optional :class:`myokit.Variable`` representing the membrane
-        potential. If not given, the method will search for a variable labelled
+        potential. If not given, the method will search for a variable labeled
         ``membrane_potential``. An error is raised if no membrane potential
         variable can be found.
 
@@ -1015,7 +1015,7 @@ def get_alpha_and_beta(x, v=None):
 
     """
     #TODO: This method _could_ perhaps be made to allow arbitrary inline
-    # expressions for alpha and beta, so that it would recognise that e.g.
+    # expressions for alpha and beta, so that it would recognize that e.g.
     # (1 - x) * 0.5 - x * log(3) is suitable. Guessing this could work if you
     # collected x terms to get e1 - e2 * x, and then use e1 = alpha, and
     # e2 = alpha + beta = e1 + beta; beta = e2 - e1.

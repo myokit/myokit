@@ -171,10 +171,9 @@ the quantified form of ``[g]``: ``[mg]``, ``[kg]`` etc.
 The short version of each dervied SI unit is quantifiable in ``mmt`` syntax,
 allowing constructs like ``[mS/uF]``.
 
-In addition, Myokit recognises a host of other units such as ``[L]`` for liter,
-``[M]`` for mole/liter (quantifiable), ``bar`` and ``atm``, ``[minute]`` and
-``[year]`` and even ``[parsec]``, ``[angstrom]``, ``[gallons]`` and
-``[dog_year]``.
+In addition, Myokit recognizes a host of other units such as ``[L]`` for liter,
+``[M]`` for mole per liter (quantifiable), ``bar`` and ``atm``, ``[minute]`` 
+and ``[year]``.
 
 
 Unit arithmetic

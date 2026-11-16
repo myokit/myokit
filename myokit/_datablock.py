@@ -231,7 +231,7 @@ class DataBlock1d:
         if not have_crossing:
             return 0
 
-        # No propagation: all depolarisations at the same time
+        # No propagation: all depolarizations at the same time
         if np.all(t == t[0]):
             return 0
 

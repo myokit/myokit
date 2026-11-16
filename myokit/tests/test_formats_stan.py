@@ -141,7 +141,7 @@ class StanExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Power(a, Divide(b, c)), 'a^(b / c)')
 
         # Stan has a right-associative power operator, so must add brackets
-        # to get Myokit behavuour
+        # to get Myokit behavior
         self.eq(Power(Power(a, b), c), '(a^b)^c')
         self.eq(Power(a, Power(b, c)), 'a^b^c')
 

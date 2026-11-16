@@ -171,7 +171,7 @@ Model_DeInitializeLogging(model)
 Logging sensitivities
 =====================
 Logging of sensitivity outputs is slightly more primitive than variable
-logging, and consists of a single method - no initialisation is needed.
+logging, and consists of a single method - no initialization is needed.
 
 Model_LogSensitivityMatrix(Model model, PyObject* list)
     Creates a matrix (an n-tuple where each entry is an n-tuple of floats)

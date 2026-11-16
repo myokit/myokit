@@ -382,7 +382,7 @@ def membrane_potential(model):
 
     If all strategies fail the method returns ``None``.
     """
-    # Return any variable labelled as `membrane_potential'
+    # Return any variable labeled as `membrane_potential'
     v = model.label('membrane_potential')
     if v is not None:
         return v
@@ -567,7 +567,7 @@ def stimulus_current(model):
 
     If all strategies fail, ``None`` is returned.
     """
-    # Return any variable labelled as `stimulus_current`
+    # Return any variable labeled as `stimulus_current`
     i_stim = model.label('stimulus_current')
     if i_stim is not None:
         return i_stim

@@ -245,19 +245,19 @@ class FiberTissueSimulation(myokit.CModule):
         if self._vmf is None:
             raise ValueError(
                 'This simulation requires the membrane potential variable to'
-                ' be labelled as "membrane_potential" in the fiber model.')
+                ' be labeled as "membrane_potential" in the fiber model.')
         if not self._vmf.is_state():
             raise ValueError(
-                'The variable labelled as membrane potential in the fiber'
+                'The variable labeled as membrane potential in the fiber'
                 ' model must be a state variable.')
         self._vmt = self._modelt.label('membrane_potential')
         if self._vmt is None:
             raise ValueError(
                 'This simulation requires the membrane potential variable to'
-                ' be labelled as "membrane_potential" in the tissue model.')
+                ' be labeled as "membrane_potential" in the tissue model.')
         if not self._vmt.is_state():
             raise ValueError(
-                'The variable labelled as membrane potential in the tissue'
+                'The variable labeled as membrane potential in the tissue'
                 ' model must be a state variable.')
 
         # Check for binding to diffusion_current

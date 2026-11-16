@@ -135,7 +135,7 @@ class AtfFile:
             line = f.readline().decode(_ENC)
             line_index = 1
             if line[:3] != 'ATF':
-                raise Exception('Unrecognised file type.')
+                raise Exception('Unrecognized file type.')
             self._version_str = line[3:].strip()
 
             # Read number of header lines, number of fields

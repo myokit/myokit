@@ -170,7 +170,7 @@ class SBMLParser:
         # size can be changed.
 
         # Note: Any place we check required attributes, we could also check for
-        # allowed attributes (e.g. errors for unrecognised ones). Bit tricky
+        # allowed attributes (e.g. errors for unrecognized ones). Bit tricky
         # for multiple SBML versions. For now we're being lenient.
 
         sid = element.get('id')

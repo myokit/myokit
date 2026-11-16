@@ -84,7 +84,7 @@ class MathMLParser:
     This is not a validating parser: if the MathML is invalid the method's
     behavior is undefined.
 
-    The following MathML elements are recognised:
+    The following MathML elements are recognized:
 
     Literals and references
 

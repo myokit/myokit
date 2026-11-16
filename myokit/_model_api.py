@@ -3479,7 +3479,7 @@ class Model(ObjectWithMetaData, VarProvider):
         The method used is straightforward:
 
           1. All variables are marked as "unused", except states, bound
-             variables, and labelled variables.
+             variables, and labeled variables.
           2. For every variable marked used, the dependencies are followed
              recursively, keeping track of the "trail" of previous variables.
           3. Visited variables are marked as used.
@@ -3487,7 +3487,7 @@ class Model(ObjectWithMetaData, VarProvider):
              is detected and an exception is raised.
           5. When all state variables have been visited, any variables not
              marked as used are unused. A warning is generated for each unused
-             variable. Bound and labelled variables are always counted as
+             variable. Bound and labeled variables are always counted as
              "used".
 
         If the optional argument ``remove_unused_variables`` is set to true,
@@ -3528,7 +3528,7 @@ class Model(ObjectWithMetaData, VarProvider):
                         var._used = True
 
             # Follow all state variables (unless already visited), all bound
-            # variables, all labelled variables.
+            # variables, all labeled variables.
             used = set(self._state_vars)
             used.update(self._bindings.values())
             used.update(self._labels.values())
@@ -4207,7 +4207,7 @@ class Variable(VarOwner):
         # Note that, instead of using a cached set in every variable, this
         # reference is just checked by scanning all init expressions (which
         # contain a cached set of references).
-        # Note that we don't optimise by checking if this variable is constant,
+        # Note that we don't optimize by checking if this variable is constant,
         # as it's possible to create (invalid) models where non-constants are
         # referenced in initial values (but validate() will pick this up!).
         refs = set()

@@ -156,7 +156,7 @@ class PatchMasterFile:
                 'Only bundle files are supported.')
         elif sig[:4] != 'DAT2':
             raise NotImplementedError(
-                'Older version or not recognised as HEKA PatchMaster'
+                'Older version or not recognized as HEKA PatchMaster'
                 ' format.')
 
         # Read remaining bundle header
@@ -890,7 +890,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         completed.
 
         The full check can only be run if this channel's Stimulus can be
-        analysed to determine the intended number of samples in each sweep. If
+        analyzed to determine the intended number of samples in each sweep. If
         the stimulus contains unsupported features, this part of the check will
         not be run.
         """
@@ -2027,7 +2027,7 @@ class Filter1Setting(enum.Enum):
 
     Both filter 1 and filter 2 are hardware filters, implemented on the EPC 9
     and 10. Filter 1 is used in voltage control, while filter 2 is used to
-    perform filtering before digitisation. Filter 1 is always on, but some
+    perform filtering before digitization. Filter 1 is always on, but some
     amplifiers allow filter 2 to be bypassed. The setting for filter 1
     determines both the type of filter (Bessel etc.) and the bandwidth. The
     user setting for filter 2 sets the combined bandwidth of both filters.
@@ -2088,7 +2088,7 @@ class Filter2Type(enum.Enum):
 
 class CSlowRange(enum.Enum):
     """
-    Available options for slow capacitance cancelling range.
+    Available options for slow capacitance canceling range.
 
     This doubles up as the on/off setting for slow capacitance cancellation.
     """

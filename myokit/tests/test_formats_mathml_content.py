@@ -188,7 +188,7 @@ class ContentMathMLParserTest(unittest.TestCase):
             mathml.MathMLError, '<otherwise> element must have exactly 1',
             self.p, x)
 
-        # Unexpected tag in piecwise
+        # Unexpected tag in piecewise
         x = (
             '<piecewise>'
             '  <piece>'

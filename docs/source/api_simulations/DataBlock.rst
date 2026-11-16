@@ -29,7 +29,7 @@ contains has the same length.
 
 The class
 :class:`DataBlockViewer <myokit.gui.datablock_viewer.DataBlockViewer>` provides
-a GUI for visualising :class:`DataBlock1d` and :class:`DataBlock2d` objects.
+a GUI for visualizing :class:`DataBlock1d` and :class:`DataBlock2d` objects.
 
 .. autoclass:: DataBlock1d
 

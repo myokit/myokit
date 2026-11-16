@@ -1114,7 +1114,7 @@ class LibGuessTest(unittest.TestCase):
         self.assertEqual(i['current'], m.get('c.i_stim'))
 
         # Note: Having labels above allows the method to exit early. We can't
-        # test this mini-optimisation, but it does show up in coverage
+        # test this mini-optimization, but it does show up in coverage
 
         # Guess from name + (correct unit or None)
         v = m.get('c.d')

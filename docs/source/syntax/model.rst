@@ -556,7 +556,7 @@ and made available to the model through a variable bound to a label such as
 A simulation using the binding ``pace`` will set the value of ``level`` based
 on the provided Protocol.
 
-Labelling special variables
+Labeling special variables
 ---------------------------
 Some variables in a model have a special meaning that may be relevant to
 simulation engines. These can be marked using the ``label`` keyword. For
@@ -598,7 +598,7 @@ However, the following two constraints are imposed:
 References, solvability
 =======================
 The order in which variables are specified doesn't matter. However, cycles
-in the variables' dependencies are not allowed. For the sake of modelling, it
+in the variables' dependencies are not allowed. For the sake of modeling, it
 is often nice to have a non-cyclical graph of *component* dependencies, but no
 such requirements are made by myokit.
 

@@ -9,7 +9,7 @@ Dependency analysis
 Using these functions from ``myokit.lib`` you can perform simple dependency
 analysis algorithms on Myokit models.
 
-This module uses ``matplotlib`` for visualisation.
+This module uses ``matplotlib`` for visualization.
 
 .. autofunction:: plot_state_dependency_matrix
 

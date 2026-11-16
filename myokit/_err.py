@@ -386,7 +386,7 @@ class SimulationCancelledError(MyokitError):
 
     *Extends:* :class:`myokit.MyokitError`
     """
-    def __init__(self, message='Operation cancelled by user.'):
+    def __init__(self, message='Operation canceled by user.'):
         super().__init__(message)
 
 
