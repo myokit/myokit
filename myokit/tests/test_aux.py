@@ -10,7 +10,7 @@ import re
 import unittest
 
 import myokit
-from myokit.tests import DIR_DATA
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class AuxTest(unittest.TestCase):
@@ -102,8 +102,11 @@ class AuxTest(unittest.TestCase):
     def test_model_comparison(self):
         # Test the model comparison class.
 
-        m1 = myokit.load_model(DIR_DATA / 'beeler-1977-model-compare-a.mmt')
-        m2 = myokit.load_model(DIR_DATA / 'beeler-1977-model-compare-b.mmt')
+        with WarningCollector():
+            m1 = myokit.load_model(
+                DIR_DATA / 'beeler-1977-model-compare-a.mmt')
+            m2 = myokit.load_model(
+                DIR_DATA / 'beeler-1977-model-compare-b.mmt')
 
         with myokit.tools.capture() as capture:
             c = myokit.ModelComparison(m1, m2, live=True)

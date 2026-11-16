@@ -5,8 +5,6 @@ Implementation of the Luo-Rudy model I for the ventricular myocyte.
 Based on an updated formulation downloaded from http://rudylab.wustl.edu
 and licensed under a GNU GPL license version 2.
 """
-# Template functions
-sig(V, Vstar, a, b) = exp(a * (Vstar - V)) / (1 + exp(b * (Vstar - V)))
 # Initial conditions
 membrane.V = -84.5286
 ina.m      = 0.0017
@@ -113,8 +111,8 @@ dot(d) =  alpha * (1 - d) - beta * d
             vd = 22 + V
                 in [mV]
 dot(f) =  alpha * (1-f) - beta * f
-    alpha = 0.012 * sig(V, -28, 0.008, -0.15)
-    beta = 0.0065 * sig(V, -30, 0.02, 0.2)
+    alpha = 0.012 * exp(0.008 * (-28 - V)) / (1 + exp(-0.15 * (-28 - V)))
+    beta = 0.0065 * exp(0.02 * (-30 - V)) / (1 + exp(0.2 * (-30 - V)))
 gCa = 0.09
 ICa = nest1 * (V - E)
     nest1 = gCa * d * nest2
