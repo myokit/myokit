@@ -873,7 +873,7 @@ class ContentMathMLParserTest(unittest.TestCase):
 
         # Hyperbolic tangent
         x = self.p('<apply><tanh/><cn>3</cn></apply>')
-        y = myokit.parse_expression('(exp(2*3) - 1)/ (exp(2*3) + 1)')
+        y = myokit.parse_expression('1 - 2 / (exp(2 * 3) + 1)')
         self.assertEqual(x, y)
 
         # Hyperbolic arc sine

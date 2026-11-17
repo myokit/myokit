@@ -484,11 +484,12 @@ class MathMLParser:
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
         elif name == 'tanh':
             # Hyperbolic tangent: tanh(x) = (e^2x - 1) / (e^2x + 1)
+            # More stable form numerically: = 1 - 2 / (e^2x + 1)
             x = self._eat(element, iterator)[0]
             e2x = myokit.Exp(myokit.Multiply(self._const(2), x))
-            return myokit.Divide(
-                myokit.Minus(e2x, self._const(1)),
-                myokit.Plus(e2x, self._const(1)))
+            return myokit.Minus(
+                self._const(1), myokit.Divide(
+                    self._const(2), myokit.Plus(e2x, self._const(1))))
         elif name == 'arcsinh':
             # Inverse hyperbolic sine: asinh(x) = log(x + sqrt(x*x + 1))
             x = self._eat(element, iterator)[0]
