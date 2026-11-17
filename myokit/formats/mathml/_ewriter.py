@@ -127,16 +127,16 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         """
         Exports e as a prefix expression with ContentML representation cml.
         """
-        bra = e.bracket(e[0])
+        br = e.brackets()[0]
         if self._pres:
             row = etree.SubElement(t, 'mrow')
             x = etree.SubElement(row, 'mo')
             x.text = e.operator_rep()
-            if bra:
+            if br:
                 x = etree.SubElement(row, 'mo')
                 x.text = '('
             self._ex(e[0], row)
-            if bra:
+            if br:
                 x = etree.SubElement(row, 'mo')
                 x.text = ')'
         else:
@@ -148,9 +148,10 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         """
         Exports e as an infix expression with ContentML representation cml.
         """
+        br0, br1 = e.brackets()
         if self._pres:
             r = etree.SubElement(t, 'mrow')
-            k = etree.SubElement(r, 'mfenced') if e.bracket(e[0]) else r
+            k = etree.SubElement(r, 'mfenced') if br0 else r
             self._ex(e[0], k)
             x = etree.SubElement(r, 'mo')
             if isinstance(e, myokit.MoreEqual):
@@ -159,7 +160,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
                 x.text = '\u2264'
             else:
                 x.text = e.operator_rep()
-            k = etree.SubElement(r, 'mfenced') if e.bracket(e[1]) else r
+            k = etree.SubElement(r, 'mfenced') if br1 else r
             self._ex(e[1], k)
         else:
             a = etree.SubElement(t, 'apply')
@@ -237,11 +238,12 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         self._ex_infix(e, t, 'times')
 
     def _ex_divide(self, e, t):
+        br0, br1 = e.brackets()
         if self._pres:
             r = etree.SubElement(t, 'mfrac')
-            k = etree.SubElement(r, 'mfenced') if e.bracket(e[0]) else r
+            k = etree.SubElement(r, 'mfenced') if br0 else r
             self._ex(e[0], k)
-            k = etree.SubElement(r, 'mfenced') if e.bracket(e[1]) else r
+            k = etree.SubElement(r, 'mfenced') if br1 else r
             self._ex(e[1], k)
         else:
             a = etree.SubElement(t, 'apply')

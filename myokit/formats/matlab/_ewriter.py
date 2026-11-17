@@ -66,9 +66,10 @@ class MatlabExpressionWriter(PythonExpressionWriter):
 
     def _ex_power(self, e):
         # Same associativity as Myokit, not Python! So override
-        e1 = f'({self.ex(e[0])})' if e.bracket(e[0]) else f'{self.ex(e[0])}'
-        e2 = f'({self.ex(e[1])})' if e.bracket(e[1]) else f'{self.ex(e[1])}'
-        return f'{e1}^{e2}'
+        br0, br1 = e.brackets()
+        e0 = f'({self.ex(e[0])})' if br0 else f'{self.ex(e[0])}'
+        e1 = f'({self.ex(e[1])})' if br1 else f'{self.ex(e[1])}'
+        return f'{e0}^{e1}'
 
     #def _ex_sqrt(self, e):
     #    Ignore imaginary part

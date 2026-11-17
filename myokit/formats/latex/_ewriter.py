@@ -76,25 +76,27 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
 
     def _ex_prefix(self, e, b, op):
         """ Handles _ex() for prefix operators. """
+        br = e.brackets()[0]
         b.append(op)
-        if e.bracket(e[0]):
+        if br:
             b.append(r'\left(')
         self._ex(e[0], b)
-        if e.bracket(e[0]):
+        if br:
             b.append(r'\right)')
 
     def _ex_infix(self, e, b, op):
         """ Handles _ex() for infix operators. """
-        if e.bracket(e[0]):
+        br0, br1 = e.brackets()
+        if br0:
             b.append(r'\left(')
         self._ex(e[0], b)
-        if e.bracket(e[0]):
+        if br0:
             b.append(r'\right)')
         b.append(op)
-        if e.bracket(e[1]):
+        if br1:
             b.append(r'\left(')
         self._ex(e[1], b)
-        if e.bracket(e[1]):
+        if br1:
             b.append(r'\right)')
 
     def _ex_function(self, e, b, func):
@@ -164,16 +166,20 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         self._ex_infix(e, b, r'\bmod')
 
     def _ex_power(self, e, b):
-        if e.bracket(e[0]) or isinstance(e[0], myokit.Power):
+        br0, br1 = e.brackets()
+        br0 |= isinstance(e[0], myokit.Power)
+        br1 |= isinstance(e[1], myokit.Power)
+
+        if br0:
             b.append(r'\left(')
         self._ex(e[0], b)
-        if e.bracket(e[0]) or isinstance(e[0], myokit.Power):
+        if br0:
             b.append(r'\right)')
         b.append('^')
-        if e.bracket(e[1]) or isinstance(e[1], myokit.Power):
+        if br1:
             b.append('{')
         self._ex(e[1], b)
-        if e.bracket(e[1]) or isinstance(e[1], myokit.Power):
+        if br1:
             b.append('}')
 
     def _ex_sqrt(self, e, b):
