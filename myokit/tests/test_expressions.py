@@ -610,14 +610,11 @@ class NumberTest(unittest.TestCase):
         self.assertEqual(q.unit(), myokit.parse_unit('kg'))
         self.assertRaisesRegex(ValueError, 'unit', myokit.Number, q, 'kg')
 
-    def test_bracket(self):
-        # Test Number.bracket().
+    def test_brackets(self):
+        # Test Number.brackets().
         # Never needs a bracket
         x = myokit.Number(2)
-        self.assertFalse(x.bracket())
-
-        # Doesn't have an operand
-        self.assertRaises(ValueError, x.bracket, myokit.Number(2))
+        self.assertEqual(x.brackets(), tuple())
 
     def test_clone(self):
         # Test Number.clone().
@@ -859,14 +856,11 @@ class NameTest(unittest.TestCase):
         self.assertFalse(y.is_literal())
         self.assertFalse(y.is_state_value())
 
-    def test_bracket(self):
-        # Test Name.bracket().
+    def test_brackets(self):
+        # Test Name.brackets().
         # Never needs a bracket
         x = myokit.Name('hi')
-        self.assertFalse(x.bracket())
-
-        # Doesn't have an operand
-        self.assertRaises(ValueError, x.bracket, myokit.Number(2))
+        self.assertEqual(x.brackets(), tuple())
 
     def test_clone(self):
         # Test Name.clone().
@@ -1170,11 +1164,10 @@ class DerivativeTest(unittest.TestCase):
             myokit.TypeError, 'requires a myokit.Name',
             myokit.Derivative, myokit.Derivative(myokit.Name(x)))
 
-    def test_bracket(self):
-        # Test Derivative.bracket()
+    def test_brackets(self):
+        # Test Derivative.brackets()
         x = myokit.Derivative(myokit.Name('x'))
-        self.assertFalse(x.bracket(myokit.Name('x')))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
+        self.assertEqual(x.brackets(), (False, ))
 
     def test_clone(self):
         # Test Derivative.clone().
@@ -1405,13 +1398,11 @@ class PartialDerivativeTest(unittest.TestCase):
             myokit.TypeError, 'second argument to a partial',
             myokit.PartialDerivative, n, myokit.PrefixPlus(n))
 
-    def test_bracket(self):
-        # Tests PartialDerivative.bracket()
+    def test_brackets(self):
+        # Tests PartialDerivative.brackets()
         n = myokit.Name('v')
         p = myokit.PartialDerivative(n, n)
-        self.assertFalse(p.bracket(n))
-        m = myokit.Name('w')
-        self.assertRaises(ValueError, p.bracket, m)
+        self.assertEqual(p.brackets(), (False, False))
 
     def test_clone(self):
         # Tests PartialDerivative.clone()
@@ -1517,13 +1508,11 @@ class InitialValueTest(unittest.TestCase):
             myokit.TypeError, 'argument to an initial value must be a variab',
             myokit.InitialValue, myokit.PrefixPlus(n))
 
-    def test_bracket(self):
-        # Tests InitialValue.bracket()
+    def test_brackets(self):
+        # Tests InitialValue.brackets()
         n = myokit.Name('v')
         i = myokit.InitialValue(n)
-        self.assertFalse(i.bracket(n))
-        m = myokit.Name('w')
-        self.assertRaises(ValueError, i.bracket, m)
+        self.assertEqual(i.brackets(), (False, ))
 
     def test_clone(self):
         # Tests InitialValue.clone()
@@ -1600,15 +1589,14 @@ class InitialValueTest(unittest.TestCase):
 class PrefixPlusTest(unittest.TestCase):
     """Tests myokit.PrefixPlus."""
 
-    def test_bracket(self):
-        # Test PrefixPlus.bracket().
+    def test_brackets(self):
+        # Test PrefixPlus.brackets().
         i = myokit.Number(1)
         x = myokit.PrefixPlus(i)
-        self.assertFalse(x.bracket(i))
+        self.assertEqual(x.brackets(), (False,))
         i = myokit.Plus(myokit.Number(1), myokit.Number(2))
         x = myokit.PrefixPlus(i)
-        self.assertTrue(x.bracket(i))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
+        self.assertEqual(x.brackets(), (True,))
 
     def test_clone(self):
         # Test PrefixPlus.clone().
@@ -1711,16 +1699,15 @@ class PrefixPlusTest(unittest.TestCase):
 class PrefixMinusTest(unittest.TestCase):
     """Tests myokit.PrefixMinus."""
 
-    def test_bracket(self):
-        # Test PrefixMinus.bracket().
+    def test_brackets(self):
+        # Test PrefixMinus.brackets().
 
         i = myokit.Number(1)
         x = myokit.PrefixMinus(i)
-        self.assertFalse(x.bracket(i))
+        self.assertEqual(x.brackets(), (False,))
         i = myokit.Plus(myokit.Number(1), myokit.Number(2))
         x = myokit.PrefixMinus(i)
-        self.assertTrue(x.bracket(i))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
+        self.assertEqual(x.brackets(), (True, ))
 
     def test_clone(self):
         # Test PrefixMinus.clone().
@@ -1823,14 +1810,12 @@ class PrefixMinusTest(unittest.TestCase):
 class PlusTest(unittest.TestCase):
     """Tests myokit.Plus."""
 
-    def test_bracket(self):
-        # Test Plus.bracket().
+    def test_brackets(self):
+        # Test Plus.brackets().
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
         x = myokit.Plus(i, j)
-        self.assertFalse(x.bracket(i))
-        self.assertTrue(x.bracket(j))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+        self.assertEqual(x.brackets(), (False, True))
 
     def test_clone(self):
         # Test Plus.clone().
@@ -2486,14 +2471,12 @@ class RemainderTest(unittest.TestCase):
 class PowerTest(unittest.TestCase):
     """Tests myokit.Power."""
 
-    def test_bracket(self):
-        # Test Power.bracket().
+    def test_brackets(self):
+        # Test Power.brackets().
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
         x = myokit.Power(i, j)
-        self.assertFalse(x.bracket(i))
-        self.assertTrue(x.bracket(j))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+        self.assertEqual(x.brackets(), (False, True))
 
     def test_clone(self):
         # Test Power.clone().
@@ -2646,15 +2629,14 @@ class PowerTest(unittest.TestCase):
 class SqrtTest(unittest.TestCase):
     """Tests myokit.Sqrt."""
 
-    def test_bracket(self):
-        # Test Sqrt.bracket().
+    def test_brackets(self):
+        # Test Sqrt.brackets().
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
         x = myokit.Sqrt(i)
-        self.assertFalse(x.bracket(i))
+        self.assertEqual(x.brackets(), (False,))
         x = myokit.Sqrt(j)
-        self.assertFalse(x.bracket(j))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+        self.assertEqual(x.brackets(), (False,))
 
     def test_clone(self):
         # Test Sqrt.clone().
@@ -2759,15 +2741,14 @@ class SqrtTest(unittest.TestCase):
 class ExpTest(unittest.TestCase):
     """Tests myokit.Exp. """
 
-    def test_bracket(self):
-        # Test Exp.bracket().
+    def test_brackets(self):
+        # Test Exp.brackets().
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
         x = myokit.Exp(i)
-        self.assertFalse(x.bracket(i))
+        self.assertEqual(x.brackets(), (False,))
         x = myokit.Exp(j)
-        self.assertFalse(x.bracket(j))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+        self.assertEqual(x.brackets(), (False,))
 
     def test_clone(self):
         # Test Exp.clone().
@@ -2885,23 +2866,20 @@ class ExpTest(unittest.TestCase):
 class LogTest(unittest.TestCase):
     """Tests myokit.Log."""
 
-    def test_bracket(self):
-        # Test Log.bracket().
+    def test_brackets(self):
+        # Test Log.brackets().
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
 
         # Test with one operand
         x = myokit.Log(i)
-        self.assertFalse(x.bracket(i))
+        self.assertEqual(x.brackets(), (False,))
         x = myokit.Log(j)
-        self.assertFalse(x.bracket(j))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+        self.assertEqual(x.brackets(), (False,))
 
         # Test with two operands
         x = myokit.Log(i, j)
-        self.assertFalse(x.bracket(i))
-        self.assertFalse(x.bracket(j))
-        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+        self.assertEqual(x.brackets(), (False, False))
 
     def test_clone(self):
         # Test Log.clone().
