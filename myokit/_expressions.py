@@ -79,19 +79,13 @@ class Expression:
         # Determines the outcome of "if expression".
         return True
 
-    def bracket(self, op=None):
+    def brackets(self):
         """
-        Checks if the given operand (which should be an operand of this
-        expression) needs brackets around it when writing a mathematical
-        expression.
+        Returns a tuple of booleans, one for each operand of this expression,
+        saying whether they need brackets around them or not.
 
-        For example, ``5 + 3`` will require a bracket when used in a
-        multiplication (e.g. ``2 * (5 + 3)``), so calling ``bracket(5 + 3)`` on
-        a multiplication will return ``True``.
-
-        Alternatively, when used in a function the expression will not require
-        brackets, as the function (e.g. ``sin()``) already provides them, so
-        calling ``bracket(5 + 3)`` on a function will return False.
+        For example, the multiplication ``2 * (5 + 3)`` will require a bracket
+        on the second operand, and return ``(False, True)``.
         """
         raise NotImplementedError
 
@@ -929,11 +923,9 @@ class Number(Expression):
         if self._unit and self._unit != myokit.units.dimensionless:
             self._str += f' {self._unit}'
 
-    def bracket(self, op=None):
-        """See :meth:`Expression.bracket()`."""
-        if op is not None:
-            raise ValueError('Given operand is not used in this expression.')
-        return False
+    def brackets(self):
+        """ See :meth:`Expression.brackets()`. """
+        return tuple()
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""
@@ -1061,11 +1053,9 @@ class Name(LhsExpression):
         # improper names is not a publicized bit of the API.
         self._proper = isinstance(self._value, myokit.Variable)
 
-    def bracket(self, op=None):
-        """See :meth:`Expression.bracket()`."""
-        if op is not None:
-            raise ValueError('Given operand is not used in this expression.')
-        return False
+    def brackets(self):
+        """ See :meth:`Expression.brackets()`. """
+        return tuple()
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""
@@ -1219,11 +1209,9 @@ class Derivative(LhsExpression):
         # A "proper" derivative contains a name referring to a myokit.Variable
         self._proper = self._op._proper
 
-    def bracket(self, op):
-        """See :meth:`Expression.bracket()`."""
-        if op != self._op:
-            raise ValueError('Given operand is not used in this expression.')
-        return False
+    def brackets(self):
+        """ See :meth:`Expression.brackets()`. """
+        return (False,)
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""
@@ -1341,11 +1329,9 @@ class PartialDerivative(LhsExpression):
         # Here we use "proper" to mean "not a proper Name or Derivative"
         self._proper = False
 
-    def bracket(self, op=None):
-        """See :meth:`Expression.bracket()`."""
-        if op not in self._operands:
-            raise ValueError('Given operand is not used in this expression.')
-        return False
+    def brackets(self):
+        """ See :meth:`Expression.brackets()`. """
+        return (False, False)
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""
@@ -1452,11 +1438,9 @@ class InitialValue(LhsExpression):
         # Here we use "proper" to mean "not a proper Name or Derivative"
         self._proper = False
 
-    def bracket(self, op=None):
-        """See :meth:`Expression.bracket()`."""
-        if op not in self._operands:
-            raise ValueError('Given operand is not used in this expression.')
-        return False
+    def brackets(self):
+        """ See :meth:`Expression.brackets()`. """
+        return (False, )
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""
@@ -1514,11 +1498,9 @@ class PrefixExpression(Expression):
         super().__init__((op,))
         self._op = op
 
-    def bracket(self, op):
-        """See :meth:`Expression.bracket()`."""
-        if op != self._op:
-            raise ValueError('Given operand is not used in this expression.')
-        return (self._op._rbp > LITERAL) and (self._op._rbp < self._rbp)
+    def brackets(self):
+        """ See :meth:`Expression.brackets()`. """
+        return ((self._op._rbp > LITERAL) and (self._op._rbp < self._rbp),)
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""
@@ -1627,13 +1609,10 @@ class InfixExpression(Expression):
         self._op1 = left
         self._op2 = right
 
-    def bracket(self, op):
-        """See :meth:`Expression.bracket()`."""
-        if op == self._op1:
-            return (op._rbp > LITERAL and (op._rbp < self._rbp))
-        elif op == self._op2:
-            return (op._rbp > LITERAL and (op._rbp <= self._rbp))
-        raise ValueError('Given operand is not used in this expression.')
+    def brackets(self):
+        """ See :meth:`Expression.brackets()`. """
+        return ((self._op1._rbp > LITERAL and (self._op1._rbp < self._rbp)),
+                (self._op2._rbp > LITERAL and (self._op2._rbp <= self._rbp)))
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""
@@ -2148,11 +2127,9 @@ class Function(Expression):
                     f' arguments: got {len(ops)}, expecting {exp}.',
                     self._token)
 
-    def bracket(self, op=None):
-        """See :meth:`Expression.bracket()`."""
-        if op not in self._operands:
-            raise ValueError('Given operand is not used in this expression.')
-        return False
+    def brackets(self):
+        """ See :meth:`Expression.brackets()`. """
+        return (False, ) * len(self._operands)
 
     def clone(self, subst=None, expand=False, retain=None):
         """See :meth:`Expression.clone()`."""

@@ -42,11 +42,12 @@ class StanExpressionWriter(PythonExpressionWriter):
     def _ex_power(self, e):
         # Like Python (and unlike Myokit), Stan uses a right-associative power
         # operator.
-        if e.bracket(e[0]) or isinstance(e[0], myokit.Power):
+        br0, br1 = e.brackets()
+        if br0 or isinstance(e[0], myokit.Power):
             out = f'({self.ex(e[0])})'
         else:
             out = f'{self.ex(e[0])}'
-        if e.bracket(e[1]) and not isinstance(e[1], myokit.Power):
+        if br1 and not isinstance(e[1], myokit.Power):
             return f'{out}^({self.ex(e[1])})'
         else:
             return f'{out}^{self.ex(e[1])}'

@@ -147,6 +147,11 @@ class PythonExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.py(Plus(Number(4), Number(2)), 6)
         self.py(Minus(Number(5), Number(1.5)), 3.5)
 
+        # Equal operand on both sides can confuse things (pre 1.41.0)
+        self.eq(Minus(Minus(a, b), Minus(a, b)), 'a - b - (a - b)')
+        reused_part = Minus(a, b)  # Above can work with "is" check
+        self.eq(Minus(reused_part, reused_part), 'a - b - (a - b)')
+
     def test_multiply_divide(self):
         a, b, c = self.abc
         self.eq(Multiply(a, b), 'a * b')

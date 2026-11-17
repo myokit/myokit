@@ -108,6 +108,11 @@ class OpenCLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Multiply(PrefixMinus(Plus(b, a)), c), '-(b + a) * c')
         self.eq(PrefixMinus(Divide(b, a)), '-(b / a)')
 
+        # Equal operands
+        self.eq(Divide(Divide(a, b), Divide(a, b)), 'a / b / (a / b)')
+        e = Divide(a, b)
+        self.eq(Divide(e, e), 'a / b / (a / b)')
+
     def test_prefix_plus_minus_double(self):
 
         w = self._target(precision=myokit.DOUBLE_PRECISION)

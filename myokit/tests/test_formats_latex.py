@@ -169,6 +169,10 @@ class LatexExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Multiply(a, Plus(b, c)), rf'{ta}\cdot{l}{tb}+{tc}{r}')
         self.eq(Plus(a, Multiply(b, c)), rf'{ta}+{tb}\cdot{tc}')
 
+        # Equal operands
+        e = r'\frac{\frac{\text{a}}{\text{b}}}{\frac{\text{a}}{\text{b}}}'
+        self.eq(Divide(Divide(a, b), Divide(a, b)), e)
+
     def test_remainder_quotient(self):
         a, b = self.ab
         self.eq(Remainder(a, b), r'\text{a}\bmod\text{b}')

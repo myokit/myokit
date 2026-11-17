@@ -35,20 +35,16 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         """ Handles ex() for prefix operators. """
         # No simplifications should be made here for PrefixPlus, see
         #   https://github.com/myokit/myokit/issues/1054
-        if e.bracket(e[0]):
+        if e.brackets()[0]:
             return f'{op}({self.ex(e[0])})'
         return f'{op}{self.ex(e[0])}'
 
     def _ex_infix(self, e, op):
         """ Handles ex() for infix operators, except Power. """
-        if e.bracket(e[0]):
-            out = f'({self.ex(e[0])}) {op}'
-        else:
-            out = f'{self.ex(e[0])} {op}'
-        if e.bracket(e[1]):
-            return f'{out} ({self.ex(e[1])})'
-        else:
-            return f'{out} {self.ex(e[1])}'
+        br0, br1 = e.brackets()
+        a = f'({self.ex(e[0])})' if br0 else f'{self.ex(e[0])}'
+        b = f'({self.ex(e[1])})' if br1 else f'{self.ex(e[1])}'
+        return f'{a} {op} {b}'
 
     def _ex_function(self, e, func):
         """ Handles ex() for function operators with operands. """
@@ -108,11 +104,12 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         # Note: Python uses a right-to-left order of operations for power, so
         # that a**b**c means a**(b**c). In Myokit, a^b^c means (a^b)^c, so we
         # need to reverse this for powers only.
-        if e.bracket(e[0]) or isinstance(e[0], myokit.Power):
+        br0, br1 = e.brackets()
+        if br0 or isinstance(e[0], myokit.Power):
             out = f'({self.ex(e[0])})'
         else:
             out = f'{self.ex(e[0])}'
-        if e.bracket(e[1]) and not isinstance(e[1], myokit.Power):
+        if br1 and not isinstance(e[1], myokit.Power):
             return f'{out}**({self.ex(e[1])})'
         else:
             return f'{out}**{self.ex(e[1])}'

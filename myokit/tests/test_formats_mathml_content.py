@@ -977,6 +977,18 @@ class ContentMathMLWriterTest(unittest.TestCase):
         x = '<apply><divide/><ci>a</ci><cn>1.0</cn></apply>'
         self.assertWrite(e, x)
 
+        # Combinations
+        e = myokit.Divide(a, myokit.Divide(a, b))
+        x = '<apply><divide/><ci>a</ci><cn>1.0</cn></apply>'
+        x = f'<apply><divide/><ci>a</ci>{x}</apply>'
+        self.assertWrite(e, x)
+
+        # Equal operands
+        e = myokit.Divide(myokit.Divide(a, b), myokit.Divide(a, b))
+        x = '<apply><divide/><ci>a</ci><cn>1.0</cn></apply>'
+        x = f'<apply><divide/>{x}{x}</apply>'
+        self.assertWrite(e, x)
+
     def test_arithmetic_unary(self):
         # Tests writing prefix operators
 

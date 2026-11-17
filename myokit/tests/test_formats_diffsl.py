@@ -1187,6 +1187,11 @@ class DiffSLExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Divide(Divide(a, b), c), "a / b / c")
         self.eq(Divide(a, Divide(b, c)), "a / (b / c)")
 
+        # Equal operands
+        self.eq(Divide(Divide(a, b), Divide(a, b)), 'a / b / (a / b)')
+        e = Divide(a, b)
+        self.eq(Divide(e, e), 'a / b / (a / b)')
+
     def test_quotient(self):
         # Inherited from CBasedExpressionWriter
         a, b, c = self.abc

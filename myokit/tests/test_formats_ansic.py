@@ -87,6 +87,13 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(PrefixPlus(PrefixPlus(PrefixPlus(p))), '+(+(+11.0))')
         self.eq(PrefixPlus(Number('+1')), '+1.0')
 
+        # Test with minus
+        self.eq(PrefixPlus(PrefixMinus(p)), '+-11.0')
+        self.eq(PrefixPlus(PrefixMinus(PrefixPlus(p))), '+-+11.0')
+        self.eq(PrefixMinus(PrefixPlus(p)), '-+11.0')
+        self.eq(PrefixMinus(PrefixMinus(PrefixPlus(p))), '-(-+11.0)')
+        self.eq(PrefixPlus(PrefixMinus(PrefixMinus(p))), '+-(-11.0)')
+
         # Test with operators of precedence SUM, PRODUCT
         a, b, c = self.abc
         self.eq(PrefixPlus(Plus(a, b)), '+(a + b)')
@@ -148,6 +155,11 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Minus(a, Divide(b, c)), 'a - b / c')
         self.eq(Divide(a, Divide(b, c)), 'a / (b / c)')
         self.eq(Divide(Divide(a, b), c), 'a / b / c')
+
+        # Equal operands
+        self.eq(Divide(Divide(a, b), Divide(a, b)), 'a / b / (a / b)')
+        e = Divide(a, b)
+        self.eq(Divide(e, e), 'a / b / (a / b)')
 
     def test_quotient(self):
         a, b, c = self.abc
