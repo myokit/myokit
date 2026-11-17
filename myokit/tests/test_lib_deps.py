@@ -210,7 +210,7 @@ class DiGraphTest(unittest.TestCase):
         d4 = deps.DiGraph(d)
         d4.add_node(4)
         d4.add_edge(3, 4)
-        self.assertRaisesRegex(deps.DiGraphError, 'cyclical', e.cg_layers_dag)
+        self.assertRaisesRegex(deps.DiGraphError, 'cyclical', d4.cg_layers_dag)
 
         d.add_edge(1, 1)
         self.assertRaisesRegex(
