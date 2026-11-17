@@ -126,6 +126,11 @@ class StanExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(Minus(Multiply(a, b), c), 'a * b - c')
         self.eq(Plus(a, Divide(b, c)), 'a + b / c')
 
+        # Equal operands
+        self.eq(Divide(Divide(a, b), Divide(a, b)), 'a / b / (a / b)')
+        e = Divide(a, b)
+        self.eq(Divide(e, e), 'a / b / (a / b)')
+
     def test_quotient_remainder(self):
         a, b, c = self.abc
 

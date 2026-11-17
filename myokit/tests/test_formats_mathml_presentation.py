@@ -59,7 +59,19 @@ class PresentationMathMLTest(unittest.TestCase):
 
         # Divide
         x = myokit.Divide(a, b)
-        self.assertWrite(x, f'<mfrac>{ca + cb}</mfrac>')
+        self.assertWrite(x, f'<mfrac>{ca}{cb}</mfrac>')
+
+        # Combinations
+        x = myokit.Divide(myokit.Minus(a, b), myokit.Plus(a, b))
+        y1 = f'<mfenced><mrow>{ca}<mo>-</mo>{cb}</mrow></mfenced>'
+        y2 = f'<mfenced><mrow>{ca}<mo>+</mo>{cb}</mrow></mfenced>'
+        self.assertWrite(x, f'<mfrac>{y1}{y2}</mfrac>')
+
+        # Combinations: equal operands
+        x = myokit.Divide(myokit.Divide(a, b), myokit.Divide(a, b))
+        self.assertWrite(x,
+            f'<mfrac><mfrac>{ca}{cb}</mfrac>'
+            f'<mfenced><mfrac>{ca}{cb}</mfrac></mfenced></mfrac>')
 
     def test_arithmetic_unary(self):
         # Tests writing prefix operators
