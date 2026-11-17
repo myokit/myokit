@@ -35,6 +35,39 @@ if OpenCL_FOUND:
     del info
 
 
+def qt_application():
+    """
+    Imports :mod:`myokit.gui` and returns a ``QApplication`` for use in GUI
+    tests, or raises a ``unittest.SkipTest`` if no Qt library is available.
+
+    If no ``QApplication`` exists yet, one is created. Unless the environment
+    variable ``QT_QPA_PLATFORM`` is set, the "offscreen" platform is used so
+    that tests can run without a display.
+
+    Importing :mod:`myokit.gui` changes the matplotlib backend. To avoid
+    affecting other tests, the previous backend is restored afterwards.
+    """
+    import os
+
+    import matplotlib
+    backend = matplotlib.get_backend()
+    try:
+        import myokit.gui
+    except ImportError as e:  # pragma: no cover
+        raise unittest.SkipTest(f'Qt not available: {e}')
+    finally:
+        try:
+            matplotlib.use(backend)
+        except ImportError:  # pragma: no cover
+            pass
+
+    app = myokit.gui.QtWidgets.QApplication.instance()
+    if app is None:
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+        app = myokit.gui.QtWidgets.QApplication([])
+    return app
+
+
 class TestReporter(myokit.ProgressReporter):
     """
     Progress reporter just for debugging.

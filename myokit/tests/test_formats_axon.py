@@ -193,6 +193,15 @@ class AbfTest(unittest.TestCase):
     Tests the ABF format support.
     """
 
+    def test_read_unknown_version(self):
+        # Test reading a file with an unknown signature
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d, 'test.abf')
+            path.write_bytes(b'ABF3' + bytes(1000))
+            self.assertRaisesRegex(
+                NotImplementedError, 'Unknown ABF Format "ABF3".',
+                axon.AbfFile, path)
+
     def test_read_v1(self):
         # Test reading a version 1 file.
 

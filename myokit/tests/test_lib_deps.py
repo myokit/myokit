@@ -205,9 +205,61 @@ class DiGraphTest(unittest.TestCase):
         # Test that megs and layering fail on cyclical graph
         self.assertRaisesRegex(
             deps.DiGraphError, 'cyclical', d.cg_layers_dag)
+        self.assertRaisesRegex(deps.DiGraphError, 'cyclical', d.meg_dag)
         d.add_edge(1, 1)
         self.assertRaisesRegex(
             deps.DiGraphError, 'self-referencing', d.meg_dag)
+
+    def test_path_matrix(self):
+        # Test finding paths and minimal equivalent graphs
+
+        # Chain 0 > 1 > 2 > 3, plus redundant edges 0 > 2 and 0 > 3
+        d = deps.DiGraph([
+            [0, 1, 1, 1],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+            [0, 0, 0, 0],
+        ])
+        self.assertEqual(d.path_matrix(), [
+            [0, 1, 1, 1],
+            [0, 0, 1, 1],
+            [0, 0, 0, 1],
+            [0, 0, 0, 0],
+        ])
+        self.assertEqual(d.meg_dag().matrix(), [
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+            [0, 0, 0, 0],
+        ])
+
+        # Empty graph
+        d = deps.DiGraph()
+        self.assertEqual(d.path_matrix(), [])
+        self.assertEqual(len(d.meg_dag()), 0)
+        self.assertEqual(d.cg_layers_dag(), [])
+
+    def test_single_state(self):
+        # Test plotting dependencies of a model with a single state
+
+        import matplotlib
+        matplotlib.use('template')
+        import matplotlib.pyplot as plt
+
+        model = myokit.parse_model('''
+            [[model]]
+            c.x = 0
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            dot(x) = 1
+        ''')
+        self.assertEqual(deps.create_state_dependency_matrix(model), [[0]])
+        deps.plot_state_dependency_matrix(model)
+        deps.plot_variable_dependency_graph(model)
+        plt.close('all')
 
 
 if __name__ == '__main__':
