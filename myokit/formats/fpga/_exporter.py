@@ -122,9 +122,12 @@ class FPGAExporter(myokit.formats.TemplatedRunnableExporter):
         if name is None:
             name = model.name()
             if not _valid_name.match(name):
-                raise ValueError(
-                    'No name given and model name is not a valid C function'
-                    f' name: {name}')
+                new_name = name.replace('-', '_')
+                if not _valid_name.match(new_name):
+                    raise ValueError(
+                        'No name given and model name is not a valid C'
+                        f' function name: {name}')
+                name = new_name
         else:
             if not _valid_name.match(name):
                 raise ValueError(
