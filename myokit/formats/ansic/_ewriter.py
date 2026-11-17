@@ -19,8 +19,15 @@ class CBasedExpressionWriter(PythonExpressionWriter):
     def _ex_prefix(self, e, op):
         # PrefixPlus and PrefixMinus. No simplifications should be made here
         # for PrefixPlus, see https://github.com/myokit/myokit/issues/1054
+        # A bracket is added if:
+        #  - the brackets() method prescribes it
+        #  - leaving out brackets would result in ++1 or --1
+        # Two caveats for the latter:
+        #  - "+-" is fine, this is not an operator
+        # - The second + or - can come from a Prefix OR a number, so test first
+        #   character of generated string
         x = self.ex(e[0])
-        return f'{op}({x})' if e.bracket(e[0]) or x[0] == op else f'{op}{x}'
+        return f'{op}({x})' if (e.brackets()[0] or x[0] == op) else f'{op}{x}'
 
     def _ex_infix_comparison(self, e, op):
         # For equals etc

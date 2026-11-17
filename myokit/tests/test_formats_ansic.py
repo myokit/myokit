@@ -87,6 +87,13 @@ class AnsiCExpressionWriterTest(myokit.tests.ExpressionWriterTestCase):
         self.eq(PrefixPlus(PrefixPlus(PrefixPlus(p))), '+(+(+11.0))')
         self.eq(PrefixPlus(Number('+1')), '+1.0')
 
+        # Test with minus
+        self.eq(PrefixPlus(PrefixMinus(p)), '+-11.0')
+        self.eq(PrefixPlus(PrefixMinus(PrefixPlus(p))), '+-+11.0')
+        self.eq(PrefixMinus(PrefixPlus(p)), '-+11.0')
+        self.eq(PrefixMinus(PrefixMinus(PrefixPlus(p))), '-(-+11.0)')
+        self.eq(PrefixPlus(PrefixMinus(PrefixMinus(p))), '+-(-11.0)')
+
         # Test with operators of precedence SUM, PRODUCT
         a, b, c = self.abc
         self.eq(PrefixPlus(Plus(a, b)), '+(a + b)')
