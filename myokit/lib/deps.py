@@ -325,6 +325,12 @@ class DiGraph:
                 if kmin is None or k < kmin:
                     kmin = k
                     nmin = node
+            # No node left whose successors have all been assigned? Then the
+            # remaining nodes must contain a cycle.
+            if nmin is None:
+                raise DiGraphError(
+                    'Graph is not acyclical: no unassigned node found with'
+                    ' all successors assigned.')
             # Assign value to node with minimum value sequence
             P[nmin] = i
 
