@@ -90,7 +90,7 @@ def read_model(path, silent=False):
     """
     path = pathlib.Path(path).expanduser()
     try:
-        if silent:
+        if not silent:
             print(f'Reading mmt file {path}')
         return myokit.load_model(path)
     except myokit.ParseError as ex:
@@ -354,8 +354,11 @@ def evaluate(expression):
 
     try:
         e = myokit.parse_expression(expression)
-        e = e.eval() if e.is_literal() else e
-        print(f'{expression} = {e}')
+        if e.is_literal():
+            print(f'{expression} = {e.eval()}')
+        else:
+            print(f'Unable to evaluate {expression}: expressions can not'
+                  ' contain references to variables.')
     except myokit.ParseError as ex:
         print(myokit.format_parse_error(ex, iter([expression])))
 
@@ -565,7 +568,7 @@ def install_windows():
     with tempfile.TemporaryDirectory() as d:
         output = pathlib.Path(d, 'menu.json')
         source = myokit.DIR_DATA / 'install-win' / 'menu.json'
-        varmap = {'icons': myokit.DIR_DATA / 'gui'}
+        varmap = {'icons': str(myokit.DIR_DATA / 'gui')}
         p = myokit.pype.TemplateEngine()
         with open(output, 'w') as f:
             p.set_output_stream(f)
@@ -998,7 +1001,9 @@ def step(path, ref=None, ini=None, raw=False):
     model = read_model(path, silent=raw)
 
     # Parse reference file, if given - ignored if --raw was set
-    if ref is not None and not raw:
+    if raw:
+        ref = None
+    elif ref is not None:
         ref = pathlib.Path(ref).expanduser()
         if ref.suffix.lower() == '.mmt':
             print(f'Reading reference file {ref} as mmt model')
@@ -1359,7 +1364,7 @@ def test_doc_coverage(classes, functions):
     if extra_functions:
         n = len(extra_functions)
         printline()
-        print(f'Found ({n}) documented but unknown classes:')
+        print(f'Found ({n}) documented but unknown functions:')
         print('\n'.join(
             '  ' + colored('warning', y) for y in sorted(extra_functions)))
     n = (len(undoc_classes) + len(undoc_functions)
@@ -1442,7 +1447,7 @@ def test_doc_coverage_get_objects():
                 except AttributeError:
                     # Built-ins have no __file__ and should not be included
                     continue
-                if full_name in modules:
+                if full_name in modules or full_name == 'myokit.tests':
                     continue
                 modules.add(full_name)
                 mpref = f'{full_name}.'
@@ -1600,6 +1605,7 @@ def test_mmt_files(path):
                     print(traceback.format_exc())
                 del m, p, x
             except Exception:
+                error = 1
                 print('Unable to load.')
                 print(traceback.format_exc())
 
@@ -1769,7 +1775,7 @@ def video(src, key, dst, fps, grow, colormap):
     try:
         data.get2d(key)
     except KeyError:
-        print(f'Key not found in DataBlock: <{key}>.')
+        print(f'Key not found in DataBlock: "{key}".')
         sys.exit(1)
 
     # File loaded okay

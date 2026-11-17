@@ -108,6 +108,10 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Apply default settings
         self._default_settings()
 
+        # Last position in line, used for smart up/down buttons
+        self._last_column = None
+        self._moving_vertically = False
+
         # Add line number area
         self._line_number_area = LineNumberArea(self)
         self._line_number_area.update_width(0)
@@ -127,12 +131,15 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Number of blocks in page up/down
         self._blocks_per_page = 1
 
-        # Last position in line, used for smart up/down buttons
-        self._last_column = None
+        # Reset smart up/down when text changes
         self.textChanged.connect(self._text_has_changed)
 
     def cursor_changed(self):
         """ Slot: Called when the cursor position is changed """
+        # Reset smart up/down behavior, unless moving up or down
+        if not self._moving_vertically:
+            self._last_column = None
+
         # Highlight current line
         extra_selections = []
         selection = QtWidgets.QTextEdit.ExtraSelection()
@@ -155,7 +162,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 text = cursor.selectedText()
                 if text in BRACKETS:
                     bracket = cursor
-            elif bracket is None and not cursor.atStart():
+            if bracket is None and pos > 0:
                 cursor.setPosition(pos - 1)
                 cursor.setPosition(pos, QtGui.QTextCursor.MoveMode.KeepAnchor)
                 text = cursor.selectedText()
@@ -415,12 +422,12 @@ class Editor(QtWidgets.QPlainTextEdit):
 
         elif key == K.Key_Home and (
                 mod == KM.ControlModifier
-                or mod == KM.ControlModifier & KM.ShiftModifier):
+                or mod == KM.ControlModifier | KM.ShiftModifier):
             # Move to start of document
             # If Shift is used: only move position (keep anchor, i.e. select)
             cursor = self.textCursor()
             cursor.setPosition(
-                0, MM.KeepAnchor if mod == KM.ShiftModifier else MM.MoveAnchor)
+                0, MM.KeepAnchor if mod & KM.ShiftModifier else MM.MoveAnchor)
             self.setTextCursor(cursor)
 
         elif key in (K.Key_Up, K.Key_Down) and mod == KM.AltModifier:
@@ -481,8 +488,8 @@ class Editor(QtWidgets.QPlainTextEdit):
                 MM.KeepAnchor if mod == KM.ShiftModifier else MM.MoveAnchor)
             operation = (MO.PreviousBlock if key in (K.Key_Up, K.Key_PageUp)
                          else MO.NextBlock)
-            n = 1 if key in (K.Key_Up, K.Key_Down) else (
-                self._blocks_per_page - 3)
+            n = 1 if key in (K.Key_Up, K.Key_Down) else max(
+                1, self._blocks_per_page - 3)
 
             # Move
             cursor = self.textCursor()
@@ -500,7 +507,12 @@ class Editor(QtWidgets.QPlainTextEdit):
                 else:
                     cursor.movePosition(MO.StartOfBlock, anchor)
                 self._last_column = cursor.positionInBlock()
-            self.setTextCursor(cursor)
+            # Set cursor, without resetting the smart column
+            self._moving_vertically = True
+            try:
+                self.setTextCursor(cursor)
+            finally:
+                self._moving_vertically = False
 
         elif key in (K.Key_Left, K.Key_Right, K.Key_End) and not (
                 mod & KM.AltModifier):
@@ -970,8 +982,9 @@ class FindReplaceWidget(QtWidgets.QWidget):
         """
         config.add_section(section)
         # Find options: case sensitive / whole word
-        config.set(section, 'case_sensitive', self._case_check.isChecked())
-        config.set(section, 'whole_word', self._whole_check.isChecked())
+        config.set(
+            section, 'case_sensitive', str(self._case_check.isChecked()))
+        config.set(section, 'whole_word', str(self._whole_check.isChecked()))
 
 
 class ModelHighlighter(QtGui.QSyntaxHighlighter):
@@ -984,6 +997,9 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
 
     def __init__(self, document):
         super().__init__(document)
+
+        # Set styles for current color scheme
+        _adapt_for_dark_mode(QtGui.QGuiApplication.palette())
 
         # Expressions used to find strings & comments
         R = QtCore.QRegularExpression
@@ -1139,6 +1155,9 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
     def __init__(self, document):
         super().__init__(document)
 
+        # Set styles for current color scheme
+        _adapt_for_dark_mode(QtGui.QGuiApplication.palette())
+
         # Headers and units
         R = QtCore.QRegularExpression
         self._rule_head = R(r'^\s*(\[\[[a-zA-Z0-9_]+\]\])')
@@ -1178,6 +1197,9 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
     """
     def __init__(self, document):
         super().__init__(document)
+
+        # Set styles for current color scheme
+        _adapt_for_dark_mode(QtGui.QGuiApplication.palette())
 
         # Script header
         R = QtCore.QRegularExpression

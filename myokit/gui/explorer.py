@@ -143,7 +143,10 @@ class Explorer(QtWidgets.QDialog):
             # Create new axes
             self._axes = self._figure.add_subplot(1, 1, 1)
         else:
-            # Reset color cycle on axes
+            # Remove existing lines, then reset color cycle and limits
+            for line in list(self._axes.lines):
+                line.remove()
+            self._axes.relim()
             try:
                 self._axes.set_prop_cycle(None)
             except AttributeError:

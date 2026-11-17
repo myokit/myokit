@@ -426,7 +426,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 '<p>Please open a data file first.</p>')
             return
         d = self._graph_area.log()
-        if len(d) == 0:
+        if len(d) < 2:  # Time is always included
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>No graphs to export.</h1>'
@@ -712,7 +712,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 z = f'{z:< 1.6g}'
             except IndexError:
                 z = '?'
-            self._label_cursor.setText(f'({x:< 1.6g}, {y:< 1.6g}, {z}')
+            self._label_cursor.setText(f'({x:< 1.6g}, {y:< 1.6g}, {z})')
 
     def keyPressEvent(self, e):
         # A key has been pressed
@@ -738,7 +738,10 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
 
             def getor(name, alt):
                 if config.has_option('window', name):
-                    return int(config.get('window', name))
+                    try:
+                        return int(config.get('window', name))
+                    except ValueError:
+                        pass
                 return alt
             x = getor('x', g.x())
             y = getor('y', g.y())
@@ -749,8 +752,11 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         if config.has_section('splitter'):
             if config.has_option('splitter', 's1') and config.has_option(
                     'splitter', 's2'):
-                s = [int(config.get('splitter', x)) for x in ('s1', 's2')]
-                self._central_widget.setSizes(s)
+                try:
+                    s = [int(config.get('splitter', x)) for x in ('s1', 's2')]
+                    self._central_widget.setSizes(s)
+                except ValueError:
+                    pass
 
         # Current files, directory, etc
         if config.has_section('files'):
@@ -774,10 +780,12 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 self.action_set_colormap(cmap)
             if config.has_option('video', 'interval'):
                 ival = config.get('video', 'interval')
-                if ival:
+                try:
                     ival = int(ival)
-                    if ival > 0:
-                        self._timer_interval = ival
+                except ValueError:
+                    ival = 0
+                if ival > 0:
+                    self._timer_interval = ival
 
     def load_data_file(self, path):
         """ Attempts to load the given data block 2d file. """
@@ -829,9 +837,13 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             self.display_exception()
             return
         finally:
-            if pd.wasCanceled():
+            # Note: no return statement here, as that would swallow any
+            # exceptions not caught above (e.g. KeyboardInterrupt)
+            cancelled = pd.wasCanceled()
+            if cancelled:
                 self.statusBar().showMessage('Load canceled.')
-                return
+        if cancelled:
+            return
 
         # Don't load empty files
         if data.len2d() < 1:
@@ -884,7 +896,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._colorbar_scene.addItem(self._colorbar_item)
 
         # Move slider to correct position
-        self._slider.setMaximum(nt)
+        self._slider.setMaximum(nt - 1)
         self._slider.setPageStep(int(nt / 20))
 
         # Update controls
@@ -1087,7 +1099,7 @@ class VideoView(QtWidgets.QGraphicsView):
         xr = viewRect.width() / sceneRect.width()
         yr = viewRect.height() / sceneRect.height()
         if keepAspect:
-            xr = min(xr, yr)
+            xr = yr = min(xr, yr)
 
         # Scale and center
         self.scale(xr, yr)
@@ -1376,7 +1388,9 @@ class GraphArea(QtWidgets.QWidget):
         """
         Tells Qt that this widget shout expand.
         """
-        return QtCore.QSizePolicy.Expanding
+        return QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding)
 
 
 class AutoFloatField(QtWidgets.QLineEdit):

@@ -122,7 +122,7 @@ def plot_state_dependency_matrix(
     a.set_ylim(0, n)
 
     # Create matrix plot
-    w = 1.0 / (max(max(m)))     # color weight
+    w = 1.0 / max(1, max(max(row) for row in m))     # color weight
     p1 = 0.1                    # Padding
     p2 = 1.0 - 2 * p1           # Square size
 
@@ -285,6 +285,8 @@ class DiGraph:
 
         # Number of nodes
         n = len(graph)
+        if n == 0:
+            return []
 
         # Values of nodes
         P = collections.OrderedDict()
@@ -352,17 +354,21 @@ class DiGraph:
         (DAG) using the algorithm by Harry Hsu [1].
 
         Will raise a :class:`DiGraphError` if this digraph has self-referencing
-        nodes.
+        nodes or cycles.
 
         [1] An algorithm for finding a minimal equivalent graph of a digraph.
             Harry T. Hsu (1975) Journal of the Association for Computing
             Machinery, Vol 22, No. 1, January 1975, pp 11-16
         """
-        m = self.path_matrix()
+        m = self.matrix()
         n = len(m)
         for i in range(n):
             if m[i][i]:
                 raise DiGraphError('Graph has self-referencing nodes.')
+        m = self.path_matrix()
+        for i in range(n):
+            if m[i][i]:
+                raise DiGraphError('Graph is not acyclical.')
         for j in range(n):
             for i in range(n):
                 if m[i][j]:
@@ -411,7 +417,7 @@ class DiGraph:
                     for k in range(n):
                         if p[j][k] == 0:
                             p[j][k] = p[i][k]
-            return p
+        return p
 
     def text(self, matrix=False):
         """
@@ -441,6 +447,8 @@ class DiGraph:
         """
         # Get layers
         layers = self.cg_layers_dag()
+        if not layers:
+            return
 
         # Set initial positions
         fy = 1.0 / len(layers)

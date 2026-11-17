@@ -283,6 +283,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             # If it doesn't work, show an error message, as this is something
             # the user explicitly requested.
             path = pathlib.Path(filename).absolute()
+            # Start with a new file, in case loading or importing fails
+            self.new_file()
             if path.suffix.lower() == '.cellml':
                 self.action_import_model_internal('cellml', path)
             else:
@@ -292,16 +294,17 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 except Exception:
                     self._console.write(f'Error loading file: {path}')
                     self.show_exception()
-        elif self._file is not None:
+        else:
             # Try loading the last file (set in config), but if it goes wrong
             # continue without error messages
-            try:
-                self.load_file(self._file)
-            except Exception:
-                self._file = None
-        if self._file is None:
-            # Create a new file
-            self.new_file()
+            if self._file is not None:
+                try:
+                    self.load_file(self._file)
+                except Exception:
+                    self._file = None
+            if self._file is None:
+                # Create a new file
+                self.new_file()
 
         # Set focus
         self._model_editor.setFocus()
@@ -548,8 +551,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                         e.model(filename, m, p)
                     else:
                         e.model(filename, m)
-                except myokit.ExportError:
-                    pass
+                except myokit.ExportError as e_:
+                    ex = e_
             for w in ws:
                 self._console.write(f'Warning: {w.message}')
 
@@ -600,8 +603,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             with warnings.catch_warnings(record=True) as ws:
                 try:
                     e.runnable(path, m, p)
-                except myokit.ExportError:
-                    pass
+                except myokit.ExportError as e_:
+                    ex = e_
             for w in ws:
                 self._console.write(f'Warning: {w.message}')
 
@@ -877,7 +880,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                     f' {model.count_variables(const=True, deep=True)}')
             self._console.write('\n'.join(text))
         except Exception:
-            self.statusBar().showMessage('"New file" failed.')
+            self.statusBar().showMessage('Gathering model statistics failed.')
             self.show_exception()
 
     def action_new(self):
@@ -1240,6 +1243,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if self._editor_tabs.currentWidget() != self._model_tab:
                 self._console.write(
                     'Only variables on the model editing tab can be graphed.')
+                return
             var = self.selected_variable()
             if var is False:
                 return  # Model editor
@@ -2332,7 +2336,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         console.
         """
         # Check for cached valid protocol
-        if self._valid_protocol and not force:
+        if self._valid_protocol is not None and not force:
             if console:
                 self._console.write(
                     'No changes to protocol since last build (no errors'
@@ -2431,14 +2435,20 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self, 'Save mmt file', str(path), filter=FILTER_MMT_SAVE)[0]
             if not path:
                 return
+            path = pathlib.Path(path).absolute()
+            # Set working directory to new path
+            try:
+                os.chdir(path.parent)
+            except OSError:
+                self.statusBar().showMessage('Error saving file.')
+                self.show_exception()
+                return False
             # Set file
-            self._file = pathlib.Path(path).absolute()
+            self._file = path
             # Add to recent files
             self.add_recent_file(self._file)
             # Set path
             self._path = self._file.parent
-            # Set working directory to new path
-            os.chdir(self._path)
 
         # Save
         self.statusBar().showMessage(f'Saving to {self._file}')
@@ -2750,7 +2760,7 @@ class Console(QtWidgets.QPlainTextEdit):
         # Ignore newlines sent by print statements (bit hacky...)
         if text == '\n':
             return
-        text = text.rstrip()
+        text = '' if text is None else str(text).rstrip()
         #Note: Ignoring empty strings means a script can't do print('') or
         # print('\n') to clear space!
         #if not text:

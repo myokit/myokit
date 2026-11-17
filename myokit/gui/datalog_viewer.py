@@ -15,6 +15,7 @@ import myokit
 import myokit.gui
 import myokit.gui.progress
 import myokit.formats.axon
+import myokit.formats.heka
 import myokit.formats.wcp
 from myokit.gui import QtCore, Qt, QtWidgets, QtGui
 from myokit.gui import matplotlib_backend as backend
@@ -350,7 +351,6 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._tool_next_file.setEnabled(False)
         self._menu_view.addAction(self._tool_next_file)
         # View > Previous file
-        self._menu_view.addAction(self._tool_next_file)
         self._tool_prev_file = QtGui.QAction('Previous file', self)
         self._tool_prev_file.setShortcut('Ctrl+PgUp')
         self._tool_prev_file.setStatusTip('Select the previous open file')
@@ -530,9 +530,14 @@ class DataLogViewer(myokit.gui.MyokitApplication):
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
             return
-        self._path = path.parent
         name = path.name
-        self._tabs.addTab(CsvTab(self, log, name), name)
+        try:
+            tab = CsvTab(self, log, name)
+        except ValueError as e:
+            QtWidgets.QMessageBox.critical(self, TITLE, str(e))
+            return
+        self._path = path.parent
+        self._tabs.addTab(tab, name)
 
     def load_mat_file(self, path):
         """
@@ -546,9 +551,14 @@ class DataLogViewer(myokit.gui.MyokitApplication):
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
             return
-        self._path = path.parent
         name = path.name
-        self._tabs.addTab(MatTab(self, mat, name), name)
+        try:
+            tab = MatTab(self, mat, name)
+        except ValueError as e:
+            QtWidgets.QMessageBox.critical(self, TITLE, str(e))
+            return
+        self._path = path.parent
+        self._tabs.addTab(tab, name)
 
     def load_txt_file(self, path):
         """ Loads a text file. """
@@ -558,9 +568,14 @@ class DataLogViewer(myokit.gui.MyokitApplication):
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
             return
-        self._path = path.parent
         name = path.name
-        self._tabs.addTab(TxtTab(self, data, name), name)
+        try:
+            tab = TxtTab(self, data, name)
+        except ValueError as e:
+            QtWidgets.QMessageBox.critical(self, TITLE, str(e))
+            return
+        self._path = path.parent
+        self._tabs.addTab(tab, name)
 
     def load_wcp_file(self, path):
         """ Loads a WinWCP file. """
@@ -659,6 +674,13 @@ class GraphTabWidget(TabWidget):
 
         self._figures = []
         self._axes = []
+
+    def _fail(self, message):
+        """
+        Deletes this tab and raises a ``ValueError`` with the given message.
+        """
+        self.deleteLater()
+        raise ValueError(message)
 
     def deleteLater(self):
         """ Deletes this tab (later). """
@@ -829,7 +851,7 @@ class AtfTab(GraphTabWidget):
     def create_info_tab(self):
         """ Creates a tab displaying information about the file. """
         widget = QtWidgets.QTextEdit(self)
-        widget.setText(self._atf.info())
+        widget.setText(self._atf.meta_str())
         widget.setReadOnly(True)
         return widget
 
@@ -855,15 +877,11 @@ class CsvTab(GraphTabWidget):
                 self._time = list(range(log.length()))
                 self._time_label = 'Index'
             else:
-                QtWidgets.QMessageBox.critical(
-                    self, TITLE,
-                    'Unable to load file: no time key set in this log.')
+                self._fail('Unable to load file: no time key set in this log.')
 
         # Check that time series aren't empty
         if log.length() == 0:
-            QtWidgets.QMessageBox.critical(
-                self, TITLE, 'Unable to load file: no data found.')
-            return
+            self._fail('Unable to load file: no data found.')
 
         # Overlapping sweeps or neighboring cells?
         keys = []
@@ -942,8 +960,10 @@ class MatTab(GraphTabWidget):
         for key in mat:
             if key[:1] == '_':
                 continue
-            time, data = None, None
-            data = mat[key]
+            time, data = None, mat[key]
+            if not (isinstance(data, np.ndarray) and data.size > 0
+                    and np.issubdtype(data.dtype, np.number)):
+                continue
             if np.prod(data.shape) == np.max(data.shape):
                 # 1d data
                 time = None
@@ -962,6 +982,9 @@ class MatTab(GraphTabWidget):
                     time, data = data, time
                 if np.any(time[1:] < time[:-1]):
                     time, data = None, None
+            else:
+                # Unsupported shape
+                data = None
             if data is None:
                 continue
             # Create tab
@@ -970,10 +993,7 @@ class MatTab(GraphTabWidget):
 
         # Nothing that can be used? Show error
         if len(self._figures) == 0:
-            QtWidgets.QMessageBox.critical(
-                self, TITLE,
-                'Unable to load file: no usable data found.')
-            return
+            self._fail('Unable to load file: no usable data found.')
 
     def create_graph_tab(self, time, data, key):
         """
@@ -1023,8 +1043,8 @@ class TxtTab(GraphTabWidget):
             tab = self.create_graph_tab(None, data)
             self.addTab(tab, 'series 1')
         elif len(data.shape) == 2:
-            # 2d data, assume longest axis is time
-            if data.shape[0] < data.shape[1]:
+            # 2d data, assume longest axis is time, and make each row a series
+            if data.shape[0] > data.shape[1]:
                 data = data.T
             # Check if first or last entry could be time
             if not np.any(data[0, 1:] < data[0, :-1]):
@@ -1037,14 +1057,11 @@ class TxtTab(GraphTabWidget):
                 time = None
             # Create tabs
             for k, column in enumerate(data):
-                tab = self.create_graph_tab(time, data)
+                tab = self.create_graph_tab(time, column)
                 self.addTab(tab, f'series {1 + k}')
         else:
             # Nothing that can be used? Show error
-            QtWidgets.QMessageBox.critical(
-                self, TITLE,
-                'Unable to load file: unable to parse file contents.')
-            return
+            self._fail('Unable to load file: unable to parse file contents.')
 
     def create_graph_tab(self, time, data):
         """ Creates a widget displaying a time series. """

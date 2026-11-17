@@ -372,7 +372,7 @@ class AbfFile(myokit.formats.SweepSource):
             elif sig == 'ABF2':
                 version = 2
             else:
-                raise NotImplementedError('Unknown ABF Format "{sig}".')
+                raise NotImplementedError(f'Unknown ABF Format "{sig}".')
 
             # Gather header fields
             header = {}
