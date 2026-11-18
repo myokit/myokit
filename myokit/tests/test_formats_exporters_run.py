@@ -32,6 +32,11 @@ class ExportTest(unittest.TestCase):
         if p is None:
             p = myokit.load_protocol(DIR_DATA / 'beeler-1977.mmt')
 
+        # Ensure tests for LatexExporter hit the bit where component "desc"
+        # items are translated
+        m.get('ina').meta['desc'] = 'A description of the INa component'
+
+        # Export in temp dir
         with tempfile.TemporaryDirectory() as d:
             path = pathlib.Path(d)
 

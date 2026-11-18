@@ -2158,11 +2158,16 @@ ina.x = 3 * ina.ENa
         # Test :meth:`Model.show_expressions_for(variable)`.
 
         m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
+
+        # Include information from "desc"
+        m.get('ina.INa').meta['desc'] = 'The INa variable'
         e = m.show_expressions_for(m.get('ina.INa'))
         x = (
             'Showing: ina.INa  (Intermediary variable)\n'
             '------------------------------------------------------------\n'
             'in [uA/cm^2]\n'
+            '------------------------------------------------------------\n'
+            'desc: The INa variable\n'
             '------------------------------------------------------------\n'
             'ina.INa is a function of:\n'
             '  ina.h\n'
