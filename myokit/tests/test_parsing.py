@@ -62,6 +62,14 @@ class TokenizerTest(unittest.TestCase):
         s = Tokenizer('"""Hello"""')
         self.assertEqual(next(s)[0], p.EOF)
 
+        # Single-line string
+        s = Tokenizer('x: """Hello world"""')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertEqual(next(s)[0], p.COLON)
+        self.assertEqual(s.peek()[0], p.TEXT)
+        self.assertEqual(next(s)[1], 'Hello world')
+        self.assertEqual(next(s)[0], p.EOL)
+
         # Multi-line string
         s = Tokenizer('x: """Hello\nWo\trld"""')
         self.assertEqual(next(s)[0], p.META_NAME)
@@ -1290,39 +1298,23 @@ class ModelParseTest(unittest.TestCase):
 
     def test_model_creation(self):
         # Basic model creation via the parser
-        m = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # Test components
-        self.assertEqual(len(m), 9)
+        self.assertEqual(len(m), 8)
         self.assertIn('engine', m)
         self.assertIn('membrane', m)
-        self.assertIn('cell', m)
-        self.assertIn('ina', m)
+        self.assertIn('stimulus', m)
         self.assertIn('ik1', m)
-        self.assertIn('ica', m)
-        self.assertIn('ib', m)
-        self.assertIn('ik', m)
-        self.assertIn('ikp', m)
+        self.assertIn('ix1', m)
+        self.assertIn('ina', m)
+        self.assertIn('is', m)
+        self.assertIn('calcium', m)
 
         # Test state
-        states = [
-            'membrane.V',
-            'ina.m',
-            'ina.h',
-            'ina.j',
-            'ica.d',
-            'ica.f',
-            'ik.x',
-            'ica.Ca_i']
-        values = [
-            -84.5286,
-            0.0017,
-            0.9832,
-            0.995484,
-            0.000003,
-            1,
-            0.0057,
-            0.0002]
+        states = ['membrane.V', 'ina.m', 'ina.h', 'ina.j', 'is.d', 'is.f',
+                  'ix1.x1', 'calcium.Cai']
+        values = [ -84.35, 0.01, 0.99, 0.97, 0.003, 1, 0.03, 1.8e-4]
         self.assertEqual(len(values), m.count_states())
 
         # Test initial value parsing
@@ -1387,26 +1379,38 @@ class ModelParseTest(unittest.TestCase):
     def test_piecewise(self):
         # Test a model with a piecewise statement
 
-        m = myokit.load_model(DIR_DATA / 'conditional.mmt')
+        m = myokit.parse_model('''
+            [[model]]
+
+            [test]
+            t = 0 bind time
+            V = 10
+            z = if(V < 0, 10, 12)
+            x = piecewise(
+                V < -50, 10 - 7,
+                V < 0, 2 * 4 - 6,
+                1)
+            y = piecewise(
+                V < 0, 2 * 4 - 6,
+                1)
+        ''')
+
         # Test evaluation
         x = m.get('test.x')
         y = m.get('test.y')
-        s = m.initial_values(as_floats=True)
-        i = m.get('membrane.V').index()
-        # Test x, xo, y, yo
+        v = m.get('test.V')
 
-        s[i] = -80
-        m.set_initial_values(s)
+        # Test x, xo, y, yo
+        v.set_rhs(-80)
         self.assertEqual(x.rhs().eval(), 3)
         self.assertEqual(y.rhs().eval(), 2)
-        s[i] = -10
-        m.set_initial_values(s)
+        v.set_rhs(-10)
         self.assertEqual(x.rhs().eval(), 2)
         self.assertEqual(y.rhs().eval(), 2)
-        s[i] = 30
-        m.set_initial_values(s)
+        v.set_rhs(30)
         self.assertEqual(x.rhs().eval(), 1)
         self.assertEqual(y.rhs().eval(), 1)
+
         # Test code() output by cloning
         m.clone()
 
@@ -1625,28 +1629,6 @@ class ModelParseTest(unittest.TestCase):
         # Duplicate names
         self.assertRaises(myokit.DuplicateName, d.add_alias, 'p', q)
         self.assertRaises(myokit.DuplicateName, c.add_alias, 'p', r)
-
-    def test_clone_code_parse(self):
-        # Test the cloning, code and parse() by exporting models and
-        # reading them in again.
-        models = [
-            'conditional.mmt',
-        ]
-        for model in models:
-            m1 = myokit.load_model(DIR_DATA / model)
-            c1 = m1.code()
-            m2 = myokit.parse(c1)[0]
-            c2 = m2.code()
-            self.assertEqual(c1, c2)
-            m3 = m2.clone()
-            c3 = m3.code()
-            self.assertEqual(c1, c3)
-
-    def test_advanced_units(self):
-        # Test the new unit syntax where literals have units.
-        model = 'beeler-1977-units.mmt'
-        m = myokit.load_model(DIR_DATA / model)
-        m.validate()
 
     def test_unresolved_references(self):
         # Test parsing models with unresolved references.

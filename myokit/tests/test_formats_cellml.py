@@ -477,41 +477,33 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertTrue(i.supports_model())
         self.assertFalse(i.supports_protocol())
 
-    def test_model_1_0_dot(self):
-        # This is beeler-reuter but with a dot() in an expression
-        i = formats.importer('cellml')
-        m = i.model(DIR / 'br-1977-dot.cellml')
-        m.validate()
+    def test_model_1_errors(self):
+        # CellML 1.x files with errors should raise CellMLImporterErrors
 
-    def test_model_1_0_errors(self):
-        # Files with errors raise CellMLImporterErrors (not parser errors)
-        i = formats.importer('cellml')
-        m = DIR / 'invalid-file.cellml'
-        self.assertRaisesRegex(
-            CellMLImporterError, 'valid CellML identifier', i.model, m)
+        # Create model that will trigger an exception
+        x = ('<?xml version="1.0" encoding="UTF-8"?>'
+             '<model name="test" xmlns="http://www.cellml.org/cellml/1.1#">'
+             '<component name="a">'
+             '  <variable name="hello" units="ampere" dog="biscuit"/>'
+             '</component>'
+             '</model>')
 
-    def test_model__1_0_nesting(self):
-        # The corrias model has multiple levels of nesting (encapsulation)
-        i = formats.importer('cellml')
-        m = i.model(DIR / 'corrias.cellml')
-        m.validate()
+        # Write to disk and import
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d, 'test.cellml')
+            with open(path, 'w') as f:
+                f.write(x)
 
-    def test_model_1_0_simple(self):
-        # Beeler-Reuter is a simple model
-        i = formats.importer('cellml')
-        m = i.model(DIR / 'br-1977.cellml')
-        m.validate()
-
-    def test_model_2_0(self):
-        # Decker 2009 in CellML 2.0
-        i = formats.importer('cellml')
-        m = i.model(DIR / 'decker-2009.cellml')
-        m.validate()
+            # Import
+            i = formats.importer('cellml')
+            self.assertRaisesRegex(
+                CellMLImporterError, 'Unexpected attribute',
+                i.model, path)
 
     def test_model_2_0_errors(self):
         # CellML 2.0 files with errors should raise CellMLImporterErrors
 
-        # Create model that will generate warnings
+        # Create model that will trigger an exception
         x = ('<?xml version="1.0" encoding="UTF-8"?>'
              '<model name="test" xmlns="http://www.cellml.org/cellml/2.0#">'
              '<component name="a">'
@@ -539,12 +531,12 @@ class CellMLImporterTest(unittest.TestCase):
         i = formats.importer('cellml')
         self.assertRaisesRegex(
             CellMLImporterError, 'not a CellML document',
-            i.model, DIR_FORMATS / 'sbml' / 'HodgkinHuxley.xml')
+            i.model, DIR_FORMATS / 'sbml' / '00001-sbml-l3v2.xml')
 
         # Not an XML file
         self.assertRaisesRegex(
             CellMLImporterError, 'Unable to parse XML',
-            i.model, DIR_FORMATS / 'lr-1991.mmt')
+            i.model, DIR_FORMATS / 'beeler-1977.mmt')
 
     def test_warnings_1_0(self):
         # Tests warnings are logged

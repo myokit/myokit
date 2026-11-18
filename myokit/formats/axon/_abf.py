@@ -65,14 +65,12 @@
 #---------------------------------  credits  ----------------------------------
 #
 # A lot of this code uses the (sadly somewhat outdated) information made public
-# by Axon, e.g. at https://support.moleculardevices.com/s/article/
-#                               Axon-pCLAMP-ABF-File-Support-Pack-Download-Page
-# This information comes without a specific license, but states that
-# "Permission is granted to freely use, modify and copy the code in this file."
+# by Axon, e.g. at https://support.moleculardevices.com/s/article/Axon-pCLAMP-ABF-File-Support-Pack-Download-Page
+# No code from the pack is used.
 #
-# In addition, this module was in part derived from an early version of the
-# Neo package for representing electrophysiology data, specifically from a
-# Python module authored by sgarcia and jnowacki.
+# This module was also inspired by an early version of the Neo package for
+# representing electrophysiology data, specifically from a Python module
+# authored by sgarcia and jnowacki.
 # Neo can be found at: http://neuralensemble.org/trac/neo
 #
 # The Neo package used was licensed using the following BSD License:

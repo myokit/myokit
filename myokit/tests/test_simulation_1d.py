@@ -25,7 +25,7 @@ class Simulation1dTest(unittest.TestCase):
         # Test basic usage.
 
         # Load model
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
 
         # Run a simulation
         ncells = 5
@@ -118,7 +118,7 @@ class Simulation1dTest(unittest.TestCase):
     def test_negative_time(self):
         # Test starting at a negative time
 
-        m = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         p = myokit.pacing.blocktrain(duration=1, level=1, period=2)
         n = 4
         s = myokit.Simulation1d(m, p, ncells=n)
@@ -137,7 +137,7 @@ class Simulation1dTest(unittest.TestCase):
 
     def test_no_protocol(self):
         # Test running without a protocol
-        m = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         x = 0.123
         m.get('engine.pace').set_rhs(x)
         n = 4
@@ -161,7 +161,7 @@ class Simulation1dTest(unittest.TestCase):
 
     def test_set_state(self):
         # Test :meth:`Simulation1d.set_state()`.
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         n = 4
 
         s = myokit.Simulation1d(m, p, n)
@@ -199,7 +199,7 @@ class Simulation1dTest(unittest.TestCase):
 
     def test_set_default_state(self):
         # Test :meth:`Simulation1d.set_default_state()`.
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         n = 4
 
         s = myokit.Simulation1d(m, p, n)
@@ -237,7 +237,7 @@ class Simulation1dTest(unittest.TestCase):
 
     def test_with_progress_reporter(self):
         # Test running with a progress reporter.
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
 
         # Test using a progress reporter
         s = myokit.Simulation1d(m, p, ncells=5)
@@ -260,7 +260,7 @@ class Simulation1dTest(unittest.TestCase):
         # Compare the Simulation1d output with CVODE output
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         e = p.head()
 
         #
@@ -270,7 +270,7 @@ class Simulation1dTest(unittest.TestCase):
         tmax = 1300
         p = myokit.Protocol()
         p.schedule(level=e.level(), duration=e.duration(), period=600, start=0)
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
 
         s1 = myokit.Simulation1d(m, p, ncells=1, rl=True)
         s1.set_step_size(dt)
@@ -294,8 +294,8 @@ class Simulation1dTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
@@ -336,8 +336,8 @@ class Simulation1dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0], label='Euler')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.plot(d1.time(), d1['is.Is', 0], label='Euler')
+            plt.plot(d2.time(), d2['is.Is'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -362,7 +362,7 @@ class Simulation1dTest(unittest.TestCase):
             period=600,
             start=10)
 
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
 
         s1.reset()
         s1.set_protocol(p)
@@ -388,8 +388,8 @@ class Simulation1dTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
@@ -430,8 +430,8 @@ class Simulation1dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0], label='Euler')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.plot(d1.time(), d1['is.Is', 0], label='Euler')
+            plt.plot(d2.time(), d2['is.Is'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -456,7 +456,7 @@ class Simulation1dTest(unittest.TestCase):
             period=600,
             start=1.05)
 
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
 
         s1.reset()
         s1.set_protocol(p)
@@ -482,8 +482,8 @@ class Simulation1dTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
@@ -524,8 +524,8 @@ class Simulation1dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0], label='Euler')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.plot(d1.time(), d1['is.Is', 0], label='Euler')
+            plt.plot(d2.time(), d2['is.Is'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -550,7 +550,7 @@ class Simulation1dTest(unittest.TestCase):
             period=600,
             start=10)
 
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
         s1 = myokit.Simulation1d(m, p, ncells=1, rl=False)
         s1.set_step_size(dt)
         d1 = s1.run(tmax, logvars, log_interval=dt).npview()
@@ -567,8 +567,8 @@ class Simulation1dTest(unittest.TestCase):
         self.assertLess(e2, 0.05)  # Note: The step size is really too big here
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
         self.assertLess(e3, 0.05)
 

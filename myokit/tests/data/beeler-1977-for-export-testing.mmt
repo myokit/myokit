@@ -1,0 +1,205 @@
+[[model]]
+name: beeler-1977-for-export-testing
+desc: """
+    Variation of beeler-1977.mmt with additional difficulties used to test
+    exporting.
+    
+    This model is for testing, not for science.
+    
+    Has special cases for:
+    
+    - General difficulties of dot() in expression and initial value expression
+    - Variable names that easyml wants to change (+ difficult cases)
+    
+    
+    """
+# Initial values:
+membrane.V  = -84.35
+ina.m       = 0.1 * sqrt(ina.m_start)
+ina.h       = 0.99
+ina.j       = 0.97
+is.d        = 0.003
+is.f        = 1
+ix1.x1      = 0.03
+calcium.Cai = 1.8e-4
+
+#
+# Simulation variables
+#
+[engine]
+time = 0 [ms]
+    in [ms]
+    bind time
+pace = 0
+    bind pace
+
+#
+# Membrane potential. Equation 8.
+#
+[membrane]
+use stimulus.i_stim
+C = 1 [uF/cm^2]
+    in [uF/cm^2]
+dot(V) = -(1/C) * (i_ion + i_stim + i_diff)
+    in [mV]
+    label membrane_potential
+i_ion = ik1.IK1 + ix1.Ix1 + ina.INa + is.Is
+    in [uA/cm^2]
+    label cellular_current
+i_diff = 0 [uA/cm^2]
+    in [uA/cm^2]
+    bind diffusion_current
+
+#
+# Stimulus current
+#
+[stimulus]
+i_stim = engine.pace * amplitude
+    in [uA/cm^2]
+amplitude = -50 [uA/cm^2]
+    in [uA/cm^2]
+
+#
+# Time-independent outward potassium current. Equation 2.
+#
+[ik1]
+use membrane.V
+IK1 = gK1 * (
+        4 * (exp(0.04 [1/mV] * (V + 85 [mV])) - 1)
+            / (exp(0.08 [1/mV] * (V + 53 [mV])) + exp(0.04 [1/mV] * (V + 53 [mV])))
+        + 0.2 [1/mV] * (V + 23 [mV])
+            / (1 - exp(-0.04 [1/mV] * (V + 23 [mV]))))
+    in [uA/cm^2]
+gK1 = 0.35 [uA/cm^2]
+    in [uA/cm^2]
+
+#
+# Time-dependent outward current. Equations 3 & 4.
+#
+# With modifications for EasyML testing
+#
+[ix1]
+use membrane.V
+Ix1 = gx1 * x1 * (exp(0.04 [1/mV] * (V + 77 [mV])) - 1) / exp(0.04 [1/mV] * (V + 35 [mV]))
+    in [uA/cm^2]
+gx1 = 0.8 [uA/cm^2]
+    in [uA/cm^2]
+# In EasyML, alpha_ is a special name. In this used correctly
+dot(x1) = alpha_x1 * (1 - x1) - beta_x1 * x1
+    alpha_x1 = alpha_p1 * exp(0.083 [1/mV] * (V + 50 [mV])) / (1 + exp(0.057 [1/mV] * (V + 50 [mV])))
+        in [1/ms]
+    beta_x1  = 0.0013 [1/ms] * exp(-0.06 [1/mV] * (V + 20 [mV])) / (1 + exp(-0.04 [1/mV] * (V + 20 [mV])))
+        in [1/ms]
+# In this case used incorrectly, as with d_, beta_, and tau_ below
+alpha_p1 = beta_p1
+    in [1/ms]
+beta_p1 = d_p1
+    in [1/ms]
+d_p1 = tau_p1 + tau_p2
+    in [1/ms]
+    tau_p1 = 0.0003 [1/ms]
+        in [1/ms]
+tau_p2 = 0.0002 [1/ms]
+    in [1/ms]
+     
+#
+# Excitatory inward sodium current. Equation 5.
+#
+# With modifications to test dot()s in expressions, and initial value expressions
+#
+[ina]
+use membrane.V
+INa = (gNa * m^3 * h * j + gNaC) * (V - ENa)
+    in [uA/cm^2]
+gNa = 4 [mS/cm^2]
+    in [mS/cm^2]
+gNaC = 0.003 [mS/cm^2]
+    in [mS/cm^2]
+ENa = 50 [mV] + dot_sum * 1e-9 [mV*ms]
+    in [mV]
+dot_sum = (dot(m) + dot(h) + dot(j)) 
+    in [1/ms]
+m_start = 0.5 * m_full
+    m_full = 1    
+dot(m) = alpha * (1 - m) - beta * m
+    alpha = 1 [1/mV/ms] * (V + 47 [mV]) / (1 - exp(-0.1 [1/mV] * (V + 47 [mV])))
+        in [1/ms]
+    beta = 40 [1/ms] * exp(-0.056 [1/mV] * (V + 72 [mV]))
+        in [1/ms]
+dot(h) = alpha * (1 - h) - beta * h
+    alpha = 0.126 [1/ms] * exp(-0.25 [1/mV] * (V + 77 [mV]))
+        in [1/ms]
+    beta = 1.7 [1/ms] / (1 + exp(-0.082 [1/mV] * (V + 22.5 [mV])))
+        in [1/ms]
+dot(j) = alpha * (1 - j) - beta * j
+    alpha = 0.055 [1/ms] * exp(-0.25 [1/mV] * (V + 78 [mV])) / (1 + exp(-0.2 [1/mV] * (V + 78 [mV])))
+        in [1/ms]
+    beta = 0.3 [1/ms] / (1 + exp(-0.1 [1/mV] * (V + diff_x.tau_x)))
+        in [1/ms]
+
+#
+# Component that start with an easyml code, will become an issue once uname is
+#  used.
+#
+[diff_x]
+tau_x = 16 [mV] + pow
+    in [mV]
+pow = 8 [mV] + pow_1  # A keyword in many languages
+    in [mV]
+pow_1 = 8 [mV]  # Triggers 2nd layer of renaming in easyml when pow is renamed pow_1
+    in [mV]
+
+#
+# Secondary or slow inward current. Equations 6 & 7.
+#
+[is]
+use membrane.V
+Is = gs * d * f * (V - Es)
+    in [uA/cm^2]
+gs = 0.09 [mS/cm^2]
+    in [mS/cm^2]
+Es = -82.3 [mV] - 13.0287 [mV] * log(calcium.Cai / 1000 [mM])
+    in [mV]
+dot(d) =  alpha * (1 - d) - beta * d
+    alpha = 0.095 [1/ms] * exp(-0.01 [1/mV] * (V - 5 [mV])) / (1 + exp(-0.072 [1/mV] * (V - 5 [mV])))
+        in [1/ms]
+    beta  = 0.07 [1/ms] * exp(-0.017 [1/mV] * (V + 44 [mV])) / (1 + exp(0.05 [1/mV] * (V + 44 [mV])))
+        in [1/ms]
+dot(f) = alpha * (1 - f) - beta * f
+    alpha = 0.012 [1/ms] * exp(-0.008 [1/mV] * (V + 28 [mV])) / (1 + exp(0.15 [1/mV] * (V + 28 [mV])))
+        in [1/ms]
+    beta  = pow_1 * exp(-0.02 [1/mV] * (V + 30 [mV])) / (1 + exp(-0.2 [1/mV] * (V + 30 [mV])))
+        in [1/ms]
+pow_1 = 0.0065 [1/ms]  # Can't use uname: two vars with this name
+    in [1/ms]
+
+#
+# Intracellular calcium concentration. Equation 9.
+#
+[calcium]
+dot(Cai) = -1e-4 [mol/mC/cm] * is.Is + 0.07 [1/ms] * (1e-4 [mM] - Cai)
+    in [mM]
+
+[[protocol]]
+# Level  Start    Length   Period   Multiplier
+1.0      100      1        1000     0
+
+[[script]]
+import matplotlib.pyplot as plt
+import myokit
+
+# Get model and protocol, create simulation
+m = get_model()
+p = get_protocol()
+s = myokit.Simulation(m, p)
+
+# Run simulation
+d = s.run(1000)
+
+# Display the result
+plt.figure()
+plt.xlabel('Time (ms)')
+plt.ylabel('Membrane potential (mV)')
+plt.plot(d.time(), d['membrane.V'])
+plt.show()
+

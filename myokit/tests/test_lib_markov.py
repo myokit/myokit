@@ -22,24 +22,24 @@ class LinearModelTest(unittest.TestCase):
     def test_manual_creation(self):
 
         # Load model
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Select a number of states and parameters
         states = [
-            'ina.C3',
-            'ina.C2',
-            'ina.C1',
-            'ina.IF',
-            'ina.IS',
-            model.get('ina.O'),
+            'ina_mm.C3',
+            'ina_mm.C2',
+            'ina_mm.C1',
+            'ina_mm.IF',
+            'ina_mm.IS',
+            model.get('ina_mm.O'),
         ]
         parameters = [
-            'ina.p1',
-            'ina.p2',
-            'ina.p3',
-            model.get('ina.p4'),
+            'ina_mm.p1',
+            'ina_mm.p2',
+            'ina_mm.p3',
+            model.get('ina_mm.p4'),
         ]
-        current = 'ina.i'
+        current = 'ina_mm.INa'
 
         # Create a markov model
         m = markov.LinearModel(model, states, parameters, current)
@@ -58,15 +58,17 @@ class LinearModelTest(unittest.TestCase):
             markov.LinearModelError, 'Unknown state',
             markov.LinearModel, model, states + ['bert'], parameters, current)
 
-        # State isn't a state
+        # Indicatd variable is not a state
         self.assertRaisesRegex(
             markov.LinearModelError, 'not a state',
-            markov.LinearModel, model, states + ['ina.i'], parameters, current)
+            markov.LinearModel, model, states + ['ina_mm.INa'], parameters,
+            current)
 
         # State added twice
         self.assertRaisesRegex(
             markov.LinearModelError, 'twice',
-            markov.LinearModel, model, states + ['ina.O'], parameters, current)
+            markov.LinearModel, model, states + ['ina_mm.O'], parameters,
+            current)
 
         # No parameters is allowed
         markov.LinearModel(model, states, None, current)
@@ -74,23 +76,24 @@ class LinearModelTest(unittest.TestCase):
         # Non-literal parameter
         self.assertRaisesRegex(
             markov.LinearModelError, 'Unsuitable',
-            markov.LinearModel, model, states, parameters + ['ina.i'], current)
+            markov.LinearModel, model, states, parameters + ['ina_mm.a11'],
+            current)
 
         # Parameter added twice
         self.assertRaisesRegex(
             markov.LinearModelError, 'Parameter listed twice',
             markov.LinearModel,
-            model, states, parameters + ['ina.p1'], current)
+            model, states, parameters + ['ina_mm.p1'], current)
 
         # Unknown parameter
         self.assertRaisesRegex(
             markov.LinearModelError, 'Unknown parameter', markov.LinearModel,
-            model, states, parameters + ['ina.p1000'], current)
+            model, states, parameters + ['ina_mm.p1000'], current)
 
         # Current is a state
         self.assertRaisesRegex(
             markov.LinearModelError, 'Current variable can not be a state',
-            markov.LinearModel, model, states, parameters, 'ina.O')
+            markov.LinearModel, model, states, parameters, 'ina_mm.O')
 
         # Current is not a function of the states
         m2 = model.clone()
@@ -127,11 +130,11 @@ class LinearModelTest(unittest.TestCase):
         # States must have bidirectional dependencies
         m2 = model.clone()
         # Set bad config, but with columns still summing to zero
-        m2.get('ina.C3').set_rhs('ina.C1')
-        x = m2.get('ina.C2')
+        m2.get('ina_mm.C3').set_rhs('ina_mm.C1')
+        x = m2.get('ina_mm.C2')
         x.set_rhs(f'{x.rhs()}+ a12 * C2 + - b12 * C1')
-        x = m2.get('ina.C1')
-        x.set_rhs(f'{x.rhs()} - ina.C1')
+        x = m2.get('ina_mm.C1')
+        x.set_rhs(f'{x.rhs()} - ina_mm.C1')
         self.assertRaisesRegex(
             markov.LinearModelError, 'not vice versa',
             markov.LinearModel, m2, states, parameters, current)
@@ -165,7 +168,7 @@ class LinearModelTest(unittest.TestCase):
 
         # Current not a linear combination of states
         m2 = model.clone()
-        m2.get(current).set_rhs('sqrt(ina.O)')
+        m2.get(current).set_rhs('sqrt(ina_mm.O)')
         self.assertRaisesRegex(
             markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)
@@ -173,68 +176,68 @@ class LinearModelTest(unittest.TestCase):
     def test_linear_model_from_component(self):
 
         # Load model
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Create a markov model
-        markov.LinearModel.from_component(model.get('ina'))
+        markov.LinearModel.from_component(model.get('ina_mm'))
 
         # Test partially automatic creation
         states = [
-            'ina.C3',
-            'ina.C2',
-            'ina.C1',
-            'ina.IF',
-            'ina.IS',
-            model.get('ina.O'),
+            'ina_mm.C3',
+            'ina_mm.C2',
+            'ina_mm.C1',
+            'ina_mm.IF',
+            'ina_mm.IS',
+            model.get('ina_mm.O'),
         ]
-        markov.LinearModel.from_component(model.get('ina'), states=states)
+        markov.LinearModel.from_component(model.get('ina_mm'), states=states)
 
         parameters = [
-            'ina.p1',
-            'ina.p2',
-            'ina.p3',
-            model.get('ina.p4',)
+            'ina_mm.p1',
+            'ina_mm.p2',
+            'ina_mm.p3',
+            model.get('ina_mm.p4',)
         ]
         markov.LinearModel.from_component(
-            model.get('ina'), parameters=parameters)
+            model.get('ina_mm'), parameters=parameters)
 
-        current = 'ina.i'
-        markov.LinearModel.from_component(model.get('ina'), current=current)
+        current = 'ina_mm.INa'
+        markov.LinearModel.from_component(model.get('ina_mm'), current=current)
 
         markov.LinearModel.from_component(
-            model.get('ina'), current=model.get(current))
+            model.get('ina_mm'), current=model.get(current))
 
         # No current --> This is allowed
         m2 = model.clone()
-        m2.get('ina').remove_variable(m2.get('ina.i'))
-        markov.LinearModel.from_component(m2.get('ina'))
+        m2.get('ina_mm').remove_variable(m2.get('ina_mm.INa'))
+        markov.LinearModel.from_component(m2.get('ina_mm'))
 
         # Two currents
         m2 = model.clone()
-        v = m2.get('ina').add_variable('i2')
-        v.set_rhs(m2.get('ina.i').rhs().clone())
+        v = m2.get('ina_mm').add_variable('i2')
+        v.set_rhs(m2.get('ina_mm.INa').rhs().clone())
         self.assertRaisesRegex(
             markov.LinearModelError,
             'more than one variable that could be a current',
-            markov.LinearModel.from_component, m2.get('ina'))
+            markov.LinearModel.from_component, m2.get('ina_mm'))
 
         # Explicit vm
         m2 = model.clone()
         m2.get('membrane.V').set_label(None)
-        markov.LinearModel.from_component(model.get('ina'), vm='membrane.V')
+        markov.LinearModel.from_component(model.get('ina_mm'), vm='membrane.V')
         self.assertRaisesRegex(
             markov.LinearModelError,
             'labeled as "membrane_potential"',
-            markov.LinearModel.from_component, m2.get('ina'))
+            markov.LinearModel.from_component, m2.get('ina_mm'))
 
     def test_linear_model_matrices(self):
 
         # Create model
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-        m = markov.LinearModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
 
         # Test shape of output
-        A, B = m.matrices(-20, range(21))
+        A, B = m.matrices(-20, range(20))
         self.assertEqual(A.shape, (6, 6))
         self.assertEqual(B.shape, (6, ))
 
@@ -245,8 +248,8 @@ class LinearModelTest(unittest.TestCase):
         # Test finding the steady-state of the Clancy model
 
         # Create model
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-        m = markov.LinearModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
 
         # Get steady state
         ss = np.array(m.steady_state())
@@ -256,23 +259,24 @@ class LinearModelTest(unittest.TestCase):
         self.assertTrue(np.all(ss <= 1))
 
         # Check that derivatives with ss are close to zero
-        ss = list(ss)
-        model.set_initial_values(ss + ss)    # Model has 2 ina's
-        derivs = model.evaluate_derivatives()
-        for i in range(len(ss)):
-            self.assertAlmostEqual(0, derivs[i])
+        state_variables = [model.get(var) for var in m.states()]
+        self.assertEqual(len(ss), len(state_variables))
+        for var, value in zip(state_variables, ss):
+            var.set_initial_value(value)
+        for var in state_variables:
+            self.assertAlmostEqual(var.eval(), 0)
 
         # Try with awful parameters
         self.assertRaisesRegex(
             markov.LinearModelError, 'positive eigenvalues',
-            m.steady_state, parameters=[-1] * 21)
+            m.steady_state, parameters=[-1] * 20)
 
     def test_linear_model_steady_state_2(self):
         # Test finding the steady-state of one of Dominic's models, which
         # exposed a bug in the steady state code
 
         # Create model
-        model = myokit.load_model(DIR_DATA / 'dom-markov.mmt')
+        model = myokit.load_model(DIR_DATA / 'issue-580.mmt')
         m = markov.LinearModel.from_component(model.get('ikr'))
 
         # Get steady state
@@ -291,14 +295,14 @@ class LinearModelTest(unittest.TestCase):
     def test_rates(self):
 
         # Load model
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Create a markov model
-        m = markov.LinearModel.from_component(model.get('ina'))
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
 
         # Test rates method runs
         self.assertEqual(len(m.rates()), 12)
-        m.rates(parameters=[0.01] * 21)
+        m.rates(parameters=[0.01] * 20)
         self.assertRaisesRegex(
             ValueError, 'Illegal parameter vector size',
             m.rates, parameters=[0.01] * 22)
@@ -306,17 +310,17 @@ class LinearModelTest(unittest.TestCase):
     def test_initial_value_conversion(self):
         # Tests that initial value expressions are converted to floats
 
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-        model.get('ina.C3').set_initial_value('1 / sqrt(7)')
-        model.get('ina.C2').set_initial_value('-1 / log(ina_ref.p)')
-        model.get('ina.C1').set_initial_value(0.5134619065149598)
-        m = markov.LinearModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        model.get('ina_mm.C3').set_initial_value('1 / sqrt(7)')
+        model.get('ina_mm.C2').set_initial_value('-1 / log(ina_mm.r3)')
+        model.get('ina_mm.C1').set_initial_value(0.5759368883763819)
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
         x0 = m.default_state()
         self.assertEqual(len(x0), 6)
         self.assertIsInstance(x0[0], float)
         self.assertIsInstance(x0[1], float)
         self.assertAlmostEqual(x0[0], 0.3779644730092272)
-        self.assertAlmostEqual(x0[1], 0.10857362047581297)
+        self.assertAlmostEqual(x0[1], 0.0460986386143909)
 
 
 class AnalyticalSimulationTest(unittest.TestCase):
@@ -328,8 +332,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test basics of analytical simulation
 
         # Create a simulation
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-        m = markov.LinearModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
 
         # Bad constructors
         self.assertRaisesRegex(
@@ -365,8 +369,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # No current variable? Then current can't be calculated
         model2 = model.clone()
-        model2.get('ina').remove_variable(model2.get('ina.i'))
-        m2 = markov.LinearModel.from_component(model2.get('ina'))
+        model2.get('ina_mm').remove_variable(model2.get('ina_mm.INa'))
+        m2 = markov.LinearModel.from_component(model2.get('ina_mm'))
         s2 = markov.AnalyticalSimulation(m2)
         self.assertRaisesRegex(
             Exception, 'did not specify a current', s2.current, s2.state())
@@ -435,8 +439,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test basic get/set methods of analytical simulation.
 
         # Create a simulation
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-        m = markov.LinearModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
         s = markov.AnalyticalSimulation(m)
 
         # membrane potential
@@ -496,7 +500,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Validate against a cvode sim.
 
         # Get a model
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Create a protocol
         vs = [-30, -20, -10]
@@ -510,7 +514,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # Run an analytical simulation
         dt = 0.01
-        m = markov.LinearModel.from_component(model.get('ina'))
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
         s1 = markov.AnalyticalSimulation(m, p)
         d1 = s1.run(t, log_interval=dt).npview()
 
@@ -529,14 +533,14 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertEqual(np.max(e), 0)
 
         # Test current output is very similar
-        e = np.abs(d1['ina.i'] - d2['ina.i'])
+        e = np.abs(d1['ina_mm.INa'] - d2['ina_mm.INa'])
         if False:
             import matplotlib.pyplot as plt
             plt.figure()
-            plt.plot(d1['ina.i'])
-            plt.plot(d2['ina.i'])
+            plt.plot(d1['ina_mm.INa'])
+            plt.plot(d2['ina_mm.INa'])
             plt.figure()
-            plt.plot(d1['ina.i'] - d2['ina.i'])
+            plt.plot(d1['ina_mm.INa'] - d2['ina_mm.INa'])
             plt.show()
         self.assertLess(np.max(e), 2e-4)
 
@@ -550,8 +554,8 @@ class DiscreteSimulationTest(unittest.TestCase):
         # Test the DiscreteSimulation class, running, resetting etc..
 
         # Create a simulation
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-        m = markov.LinearModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
 
         # Bad constructors
         self.assertRaisesRegex(
@@ -618,8 +622,8 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertIs(d, e)
         self.assertTrue(len(d['engine.time']) > n)
         self.assertEqual(len(d['engine.time']), len(d['membrane.V']))
-        self.assertEqual(len(d['engine.time']), len(d['ina.i']))
-        self.assertEqual(len(d['engine.time']), len(d['ina.O']))
+        self.assertEqual(len(d['engine.time']), len(d['ina_mm.INa']))
+        self.assertEqual(len(d['engine.time']), len(d['ina_mm.O']))
         d2 = d.clone()
         del d2[next(iter(d2.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d2)
@@ -630,8 +634,8 @@ class DiscreteSimulationTest(unittest.TestCase):
         #
         # Test without current variable
         #
-        model.get('ina').remove_variable(model.get('ina.i'))
-        m = markov.LinearModel.from_component(model.get('ina'))
+        model.get('ina_mm').remove_variable(model.get('ina_mm.INa'))
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
 
         # Create simulation with protocol (set_protocol is not supported)
         np.random.seed(1)
@@ -642,8 +646,8 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertIs(d, e)
         self.assertTrue(len(d['engine.time']) > n)
         self.assertEqual(len(d['engine.time']), len(d['membrane.V']))
-        self.assertEqual(len(d['engine.time']), len(d['ina.O']))
-        self.assertNotIn('ina.i', d)
+        self.assertEqual(len(d['engine.time']), len(d['ina_mm.O']))
+        self.assertNotIn('ina_mm.INa', d)
         d2 = d.clone()
         del d2[next(iter(d2.keys()))]
         self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d2)
@@ -655,8 +659,8 @@ class DiscreteSimulationTest(unittest.TestCase):
         # Test basic get/set methods of discrete simulation.
 
         # Create a simulation
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-        m = markov.LinearModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        m = markov.LinearModel.from_component(model.get('ina_mm'))
         s = markov.DiscreteSimulation(m, nchannels=50)
 
         # membrane potential
@@ -730,41 +734,37 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests convert_markov_models_to_compact_form()
 
         # Load clancy model, has two versions of same markov model in it
-        model1 = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
+        model1 = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         models = markov.find_markov_models(model1)
-        self.assertEqual(len(models), 2)
-        m1, m2 = models
+        self.assertEqual(len(models), 1)
+        m = models[0]
 
-        # Check both models are full ODE form
-        n1 = sum([1 for x in m1 if x.is_state()])
-        self.assertEqual(n1, len(m1))
-        n2 = sum([1 for x in m2 if x.is_state()])
-        self.assertEqual(n2, len(m2))
+        # Check model is in full ODE form
+        n = len([x for x in m if x.is_state()])
+        self.assertEqual(n, len(m))
 
         # Convert both compact form
         model2 = markov.convert_markov_models_to_compact_form(model1)
         models = markov.find_markov_models(model2)
-        self.assertEqual(len(models), 2)
-        m1, m2 = models
-        n1 = sum([1 for x in m1 if x.is_state()])
-        self.assertEqual(n1, len(m1) - 1)
-        n2 = sum([1 for x in m2 if x.is_state()])
-        self.assertEqual(n2, len(m2) - 1)
+        self.assertEqual(len(models), 1)
+        m = models[0]
+        n = len([x for x in m if x.is_state()])
+        self.assertEqual(n, len(m) - 1)
 
         # Check states evaluate to the same value
         self.assertEqual(
-            model1.get('ina.C1').eval(), model2.get('ina.C1').eval())
+            model1.get('ina_mm.C1').eval(), model2.get('ina_mm.C1').eval())
         self.assertEqual(
-            model1.get('ina.C2').eval(), model2.get('ina.C2').eval())
+            model1.get('ina_mm.C2').eval(), model2.get('ina_mm.C2').eval())
         self.assertEqual(
-            model1.get('ina.C3').eval(), model2.get('ina.C3').eval())
+            model1.get('ina_mm.C3').eval(), model2.get('ina_mm.C3').eval())
         self.assertEqual(
-            model1.get('ina.IF').eval(), model2.get('ina.IF').eval())
+            model1.get('ina_mm.IF').eval(), model2.get('ina_mm.IF').eval())
         self.assertEqual(
-            model1.get('ina.IS').eval(), model2.get('ina.IS').eval())
+            model1.get('ina_mm.IS').eval(), model2.get('ina_mm.IS').eval())
         self.assertEqual(
-            model1.get('ina.O').eval(), model2.get('ina.O').eval())
+            model1.get('ina_mm.O').eval(), model2.get('ina_mm.O').eval())
 
         # Doing it twice should have no effect
         model3 = markov.convert_markov_models_to_compact_form(model2)
@@ -774,110 +774,83 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests convert_markov_models_to_compact_form()
 
         # Load clancy model, has two versions of same markov model in it
-        model1 = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
+        model1 = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Convert to compact form, and check that it worked
         model1 = markov.convert_markov_models_to_compact_form(model1)
-        m1, m2 = markov.find_markov_models(model1)
-        n1 = sum([1 for x in m1 if x.is_state()])
-        self.assertEqual(n1, len(m1) - 1)
-        n2 = sum([1 for x in m2 if x.is_state()])
-        self.assertEqual(n2, len(m2) - 1)
+        m = markov.find_markov_models(model1)[0]
+        n = sum([1 for x in m if x.is_state()])
+        self.assertEqual(n, len(m) - 1)
 
         # Now convert to full form
         model2 = markov.convert_markov_models_to_full_ode_form(model1)
-        m1, m2 = markov.find_markov_models(model2)
-        n1 = sum([1 for x in m1 if x.is_state()])
-        self.assertEqual(n1, len(m1))
-        n2 = sum([1 for x in m2 if x.is_state()])
-        self.assertEqual(n2, len(m2))
+        m = markov.find_markov_models(model2)[0]
+        n = sum([1 for x in m if x.is_state()])
+        self.assertEqual(n, len(m))
 
         # Check states evaluate to the same value
         self.assertEqual(
-            model1.get('ina.C1').eval(), model2.get('ina.C1').eval())
+            model1.get('ina_mm.C1').eval(), model2.get('ina_mm.C1').eval())
         self.assertEqual(
-            model1.get('ina.C2').eval(), model2.get('ina.C2').eval())
+            model1.get('ina_mm.C2').eval(), model2.get('ina_mm.C2').eval())
         self.assertEqual(
-            model1.get('ina.C3').eval(), model2.get('ina.C3').eval())
+            model1.get('ina_mm.C3').eval(), model2.get('ina_mm.C3').eval())
         self.assertEqual(
-            model1.get('ina.IF').eval(), model2.get('ina.IF').eval())
+            model1.get('ina_mm.IF').eval(), model2.get('ina_mm.IF').eval())
         self.assertEqual(
-            model1.get('ina.IS').eval(), model2.get('ina.IS').eval())
+            model1.get('ina_mm.IS').eval(), model2.get('ina_mm.IS').eval())
         self.assertEqual(
-            model1.get('ina.O').eval(), model2.get('ina.O').eval())
+            model1.get('ina_mm.O').eval(), model2.get('ina_mm.O').eval())
 
         # Doing it twice should have no effect
         model3 = markov.convert_markov_models_to_full_ode_form(model2)
         self.assertEqual(model2.code(), model3.code())
 
     def test_find_markov_models(self):
-        # Tests find_markov_models()
+        # Tests find_markov_models() in full form and compact form
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
-        # Load clancy model, has two versions of same markov model in it
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-
+        # Test full form
         models = markov.find_markov_models(model)
-        self.assertEqual(len(models), 2)
+        self.assertEqual(len(models), 1)
+        m = models[0]
+        self.assertEqual(
+            [v.name() for v in m], ['C1', 'C2', 'C3', 'IF', 'IS', 'O'])
 
-        # Check states and ordering
-        m1, m2 = models
-        self.assertEqual([v.qname() for v in m1], [
-            'ina.C1', 'ina.C2', 'ina.C3', 'ina.IF', 'ina.IS', 'ina.O'])
-        self.assertEqual([v.qname() for v in m2], [
-            'ina_ref.C1', 'ina_ref.C2', 'ina_ref.C3', 'ina_ref.IF',
-            'ina_ref.IS', 'ina_ref.O'])
-        del models, m1, m2
-
-        # Try with `1 - sum(xi)` state
-        c = model.get('ina_ref')
-        v = c.get('C3')
+        # Test compact form
+        v = model.get('ina_mm.C3')
         v.demote()
         v.set_rhs('1 - C1 - C2 - IF - IS - O')
         models = markov.find_markov_models(model)
-        self.assertEqual(len(models), 2)
-        m1, m2 = models
-        self.assertEqual([v.qname() for v in m2], [
-            'ina_ref.C1', 'ina_ref.C2', 'ina_ref.C3', 'ina_ref.IF',
-            'ina_ref.IS', 'ina_ref.O'])
-        del models, m1, m2
+        self.assertEqual(len(models), 1)
+        m = models[0]
+        self.assertEqual(
+            [v.name() for v in m], ['C1', 'C2', 'C3', 'IF', 'IS', 'O'])
 
-        # Try with `1 - sum(xi)` state, with a funny RHS
-        c = model.get('ina_ref')
-        v = c.get('C3')
+        # Text compact form, with a funny (but correct) RHS
         v.set_rhs('-(+IF + C1 -(-IS - C2)) + 1 - O')
         models = markov.find_markov_models(model)
-        self.assertEqual(len(models), 2)
-        m1, m2 = models
-        self.assertEqual([v.qname() for v in m2], [
-            'ina_ref.C1', 'ina_ref.C2', 'ina_ref.C3', 'ina_ref.IF',
-            'ina_ref.IS', 'ina_ref.O'])
+        self.assertEqual(len(models), 1)
+        m = models[0]
+        self.assertEqual(
+            [v.name() for v in m], ['C1', 'C2', 'C3', 'IF', 'IS', 'O'])
 
     def test_find_markov_models_bad(self):
         # Tests find_markov_models() for non-markov models
 
         # Load clancy model, has two versions of same markov model in it
-        moodel = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-
-        # Remove ina_ref component
-        c = moodel.get('ina_ref')
-        for v in c.variables(deep=True):
-            v.set_rhs(0)
-        for v in list(c.variables(deep=True)):
-            c.remove_variable(v, recursive=True)
-
-        # Only one markov model left at this point
-        self.assertEqual(len(markov.find_markov_models(moodel)), 1)
+        moodel = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Check searching states that no-one refers to
         # (And for cases where not each state is a linear combo)
         m = moodel.clone()
-        for v in list(m.get('ina.C1').refs_by(True)):
+        for v in list(m.get('ina_mm.C1').refs_by(True)):
             v.set_rhs(3)
         self.assertEqual(len(markov.find_markov_models(m)), 0)
 
         # Test with one 1-minus state
         m = moodel.clone()
-        v = m.get('ina.C3')
+        v = m.get('ina_mm.C3')
         v.demote()
         v.set_rhs('1 - C1 - C2 - IF - IS - O')
         self.assertEqual(len(markov.find_markov_models(m)), 1)
@@ -898,17 +871,17 @@ class MarkovFunctionsTest(unittest.TestCase):
 
         # Test if there's multiple variables with a 1-... RHS
         m = moodel.clone()
-        v = m.get('ina.C3')
+        v = m.get('ina_mm.C3')
         v.demote()
         v.set_rhs('1 - C1 - C2 - IF - IS - O')
         self.assertEqual(len(markov.find_markov_models(m)), 1)
-        v = m.get('ina').add_variable('C4')
+        v = m.get('ina_mm').add_variable('C4')
         v.set_rhs('1 - C1 - C2 - IF - IS - O')
         self.assertEqual(len(markov.find_markov_models(m)), 0)
 
         # But having an extra variable is fine, if the rest checks out!
         m = moodel.clone()
-        v = m.get('ina').add_variable('C4')
+        v = m.get('ina_mm').add_variable('C4')
         v.set_rhs('1 - C1 - C2 - C3 - IF - IS - O')
         self.assertEqual(len(markov.find_markov_models(m)), 1)
 
@@ -925,39 +898,39 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests _linear_combination()
 
         # Load model, to create interesting RHS
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-        v1 = model.get('ina.C1')
-        v2 = model.get('ina.C2')
-        v3 = model.get('ina.C3')
-        v4 = model.get('ina.IF')
-        v5 = model.get('ina.IS')
-        v6 = model.get('ina.O')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        v1 = model.get('ina_mm.C1')
+        v2 = model.get('ina_mm.C2')
+        v3 = model.get('ina_mm.C3')
+        v4 = model.get('ina_mm.IF')
+        v5 = model.get('ina_mm.IS')
+        v6 = model.get('ina_mm.O')
 
         # Test C1 rhs
         f = markov._linear_combination(v1.rhs(), [v1, v2, v3, v4, v5, v6])
-        self.assertEqual(f[0].code(), '-(ina.a13 + ina.b12 + ina.b3)')
-        self.assertEqual(f[1].code(), 'ina.a12')
+        self.assertEqual(f[0].code(), '-(ina_mm.a13 + ina_mm.b12 + ina_mm.b3)')
+        self.assertEqual(f[1].code(), 'ina_mm.a12')
         self.assertIsNone(f[2])
-        self.assertEqual(f[3].code(), 'ina.a3')
+        self.assertEqual(f[3].code(), 'ina_mm.a3')
         self.assertIsNone(f[4])
-        self.assertEqual(f[5].code(), 'ina.b13')
+        self.assertEqual(f[5].code(), 'ina_mm.b13')
 
         # Test double appearances
         v1.set_rhs('2 * C1 - 3 * C1 + C1 * sqrt(O) + C2 * IF')
         f = markov._linear_combination(v1.rhs(), [v1, v2, v3])
-        self.assertEqual(f[0].code(), '2 + -3 + sqrt(ina.O)')
-        self.assertEqual(f[1].code(), 'ina.IF')
+        self.assertEqual(f[0].code(), '2 + -3 + sqrt(ina_mm.O)')
+        self.assertEqual(f[1].code(), 'ina_mm.IF')
         self.assertIsNone(f[2])
 
     def test_split_factor(self):
         # Tests _split_factor
 
         # Load model, to create interesting RHS
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
-        v1 = model.get('ina.C1')
-        v2 = model.get('ina.C2')
-        v3 = model.get('ina.C3')
-        v4 = model.get('ina.IF')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        v1 = model.get('ina_mm.C1')
+        v2 = model.get('ina_mm.C2')
+        v3 = model.get('ina_mm.C3')
+        v4 = model.get('ina_mm.IF')
 
         # Test simplest cases
         v4.set_rhs('C1')
@@ -1037,15 +1010,15 @@ class MarkovFunctionsTest(unittest.TestCase):
         # Tests _split_terms
 
         # Load model, get rhs with lots of terms
-        model = myokit.load_model(DIR_DATA / 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Simple case
-        v1 = model.get('ina.C1')
-        v2 = model.get('ina.C2')
-        v3 = model.get('ina.C3')
-        v4 = model.get('ina.IF')
-        v5 = model.get('ina.IS')
-        v6 = model.get('ina.O')
+        v1 = model.get('ina_mm.C1')
+        v2 = model.get('ina_mm.C2')
+        v3 = model.get('ina_mm.C3')
+        v4 = model.get('ina_mm.IF')
+        v5 = model.get('ina_mm.IS')
+        v6 = model.get('ina_mm.O')
         v3.set_rhs('1 - C1 - C2 - IF - IS - O')
         terms = markov._split_terms(v3.rhs())
         self.assertEqual(terms[0], myokit.Number(1))

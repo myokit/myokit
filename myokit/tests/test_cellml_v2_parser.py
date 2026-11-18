@@ -202,7 +202,7 @@ class TestCellMLParser(unittest.TestCase):
         org_values = org_model.evaluate_derivatives()
 
         # Load exported version
-        cm = v2.parse_file(DIR_FORMATS / 'beeler-1977-cellml-v2.cellml')
+        cm = v2.parse_file(DIR_FORMATS / 'cellml-v2-beeler-1977.cellml')
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
         new_values = new_model.evaluate_derivatives()
@@ -368,6 +368,45 @@ class TestCellMLParser(unittest.TestCase):
         m = self.parse(x + y + z)
         var = m['a']['x']
         self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
+
+        # Test parsing equation referencing a derivative
+        m = self.parse(
+            '<component name="c">'
+            '  <variable name="t" units="dimensionless"/>'
+            '  <variable name="x" units="dimensionless" initial_value="0.0"/>'
+            '  <variable name="y" units="dimensionless"/>'
+            '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '    <apply>'
+            '      <eq/>'
+            '      <apply>'
+            '        <diff/>'
+            '        <bvar>'
+            '          <ci>t</ci>'
+            '        </bvar>'
+            '        <ci>x</ci>'
+            '      </apply>'
+            '      <cn cellml:units="dimensionless">3.0</cn>'
+            '    </apply>'
+            '    <apply>'
+            '      <eq/>'
+            '      <ci>y</ci>'
+            '      <apply>'
+            '        <plus/>'
+            '        <cn cellml:units="dimensionless">1.0</cn>'
+            '        <apply>'
+            '          <diff/>'
+            '          <bvar>'
+            '            <ci>t</ci>'
+            '          </bvar>'
+            '          <ci>x</ci>'
+            '        </apply>'
+            '      </apply>'
+            '    </apply>'
+            '  </math>'
+            '</component>')
+        var, two = m['c']['x'], m['c']['y']
+        self.assertEqual(two.rhs(),
+            myokit.Plus(myokit.Number(1), myokit.Derivative(myokit.Name(var))))
 
         # Constants
         m = self.parse(f'{x}<apply><eq /><ci>x</ci> <pi /> </apply>{z}')

@@ -72,16 +72,16 @@ class SimulationTest(PeriodicTest):
         if debug:
             print('= Simulation :: Dynamic logging =')
         # Load model & protocol
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         # Define sensitivities
-        sens = (['ik1.gK1', 'ikp.IKp'], ['cell.K_o', 'ikp.gKp'])
+        sens = (['ina.INa', 'ix1.Ix1'], ['ina.ENa', 'ix1.gx1'])
         # Create simulation
         s = myokit.Simulation(m, p, sens)
 
         #
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
         #
-        d, e = s.run(50, log=['engine.time', 'ik1.gK1', 'ikp.IKp'])
+        d, e = s.run(50, log=['engine.time', 'ina.INa', 'ix1.Ix1'])
         t = d['engine.time']
         if debug:
             print(t[:2])
@@ -105,7 +105,7 @@ class SimulationTest(PeriodicTest):
         # Test 2: Very short simulation
         #
         s.reset()
-        d, e = s.run(1, log=['engine.time', 'ik1.gK1', 'ikp.IKp'])
+        d, e = s.run(1, log=['engine.time', 'ina.INa', 'ix1.Ix1'])
         t = d['engine.time']
         if debug:
             print(t[:2])
@@ -129,7 +129,7 @@ class SimulationTest(PeriodicTest):
         # Test 3: Stop and start a simulation
         #
         s.reset()
-        d, e = s.run(2, log=['engine.time', 'ik1.gK1', 'ikp.IKp'])
+        d, e = s.run(2, log=['engine.time', 'ina.INa', 'ix1.Ix1'])
         t = d['engine.time']
         n = len(d['engine.time'])
         if debug:
@@ -200,7 +200,7 @@ class SimulationTest(PeriodicTest):
     def test_periodic(self):
         # Test periodic logging
 
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s = myokit.Simulation(m, p)
         self.periodic(s)
 
@@ -265,7 +265,7 @@ class SimulationTest(PeriodicTest):
         # Test logging with a preset list of points.
 
         # Load model
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         # Create simulation
         s = myokit.Simulation(m, p)
 
@@ -353,7 +353,7 @@ class SimulationTest(PeriodicTest):
         # points overlap with protocol change points.
 
         # Load model
-        m = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         # Voltage clamp
         m.binding('pace').set_binding(None)
         v = m.get('membrane.V')
@@ -405,7 +405,7 @@ class Simulation1dTest(PeriodicTest):
     def test_periodic(self):
         # Test periodic logging.
 
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s = myokit.Simulation1d(m, p, ncells=1)
         self.periodic(s)
 

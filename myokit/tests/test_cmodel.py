@@ -19,9 +19,9 @@ class CModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Test cmodel instantiation.
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         cls.model = m
-        cls.sensitivities = (['ik1.gK1', 'ikp.IKp'], ['cell.K_o', 'ikp.gKp'])
+        cls.sensitivities = (['ina.INa', 'is.Is'], ['ina.ENa', 'is.gs'])
         cls.pacing_labels = {}
         cls.cmodel = myokit.CModel(
             cls.model, cls.pacing_labels, cls.sensitivities
@@ -44,10 +44,10 @@ class CModelTest(unittest.TestCase):
         self.assertFalse(m.has_sensitivities)
 
         # Provide sensitivities as Variables
-        s1 = self.model.get('ik1.gK1')
-        s2 = self.model.get('ikp.IKp')
-        p1 = self.model.get('cell.K_o')
-        p2 = self.model.get('ikp.gKp')
+        s1 = self.model.get('ina.INa')
+        s2 = self.model.get('is.Is')
+        p1 = self.model.get('ina.ENa')
+        p2 = self.model.get('is.gs')
         sens = ([s1, s2], [p1, p2])
         m = myokit.CModel(self.model, self.pacing_labels, sens)
         self.assertTrue(m.has_sensitivities)
@@ -60,13 +60,13 @@ class CModelTest(unittest.TestCase):
         self.assertTrue(m.has_sensitivities)
 
         # Sensitivity of derivative
-        s3 = self.model.get('ik.x')
+        s3 = self.model.get('ix1.x1')
         sens = (
             [myokit.Derivative(myokit.Name(s3)), myokit.Name(s2)],
             [myokit.Name(p1), myokit.Name(p2)])
         m = myokit.CModel(self.model, self.pacing_labels, sens)
         self.assertTrue(m.has_sensitivities)
-        s3 = 'dot(ik.x)'
+        s3 = 'dot(ix1.x1)'
         sens = (
             [s3, myokit.Name(s2)],
             [myokit.Name(p1), myokit.Name(p2)])
@@ -88,7 +88,7 @@ class CModelTest(unittest.TestCase):
             myokit.CModel(self.model, self.pacing_labels, sens)
 
         # Sensitivity w.r.t. Initial value
-        s3 = self.model.get('ik.x')
+        s3 = self.model.get('ix1.x1')
         sens = (
             [s3, myokit.Name(s2)],
             [myokit.Name(p1), myokit.InitialValue(myokit.Name(s3))])
@@ -105,7 +105,7 @@ class CModelTest(unittest.TestCase):
         # Sensitivity w.r.t. non-literal
         sens = (
             [myokit.Name(s1), myokit.Name(s2)],
-            [myokit.Name(p1), 'ik.E'])
+            [myokit.Name(p1), 'is.Es'])
         with self.assertRaisesRegex(ValueError, 'Sensitivity with respect to'):
             myokit.CModel(self.model, self.pacing_labels, sens)
 

@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<model xmlns="http://www.cellml.org/cellml/1.1#" xmlns:cellml="http://www.cellml.org/cellml/1.1#" xmlns:cmeta="http://www.cellml.org/metadata/1.0#" xmlns:bqbiol="http://biomodels.net/biology-qualifiers/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" name="beeler_1977">
+<!-- This file was generated for the Myokit test suite -->
+<model xmlns="http://www.cellml.org/cellml/2.0#" xmlns:cellml="http://www.cellml.org/cellml/2.0#" name="beeler_1977">
   <units name="mM">
     <unit units="metre" exponent="-3.0"/>
     <unit units="mole"/>
@@ -51,9 +52,9 @@
     <unit units="ampere" exponent="2.0"/>
   </units>
   <component name="calcium">
-    <variable name="Cai" units="mM" public_interface="out" initial_value="0.00018"/>
-    <variable name="Is" units="uA_per_cm2" public_interface="in"/>
-    <variable name="time" units="ms" public_interface="in"/>
+    <variable name="Cai" units="mM" interface="public" initial_value="0.00018"/>
+    <variable name="Is" units="uA_per_cm2" interface="public"/>
+    <variable name="time" units="ms" interface="public"/>
     <math xmlns="http://www.w3.org/1998/Math/MathML">
       <apply>
         <eq/>
@@ -88,11 +89,11 @@
     </math>
   </component>
   <component name="engine">
-    <variable name="time" units="ms" public_interface="out"/>
+    <variable name="time" units="ms" interface="public"/>
   </component>
   <component name="ik1">
-    <variable name="IK1" units="uA_per_cm2" public_interface="out"/>
-    <variable name="V" units="mV" public_interface="in"/>
+    <variable name="IK1" units="uA_per_cm2" interface="public"/>
+    <variable name="V" units="mV" interface="public"/>
     <math xmlns="http://www.w3.org/1998/Math/MathML">
       <apply>
         <eq/>
@@ -190,8 +191,8 @@
   </component>
   <component name="ina">
     <variable name="ENa" units="mV" initial_value="50.0"/>
-    <variable name="INa" units="uA_per_cm2" public_interface="out"/>
-    <variable name="V" units="mV" public_interface="in"/>
+    <variable name="INa" units="uA_per_cm2" interface="public"/>
+    <variable name="V" units="mV" interface="public"/>
     <variable name="gNaBar" units="mS_per_cm2" initial_value="4.0"/>
     <variable name="gNaC" units="mS_per_cm2" initial_value="0.003"/>
     <variable name="h" units="dimensionless" initial_value="0.99"/>
@@ -203,7 +204,7 @@
     <variable name="ina_m_beta" units="mS_per_uF"/>
     <variable name="j" units="dimensionless" initial_value="0.97"/>
     <variable name="m" units="dimensionless" initial_value="0.01"/>
-    <variable name="time" units="ms" public_interface="in"/>
+    <variable name="time" units="ms" interface="public"/>
     <math xmlns="http://www.w3.org/1998/Math/MathML">
       <apply>
         <eq/>
@@ -502,10 +503,10 @@
     </math>
   </component>
   <component name="is">
-    <variable name="Cai" units="mM" public_interface="in"/>
+    <variable name="Cai" units="mM" interface="public"/>
     <variable name="Es" units="mV"/>
-    <variable name="Is" units="uA_per_cm2" public_interface="out"/>
-    <variable name="V" units="mV" public_interface="in"/>
+    <variable name="Is" units="uA_per_cm2" interface="public"/>
+    <variable name="V" units="mV" interface="public"/>
     <variable name="d" units="dimensionless" initial_value="0.003"/>
     <variable name="f" units="dimensionless" initial_value="1.0"/>
     <variable name="gsBar" units="mS_per_cm2" initial_value="0.09"/>
@@ -513,7 +514,7 @@
     <variable name="is_d_beta" units="mS_per_uF"/>
     <variable name="is_f_alpha" units="mS_per_uF"/>
     <variable name="is_f_beta" units="mS_per_uF"/>
-    <variable name="time" units="ms" public_interface="in"/>
+    <variable name="time" units="ms" interface="public"/>
     <math xmlns="http://www.w3.org/1998/Math/MathML">
       <apply>
         <eq/>
@@ -790,11 +791,11 @@
     </math>
   </component>
   <component name="ix1">
-    <variable name="Ix1" units="uA_per_cm2" public_interface="out"/>
-    <variable name="V" units="mV" public_interface="in"/>
+    <variable name="Ix1" units="uA_per_cm2" interface="public"/>
+    <variable name="V" units="mV" interface="public"/>
     <variable name="ix1_x1_alpha" units="mS_per_uF"/>
     <variable name="ix1_x1_beta" units="mS_per_uF"/>
-    <variable name="time" units="ms" public_interface="in"/>
+    <variable name="time" units="ms" interface="public"/>
     <variable name="x1" units="dimensionless" initial_value="0.03"/>
     <math xmlns="http://www.w3.org/1998/Math/MathML">
       <apply>
@@ -955,15 +956,15 @@
   </component>
   <component name="membrane">
     <variable name="C" units="uF_per_cm2" initial_value="1.0"/>
-    <variable name="IK1" units="uA_per_cm2" public_interface="in"/>
-    <variable name="INa" units="uA_per_cm2" public_interface="in"/>
-    <variable name="Is" units="uA_per_cm2" public_interface="in"/>
-    <variable name="Ix1" units="uA_per_cm2" public_interface="in"/>
-    <variable name="V" units="mV" public_interface="out" initial_value="-84.35"/>
+    <variable name="IK1" units="uA_per_cm2" interface="public"/>
+    <variable name="INa" units="uA_per_cm2" interface="public"/>
+    <variable name="Is" units="uA_per_cm2" interface="public"/>
+    <variable name="Ix1" units="uA_per_cm2" interface="public"/>
+    <variable name="V" units="mV" interface="public" initial_value="-84.35"/>
     <variable name="i_diff" units="uA_per_cm2" initial_value="0.0"/>
     <variable name="i_ion" units="uA_per_cm2"/>
-    <variable name="i_stim" units="uA_per_cm2" public_interface="in"/>
-    <variable name="time" units="ms" public_interface="in"/>
+    <variable name="i_stim" units="uA_per_cm2" interface="public"/>
+    <variable name="time" units="ms" interface="public"/>
     <math xmlns="http://www.w3.org/1998/Math/MathML">
       <apply>
         <eq/>
@@ -1015,13 +1016,21 @@
     </math>
   </component>
   <component name="stimulus">
-    <variable name="amplitude" units="uA_per_cm2" initial_value="-50.0" cmeta:id="amplitude"/>
-    <variable name="duration" units="ms" initial_value="1.0" cmeta:id="duration"/>
-    <variable name="i_stim" units="uA_per_cm2" public_interface="out"/>
-    <variable name="offset" units="ms" initial_value="100.0" cmeta:id="offset"/>
-    <variable name="period" units="ms" initial_value="1000.0" cmeta:id="period"/>
-    <variable name="time" units="ms" public_interface="in"/>
+    <variable name="amplitude" units="uA_per_cm2"/>
+    <variable name="duration" units="ms" initial_value="1.0"/>
+    <variable name="i_stim" units="uA_per_cm2" interface="public"/>
+    <variable name="offset" units="ms" initial_value="100.0"/>
+    <variable name="period" units="ms" initial_value="1000.0"/>
+    <variable name="time" units="ms" interface="public"/>
     <math xmlns="http://www.w3.org/1998/Math/MathML">
+      <apply>
+        <eq/>
+        <ci>amplitude</ci>
+        <apply>
+          <minus/>
+          <cn cellml:units="uA_per_cm2">50.0</cn>
+        </apply>
+      </apply>
       <apply>
         <eq/>
         <ci>i_stim</ci>
@@ -1068,71 +1077,45 @@
       </apply>
     </math>
   </component>
-  <connection>
-    <map_components component_1="calcium" component_2="engine"/>
+  <connection component_1="calcium" component_2="engine">
     <map_variables variable_1="time" variable_2="time"/>
   </connection>
-  <connection>
-    <map_components component_1="calcium" component_2="is"/>
+  <connection component_1="calcium" component_2="is">
     <map_variables variable_1="Cai" variable_2="Cai"/>
     <map_variables variable_1="Is" variable_2="Is"/>
   </connection>
-  <connection>
-    <map_components component_1="engine" component_2="ina"/>
+  <connection component_1="engine" component_2="ina">
     <map_variables variable_1="time" variable_2="time"/>
   </connection>
-  <connection>
-    <map_components component_1="engine" component_2="is"/>
+  <connection component_1="engine" component_2="is">
     <map_variables variable_1="time" variable_2="time"/>
   </connection>
-  <connection>
-    <map_components component_1="engine" component_2="ix1"/>
+  <connection component_1="engine" component_2="ix1">
     <map_variables variable_1="time" variable_2="time"/>
   </connection>
-  <connection>
-    <map_components component_1="engine" component_2="membrane"/>
+  <connection component_1="engine" component_2="membrane">
     <map_variables variable_1="time" variable_2="time"/>
   </connection>
-  <connection>
-    <map_components component_1="engine" component_2="stimulus"/>
+  <connection component_1="engine" component_2="stimulus">
     <map_variables variable_1="time" variable_2="time"/>
   </connection>
-  <connection>
-    <map_components component_1="ik1" component_2="membrane"/>
+  <connection component_1="ik1" component_2="membrane">
     <map_variables variable_1="IK1" variable_2="IK1"/>
     <map_variables variable_1="V" variable_2="V"/>
   </connection>
-  <connection>
-    <map_components component_1="ina" component_2="membrane"/>
+  <connection component_1="ina" component_2="membrane">
     <map_variables variable_1="INa" variable_2="INa"/>
     <map_variables variable_1="V" variable_2="V"/>
   </connection>
-  <connection>
-    <map_components component_1="is" component_2="membrane"/>
+  <connection component_1="is" component_2="membrane">
     <map_variables variable_1="Is" variable_2="Is"/>
     <map_variables variable_1="V" variable_2="V"/>
   </connection>
-  <connection>
-    <map_components component_1="ix1" component_2="membrane"/>
+  <connection component_1="ix1" component_2="membrane">
     <map_variables variable_1="Ix1" variable_2="Ix1"/>
     <map_variables variable_1="V" variable_2="V"/>
   </connection>
-  <connection>
-    <map_components component_1="membrane" component_2="stimulus"/>
+  <connection component_1="membrane" component_2="stimulus">
     <map_variables variable_1="i_stim" variable_2="i_stim"/>
   </connection>
-  <rdf:RDF>
-    <rdf:Description rdf:about="#amplitude">
-      <bqbiol:is rdf:resource="https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#membrane_stimulus_current_amplitude"/>
-    </rdf:Description>
-    <rdf:Description rdf:about="#duration">
-      <bqbiol:is rdf:resource="https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#membrane_stimulus_current_duration"/>
-    </rdf:Description>
-    <rdf:Description rdf:about="#offset">
-      <bqbiol:is rdf:resource="https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#membrane_stimulus_current_offset"/>
-    </rdf:Description>
-    <rdf:Description rdf:about="#period">
-      <bqbiol:is rdf:resource="https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#membrane_stimulus_current_period"/>
-    </rdf:Description>
-  </rdf:RDF>
 </model>

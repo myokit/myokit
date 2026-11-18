@@ -12,6 +12,17 @@ import myokit
 import myokit.lib.plots as plots
 from myokit.tests import DIR_DATA, WarningCollector
 
+debug = False
+
+
+def close(fig):
+    """ Show or close a figure """
+    import matplotlib.pyplot as plt
+    if debug:
+        plt.show()
+    else:
+        plt.close(fig)
+
 
 class LibPlotTest(unittest.TestCase):
     """
@@ -24,11 +35,16 @@ class LibPlotTest(unittest.TestCase):
 
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
-        matplotlib.use('template')
+        if not debug:
+            matplotlib.use('template')
         import matplotlib.pyplot as plt
 
         # Run simulation, get benchmarks
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
+        e = m.get('engine')
+        e.add_variable('realtime', rhs=0, binding='realtime')
+        e.add_variable('evaluations', rhs=0, binding='evaluations')
+
         s = myokit.Simulation(m, p)
         d = s.run(1000, log=[
             'engine.time', 'engine.realtime', 'engine.evaluations'])
@@ -39,56 +55,60 @@ class LibPlotTest(unittest.TestCase):
         # Stair
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'stair')
-        plt.close(fig)
-        self.assertRaises(ValueError, plots.simulation_times, mode='stair')
+        close(fig)
 
         # Inverse stair
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'stair_inverse')
-        plt.close(fig)
-        self.assertRaises(
-            ValueError, plots.simulation_times, mode='stair_inverse')
+        close(fig)
 
         # Load
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'load')
-        plt.close(fig)
-        self.assertRaises(ValueError, plots.simulation_times, mode='load')
+        close(fig)
 
         # Histogram
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'histo')
-        plt.close(fig)
-        self.assertRaises(ValueError, plots.simulation_times, mode='histo')
+        close(fig)
 
         # Time per step
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'time_per_step')
-        plt.close(fig)
-        self.assertRaises(
-            ValueError, plots.simulation_times, mode='time_per_step')
+        close(fig)
 
         # Evaluations per step
         fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'eval_per_step')
-        plt.close(fig)
+        close(fig)
+
+        # Not enough arguments
+        self.assertRaises(ValueError, plots.simulation_times, mode='stair')
+        self.assertRaises(
+            ValueError, plots.simulation_times, mode='stair_inverse')
+        self.assertRaises(ValueError, plots.simulation_times, mode='load')
+        self.assertRaises(ValueError, plots.simulation_times, mode='histo')
+        self.assertRaises(
+            ValueError, plots.simulation_times, mode='time_per_step')
         self.assertRaises(
             ValueError, plots.simulation_times, mode='eval_per_step')
 
         # Non-existing model
         self.assertRaises(
             ValueError, plots.simulation_times, st, rt, ev, mode='xxx')
+        plt.close('all')
 
     def test_current_arrows(self):
         # Test the current arrows plot.
 
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
-        matplotlib.use('template')
+        if not debug:
+            matplotlib.use('template')
         import matplotlib.pyplot as plt
 
         # Run simulation, get currents
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
 
         # Add dummy current, that never carries much charge and should be
         # ignored
@@ -97,12 +117,12 @@ class LibPlotTest(unittest.TestCase):
         x.set_rhs('0 * membrane.V')
 
         s = myokit.Simulation(m, p)
-        currents = ['ina.INa', 'ik1.IK1', 'ica.ICa', 'dummy.IDummy']
+        currents = ['ina.INa', 'ik1.IK1', 'is.Is', 'dummy.IDummy']
         d = s.run(600, log=['engine.time', 'membrane.V'] + currents)
 
         fig = plt.figure()
         plots.current_arrows(d, 'membrane.V', currents)
-        plt.close(fig)
+        close(fig)
 
         # Massive peak at final point
         d = d.npview()
@@ -116,59 +136,60 @@ class LibPlotTest(unittest.TestCase):
 
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
-        matplotlib.use('template')
+        if not debug:
+            matplotlib.use('template')
         import matplotlib.pyplot as plt
 
         # Run simulation, get currents
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s = myokit.Simulation(m, p)
-        currents = ['ica.ICa', 'ik.IK', 'ik1.IK1', 'ikp.IKp', 'ib.Ib']
+        currents = ['ix1.Ix1', 'is.Is', 'ik1.IK1', 'ina.INa']
         d = s.run(600, log=['engine.time', 'membrane.V'] + currents)
 
         # No extra arguments
         fig = plt.figure()
         plots.cumulative_current(d, currents)
         plt.legend()
-        plt.close(fig)
+        close(fig)
 
         # Labels set
-        labels = ['I_Ca', 'I_K', 'I_K1', 'I_Kp', 'I_b']
+        labels = ['Ix1', 'Is', 'IK1', 'INa']
         fig = plt.figure()
         plots.cumulative_current(d, currents, labels=labels)
         plt.legend()
-        plt.close(fig)
+        close(fig)
 
         # Colors set
-        colors = ['green', 'blue', 'yellow', 'brown', 'gray']
+        colors = ['green', 'blue', 'yellow', 'brown']
         fig = plt.figure()
         plots.cumulative_current(d, currents, colors=colors)
         plt.legend()
-        plt.close(fig)
+        close(fig)
 
         # Not enough colors set (will repeat array)
         colors = ['green', 'blue']
         fig = plt.figure()
         plots.cumulative_current(d, currents, colors=colors)
         plt.legend()
-        plt.close(fig)
+        close(fig)
 
         # Integrate currents to charges
         fig = plt.figure()
         plots.cumulative_current(d, currents, integrate=True)
         plt.legend()
-        plt.close(fig)
+        close(fig)
 
         # Normalize currents
         fig = plt.figure()
         plots.cumulative_current(d, currents, normalize=True)
         plt.legend()
-        plt.close(fig)
+        close(fig)
 
         # Normalize currents and set maximum number of currents shown
         fig = plt.figure()
-        plots.cumulative_current(d, currents, normalize=True, max_currents=3)
+        plots.cumulative_current(d, currents, normalize=True, max_currents=2)
         plt.legend()
-        plt.close(fig)
+        close(fig)
 
         with WarningCollector() as w:
             fig = plt.figure()
@@ -179,4 +200,13 @@ class LibPlotTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
+
+    import sys
+    if '-v' in sys.argv:
+        print('Running in debug/verbose mode')
+        debug = True
+    else:
+        print('Add -v for more debug output')
+
     unittest.main()
+

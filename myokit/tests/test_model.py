@@ -593,7 +593,7 @@ class ModelTest(unittest.TestCase):
         # These will be evaluated (the method handles states, not initial state
         # expressions).
         m.get('ina.m').set_initial_value('sqrt(4) * 3')
-        m.get('ina.h').set_initial_value('ina.gNaBar / 10')
+        m.get('ina.h').set_initial_value('ina.gNa / 10')
         self.assertEqual(
             m.format_state(),
             'membrane.V  = -84.35\n'
@@ -718,7 +718,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with expressions in the initial state (these will be evaluated)
         m.get('ina.m').set_initial_value('sqrt(0.25)')
-        m.get('ina.h').set_initial_value('ina.gNaBar / 20')
+        m.get('ina.h').set_initial_value('ina.gNa / 20')
         x = m.format_state_derivatives().splitlines()
         y = [
 'membrane.V  = -84.35                     dot =  1.30298416793347105e+01',
@@ -2142,9 +2142,9 @@ ina.x = 3 * ina.ENa
         e = m.show_evaluation_of('ina.m')
         self.assertIn('Initial value = 1 / sqrt(4)', e)
         self.assertEqual(len(e.splitlines()), 16)
-        m.get('ina.m').set_initial_value('1 / sqrt(ina.gNaBar)')
+        m.get('ina.m').set_initial_value('1 / sqrt(ina.gNa)')
         e = m.show_evaluation_of('ina.m')
-        self.assertIn('Initial value = 1 / sqrt(ina.gNaBar)', e)
+        self.assertIn('Initial value = 1 / sqrt(ina.gNa)', e)
         self.assertIn('              = 0.5\n', e)
 
         # Test with nothing similar
@@ -2177,9 +2177,9 @@ ina.x = 3 * ina.ENa
             '------------------------------------------------------------\n'
             'Expressions for ina.INa:\n'
             '  ina.ENa = 50 [mV]\n'
-            '  ina.gNaBar = 4 [mS/cm^2]\n'
+            '  ina.gNa = 4 [mS/cm^2]\n'
             '  ina.gNaC = 0.003 [mS/cm^2]\n'
-            '  ina.INa = (ina.gNaBar * ina.m^3 * ina.h * ina.j + ina.gNaC)'
+            '  ina.INa = (ina.gNa * ina.m^3 * ina.h * ina.j + ina.gNaC)'
             ' * (membrane.V - ina.ENa)')
         self.assertEqual(e, x)
 
@@ -2190,7 +2190,7 @@ ina.x = 3 * ina.ENa
         m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         v = m.get('ina.INa')
         e = m.show_line_of(v)
-        self.assertIn('Defined on line 101', e)
+        self.assertIn('Defined on line 105', e)
         self.assertIn('Intermediary variable', e)
         self.assertEqual(len(e.splitlines()), 3)
 
@@ -2203,7 +2203,7 @@ ina.x = 3 * ina.ENa
         self.assertEqual(len(e.splitlines()), 2)
 
         # 'raw' version
-        self.assertEqual(m.show_line_of(v, raw=True), 101)
+        self.assertEqual(m.show_line_of(v, raw=True), 105)
         self.assertIsNone(m2.show_line_of(v2, raw=True))
 
     def test_str(self):
