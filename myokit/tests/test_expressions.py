@@ -12,7 +12,7 @@ import unittest
 import numpy as np
 
 import myokit
-from myokit.tests import WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 # Unit --> See test_units.py
 # Quantity --> See test_units.py
@@ -297,7 +297,7 @@ class ExpressionTest(unittest.TestCase):
     def test_equal(self):
         # Test equality checking on general equations
 
-        m1 = myokit.load_model('example')
+        m1 = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         m2 = m1.clone()
         for v in m1.variables(deep=True):
             e1 = v.rhs()
@@ -435,7 +435,7 @@ class ExpressionTest(unittest.TestCase):
         # Tests pickling of expressions raises an exception
 
         # Test that the right exception is raised
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = m.get('ina.INa').rhs()
         self.assertRaises(NotImplementedError, pickle.dumps, e)
 

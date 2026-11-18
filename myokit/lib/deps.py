@@ -503,10 +503,10 @@ class DiGraph:
                             x1 = 0.0 if j == 1 else layer[j - 2].x
                             # Get next x
                             x2 = None
-                            for k in range(j + 1, n):
+                            for k in range(j + 1, n): # pragma: no cover
                                 if abs(layer[k].x - node.x) >= too_close:
-                                    x2 = layer[k].x     # pragma: no cover
-                                    break               # pragma: no cover
+                                    x2 = layer[k].x
+                                    break
                                 eq.append(layer[k])
                             if x2 is None:
                                 x2 = 1.0

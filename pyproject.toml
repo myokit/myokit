@@ -114,7 +114,6 @@ omit = [
     "myokit/gui/*",
     "myokit/tests/*",
     "myokit/__main__.py",
-    "myokit/lib/common.py",
     "myokit/formats/heka/*",
 ]
 

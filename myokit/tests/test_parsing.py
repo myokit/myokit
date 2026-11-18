@@ -1717,7 +1717,7 @@ class ModelParseTest(unittest.TestCase):
         # Test :meth:`strip_expression_units`.
         from myokit._parsing import parse_model, strip_expression_units
 
-        m1 = myokit.load_model('example')
+        m1 = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         m2 = parse_model(m1.code())
         self.assertEqual(m1.code(), m2.code())
 

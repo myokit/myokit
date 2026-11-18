@@ -8,6 +8,7 @@
 import unittest
 
 import myokit
+from myokit.tests import DIR_DATA
 from myokit.tests.ansic_event_based_pacing import AnsicEventBasedPacing
 from myokit.tests.ansic_time_series_pacing import AnsicTimeSeriesPacing
 
@@ -90,7 +91,7 @@ class EventBasedPacingAnsicTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(1, 0, 1, 10)
         p.schedule(1, 30, 1)
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         s = myokit.Simulation(m, p)
         self.assertRaises(myokit.SimultaneousProtocolEventError, s.run, 40)
 

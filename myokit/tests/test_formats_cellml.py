@@ -14,7 +14,7 @@ import myokit
 import myokit.formats as formats
 import myokit.formats.cellml as cellml
 from myokit.formats.cellml import CellMLImporterError
-from myokit.tests import DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_DATA, DIR_FORMATS, WarningCollector
 
 # CellML dir
 DIR = DIR_FORMATS / 'cellml'
@@ -38,7 +38,7 @@ class CellMLExporterTest(unittest.TestCase):
         i = formats.importer('cellml')
 
         # Load input model
-        m1, p1, _ = myokit.load('example')
+        m1, p1, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         org_code = m1.code()
 
         # 1. Export without a protocol
@@ -68,7 +68,7 @@ class CellMLExporterTest(unittest.TestCase):
                 e.model(path, m1, p1)
             m2 = i.model(path)
         self.assertFalse(w.has_warnings())
-        rhs = m2.get('membrane.i_stim').rhs()
+        rhs = m2.get('stimulus.i_stim').rhs()
         self.assertTrue(rhs, myokit.Multiply)
         self.assertTrue(isinstance(rhs[0], myokit.Piecewise))
 

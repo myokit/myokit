@@ -9,7 +9,7 @@ import unittest
 
 import myokit
 import myokit.formats.cellml.v2 as cellml
-from myokit.tests import WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class TestCellML2AnnotatableElement(unittest.TestCase):
@@ -942,7 +942,7 @@ class TestCellML2ModelConversion(unittest.TestCase):
         # variable evaluations.
 
         # Test evaluating states of model
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         cm = cellml.Model.from_myokit_model(m)
 
         with WarningCollector() as w:

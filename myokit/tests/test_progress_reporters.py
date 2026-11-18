@@ -10,6 +10,7 @@ import time
 import unittest
 
 import myokit
+from myokit.tests import DIR_DATA
 
 
 class ProgressPrinterTests(unittest.TestCase):
@@ -74,11 +75,11 @@ class TimeoutTest(unittest.TestCase):
     """
     def test_timeout_progress_reporter(self):
 
-        m, p, x = myokit.load('example')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s = myokit.Simulation(m, p)
         t = myokit.Timeout(0.1)
         with self.assertRaises(myokit.SimulationCancelledError):
-            s.run(100000, progress=t)
+            s.run(1000000, progress=t)
 
         t = myokit.Timeout(3600)
         s.run(100, progress=t)

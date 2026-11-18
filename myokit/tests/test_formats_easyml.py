@@ -152,7 +152,7 @@ class EasyMLExporterTest(unittest.TestCase):
     def test_easyml_exporter(self):
         # Tests exporting a model
 
-        model = myokit.load_model('example')
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         with tempfile.TemporaryDirectory() as d:
             path = pathlib.Path(d, 'easy.model')
 

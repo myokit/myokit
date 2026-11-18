@@ -214,7 +214,7 @@ class SimulationTest(PeriodicTest):
         #  3. Back to zero *at and after* the end of the event
         #     (Unless it ends sooner due to a new event arriving)
         # Load model
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # Voltage-clamp V (but don't bind it directly)
         v = m.label('membrane_potential')

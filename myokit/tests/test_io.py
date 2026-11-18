@@ -36,6 +36,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         v = e.add_variable('time')
         v.set_binding('time')
         v.set_rhs(0)
+
         # Store to disk
         with tempfile.TemporaryDirectory() as d:
             opath = pathlib.Path(d, 'multiline.mmt')
@@ -44,6 +45,7 @@ class LoadSaveMmtTest(unittest.TestCase):
             m2 = myokit.load_model(opath)
             d2 = m2.meta['desc']
             self.assertEqual(d1, d2)
+
         # Create model with indented multi-line meta-data property
         d1 = '  First line\n\n  Second line'
         dr = 'First line\n\nSecond line'
@@ -53,6 +55,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         v = e.add_variable('time')
         v.set_binding('time')
         v.set_rhs(0)
+
         # Store to disk
         with tempfile.TemporaryDirectory() as d:
             opath = pathlib.Path(d, 'multiline.mmt')
@@ -61,6 +64,7 @@ class LoadSaveMmtTest(unittest.TestCase):
             m2 = myokit.load_model(opath)
             d2 = m2.meta['desc']
             self.assertEqual(d2, dr)
+
         # Create model with strangely indented multi-line meta-data property
         d1 = '  First line\n\n   Second line'
         dr = 'First line\n\n Second line'
@@ -70,6 +74,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         v = e.add_variable('time')
         v.set_binding('time')
         v.set_rhs(0)
+
         # Store to disk
         with tempfile.TemporaryDirectory() as d:
             opath = pathlib.Path(d, 'multiline.mmt')
@@ -81,9 +86,9 @@ class LoadSaveMmtTest(unittest.TestCase):
 
     def test_load_partial(self):
         # Test loading of partial files.
-        mpath = DIR_DATA / 'beeler-1977-model.mmt'
-        ppath = DIR_DATA / 'beeler-1977-protocol.mmt'
-        spath = DIR_DATA / 'beeler-1977-script.mmt'
+        mpath = DIR_DATA / 'only-model.mmt'
+        ppath = DIR_DATA / 'only-protocol.mmt'
+        spath = DIR_DATA / 'only-script.mmt'
 
         m, p, x = myokit.load(mpath)
         self.assertIsInstance(m, myokit.Model)
@@ -113,7 +118,7 @@ class LoadSaveMmtTest(unittest.TestCase):
         self.assertRaises(
             myokit.SectionNotFoundError, myokit.load_script, ppath)
 
-    def test_save(self):
+    def test_load_save(self):
         # Test if the correct parts are saved/loaded from disk using the
         # ``save()`` method.
 
@@ -254,15 +259,16 @@ class LoadSaveMmtTest(unittest.TestCase):
             self.assertRaises(ValueError, myokit.save, opath)
             self.assertFalse(opath.exists())
 
-    def test_save_model(self):
+    def test_load_save_model(self):
         # Test if the correct parts are saved/loaded from disk using the
         # ``save_model()`` method.
 
-        ipath = DIR_DATA / 'lr-1991.mmt'
         # Test example loading
         m = myokit.load_model('example')
         self.assertIsInstance(m, myokit.Model)
+
         # Test file loading
+        ipath = DIR_DATA / 'beeler-1977.mmt'
         m = myokit.load_model(ipath)
         self.assertIsInstance(m, myokit.Model)
         with tempfile.TemporaryDirectory() as d:
@@ -283,11 +289,12 @@ class LoadSaveMmtTest(unittest.TestCase):
         # Test if the correct parts are saved/loaded from disk using the
         # ``save_protocol()`` method.
 
-        ipath = DIR_DATA / 'lr-1991.mmt'
         # Test example loading
         p = myokit.load_protocol('example')
         self.assertIsInstance(p, myokit.Protocol)
+
         # Test file loading
+        ipath = DIR_DATA / 'beeler-1977.mmt'
         p = myokit.load_protocol(ipath)
         self.assertIsInstance(p, myokit.Protocol)
         with tempfile.TemporaryDirectory() as d:
@@ -308,11 +315,12 @@ class LoadSaveMmtTest(unittest.TestCase):
         # Test if the correct parts are saved/loaded from disk using the
         # ``save_script()`` method.
 
-        ipath = DIR_DATA / 'lr-1991.mmt'
         # Test example loading
         x = myokit.load_script('example')
         self.assertTrue(isinstance(x, str))
+
         # Test file loading
+        ipath = DIR_DATA / 'beeler-1977.mmt'
         x = myokit.load_script(ipath)
         self.assertTrue(isinstance(x, str))
         with tempfile.TemporaryDirectory() as d:
@@ -335,7 +343,8 @@ class LoadSaveStateTest(unittest.TestCase):
 
     def test_load_save_state(self):
         # Test loading/saving state.
-        m, p, x = myokit.load('example')
+
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         with tempfile.TemporaryDirectory() as d:
             # Test save and load without model
             f = pathlib.Path(d, 'state.txt')
@@ -358,7 +367,8 @@ class LoadSaveStateTest(unittest.TestCase):
 
     def test_load_save_state_bin(self):
         # Test loading/saving state in binary format.
-        m, p, x = myokit.load('example')
+
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         with tempfile.TemporaryDirectory() as d:
 
             # Test save and load with double precision

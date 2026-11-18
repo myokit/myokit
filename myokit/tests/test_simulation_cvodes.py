@@ -1257,16 +1257,16 @@ class SimulationTest(unittest.TestCase):
         # Test pickling a simulation
 
         # Test with myokit.Protocol and sensitivities
-        m, p, _ = myokit.load('example')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s1 = myokit.Simulation(m, p, [
-            ['ina.INa', 'ica.ICa', 'membrane.V'],
-            ['ina.gNa', 'init(membrane.V)']
+            ['ina.INa', 'is.Is', 'membrane.V'],
+            ['ina.gNaBar', 'init(membrane.V)']
         ])
-        s1.pre(123)
+        s1.pre(12)
         # ...and with simulation properties
-        s1.set_tolerance(1e-8, 1e-8)
-        s1.set_min_step_size(1e-4)
-        s1.set_max_step_size(0.1)
+        s1.set_tolerance(1e-5, 1e-5)
+        s1.set_min_step_size(1e-6)
+        s1.set_max_step_size(0.05)
         # ...and changed properties
         s1.set_constant('membrane.C', 1.1)
         s_bytes = pickle.dumps(s1)
@@ -1274,15 +1274,15 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
         self.assertEqual(s1.default_state(), s2.default_state())
-        d1, e1 = s1.run(123, log=myokit.LOG_NONE)
-        d2, e2 = s2.run(123, log=myokit.LOG_NONE)
+        d1, e1 = s1.run(99, log=myokit.LOG_NONE)
+        d2, e2 = s2.run(99, log=myokit.LOG_NONE)
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
         self.assertTrue(np.all(e1 == e2))
 
     def test_sim_stats(self):
         # Test extraction of simulation statistics
-        m, p, _ = myokit.load('example')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         rt = m['engine'].add_variable('realtime')
         rt.set_rhs(0)
         rt.set_binding('realtime')

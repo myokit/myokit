@@ -11,6 +11,7 @@ import unittest
 
 import myokit
 import myokit.formats
+from myokit.tests import DIR_DATA
 
 
 class ExportTest(unittest.TestCase):
@@ -27,10 +28,15 @@ class ExportTest(unittest.TestCase):
         # Load model, protocol
         m, p = model, protocol
         if m is None:
-            m = myokit.load_model('example')
+            m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         if p is None:
-            p = myokit.load_protocol('example')
+            p = myokit.load_protocol(DIR_DATA / 'beeler-1977.mmt')
 
+        # Ensure tests for LatexExporter hit the bit where component "desc"
+        # items are translated
+        m.get('ina').meta['desc'] = 'A description of the INa component'
+
+        # Export in temp dir
         with tempfile.TemporaryDirectory() as d:
             path = pathlib.Path(d)
 
@@ -158,13 +164,13 @@ class ExportTest(unittest.TestCase):
         e = myokit.formats.exporter('opencl')
 
         # Label membrane_potential must be set
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         m.label('membrane_potential').set_label(None)
         self.assertRaisesRegex(
             ValueError, 'membrane_potential', self._test, e, m)
 
         # Binding diffusion_current must be set
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         m.binding('diffusion_current').set_binding(None)
         self.assertRaisesRegex(
             ValueError, 'diffusion_current', self._test, e, m)
@@ -179,7 +185,7 @@ class ExportTest(unittest.TestCase):
         # Test with parameters and output variable specified
 
         # Load model
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # Guess parameters
         parameters = []

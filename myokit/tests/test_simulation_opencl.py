@@ -34,7 +34,7 @@ class SimulationOpenCLTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Create simulations for later use in testing
-        cls.m = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
+        cls.m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         cls.p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
         cls._s0 = cls._s1 = cls._s2 = None
 
@@ -620,7 +620,7 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Apply a field and try again (this is its intended use)
         s.reset()
-        s.set_field('isi.gsBar', [0.05, 0.09, 0.14])
+        s.set_field('is.gsBar', [0.05, 0.09, 0.14])
         d = s.run(10, log=['membrane.V']).npview()
         self.assertGreater(np.max(d['membrane.V', 0]), 0)
         self.assertGreater(np.max(d['membrane.V', 1]), 0)
@@ -1430,11 +1430,11 @@ class SimulationOpenCLFindNanTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Create simulations for later use in testing
-        cls.m1 = myokit.load_model('example')
+        cls.m1 = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         cls.p1 = myokit.pacing.blocktrain(period=1000, duration=2)
 
         # Voltage-clamped LR1 model with interdependent components
-        cls.m2 = myokit.load_model('example')
+        cls.m2 = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         p = cls.m2.binding('pace')
         p.set_binding(None)
         v = cls.m2.get('membrane.V')
@@ -1442,14 +1442,14 @@ class SimulationOpenCLFindNanTest(unittest.TestCase):
         v.demote()
         v.set_label(None)
         v.set_binding('pace')
-        cls.m2.get('ica.Ca_i').set_label('membrane_potential')
+        cls.m2.get('calcium.Cai').set_label('membrane_potential')
         cls.m2.get('membrane').move_variable(v, cls.m2.get('engine'))
 
         # Create protocol causing error at t=1.234ms
         t = 1.234
         cls.p2 = myokit.Protocol()
         cls.p2.schedule(start=0, level=-80, duration=t)
-        cls.p2.schedule(start=t, level=-47.13, duration=1000)
+        cls.p2.schedule(start=t, level=-47, duration=1000)
 
         # Simulations
         cls._s1 = cls._s2 = None
@@ -1520,7 +1520,7 @@ class SimulationOpenCLFindNanTest(unittest.TestCase):
 
         p = myokit.Protocol()
         p.schedule(start=0, level=-90, duration=4)
-        p.schedule(start=4, level=-47.13, duration=1000)
+        p.schedule(start=4, level=-47, duration=1000)
         try:
             self.s2.set_protocol(p)
             self.s2.reset()

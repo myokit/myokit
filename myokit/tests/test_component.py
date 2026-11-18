@@ -292,14 +292,17 @@ class VarOwnerTest(unittest.TestCase):
     def test_sequence_interface(self):
         # Test the sequence interface implementation
 
-        model = myokit.load_model('example')
-        c = model['membrane']
+        m = myokit.Model('seq')
+        c = m.add_component('c')
+        c.add_variable('a')
+        c.add_variable('b')
+        c.add_variable('c')
 
         vs = [v for v in c]
         self.assertEqual(vs, list(c.variables()))
         self.assertEqual(len(vs), len(c))
-        v = c['V']
-        self.assertEqual(v.name(), 'V')
+        v = c['b']
+        self.assertEqual(v.name(), 'b')
 
     def test_varowner_get(self):
         # Test VarOwner.get().

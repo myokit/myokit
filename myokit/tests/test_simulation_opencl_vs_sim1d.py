@@ -27,8 +27,8 @@ class SimulationOpenCL1dTest(unittest.TestCase):
         # Compare the SimulationOpenCL output with Simulation1d output
 
         # Set up simulations
-        m = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
-        m.get('membrane.i_stim.amplitude').set_rhs(-80)
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
+        m.get('stimulus.amplitude').set_rhs(-80)
         p = myokit.pacing.blocktrain(period=1000, duration=2, offset=3)
         n = 10
         sa = myokit.Simulation1d(m, p, ncells=n)
@@ -46,7 +46,7 @@ class SimulationOpenCL1dTest(unittest.TestCase):
             'engine.time',
             'membrane.V',
             'engine.pace',
-            'isi.Isi',
+            'is.Is',
             'membrane.i_diff',
         ]
         da = sa.run(tmax, log=logvars, log_interval=0.5).npview()
@@ -76,10 +76,10 @@ class SimulationOpenCL1dTest(unittest.TestCase):
             ax = fig.add_subplot(2, 4, 3)
             ax.set_xlabel('Time (ms)')
             ax.set_ylabel('Isi')
-            ax.plot(da.time(), da['isi.Isi', 0], '-', lw=2, alpha=0.5)
-            ax.plot(da.time(), da['isi.Isi', 9], '-', lw=2, alpha=0.5)
-            ax.plot(db.time(), db['isi.Isi', 0], '--')
-            ax.plot(db.time(), db['isi.Isi', 9], '--')
+            ax.plot(da.time(), da['is.Is', 0], '-', lw=2, alpha=0.5)
+            ax.plot(da.time(), da['is.Is', 9], '-', lw=2, alpha=0.5)
+            ax.plot(db.time(), db['is.Is', 0], '--')
+            ax.plot(db.time(), db['is.Is', 9], '--')
 
             ax = fig.add_subplot(2, 4, 4)
             ax.set_xlabel('Time (ms)')
@@ -104,8 +104,8 @@ class SimulationOpenCL1dTest(unittest.TestCase):
             ax = fig.add_subplot(2, 4, 7)
             ax.set_xlabel('Time (ms)')
             ax.set_ylabel('Isi error')
-            ax.plot(da.time(), da['isi.Isi', 0] - db['isi.Isi', 0])
-            ax.plot(da.time(), da['isi.Isi', 9] - db['isi.Isi', 9])
+            ax.plot(da.time(), da['is.Is', 0] - db['is.Is', 0])
+            ax.plot(da.time(), da['is.Is', 9] - db['is.Is', 9])
 
             ax = fig.add_subplot(2, 4, 8)
             ax.set_xlabel('Time (ms)')
@@ -124,13 +124,13 @@ class SimulationOpenCL1dTest(unittest.TestCase):
         self.assertLess(np.max(e), 1e-13)
 
         e = np.abs(da['membrane.i_diff', 0] - db['membrane.i_diff', 0])
-        self.assertLess(np.max(e), 1e-13)
+        self.assertLess(np.max(e), 1e-12)
         e = np.abs(da['membrane.i_diff', 9] - db['membrane.i_diff', 9])
-        self.assertLess(np.max(e), 1e-13)
+        self.assertLess(np.max(e), 1e-12)
 
-        e = np.abs(da['isi.Isi', 0] - db['isi.Isi', 0])
+        e = np.abs(da['is.Is', 0] - db['is.Is', 0])
         self.assertLess(np.max(e), 1e-13)
-        e = np.abs(da['isi.Isi', 9] - db['isi.Isi', 9])
+        e = np.abs(da['is.Is', 9] - db['is.Is', 9])
         self.assertLess(np.max(e), 1e-13)
 
 

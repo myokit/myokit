@@ -11,6 +11,7 @@ import unittest
 
 import myokit
 import myokit.formats
+from myokit.tests import DIR_DATA
 
 
 class FormatsTest(unittest.TestCase):
@@ -104,7 +105,7 @@ class ExporterTest(unittest.TestCase):
     def test_writable_dir(self):
         # Test :meth:`_test_writable_dir` for existing paths.
 
-        m, p, x = myokit.load('example')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.exporter('ansic')
         with tempfile.TemporaryDirectory() as d:
 
@@ -128,7 +129,7 @@ class ExporterTest(unittest.TestCase):
         e = myokit.formats.exporter('ansic')
 
         # Load model, protocol
-        m, p, x = myokit.load('example')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
 
         # Create empty output directory as subdirectory of DIR_OUT
         with tempfile.TemporaryDirectory() as d:
