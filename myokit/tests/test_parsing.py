@@ -175,6 +175,14 @@ class TokenizerTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Parentheses mismatch', s.next)
 
+        # Multi-line statement
+        s = Tokenizer('x = 1 \\\n+ 2')
+        self.assertEqual(next(s)[0], p.NAME)
+        self.assertEqual(next(s)[0], p.EQUAL)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.PLUS)
+        self.assertEqual(next(s)[0], p.INTEGER)
+
         # Test indenting (Tabs count as 8 spaces)
         s = '\n'.join([
             '1',

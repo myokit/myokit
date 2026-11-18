@@ -353,9 +353,11 @@ class ModelTest(unittest.TestCase):
         a.set_rhs('1 [N]')
         a.set_label('aaa')
         b.set_rhs('2 [m]')
+        b.meta['desc'] = 'This is b'
         b.set_binding('bbb')
         c.set_rhs('a * b')
         c.set_unit('N*m')
+        c.meta['desc'] = 'This...\nis c'
         component2 = model.add_component('comp2')
         d = component2.add_variable('d')
         d.set_rhs(myokit.Name(a))
@@ -367,14 +369,20 @@ class ModelTest(unittest.TestCase):
             '\n'
             '[comp1]\n'
             'a = 1 [N] label aaa\n'
-            'b = 2 [m] bind bbb\n'
+            'b = 2 [m] bind bbb : This is b\n'
             'c = a * b\n'
             '    in [J]\n'
+            '    desc: """\n'
+            '        This...\n'
+            '        is c\n'
+            '        """\n'
             '\n'
             '[comp2]\n'
             'd = comp1.a\n'
             '\n'
         )
+        del b.meta['desc']
+        del c.meta['desc']
 
         a.set_rhs('1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11')
         b.set_rhs('2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12')
