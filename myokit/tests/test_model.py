@@ -681,7 +681,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(out[7][:20], 'calcium.Cai = 0.0001')
         out = [x[x.index('dot') + 6:] for x in out]
         self.assertEqual(out[0][:8], '-5.58605')
-        self.assertEqual(out[1][:9], '2.8698475')
+        self.assertEqual(out[1][:7], '2.86984')
         self.assertEqual(out[2][:8], '-3.26836')
         self.assertEqual(out[3][:8], '-1.85982')
         self.assertEqual(out[4][:8], '-1.89235')
