@@ -10,6 +10,7 @@ import unittest
 
 import myokit
 import myokit.lib.deps as deps
+from myokit.tests import DIR_DATA
 
 
 class LibDepsTest(unittest.TestCase):
@@ -19,7 +20,7 @@ class LibDepsTest(unittest.TestCase):
         # matrix plot of state interdependencies.
 
         # Load model
-        model = myokit.load_model('example')
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # Test direct version (simplest matrix)
         matrix = deps.create_state_dependency_matrix(model, direct=True)
@@ -99,7 +100,7 @@ class LibDepsTest(unittest.TestCase):
         random.seed(1)
 
         # Load model
-        model = myokit.load_model('example')
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
@@ -125,7 +126,7 @@ class LibDepsTest(unittest.TestCase):
         random.seed(1)
 
         # Load model
-        model = myokit.load_model('example')
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # Select matplotlib backend that doesn't require a screen
         import matplotlib

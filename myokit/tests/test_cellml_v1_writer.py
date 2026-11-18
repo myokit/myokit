@@ -12,7 +12,7 @@ import unittest
 
 import myokit
 import myokit.formats.cellml.v1 as cellml
-from myokit.tests import WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class TestCellMLWriter(unittest.TestCase):
@@ -79,21 +79,22 @@ class TestCellMLWriter(unittest.TestCase):
     def test_evaluating_derivatives(self):
         # Writes and then parses a model and compares the derivatives
 
-        m1 = myokit.load_model('example')
+        m1 = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         c1 = cellml.Model.from_myokit_model(m1)
         xml = cellml.write_string(c1)
         c2 = cellml.parse_string(xml)
         m2 = c2.myokit_model()
 
-        self.assertEqual(
-            m1.get('membrane.V').eval(), m2.get('membrane.V').eval())
+        self.assertEqual(m1.get('membrane.V').eval(),
+                         m2.get('membrane.V').eval())
         self.assertEqual(m1.get('ina.m').eval(), m2.get('ina.m').eval())
         self.assertEqual(m1.get('ina.h').eval(), m2.get('ina.h').eval())
         self.assertEqual(m1.get('ina.j').eval(), m2.get('ina.j').eval())
-        self.assertEqual(m1.get('ica.d').eval(), m2.get('ica.d').eval())
-        self.assertEqual(m1.get('ica.f').eval(), m2.get('ica.f').eval())
-        self.assertEqual(m1.get('ik.x').eval(), m2.get('ik.x').eval())
-        self.assertEqual(m1.get('ica.Ca_i').eval(), m2.get('ica.Ca_i').eval())
+        self.assertEqual(m1.get('is.d').eval(), m2.get('is.d').eval())
+        self.assertEqual(m1.get('is.f').eval(), m2.get('is.f').eval())
+        self.assertEqual(m1.get('ix1.x1').eval(), m2.get('ix1.x1').eval())
+        self.assertEqual(m1.get('calcium.Cai').eval(),
+                         m2.get('calcium.Cai').eval())
 
     def test_groups(self):
         # Tests if encapsulation relationships are written out.

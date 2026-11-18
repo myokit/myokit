@@ -29,6 +29,7 @@
 import unittest
 
 import myokit
+from myokit.tests import DIR_DATA
 from myokit.tests.ansic_event_based_pacing import AnsicEventBasedPacing
 
 
@@ -360,7 +361,7 @@ class CVodeSimulationFloatingPointTest(unittest.TestCase):
         # Tests ending a CVODE simulation at a point almost equal to (i.e.
         # indistinguishable from) an event point
 
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         m.binding('pace').set_binding(None)
         v = m.label('membrane_potential')
         v.set_rhs(0)

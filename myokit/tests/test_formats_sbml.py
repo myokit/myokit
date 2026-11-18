@@ -14,7 +14,7 @@ import numpy as np
 import myokit
 import myokit.formats
 import myokit.formats.sbml
-from myokit.tests import DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_DATA, DIR_FORMATS, WarningCollector
 
 
 class SBMLExporterTest(unittest.TestCase):
@@ -35,7 +35,7 @@ class SBMLExporterTest(unittest.TestCase):
         i = myokit.formats.importer('sbml')
 
         # Load input model
-        m1, p1, _ = myokit.load('example')
+        m1, p1, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         org_code = m1.code()
 
         # 1. Export without a protocol

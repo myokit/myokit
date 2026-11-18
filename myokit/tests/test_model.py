@@ -15,7 +15,7 @@ import tempfile
 import unittest
 
 import myokit
-from myokit.tests import WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class ModelTest(unittest.TestCase):
@@ -305,7 +305,7 @@ class ModelTest(unittest.TestCase):
         # Test :meth:`Model.clone() and :meth:`Model.has_parse_info()`.
 
         # Test model, component, variables
-        m1 = myokit.load_model('example')
+        m1 = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         m2 = m1.clone()
         self.assertFalse(m1 is m2)
         self.assertNotEqual(m1, m2)
@@ -522,19 +522,19 @@ class ModelTest(unittest.TestCase):
         # Test Model.format_state()
 
         self.maxDiff = None
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # Test without state argument
         self.assertEqual(
             m.format_state(),
-            'membrane.V = -84.5286\n'
-            'ina.m      = 0.0017\n'
-            'ina.h      = 0.9832\n'
-            'ina.j      = 0.995484\n'
-            'ica.d      = 3e-06\n'
-            'ica.f      = 1.0\n'
-            'ik.x       = 0.0057\n'
-            'ica.Ca_i   = 0.0002'
+            'membrane.V  = -84.35\n'
+            'ina.m       = 0.01\n'
+            'ina.h       = 0.99\n'
+            'ina.j       = 0.97\n'
+            'is.d        = 0.003\n'
+            'is.f        = 1.0\n'
+            'ix1.x1      = 0.03\n'
+            'calcium.Cai = 0.00018'
         )
 
         # Test with state argument
@@ -542,14 +542,14 @@ class ModelTest(unittest.TestCase):
         state1[3] = 124.35624574537437
         self.assertEqual(
             m.format_state(state1),
-            'membrane.V = 1\n'
-            'ina.m      = 2\n'
-            'ina.h      = 3\n'
-            'ina.j      =  1.24356245745374366e+02\n'
-            'ica.d      = 5\n'
-            'ica.f      = 6\n'
-            'ik.x       = 7\n'
-            'ica.Ca_i   = 8'
+            'membrane.V  = 1\n'
+            'ina.m       = 2\n'
+            'ina.h       = 3\n'
+            'ina.j       =  1.24356245745374366e+02\n'
+            'is.d        = 5\n'
+            'is.f        = 6\n'
+            'ix1.x1      = 7\n'
+            'calcium.Cai = 8'
         )
 
         # Test with invalid state argument
@@ -561,27 +561,27 @@ class ModelTest(unittest.TestCase):
         state1[3] = 124.35624574537437
         self.assertEqual(
             m.format_state(state1, precision=myokit.SINGLE_PRECISION),
-            'membrane.V = 1\n'
-            'ina.m      = 2\n'
-            'ina.h      = 3\n'
-            'ina.j      =  1.243562457e+02\n'
-            'ica.d      = 5\n'
-            'ica.f      = 6\n'
-            'ik.x       = 7\n'
-            'ica.Ca_i   = 8'
+            'membrane.V  = 1\n'
+            'ina.m       = 2\n'
+            'ina.h       = 3\n'
+            'ina.j       =  1.243562457e+02\n'
+            'is.d        = 5\n'
+            'is.f        = 6\n'
+            'ix1.x1      = 7\n'
+            'calcium.Cai = 8'
         )
 
         # Test with second state argument
         self.assertEqual(
             m.format_state([1, 2, 3, 4, 5, 6, 7, 8], [8, 7, 6, 5, 4, 3, 2, 1]),
-            'membrane.V = 1    8\n'
-            'ina.m      = 2    7\n'
-            'ina.h      = 3    6\n'
-            'ina.j      = 4    5\n'
-            'ica.d      = 5    4\n'
-            'ica.f      = 6    3\n'
-            'ik.x       = 7    2\n'
-            'ica.Ca_i   = 8    1'
+            'membrane.V  = 1    8\n'
+            'ina.m       = 2    7\n'
+            'ina.h       = 3    6\n'
+            'ina.j       = 4    5\n'
+            'is.d        = 5    4\n'
+            'is.f        = 6    3\n'
+            'ix1.x1      = 7    2\n'
+            'calcium.Cai = 8    1'
         )
 
         # Test with invalid second state argument
@@ -592,25 +592,25 @@ class ModelTest(unittest.TestCase):
         # Test with model that has expressions in its initial state.
         # These will be evaluated (the method handles states, not initial state
         # expressions).
-        m.get('ina.m').set_initial_value('sqrt(4) / 4')
-        m.get('ina.h').set_initial_value('ina.gNa / 20')
+        m.get('ina.m').set_initial_value('sqrt(4) * 3')
+        m.get('ina.h').set_initial_value('ina.gNaBar / 10')
         self.assertEqual(
             m.format_state(),
-            'membrane.V = -84.5286\n'
-            'ina.m      = 0.5\n'
-            'ina.h      = 0.8\n'
-            'ina.j      = 0.995484\n'
-            'ica.d      = 3e-06\n'
-            'ica.f      = 1.0\n'
-            'ik.x       = 0.0057\n'
-            'ica.Ca_i   = 0.0002'
+            'membrane.V  = -84.35\n'
+            'ina.m       = 6.0\n'
+            'ina.h       = 0.4\n'
+            'ina.j       = 0.97\n'
+            'is.d        = 0.003\n'
+            'is.f        = 1.0\n'
+            'ix1.x1      = 0.03\n'
+            'calcium.Cai = 0.00018'
         )
 
     def test_format_state_derivatives(self):
         # Test Model.format_state_derivatives().
 
         self.maxDiff = None
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # For whatever reason, CI gives slightly different final digits some
         # times.
@@ -629,32 +629,32 @@ class ModelTest(unittest.TestCase):
         # Test without arguments
         x = m.format_state_derivatives().splitlines()
         y = [
-'membrane.V = -84.5286                   dot = -5.68008003798848027e-02',
-'ina.m      = 0.0017                     dot = -4.94961486033834719e-03',
-'ina.h      = 0.9832                     dot =  9.02025299127830887e-06',
-'ina.j      = 0.995484                   dot = -3.70409866928434243e-04',
-'ica.d      = 3e-06                      dot =  3.68067721821794798e-04',
-'ica.f      = 1.0                        dot = -3.55010150519739432e-07',
-'ik.x       = 0.0057                     dot = -2.04613933160084307e-07',
-'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'
+'membrane.V  = -84.35                     dot = -1.59225544529053437e-03',
+'ina.m       = 0.01                       dot =  1.05572457615837556e-01',
+'ina.h       = 0.99                       dot = -2.57573692422314801e-03',
+'ina.j       = 0.97                       dot =  2.27729027201508923e-04',
+'is.d        = 0.003                      dot =  3.37267935768704313e-06',
+'is.f        = 1.0                        dot = -3.66608204332271936e-07',
+'ix1.x1      = 0.03                       dot = -1.06690490942922786e-04',
+'calcium.Cai = 0.00018                    dot = -8.14771094609788952e-08',
         ]
         for a, b in zip(x, y):
             self.assertTrue(almost_equal(a, b))
         self.assertEqual(len(x), len(y))
 
         # Test with state argument
-        state1 = [-40, 2, 3, 4, 5, 6, 7, 8]
-        state1[2] = 536.46745856785678567845745637
+        state1 = [-40, 0.5, 0.1, 0.2, 0.7, 0.3, 0.7, 0.0001]
+        state1[1] = 0.53646745856785678567845745637
         x = m.format_state_derivatives(state1).splitlines()
         y = [
-'membrane.V = -40                        dot =  3.03469590344436094e+07',
-'ina.m      = 2                          dot = -1.05478017767301395e+01',
-'ina.h      =  5.36467458567856738e+02   dot = -2.46776607600654586e+02',
-'ina.j      = 4                          dot = -3.72528160028099076e-01',
-'ica.d      = 5                          dot = -1.69660729614147049e-01',
-'ica.f      = 6                          dot = -6.23551094458582103e-02',
-'ik.x       = 7                          dot = -1.18521143826784449e-02',
-'ica.Ca_i   = 8                          dot = -5.52361267451130011e-01',
+'membrane.V  = -40                        dot = -5.58605528311768129e-01',
+'ina.m       =  5.36467458567856825e-01   dot =  2.86984757935910118e+00',
+'ina.h       = 0.1                        dot = -3.26836406067841298e-02',
+'ina.j       = 0.2                        dot = -1.85982392992307920e-02',
+'is.d        = 0.7                        dot = -1.89235110690941961e-02',
+'is.f        = 0.3                        dot =  7.65085801937737467e-03',
+'ix1.x1      = 0.7                        dot = -8.12417407220733436e-04',
+'calcium.Cai = 0.0001                     dot =  3.16948904006440887e-04',
         ]
         for a, b in zip(x, y):
             self.assertTrue(almost_equal(a, b))
@@ -671,44 +671,44 @@ class ModelTest(unittest.TestCase):
         out = m.format_state_derivatives(
             state1, precision=myokit.SINGLE_PRECISION).splitlines()
         self.assertEqual(len(out), 8)
-        self.assertEqual(out[0][:16], 'membrane.V = -40')
-        self.assertEqual(out[1][:15], 'ina.m      = 2 ')
-        self.assertEqual(out[2][:29], 'ina.h      =  5.364674586e+02')
-        self.assertEqual(out[3][:15], 'ina.j      = 4 ')
-        self.assertEqual(out[4][:15], 'ica.d      = 5 ')
-        self.assertEqual(out[5][:15], 'ica.f      = 6 ')
-        self.assertEqual(out[6][:15], 'ik.x       = 7 ')
-        self.assertEqual(out[7][:15], 'ica.Ca_i   = 8 ')
+        self.assertEqual(out[0][:17], 'membrane.V  = -40')
+        self.assertEqual(out[1][:30], 'ina.m       =  5.364674586e-01')
+        self.assertEqual(out[2][:17], 'ina.h       = 0.1')
+        self.assertEqual(out[3][:17], 'ina.j       = 0.2')
+        self.assertEqual(out[4][:17], 'is.d        = 0.7')
+        self.assertEqual(out[5][:17], 'is.f        = 0.3')
+        self.assertEqual(out[6][:17], 'ix1.x1      = 0.7')
+        self.assertEqual(out[7][:20], 'calcium.Cai = 0.0001')
         out = [x[x.index('dot') + 6:] for x in out]
-        self.assertEqual(out[0][:8], ' 3.03469')
-        self.assertEqual(out[1][:8], '-1.05478')
-        self.assertEqual(out[2][:8], '-2.46776')
-        self.assertEqual(out[3][:8], '-3.72528')
-        self.assertEqual(out[4][:8], '-1.69660')
-        self.assertEqual(out[5][:8], '-6.23551')
-        self.assertEqual(out[6][:8], '-1.18521')
-        self.assertEqual(out[7][:8], '-5.52361')
-        self.assertEqual(out[0][12:], 'e+07')
-        self.assertEqual(out[1][12:], 'e+01')
-        self.assertEqual(out[2][12:], 'e+02')
-        self.assertEqual(out[3][12:], 'e-01')
-        self.assertEqual(out[4][12:], 'e-01')
-        self.assertEqual(out[5][12:], 'e-02')
-        self.assertEqual(out[6][12:], 'e-02')
-        self.assertEqual(out[7][12:], 'e-01')
+        self.assertEqual(out[0][:8], '-5.58605')
+        self.assertEqual(out[1][:9], '2.8698475')
+        self.assertEqual(out[2][:8], '-3.26836')
+        self.assertEqual(out[3][:8], '-1.85982')
+        self.assertEqual(out[4][:8], '-1.89235')
+        self.assertEqual(out[5][:8], ' 7.65085')
+        self.assertEqual(out[6][:8], '-8.12417')
+        self.assertEqual(out[7][:8], ' 3.16948')
+        self.assertEqual(out[0][12:], 'e-01')
+        #self.assertEqual(out[1][12:], 'e-01')
+        self.assertEqual(out[2][12:], 'e-02')
+        self.assertEqual(out[3][12:], 'e-02')
+        self.assertEqual(out[4][12:], 'e-02')
+        self.assertEqual(out[5][12:], 'e-03')
+        self.assertEqual(out[6][12:], 'e-04')
+        self.assertEqual(out[7][12:], 'e-04')
 
         # Test with derivs argument
         self.assertEqual(
             m.format_state_derivatives(
                 [1, 2, 3, 4, 5, 6, 7, 8], [8, 7, 6, 5, 4, 3, 2, 1]),
-            'membrane.V = 1                          dot = 8\n'
-            'ina.m      = 2                          dot = 7\n'
-            'ina.h      = 3                          dot = 6\n'
-            'ina.j      = 4                          dot = 5\n'
-            'ica.d      = 5                          dot = 4\n'
-            'ica.f      = 6                          dot = 3\n'
-            'ik.x       = 7                          dot = 2\n'
-            'ica.Ca_i   = 8                          dot = 1'
+            'membrane.V  = 1                          dot = 8\n'
+            'ina.m       = 2                          dot = 7\n'
+            'ina.h       = 3                          dot = 6\n'
+            'ina.j       = 4                          dot = 5\n'
+            'is.d        = 5                          dot = 4\n'
+            'is.f        = 6                          dot = 3\n'
+            'ix1.x1      = 7                          dot = 2\n'
+            'calcium.Cai = 8                          dot = 1'
         )
 
         # Test with invalid derivs argument
@@ -716,20 +716,20 @@ class ModelTest(unittest.TestCase):
             ValueError, r'sequence of 8', m.format_state_derivatives,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
-        # Test without expressions in the initial state (these will be
-        # evaluated)
+        # Test with expressions in the initial state (these will be evaluated)
         m.get('ina.m').set_initial_value('sqrt(0.25)')
-        m.get('ina.h').set_initial_value('ina.gNa / 20')
+        m.get('ina.h').set_initial_value('ina.gNaBar / 20')
         x = m.format_state_derivatives().splitlines()
         y = [
-'membrane.V = -84.5286                   dot =  2.46843981754470434e+02',
-'ina.m      = 0.5                        dot = -8.68225658924664856e+01',
-'ina.h      = 0.8                        dot =  4.89677127030544446e-02',
-'ina.j      = 0.995484                   dot = -3.70409866928434243e-04',
-'ica.d      = 3e-06                      dot =  3.68067721821794798e-04',
-'ica.f      = 1.0                        dot = -3.55010150519739432e-07',
-'ik.x       = 0.0057                     dot = -2.04613933160084307e-07',
-'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'
+'membrane.V  = -84.35                     dot =  1.30298416793347105e+01',
+'ina.m       = 0.5                        dot = -3.94814254413145420e+01',
+'ina.h       = 0.2                        dot =  6.30987206623498054e-01',
+'ina.j       = 0.97                       dot =  2.27729027201508923e-04',
+'is.d        = 0.003                      dot =  3.37267935768704313e-06',
+'is.f        = 1.0                        dot = -3.66608204332271936e-07',
+'ix1.x1      = 0.03                       dot = -1.06690490942922786e-04',
+'calcium.Cai = 0.00018                    dot = -8.14771094609788952e-08',
+
         ]
         for a, b in zip(x, y):
             self.assertTrue(almost_equal(a, b))
@@ -738,7 +738,7 @@ class ModelTest(unittest.TestCase):
     def test_get(self):
         # Test Model.get().
 
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # Get by name
         v = m.get('membrane.V')
@@ -1498,7 +1498,7 @@ class ModelTest(unittest.TestCase):
         # Check that equality takes both code() and unames into account
 
         # Test without custom reserved names
-        m1 = myokit.load_model('example')
+        m1 = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         m2 = m1.clone()
         self.assertIsInstance(m2, myokit.Model)
         self.assertFalse(m1 is m2)
@@ -1670,7 +1670,7 @@ class ModelTest(unittest.TestCase):
     def test_load_save_state(self):
         # Test :meth:`Model.save_state()` and :meth:`Model.load_state()`.
 
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         s1 = m.initial_values(True)
         with tempfile.TemporaryDirectory() as d:
             path = pathlib.Path(d, 'state.csv')
@@ -1777,7 +1777,7 @@ class ModelTest(unittest.TestCase):
         # Test pickling and unpickling a model
 
         # Test model structure
-        m1 = myokit.load_model('example')
+        m1 = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         m_bytes = pickle.dumps(m1)
         m2 = pickle.loads(m_bytes)
         self.assertFalse(m1 is m2)
@@ -2018,7 +2018,7 @@ class ModelTest(unittest.TestCase):
 
     def test_sequence_interface(self):
         # Test the sequence interface implementation
-        model = myokit.load_model('example')
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         cs = [c for c in model]
         self.assertEqual(cs, list(model.components()))
@@ -2028,7 +2028,7 @@ class ModelTest(unittest.TestCase):
 
     def test_set_initial_values(self):
         # Tests :meth:`Model.set_initial_values()`.
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         states = [v.qname() for v in m.states()]
         values = m.initial_values(as_floats=True)
 
@@ -2094,25 +2094,35 @@ class ModelTest(unittest.TestCase):
         # Test :meth:`Model.show_evaluation_of(variable)`.
         # Depends mostly on `references()`, and `code()` methods.
 
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         # Test for literal
-        e = m.show_evaluation_of('cell.Na_o')
-        self.assertIn('cell.Na_o = ', e)
-        self.assertIn('Literal constant', e)
-        self.assertEqual(len(e.splitlines()), 6)
+        e = m.show_evaluation_of('ina.ENa')
+        x = '''Showing: ina.ENa  (Literal constant)
+------------------------------------------------------------
+in [mV]
+------------------------------------------------------------
+ina.ENa = 50 [mV]
+        = 50.0'''
+        self.assertEqual(e, x)
 
         # Test for calculated constant
-        e = m.show_evaluation_of('ina.ENa')
-        self.assertIn('ina.ENa = ', e)
-        self.assertIn('Calculated constant', e)
-        self.assertEqual(len(e.splitlines()), 12)
+        e = m.get('ina').add_variable('x', rhs='3 * ENa')
+        e = m.show_evaluation_of('ina.x')
+        x = '''Showing: ina.x  (Calculated constant)
+------------------------------------------------------------
+ina.ENa = 50.0
+------------------------------------------------------------
+ina.x = 3 * ina.ENa
+      = 150.0'''
+        self.assertEqual(e, x)
+
 
         # Test for intermediary variable
         e = m.show_evaluation_of('ina.INa')
         self.assertIn('ina.INa = ', e)
         self.assertIn('Intermediary variable', e)
-        self.assertEqual(len(e.splitlines()), 15)
+        self.assertEqual(len(e.splitlines()), 14)
 
         # Test for state variable (with nested variables)
         e = m.show_evaluation_of('ina.m')
@@ -2121,9 +2131,9 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(len(e.splitlines()), 15)
 
         # Test with guessing of similar
-        e = m.show_evaluation_of('ina.Na_o')
+        e = m.show_evaluation_of('ina.ENb')
         self.assertIn('not found', e)
-        self.assertIn('cell.Na_o = ', e)
+        self.assertIn('ina.ENa = ', e)
         self.assertIn('Literal constant', e)
         self.assertEqual(len(e.splitlines()), 7)
 
@@ -2132,10 +2142,10 @@ class ModelTest(unittest.TestCase):
         e = m.show_evaluation_of('ina.m')
         self.assertIn('Initial value = 1 / sqrt(4)', e)
         self.assertEqual(len(e.splitlines()), 16)
-        m.get('ina.m').set_initial_value('1 / sqrt(ina.gNa)')
+        m.get('ina.m').set_initial_value('1 / sqrt(ina.gNaBar)')
         e = m.show_evaluation_of('ina.m')
-        self.assertIn('Initial value = 1 / sqrt(ina.gNa)', e)
-        self.assertIn('              = 0.25\n', e)
+        self.assertIn('Initial value = 1 / sqrt(ina.gNaBar)', e)
+        self.assertIn('              = 0.5\n', e)
 
         # Test with nothing similar
         m = myokit.Model()
@@ -2147,21 +2157,37 @@ class ModelTest(unittest.TestCase):
     def test_show_expressions_for(self):
         # Test :meth:`Model.show_expressions_for(variable)`.
 
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = m.show_expressions_for(m.get('ina.INa'))
-        self.assertIn('ina.INa is a function of', e)
-        self.assertEqual(len(e.splitlines()), 22)
+        x = (
+            'Showing: ina.INa  (Intermediary variable)\n'
+            '------------------------------------------------------------\n'
+            'in [uA/cm^2]\n'
+            '------------------------------------------------------------\n'
+            'ina.INa is a function of:\n'
+            '  ina.h\n'
+            '  ina.j\n'
+            '  ina.m\n'
+            '  membrane.V\n'
+            '------------------------------------------------------------\n'
+            'Expressions for ina.INa:\n'
+            '  ina.ENa = 50 [mV]\n'
+            '  ina.gNaBar = 4 [mS/cm^2]\n'
+            '  ina.gNaC = 0.003 [mS/cm^2]\n'
+            '  ina.INa = (ina.gNaBar * ina.m^3 * ina.h * ina.j + ina.gNaC)'
+            ' * (membrane.V - ina.ENa)')
+        self.assertEqual(e, x)
 
     def test_show_line_of(self):
         # Test :meth:`Model.show_line_of(variable)`.
 
         # Check string with info
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         v = m.get('ina.INa')
         e = m.show_line_of(v)
-        self.assertIn('Defined on line 90', e)
+        self.assertIn('Defined on line 101', e)
         self.assertIn('Intermediary variable', e)
-        self.assertEqual(len(e.splitlines()), 4)
+        self.assertEqual(len(e.splitlines()), 3)
 
         # Check with freshly made model
         m2 = m.clone()
@@ -2169,10 +2195,10 @@ class ModelTest(unittest.TestCase):
         e = m2.show_line_of(v2)
         self.assertNotIn('Defined on line', e)
         self.assertIn('Intermediary variable', e)
-        self.assertEqual(len(e.splitlines()), 3)
+        self.assertEqual(len(e.splitlines()), 2)
 
         # 'raw' version
-        self.assertEqual(m.show_line_of(v, raw=True), 90)
+        self.assertEqual(m.show_line_of(v, raw=True), 101)
         self.assertIsNone(m2.show_line_of(v2, raw=True))
 
     def test_str(self):

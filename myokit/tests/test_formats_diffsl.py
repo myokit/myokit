@@ -52,7 +52,7 @@ from myokit import (
     Sqrt,
     Tan,
 )
-from myokit.tests import WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 # Model that requires unit conversion
 units_model = """
@@ -213,7 +213,7 @@ class DiffSLExporterTest(unittest.TestCase):
     def test_diffsl_exporter(self):
         # Tests exporting a model
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         with tempfile.TemporaryDirectory() as d:
             path = pathlib.Path(d, 'diffsl.model')
 
@@ -240,7 +240,7 @@ class DiffSLExporterTest(unittest.TestCase):
     def test_protocol_one_off_events(self):
         # Tests exporting a model with one-off (non-periodic) protocol events.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
 
         p = myokit.Protocol()
@@ -279,7 +279,7 @@ class DiffSLExporterTest(unittest.TestCase):
         # Tests that a single protocol is normalized to the pace binding and
         # that the bound variable reads the hybrid schedule.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
 
         p = myokit.Protocol()
@@ -299,7 +299,7 @@ class DiffSLExporterTest(unittest.TestCase):
     def test_protocol_periodic_requires_final_time(self):
         # Tests that any protocol without final_time raises ExportError.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
 
         p = myokit.Protocol()
@@ -321,7 +321,7 @@ class DiffSLExporterTest(unittest.TestCase):
     def test_protocol_periodic_with_final_time(self):
         # Tests that a periodic protocol is correctly expanded to final_time.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
 
         # Indefinite: period=100, duration=5, start=0
@@ -350,7 +350,7 @@ class DiffSLExporterTest(unittest.TestCase):
     def test_protocol_finite_periodic(self):
         # Tests that a finitely recurring periodic event is expanded correctly.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
 
         # Fires exactly 2 times: at t=10 and t=110
@@ -376,7 +376,7 @@ class DiffSLExporterTest(unittest.TestCase):
     def test_protocol_invalid_final_time(self):
         # Tests that invalid final_time values raise ExportError.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
 
         p = myokit.Protocol()
@@ -397,7 +397,7 @@ class DiffSLExporterTest(unittest.TestCase):
     def test_protocol_empty_after_expansion(self):
         # Tests export when protocol has no non-zero events before final_time.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
 
         # Event starts at t=500, final_time=100 -> no occurrences
@@ -425,7 +425,7 @@ class DiffSLExporterTest(unittest.TestCase):
         # Tests that a terminal boundary is added when pacing is still active
         # at final_time.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
 
         # Event is active on [90, 110), so it is still on at final_time=100.
@@ -449,7 +449,7 @@ class DiffSLExporterTest(unittest.TestCase):
     def test_protocol_mixed_events(self):
         # Tests a mixed protocol: one-off + periodic events together.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
 
         p = myokit.Protocol()
@@ -645,7 +645,7 @@ class DiffSLExporterTest(unittest.TestCase):
     def test_protocol_invalid_type(self):
         # Tests that invalid protocol argument types raise ExportError.
 
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         e = myokit.formats.diffsl.DiffSLExporter()
         p = myokit.Protocol()
 
@@ -944,7 +944,7 @@ k = 6
         # Tests custom inputs and outputs parameters
 
         # Load example model
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         e = myokit.formats.diffsl.DiffSLExporter()
         with tempfile.TemporaryDirectory() as d:
@@ -1008,7 +1008,7 @@ k = 6
         # Tests validation of inputs and outputs parameters
 
         # Load example model
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         e = myokit.formats.diffsl.DiffSLExporter()
         with tempfile.TemporaryDirectory() as d:
@@ -1058,12 +1058,12 @@ k = 6
                     model,
                     outputs=[
                         model.get("membrane.V"),  # Valid (state)
-                        model.get("ina.gNa"),  # Invalid (constant)
+                        model.get("ina.gNaBar"),  # Invalid (constant)
                     ],
                 )
 
             # Test 6: Input from different model
-            other_model = myokit.load_model("example")
+            other_model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
             with self.assertRaisesRegex(
                 myokit.ExportError,
                 "Input variable .* does not belong"
@@ -1083,7 +1083,7 @@ k = 6
         # Tests the get_state_index introspection method
 
         # Load example model
-        model = myokit.load_model("example")
+        model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
 
         e = myokit.formats.diffsl.DiffSLExporter()
         with tempfile.TemporaryDirectory() as d:

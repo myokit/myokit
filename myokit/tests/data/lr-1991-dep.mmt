@@ -1,10 +1,30 @@
 [[model]]
-name: Luo-Rudy model I (1991)
+author: Michael Clerx
 desc: """
 Implementation of the Luo-Rudy model I for the ventricular myocyte.
 Based on an updated formulation downloaded from http://rudylab.wustl.edu
-and licensed under a GNU GPL license version 2.
+
+Original copyright notice:
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Copyright (C) 2006 by Leonid Livshitz and Yoram Rudy
+Email rudy@wustl.edu
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the
+Free Software Foundation, Inc.,
+59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """
+name: Luo-Rudy model (1991)
 # Initial conditions
 membrane.V = -84.5286
 ina.m      = 0.0017
@@ -23,20 +43,27 @@ dot(t1) = dot(membrane.V)
 inter = dot(t1)
 dot(t2) = 2 * inter
 
-# Simulation engine variables
+# Engine variables
 [engine]
 time = 0 bind time
 pace = 0 bind pace
 
 # Membrane potential and stimulus
 [membrane]
-desc: This is the membrane component
-dot(V) = i_stim - (ina.INa + ik.IK + ib.Ib + ikp.IKp + ik1.IK1 + ica.ICa)
+dot(V) = -(i_ion + i_stim + i_diff)
+    label membrane_potential
     in [mV]
     desc: The membrane potential
+i_ion = ina.INa + ik.IK + ib.Ib + ikp.IKp + ik1.IK1 + ica.ICa
 i_stim = engine.pace * stim_amplitude
-stim_amplitude = 80 [uA/cm^2]
-x = 3 * dot(ina.m)
+    stim_amplitude = -80 [uA/cm^2]
+        desc: """
+        Stimulus amplitude.
+        The online matlab implementation features this 80 uA/cm^2, 0.5 millisecond
+        pulse. The cellml version uses a 2 millisecond 25.5 uA/cm^2 pulse.
+        """
+i_diff = 0 bind diffusion_current
+    in [uA/cm^2]
 
 # Fast Sodium current
 [ina]
@@ -51,20 +78,10 @@ dot(m) = (inf - m) / tau
         """
     tau = 1 / (alpha + beta)
     inf = alpha * tau
-x = 5 * dot(m) + z
-y = dot(h) + 3 * x
-z = 0.4 * cell.K_o
 dot(h) = (inf - h) / tau
-    desc: """ Triple quoted single line """
     alpha = a * 0.135 * exp((80 + V) / -6.8)
-        desc: """    """
     beta  = a * (3.56 * exp(0.079 * V) + 3.1e5 * exp(0.35 * V)) \
           + (1 - a) / (0.13 * (1 + exp((V + 10.66) / -11.1)))
-        desc:      """
-
-
-        lalala
-        """
     tau = 1 / (alpha + beta)
     inf = alpha * tau
 dot(j) =  alpha * (1 - j) - beta * j + x + y
@@ -73,6 +90,11 @@ dot(j) =  alpha * (1 - j) - beta * j + x + y
               * (V + 37.78) / (1 + exp(0.311 * (V + 79.23)))
     beta  = a * (0.1212 * exp(-0.01052 * V) / (1 + exp(-0.1378 * (V + 40.14)))) \
           + (1 - a) * (0.3 * exp(-2.535e-7 * V) / (1 + exp(-0.1 * (V + 32))))
+    desc: """
+    Slow inactivation gate. Inspired by Beeler-Reuter and Haas. Steady-state
+    value (j_inf) is set to value from h gate (h_inf). Time constant obtained
+    from Beeler-Reuter model.
+    """
 gNa = 16
 ENa = cell.RTF * log(cell.Na_o / cell.Na_i)
     desc: Nernst potential of Na
@@ -80,26 +102,26 @@ ENa = cell.RTF * log(cell.Na_o / cell.Na_i)
 INa = gNa * m^3 * h * j * (V - ENa)
     desc: Fast sodium current
     in [uA/cm^2]
-desc: """
-The fast sodium current.
-"""
 
 # Time-dependent Potassium current
 [ik]
 use membrane.V as V
-dot(x) = (inf - x) / tau
+PNa_K = 0.01833 : Permability ratio of Na to K
+gK = 0.282 * sqrt(cell.K_o / 5.4)
+    in [mS/uF]
+E = cell.RTF * log((cell.K_o + PNa_K * cell.Na_o) / (cell.K_i + PNa_K * cell.Na_i))
+    in [mV]
+xi = if(V < -100,
+    1,
+    if(V == -77,
+        2.837 * 0.04 / exp(0.04 * (V + 35)),
+        2.837 * (exp(0.04 * (V + 77)) - 1) / ((V + 77) * exp(0.04 * (V + 35)))
+        ))
+dot(x) = alpha * (1 - x) - beta * x
     alpha = 0.0005 * exp(0.083 * (V + 50)) / (1 + exp(0.057 * (V + 50)))
     beta  = 0.0013 * exp(-0.06 * (V + 20)) / (1 + exp(-0.04 * (V + 20)))
     tau = 1 / (alpha + beta)
     inf = alpha * tau
-PNa_K = 0.01833 : Permability ratio of Na to K
-E = cell.RTF * log((cell.K_o + PNa_K * cell.Na_o) / (cell.K_i + PNa_K * cell.Na_i))
-    in [mV]
-xi = piecewise(V > -100,
-    2.837 * (exp(0.04 * (V + 77)) - 1) / ((V + 77) * exp(0.04 * (V + 35))),
-    1)
-gK = 0.282 * sqrt(cell.K_o / 5.4)
-    in [mS/uF]
 IK = gK * xi * x * (V - E)
     desc: Time-dependent Potassium current
 abc = dot(ina.m) * dot(ina.h)
@@ -148,6 +170,8 @@ gK1 = 0.6047 * sqrt(cell.K_o / 5.4) * alpha / (alpha + beta)
     beta  = (0.49124 * exp(0.08032 * (V - E + 5.476)) + exp(0.06175 * (V - E - 594.31)))  \
           / (1 + exp(-0.5143 * (V - E + 4.753)))
 IK1 = gK1 * (V - E)
+abc = dot(ina.m) * dot(ina.h)
+b = abc * 10 + ica.f
 
 # Background current
 [ib]

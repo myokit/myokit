@@ -11,7 +11,7 @@ import unittest
 
 import myokit
 import myokit.formats.cellml.v2 as v2
-from myokit.tests import DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_DATA, DIR_FORMATS, WarningCollector
 
 # CellML directory
 DIR = DIR_FORMATS / 'cellml'
@@ -197,12 +197,12 @@ class TestCellMLParser(unittest.TestCase):
         # Test parsing a simple model; compare RHS derivatives to known ones
 
         # Load myokit model
-        org_model = myokit.load_model('example')
+        org_model = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         org_states = [x.qname() for x in org_model.states()]
         org_values = org_model.evaluate_derivatives()
 
         # Load exported version
-        cm = v2.parse_file(DIR / 'lr-1991-exported-2.cellml')
+        cm = v2.parse_file(DIR_FORMATS / 'beeler-1977-cellml-v2.cellml')
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
         new_values = new_model.evaluate_derivatives()

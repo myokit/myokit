@@ -226,7 +226,7 @@ class AuxTest(unittest.TestCase):
     def test_run(self):
         # Test run() method.
 
-        m, p, _ = myokit.load('example')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         x = '\n'.join([
             'import myokit',
             'm = get_model()',  # Test magic methods

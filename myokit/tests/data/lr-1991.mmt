@@ -64,9 +64,7 @@ i_diff = 0 bind diffusion_current
 # Fast Sodium current
 [ina]
 use membrane.V as V
-ENa = cell.RTF * log(cell.Na_o / cell.Na_i)
-    desc: Nernst potential of Na
-    in [mV]
+
 a = 1 - 1 / (1 + exp(-(V + 40) / 0.24))
     desc: Used instead of if statement.
 dot(m) =  alpha * (1 - m) - beta * m
@@ -96,6 +94,9 @@ dot(j) =  alpha * (1 - j) - beta * j
     from Beeler-Reuter model.
     """
 gNa = 16
+ENa = cell.RTF * log(cell.Na_o / cell.Na_i)
+    desc: Nernst potential of Na
+    in [mV]
 INa = gNa * m^3 * h * j * (V - ENa)
     desc: Fast sodium current
     in [uA/cm^2]

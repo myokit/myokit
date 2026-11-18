@@ -9,6 +9,7 @@ import unittest
 
 import myokit
 import myokit.lib.guess as guess
+from myokit.tests import DIR_DATA
 
 
 class LibGuessTest(unittest.TestCase):
@@ -420,16 +421,14 @@ class LibGuessTest(unittest.TestCase):
         # Tests getting a list of (outer) membrane currents
 
         # Test with annotated variable
-        m = myokit.load_model('example')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         c = guess.membrane_currents(m)
-        self.assertEqual(len(c), 6)
+        self.assertEqual(len(c), 4)
         c = [v.qname() for v in c]
-        self.assertIn('ica.ICa', c)
-        self.assertIn('ik.IK', c)
         self.assertIn('ik1.IK1', c)
-        self.assertIn('ikp.IKp', c)
         self.assertIn('ina.INa', c)
-        self.assertIn('ib.Ib', c)
+        self.assertIn('is.Is', c)
+        self.assertIn('ix1.Ix1', c)
 
         # Test with Vm
         i = m.label('cellular_current')
@@ -439,7 +438,7 @@ class LibGuessTest(unittest.TestCase):
         c = [v.qname() for v in c]
         self.assertIn('membrane.i_diff', c)
         self.assertIn('membrane.i_ion', c)
-        self.assertIn('membrane.i_stim', c)
+        self.assertIn('stimulus.i_stim', c)
 
     def test_membrane_potential_1(self):
         # Test finding the membrane potential based on annotations
@@ -691,7 +690,7 @@ class LibGuessTest(unittest.TestCase):
         self.assertIsNone(protocol)
 
         # Test recovering a protocol created by myokit
-        m, p1, _ = myokit.load('example')
+        m, p1, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         myokit.lib.guess.add_embedded_protocol(m, p1)
         p2 = myokit.lib.guess.remove_embedded_protocol(m)
         self.assertIsInstance(p2, myokit.Protocol)

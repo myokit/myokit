@@ -103,7 +103,7 @@ DIR_CFUNC = DIR_MYOKIT / '_sim'
 DIR_DATA = DIR_MYOKIT / '_bin'
 
 # Example mmt file
-EXAMPLE = DIR_DATA / 'example.mmt'
+EXAMPLE = DIR_DATA / 'beeler-1977.mmt'
 
 #
 # Debugging modes
