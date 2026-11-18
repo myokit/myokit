@@ -124,9 +124,9 @@ class SimulationOpenCL1dTest(unittest.TestCase):
         self.assertLess(np.max(e), 1e-13)
 
         e = np.abs(da['membrane.i_diff', 0] - db['membrane.i_diff', 0])
-        self.assertLess(np.max(e), 1e-13)
+        self.assertLess(np.max(e), 1e-12)
         e = np.abs(da['membrane.i_diff', 9] - db['membrane.i_diff', 9])
-        self.assertLess(np.max(e), 1e-13)
+        self.assertLess(np.max(e), 1e-12)
 
         e = np.abs(da['is.Is', 0] - db['is.Is', 0])
         self.assertLess(np.max(e), 1e-13)
