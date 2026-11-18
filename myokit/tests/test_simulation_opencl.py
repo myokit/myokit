@@ -34,7 +34,7 @@ class SimulationOpenCLTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Create simulations for later use in testing
-        cls.m = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
+        cls.m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         cls.p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
         cls._s0 = cls._s1 = cls._s2 = None
 
@@ -620,7 +620,7 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Apply a field and try again (this is its intended use)
         s.reset()
-        s.set_field('isi.gsBar', [0.05, 0.09, 0.14])
+        s.set_field('is.gsBar', [0.05, 0.09, 0.14])
         d = s.run(10, log=['membrane.V']).npview()
         self.assertGreater(np.max(d['membrane.V', 0]), 0)
         self.assertGreater(np.max(d['membrane.V', 1]), 0)

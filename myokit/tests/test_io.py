@@ -86,9 +86,9 @@ class LoadSaveMmtTest(unittest.TestCase):
 
     def test_load_partial(self):
         # Test loading of partial files.
-        mpath = DIR_DATA / 'beeler-1977-model.mmt'
-        ppath = DIR_DATA / 'beeler-1977-protocol.mmt'
-        spath = DIR_DATA / 'beeler-1977-script.mmt'
+        mpath = DIR_DATA / 'only-model.mmt'
+        ppath = DIR_DATA / 'only-protocol.mmt'
+        spath = DIR_DATA / 'only-script.mmt'
 
         m, p, x = myokit.load(mpath)
         self.assertIsInstance(m, myokit.Model)

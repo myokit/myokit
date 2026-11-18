@@ -27,7 +27,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # Compare the SimulationOpenCL output with CVODE output
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         e = p.head()
 
         # Make protocol to compare t=0 event implementations
@@ -35,7 +35,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         tmax = 1300
         p = myokit.Protocol()
         p.schedule(level=e.level(), duration=e.duration(), period=600, start=0)
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
 
         s1 = myokit.SimulationOpenCL(
             m, p, ncells=1, rl=True, precision=myokit.DOUBLE_PRECISION)
@@ -60,8 +60,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
@@ -102,8 +102,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0], label='OpenCL')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.plot(d1.time(), d1['is.Is', 0], label='OpenCL')
+            plt.plot(d2.time(), d2['is.Is'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -119,7 +119,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
     def test_event_at_step_size_multiple(self):
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         e = p.head()
 
         # Make protocol to compare with event at step-size multiple
@@ -131,7 +131,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
             duration=e.duration(),
             period=600,
             start=10)
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
 
         s1 = myokit.SimulationOpenCL(
             m, p, ncells=1, rl=True, precision=myokit.DOUBLE_PRECISION)
@@ -156,8 +156,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
@@ -198,8 +198,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0], label='OpenCL')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.plot(d1.time(), d1['is.Is', 0], label='OpenCL')
+            plt.plot(d2.time(), d2['is.Is'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -215,7 +215,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
     def test_event_not_at_multiple(self):
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         e = p.head()
 
         # Make protocol to compare with event NOT at step-size multiple
@@ -228,7 +228,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
             period=600,
             start=1.05)
 
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
 
         s1 = myokit.SimulationOpenCL(
             m, p, ncells=1, rl=True, precision=myokit.DOUBLE_PRECISION)
@@ -254,8 +254,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
@@ -296,8 +296,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0], label='OpenCL')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.plot(d1.time(), d1['is.Is', 0], label='OpenCL')
+            plt.plot(d2.time(), d2['is.Is'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -314,7 +314,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # Test again, with event at step multiple, but now without Rush-Larsen
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         e = p.head()
 
         dt = 0.01   # Note: this is too big to be very accurate
@@ -325,7 +325,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
             duration=e.duration(),
             period=600,
             start=10)
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
 
         s1 = myokit.SimulationOpenCL(
             m, p, ncells=1, rl=False, precision=myokit.DOUBLE_PRECISION)
@@ -344,8 +344,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         self.assertLess(e2, 0.05)  # Note: The step size is really too big here
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
         self.assertLess(e3, 0.01)
 
@@ -353,7 +353,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # Test using fields
 
         # Load model and protocol
-        m = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
 
         # Create simulations
@@ -407,7 +407,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # math
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         e = p.head()
 
         # Make protocol to compare t=0 event implementations
@@ -415,7 +415,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         tmax = 10
         p = myokit.Protocol()
         p.schedule(level=e.level(), duration=e.duration(), period=600, start=0)
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
 
         s1 = myokit.SimulationOpenCL(
             m, p, ncells=1, native_maths=True, rl=False,
@@ -434,8 +434,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
@@ -455,8 +455,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0], label='OpenCL')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.plot(d1.time(), d1['is.Is', 0], label='OpenCL')
+            plt.plot(d2.time(), d2['is.Is'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -472,7 +472,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # math
 
         # Load model and event with appropriate level/duration
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         e = p.head()
 
         # Make protocol to compare t=0 event implementations
@@ -480,7 +480,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         tmax = 10
         p = myokit.Protocol()
         p.schedule(level=e.level(), duration=e.duration(), period=600, start=0)
-        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'is.Is']
 
         s1 = myokit.SimulationOpenCL(
             m, p, ncells=1, native_maths=False, rl=True,
@@ -499,8 +499,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
@@ -520,8 +520,8 @@ class SimulationOpenCL0dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0], label='OpenCL')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.plot(d1.time(), d1['is.Is', 0], label='OpenCL')
+            plt.plot(d2.time(), d2['is.Is'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -536,7 +536,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         # Test using set_constant
 
         # Load model and protocol
-        m = myokit.load_model(DIR_DATA / 'beeler-1977-model.mmt')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
 
         # Create simulations
