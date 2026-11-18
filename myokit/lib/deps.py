@@ -336,14 +336,14 @@ class DiGraph:
 
         # Assign levels
         L = []      # Layers
-        D = set()   # Contains nodes already assigned
-        E = set()   # Nodes on this level
+        D = set()   # Nodes already assigned
+        E = []      # Nodes on this level
         for node in sorted(P, key=P.get):
             if not node.edgo.issubset(D):
-                D = D.union(E)
+                D.update(E)
                 L.append([self[x.uid] for x in E])
-                E.clear()
-            E.add(node)
+                E = []
+            E.append(node)
         L.append([self[x.uid] for x in E])
 
         # Convert to lists

@@ -217,6 +217,31 @@ class DiGraphTest(unittest.TestCase):
         self.assertRaisesRegex(
             deps.DiGraphError, 'self-referencing', d.meg_dag)
 
+    def test_layout_layered(self):
+        # Test the layered layout, including the case where nodes in a layer
+        # end up at the same x position.
+
+        # Nodes 1, 2, and 3 all depend only on 4: the median rule moves them
+        # all to the same x, after which they must be spaced out again.
+        d = deps.DiGraph()
+        for i in range(1, 5):
+            d.add_node(i)
+        for i in range(1, 4):
+            d.add_edge(i, 4)
+        layers = d.cg_layers_dag()
+        self.assertEqual(
+            [[n.uid for n in layer] for layer in layers], [[4], [1, 2, 3]])
+
+        d.layout_layered()
+        n4, n1, n2, n3 = d[4], d[1], d[2], d[3]
+        self.assertAlmostEqual(n1.x, 0.25)
+        self.assertAlmostEqual(n2.x, 0.5)
+        self.assertAlmostEqual(n3.x, 0.75)
+        self.assertEqual(n4.y, 0)
+        self.assertEqual(n1.y, n2.y)
+        self.assertEqual(n1.y, n3.y)
+        self.assertGreater(n1.y, n4.y)
+
 
 if __name__ == '__main__':
     unittest.main()
