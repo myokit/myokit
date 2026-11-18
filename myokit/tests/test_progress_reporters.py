@@ -79,7 +79,7 @@ class TimeoutTest(unittest.TestCase):
         s = myokit.Simulation(m, p)
         t = myokit.Timeout(0.1)
         with self.assertRaises(myokit.SimulationCancelledError):
-            s.run(100000, progress=t)
+            s.run(1000000, progress=t)
 
         t = myokit.Timeout(3600)
         s.run(100, progress=t)
