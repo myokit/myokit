@@ -188,9 +188,10 @@ def main():
     add_step_parser(subparsers)             # Load a model, perform 1 step
     add_sundials_parser(subparsers)         # Show Sundials support
     add_system_parser(subparsers)           # Show system information
-    add_test_parser(subparsers)             # Run tests
     add_version_parser(subparsers)          # Show version info
     add_video_parser(subparsers)            # Convert a DataBlock to video
+    if test_in_repo():
+        add_test_parser(subparsers)
 
     # Parse!
     if len(sys.argv) == 1:
@@ -1138,11 +1139,6 @@ def add_test_parser(subparsers):
         help='Runs unit tests, doc tests, etc.',
     )
 
-    # Not in repo? Then run unit tests
-    if not test_in_repo():
-        parser.set_defaults(func=test_unit)
-        return
-
     # Give full options if in repo
     subparsers = parser.add_subparsers(help='commands')
 
@@ -1412,10 +1408,7 @@ def test_doc_coverage_get_objects():
 
     # Get modules
     root = pathlib.Path('myokit')
-    ignore = [
-        root / 'tests',
-    ]
-    modules = find_modules(root, [], ignore)
+    modules = find_modules(root, [], [])
 
     # Import all modules
     for module in modules:
@@ -1637,11 +1630,9 @@ def test_unit(args=None):
     # Don't hide repeat warnings: This makes it possible to check that warnings
     # are being raised in a consistent manner.
     warnings.simplefilter('always')
-
-    if test_in_repo():
-        path = pathlib.Path('myokit', 'tests')
-    else:
-        path = myokit.DIR_MYOKIT / 'tests'
+    
+    # Guaranteed to be in repo at this point
+    path = pathlib.Path('tests')
 
     suite = unittest.defaultTestLoader.discover(path, pattern='test*.py')
     res = unittest.TextTestRunner(verbosity=2).run(suite)
