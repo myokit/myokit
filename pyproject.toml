@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "myokit"
-version = "1.40.1.dev0"
+version = "1.41.0"
 license = "BSD-3-Clause"
 license-files = [
     "LICENSE.txt",

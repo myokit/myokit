@@ -2,7 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.41.0] - 2026-11-19
 - Added
   - [#1268](https://github.com/myokit/myokit/pull/1268) Added more thorough licensing documentation.
 - Changed
