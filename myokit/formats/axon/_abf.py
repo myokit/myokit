@@ -65,8 +65,7 @@
 #---------------------------------  credits  ----------------------------------
 #
 # A lot of this code uses the (sadly somewhat outdated) information made public
-# by Axon, e.g. at https://support.moleculardevices.com/s/article/
-#                               Axon-pCLAMP-ABF-File-Support-Pack-Download-Page
+# by Axon, e.g. at https://support.moleculardevices.com/s/article/Axon-pCLAMP-ABF-File-Support-Pack-Download-Page
 # This information comes without a specific license, but states that
 # "Permission is granted to freely use, modify and copy the code in this file."
 #

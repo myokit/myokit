@@ -102,44 +102,60 @@ class AuxTest(unittest.TestCase):
     def test_model_comparison(self):
         # Test the model comparison class.
 
+        m1 = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
+        m2 = m1.clone()
+        m2.set_name('beeler-1977-with-differences')
+        m2.meta['desc'] = 'Hello'
+        m2.meta['extra'] = 'This is so extra'
+        del(m2.meta['mmt_authors'])
         with WarningCollector():
-            m1 = myokit.load_model(
-                DIR_DATA / 'beeler-1977-model-compare-a.mmt')
-            m2 = myokit.load_model(
-                DIR_DATA / 'beeler-1977-model-compare-b.mmt')
+            m1.add_function('f', ('a'), '2 * a')
+            m2.add_function('f', ('a'), '2 * a + 1')
+            m2.add_function('g', ('a'), '2 * a')
+        m2.get('engine.time').rename('toim')
+        m2.get('ina.h').set_initial_value(myokit.Number(0))
+        m1.get('ina.j').set_initial_value(myokit.Number(0))
+        m2.get('ix1.x1').set_rhs(3)
+        m2.get('ix1.x1').remove_variable(m2.get('ix1.x1.alpha'))
+        m2.get('ix1.x1').remove_variable(m2.get('ix1.x1.beta'))
+        m2.get('calcium.Cai').set_rhs(0)
+        m2.get('calcium.Cai').demote()
+        m2.get('membrane.V').set_unit('kV')
+        c1 = m2.get('is')
+        c2 = m2.add_component('ois')
+        for var in list(c1):
+            c1.move_variable(var, c2)
+        m2.remove_component(c1)
+        m2.get('ois').add_variable('X', rhs=1, initial_value=0)
+        m2.get('ois').add_variable('Y', rhs=2, initial_value=0)
 
         with myokit.tools.capture() as capture:
             c = myokit.ModelComparison(m1, m2, live=True)
-
         differences = [
-            '[x] Mismatched Meta property in model: "desc"',
             '[x] Mismatched Meta property in model: "name"',
-            '[2] Missing Meta property in model: "author"',
+            '[x] Mismatched Meta property in model: "desc"',
             '[1] Missing Meta property in model: "extra"',
-            '[x] Mismatched User function <f(1)>',
-            '[1] Missing User function <g(1)>.',
-            '[x] Mismatched Time variable: [1]<engine.time> [2]<engine.toim>',
-            '[x] Mismatched Initial value for <ina.h>',
-            '[x] Mismatched Initial value for <ina.j>',
-            '[x] Mismatched State at position 5: [1]<isi.d> [2]<isiz.d>',
-            '[x] Mismatched State at position 6: [1]<isi.f> [2]<isiz.f>',
-            '[2] Missing state at position 7',
-            '[x] Mismatched RHS <calcium.Cai>',
-            '[2] Missing Variable <engine.time>',
-            '[1] Missing Variable <engine.toim>',
-            '[x] Mismatched RHS <ina.h.alpha>',
-            '[x] Mismatched RHS <ina.j>',
-            '[2] Missing Variable <ina.j.beta>',
-            '[1] Missing Variable <ina.j.jeta>',
-            '[2] Missing Component <isi>',
-            '[x] Mismatched LHS <ix1.x1>',
-            '[x] Mismatched RHS <ix1.x1>',
-            '[2] Missing Variable <ix1.x1.alpha>',
-            '[2] Missing Variable <ix1.x1.beta>',
-            '[x] Mismatched RHS <membrane.C>',
-            '[x] Mismatched RHS <membrane.i_ion>',
-            '[x] Mismatched unit <membrane.V>',
-            '[1] Missing Component <isiz>',
+            '[2] Missing Meta property in model: "mmt_authors"',
+            '[x] Mismatched User function "f(1)"',
+            '[1] Missing User function "g(1)".',
+            '[x] Mismatched Time variable: [1]"engine.time" [2]"engine.toim"',
+            '[x] Mismatched Initial value for "ina.h"',
+            '[x] Mismatched Initial value for "ina.j"',
+            '[2] Missing Variable "engine.time"',
+            '[1] Missing Variable "engine.toim"',
+            '[x] Mismatched LHS "calcium.Cai"',
+            '[x] Mismatched RHS "calcium.Cai"',
+            '[x] Mismatched RHS "ix1.x1"',
+            '[2] Missing Variable "ix1.x1.alpha"',
+            '[2] Missing Variable "ix1.x1.beta"',
+            '[x] Mismatched RHS "membrane.i_ion"',
+            '[x] Mismatched unit "membrane.V"',
+            '[x] Mismatched State at position 4: [1]"is.d" [2]"ois.d"',
+            '[x] Mismatched State at position 5: [1]"is.f" [2]"ois.f"',
+            '[1] Missing Component "ois"',
+            '[2] Missing Component "is"',
+            '[1] Missing state at position 9',
+            '[x] Mismatched State at position 7: [1]"calcium.Cai" [2]"ois.X"'
         ]
 
         live = [
@@ -178,8 +194,8 @@ class AuxTest(unittest.TestCase):
         c = myokit.ModelComparison(m1, m3)
         self.assertEqual(
             c.text(),
-            '[2] Missing User function <f(1)>\n'
-            '[2] Missing Time variable <engine.time>')
+            '[2] Missing User function "f(1)"\n'
+            '[2] Missing Time variable "engine.time"')
         self.assertEqual(len(c), 2)
         self.assertEqual(len(c), len(myokit.ModelComparison(m3, m1)))
 
@@ -433,10 +449,10 @@ class AuxTest(unittest.TestCase):
         # Test comparison against stored data
         # And get all the different error outputs
         ref = m1.evaluate_derivatives()
-        ref[0] += 5e-20  # Numerically indistinguishable
+        ref[0] += 3e-19  # < 1 eps
         ref[2] += 1e-16  # Tiny error
         ref[4] *= -1     # Sign error
-        ref[6] += 2e-4   # Big error
+        ref[6] -= 2e-4   # Big error
         ref[7] *= 100    # Exponent
         x = myokit.step(m1, reference=ref).splitlines()
         y = [
@@ -445,7 +461,7 @@ class AuxTest(unittest.TestCase):
 'Name         Initial value             Derivative at t=0       ',
 '-' * 79,
 'membrane.V   -8.43499999999999943e+01  -1.59225544529053437e-03',
-'                                       -1.59225544529053437e-03',
+'                                       -1.59225544529053415e-03 <= 1 eps',
 '',
 'ina.m         1.00000000000000002e-02   1.05572457615837556e-01',
 '                                        1.05572457615837556e-01',
@@ -463,7 +479,7 @@ class AuxTest(unittest.TestCase):
 '                                       -3.66608204332271936e-07',
 '',
 'ix1.x1        2.99999999999999989e-02  -1.06690490942922786e-04',
-'                                        9.33095090570772233e-05 sign',
+'                                        -3.06690490942922796e-04 X',
 '                                       ^^^^^^^^^^^^^^^^^^^^^^^^',
 'calcium.Cai   1.80000000000000011e-04  -8.14771094609788952e-08',
 '                                       -8.14771094609788952e-06 exponent',

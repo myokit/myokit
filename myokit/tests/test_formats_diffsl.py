@@ -1058,7 +1058,7 @@ k = 6
                     model,
                     outputs=[
                         model.get("membrane.V"),  # Valid (state)
-                        model.get("ina.gNaBar"),  # Invalid (constant)
+                        model.get("ina.gNa"),  # Invalid (constant)
                     ],
                 )
 

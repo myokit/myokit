@@ -1,6 +1,6 @@
 [[model]]
 name: beeler-1977
-version: 20261117
+version: 20261118
 mmt_authors: Michael Clerx
 display_name: Beeler & Reuter 1977
 desc: """
@@ -10,7 +10,7 @@ desc: """
     This Myokit implementation is based on the equations in the original paper.
     The calcium concentration was scaled from M to mM, and the rate equations
     were slightly rearranged (but otherwise identical to the published ones).
-    
+
     The stimulus was set to approximately twice the amplitude needed to achieve
     depolarisation with a 1ms pulse.
 
@@ -46,14 +46,18 @@ pace = 0
 # Membrane potential. Equation 8.
 #
 [membrane]
+use stimulus.i_stim
 C = 1 [uF/cm^2]
     in [uF/cm^2]
-dot(V) = -(1/C) * (i_ion + stimulus.i_stim)
+dot(V) = -(1/C) * (i_ion + i_stim + i_diff)
     in [mV]
     label membrane_potential
 i_ion = ik1.IK1 + ix1.Ix1 + ina.INa + is.Is
     in [uA/cm^2]
     label cellular_current
+i_diff = 0 [uA/cm^2]
+    in [uA/cm^2]
+    bind diffusion_current
 
 #
 # Stimulus current
@@ -69,11 +73,13 @@ amplitude = -50 [uA/cm^2]
 #
 [ik1]
 use membrane.V
-IK1 = 0.35 [uA/cm^2] * (
+IK1 = gK1 * (
         4 * (exp(0.04 [1/mV] * (V + 85 [mV])) - 1)
             / (exp(0.08 [1/mV] * (V + 53 [mV])) + exp(0.04 [1/mV] * (V + 53 [mV])))
         + 0.2 [1/mV] * (V + 23 [mV])
             / (1 - exp(-0.04 [1/mV] * (V + 23 [mV]))))
+    in [uA/cm^2]
+gK1 = 0.35 [uA/cm^2]
     in [uA/cm^2]
 
 #
@@ -81,7 +87,9 @@ IK1 = 0.35 [uA/cm^2] * (
 #
 [ix1]
 use membrane.V
-Ix1 = x1 * 0.8 [uA/cm^2] * (exp(0.04 [1/mV] * (V + 77 [mV])) - 1) / exp(0.04 [1/mV] * (V + 35 [mV]))
+Ix1 = gx1 * x1 * (exp(0.04 [1/mV] * (V + 77 [mV])) - 1) / exp(0.04 [1/mV] * (V + 35 [mV]))
+    in [uA/cm^2]
+gx1 = 0.8 [uA/cm^2]
     in [uA/cm^2]
 dot(x1) = alpha * (1 - x1) - beta * x1
     alpha = 0.0005 [1/ms] * exp(0.083 [1/mV] * (V + 50 [mV])) / (1 + exp(0.057 [1/mV] * (V + 50 [mV])))
@@ -94,9 +102,9 @@ dot(x1) = alpha * (1 - x1) - beta * x1
 #
 [ina]
 use membrane.V
-INa = (gNaBar * m^3 * h * j + gNaC) * (V - ENa)
+INa = (gNa * m^3 * h * j + gNaC) * (V - ENa)
     in [uA/cm^2]
-gNaBar = 4 [mS/cm^2]
+gNa = 4 [mS/cm^2]
     in [mS/cm^2]
 gNaC = 0.003 [mS/cm^2]
     in [mS/cm^2]
@@ -123,9 +131,9 @@ dot(j) = alpha * (1 - j) - beta * j
 #
 [is]
 use membrane.V
-Is = gsBar * d * f * (V - Es)
+Is = gs * d * f * (V - Es)
     in [uA/cm^2]
-gsBar = 0.09 [mS/cm^2]
+gs = 0.09 [mS/cm^2]
     in [mS/cm^2]
 Es = -82.3 [mV] - 13.0287 [mV] * log(calcium.Cai / 1000 [mM])
     in [mV]

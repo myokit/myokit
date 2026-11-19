@@ -3639,7 +3639,7 @@ class Model(ObjectWithMetaData, VarProvider):
                 if var[1] is None:  # pragma: no cover
                     raise Exception(var[2])
                 var = var[1]
-                out.append(f'Variable not found, assuming <{var.qname()}>.')
+                out.append(f'Variable not found, assuming "{var.qname()}".')
             else:
                 var = var[0]
         if var.is_state():

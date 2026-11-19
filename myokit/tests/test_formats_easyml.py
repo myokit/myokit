@@ -180,16 +180,17 @@ class EasyMLExporterTest(unittest.TestCase):
         # against reference output.
 
         # Export model
-        m = myokit.load_model(DIR_DATA / 'decker-2009.mmt')
+        fname = 'beeler-1977-for-export-testing'
+        m = myokit.load_model(DIR_DATA / f'{fname}.mmt')
         e = myokit.formats.easyml.EasyMLExporter()
         with tempfile.TemporaryDirectory() as d:
-            path = pathlib.Path(d, 'decker.model')
+            path = pathlib.Path(d, 'beeler-1977.easyml')
             e.model(path, m)
             with open(path, 'r') as f:
                 observed = f.readlines()
 
         # Load expected output
-        with open(DIR_DATA / 'decker.model', 'r') as f:
+        with open(DIR_DATA / 'generated' / f'{fname}.model', 'r') as f:
             expected = f.readlines()
 
         # Compare (line by line, for readable output)

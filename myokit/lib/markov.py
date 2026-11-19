@@ -661,7 +661,7 @@ class AnalyticalSimulation:
         import myokit.lib.markov as markov
 
         # Create a linear markov model
-        m = myokit.load_model('clancy-1999.mmt')
+        m = myokit.load_model('ap-model.mmt')
         m = markov.LinearModel.from_component(m.get('ina'))
 
         # Create an analytical simulation object
@@ -1121,7 +1121,7 @@ class DiscreteSimulation:
         import myokit.lib.markov as markov
 
         # Create linear markov model
-        m = myokit.load_model('clancy-1999.mmt')
+        m = myokit.load_model('ap-model.mmt')
         m = markov.LinearModel.from_component(m.get('ina'))
 
         # Run discrete simulation

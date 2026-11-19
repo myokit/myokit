@@ -1,0 +1,153 @@
+[[model]]
+desc: """
+    Markov INa models for Myokit testing.
+
+    This file is for testing, not for science.
+    """
+ina_mm.C3 = 0.99
+ina_mm.C2 = 0.01
+ina_mm.C1 = 0
+ina_mm.O  = 0
+ina_mm.IF = 0
+ina_mm.IS = 0
+ina_hh.m = 0
+ina_hh.h = 1
+ina_hh.j = 1
+
+[engine]
+time = 0 [ms]
+    in [ms]
+    bind time
+pace = 0 bind pace
+
+[membrane]
+V = engine.pace * 1 [mV]
+    label membrane_potential
+    in [mV]
+
+[nernst]
+ENa = 81 [mV]
+    in [mV]
+
+#
+# WT INa model from Clancy 1999
+#
+[ina_mm]
+use membrane.V
+INa = gNa * O * (V - nernst.ENa)
+    in [pA]
+    label INa_mm
+
+dot(C3) = -C3 * (a11           ) + C2 * b11
+dot(C2) = -C2 * (a12 + b11     ) + C1 * b12 + C3 * a11
+dot(C1) = -C1 * (a13 + b12 + b3) + O  * b13 + C2 * a12 + IF * a3
+dot(IF) = -IF * (a4  + b2  + a3) + IS * b4  + O  * a2  + C1 * b3
+dot(IS) = -IS * (b4            ) + IF * a4
+dot(O)  = -O  * (a2  + b13     ) + C1 * a13 + IF * b2
+
+a11 = 1 / (p1 * exp(-V * p5) + p2 * exp(-V * p8))
+    in [1/ms]
+a12 = 1 / (p1 * exp(-V * p6) + p3 * exp(-V * p8))
+    in [1/ms]
+a13 = 1 / (p1 * exp(-V * p7) + p4 * exp(-V * p8))
+    in [1/ms]
+b11 = q2 * exp(-V * q1)
+    in [1/ms]
+b12 = q3 * exp(-V * q1)
+    in [1/ms]
+b13 = q4 * exp(-V * q1)
+    in [1/ms]
+a2 = r1 * exp(V * r2)
+    in [1/ms]
+b2 = (a3 * a2 * a13) / (b3 * b13)
+    in [1/ms]
+a3 = r3 * exp(-V * r4)
+    in [1/ms]
+b3 = r5 + r6 * V
+    in [1/ms]
+a4 = a2 * r7
+    in [1/ms]
+b4 = a3
+    in [1/ms]
+
+p1 = 0.1027 [ms] / 3.802
+    in [ms]
+p2 = 0.20 [ms] / 3.802
+    in [ms]
+p3 = 0.23 [ms] / 3.802
+    in [ms]
+p4 = 0.25 [ms] / 3.802
+    in [ms]
+p5 = 1 / 17 [mV] 
+    in [1/mV]
+p6 = 1 / 15 [mV] 
+    in [1/mV]
+p7 = 1 / 12 [mV] 
+    in [1/mV]
+p8 = 1 / 150 [mV] 
+    in [1/mV]
+
+q1 = 1 / 20.3 [mV] 
+    in [1/mV]
+q2 = 0.1917 [1/ms]
+    in [1/ms]
+q3 = 0.2 [1/ms] * exp(5 / 20.3)
+    in [1/ms]
+q4 = 0.22 [1/ms] * exp(10 / 20.3)
+    in [1/ms]
+
+r1 = 9.178 [1/ms] in [1/ms]
+r2 = 1 / 29.68 [mV] in [1/mV]
+r3 = 3.7933e-10 [1/ms] in [1/ms]
+r4 = 1 / 5.2 [mV] in [1/mV]
+r5 = 0.0084 [1/ms] in [1/ms]
+r6 = 0.00002 [1/ms/mV] in [1/ms/mV]
+r7 = 1 / 100
+
+gNa = 10 [nS] in [nS]
+
+#
+# INa model from Beeler-Reuter, without gNaC
+#
+[ina_hh]
+use membrane.V
+INa = (gNa * m^3 * h * j) * (V - nernst.ENa)
+    in [pA]
+    label INa_hh
+dot(m) = alpha * (1 - m) - beta * m
+    alpha = p1 * (V + p2) / (1 - exp(-p3 * (V + p2)))
+        in [1/ms]
+    beta = p4 * exp(-p5 * (V + p6))
+        in [1/ms]
+dot(h) = alpha * (1 - h) - beta * h
+    alpha = p7 * exp(-p8 * (V + p9))
+        in [1/ms]
+    beta = p10 / (1 + exp(-p11 * (V + p12)))
+        in [1/ms]
+dot(j) = alpha * (1 - j) - beta * j
+    alpha = p13 * exp(-p14 * (V + p15)) / (1 + exp(-p16 * (V + p15)))
+        in [1/ms]
+    beta = p17 / (1 + exp(-p18 * (V + p19)))
+        in [1/ms]
+
+p1 = 1 [1/mV/ms] in [1/mV/ms]
+p2 = 47 [mV] in [mV]
+p3 = 0.1 [1/mV] in [1/mV]
+p4 = 40 [1/ms] in [1/ms]
+p5 = 0.056 [1/mV] in [1/mV]
+p6 = 72 [mV] in [mV]
+p7 = 0.126 [1/ms] in [1/ms]
+p8 = 0.25 [1/mV] in [1/mV]
+p9 = 77 [mV] in [mV]
+p10 = 1.7 [1/ms] in [1/ms]
+p11 = 0.082 [1/mV] in [1/mV]
+p12 = 22.5 [mV] in [mV]
+p13 = 0.055 [1/ms] in [1/ms]
+p14 = 0.25 [1/mV] in [1/mV]
+p15 = 78 [mV] in [mV]
+p16 = 0.2 [1/mV] in [1/mV]
+p17 = 0.3 [1/ms] in [1/ms]
+p18 = 0.1 [1/mV] in [1/mV]
+p19 = 32 [mV] in [mV]
+gNa = 10 [nS] in [nS]
+

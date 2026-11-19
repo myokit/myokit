@@ -31,7 +31,7 @@ class SimulationTest(unittest.TestCase):
     def setUpClass(cls):
         # Test simulation creation.
 
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         cls.model = m
         cls.protocol = p
         cls.sim = myokit.Simulation(cls.model, cls.protocol)
@@ -295,7 +295,7 @@ class SimulationTest(unittest.TestCase):
     def test_time_series_protocol(self):
         # Test running with a time series protocol
 
-        n = 10
+        n = 200
         times = list(range(n))
         values = [0] * n
         values[2:4] = [0.5, 0.5]
@@ -461,15 +461,15 @@ class SimulationTest(unittest.TestCase):
         # Test if it works
         sim = myokit.Simulation(self.model, self.protocol)
         with myokit.tools.capture() as c:
-            sim.run(110, progress=myokit.ProgressPrinter())
+            sim.run(200, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
-        self.assertEqual(len(c), 2)
-        p = re.compile(re.escape('[0.0 minutes] 1.9 % done, estimated ') +
+        self.assertEqual(len(c), 3)
+        p = re.compile(re.escape('[0.0 minutes] 50.5 % done, estimated ') +
                        '[0-9]+' + re.escape(' seconds remaining'))
         self.assertIsNotNone(p.match(c[0]))
         p = re.compile(re.escape('[0.0 minutes] 100.0 % done, estimated ') +
                        '[0-9]+' + re.escape(' seconds remaining'))
-        self.assertIsNotNone(p.match(c[1]))
+        self.assertIsNotNone(p.match(c[2]))
 
         # Not a progress reporter
         self.assertRaisesRegex(
@@ -498,11 +498,11 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(len(apds), 2)
         self.assertEqual(apds.length(), 2)
         self.assertIn('start', apds)
-        self.assertAlmostEqual(apds['start'][0], 1, places=0)
-        self.assertAlmostEqual(apds['start'][1], 1001, places=0)
+        self.assertAlmostEqual(apds['start'][0], 100.3, delta=0.2)
+        self.assertAlmostEqual(apds['start'][1], 1100.3, delta=0.2)
         self.assertIn('start', apds)
-        self.assertLess(abs(apds['duration'][0] - 383.88), 0.1)
-        self.assertLess(abs(apds['duration'][1] - 378.32), 0.12)
+        self.assertAlmostEqual(apds['duration'][0], 280.7, delta=0.1)
+        self.assertAlmostEqual(apds['duration'][1], 280.7, delta=0.1)
 
         # Works with variable objects too
         self.sim.reset()
@@ -524,8 +524,11 @@ class SimulationTest(unittest.TestCase):
         # Tests Simulation.crash_state, crash_inputs, and crash_log
 
         m = self.model.clone()
-        istim = m.get('membrane.i_stim')
-        istim.set_rhs('engine.pace / stim_amplitude')
+        e = m.get('engine')
+        e.add_variable('realtime', rhs=0, binding='realtime')
+        e.add_variable('evaluations', rhs=0, binding='evaluations')
+        istim = m.get('stimulus.i_stim')
+        istim.set_rhs('engine.pace / amplitude')
 
         s = myokit.Simulation(m, self.protocol)
         self.assertIsNone(s.crash_state())
@@ -533,7 +536,7 @@ class SimulationTest(unittest.TestCase):
         self.assertIsNone(s.crash_log())
         s.run(1)
         self.assertIsNone(s.crash_state())
-        s.set_constant('membrane.i_stim.stim_amplitude', 0)
+        s.set_constant('stimulus.amplitude', 0)
         s.reset()
         self.assertRaisesRegex(myokit.SimulationError, "at t = 0", s.run, 5)
         self.assertEqual(s.crash_state(), s.state())
@@ -1106,18 +1109,20 @@ class SimulationTest(unittest.TestCase):
         # Test :meth:`Simulation.set_constant()`.
 
         # Literal
-        self.sim.set_constant('cell.Na_i', 11)
-        self.sim.set_constant(self.model.get('cell.Na_i'), 11)
+        org = self.model.get('is.gs').eval()
+        self.sim.set_constant('is.gs', 11)
+        self.sim.set_constant(self.model.get('is.gs'), 11)
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
+        self.sim.set_constant('is.gs', org)
 
         # Parameter (needs sensitivities set)
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
-        sim = myokit.Simulation(m, p, (['ib.Ib'], ['ib.gb']))
-        sim.set_constant('ib.gb', 20)
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
+        sim = myokit.Simulation(m, p, (['is.Is'], ['is.gs']))
+        sim.set_constant('is.gs', 20)
 
         # Calculated constant
         self.assertRaisesRegex(
-            ValueError, 'not a literal', self.sim.set_constant, 'ina.ENa', 11)
+            ValueError, 'not a literal', self.sim.set_constant, 'is.Es', 11)
 
     def test_short_runs(self):
         # Test for simulations run a very short time
@@ -1260,7 +1265,7 @@ class SimulationTest(unittest.TestCase):
         m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s1 = myokit.Simulation(m, p, [
             ['ina.INa', 'is.Is', 'membrane.V'],
-            ['ina.gNaBar', 'init(membrane.V)']
+            ['ina.gNa', 'init(membrane.V)']
         ])
         s1.pre(12)
         # ...and with simulation properties
@@ -1305,14 +1310,15 @@ class SimulationTest(unittest.TestCase):
     def test_derivatives(self):
         # Tests logging of derivatives by comparing with a finite difference
         # approximation
+        debug = False
 
         # Run past the upstroke, where finite diff approx is worst
         self.sim.reset()
-        self.sim.run(52)
+        self.sim.run(103)
 
         # Now run logged part
-        d = self.sim.run(600).npview()
-        if False:
+        d = self.sim.run(200).npview()
+        if debug:
             import matplotlib.pyplot as plt
             plt.figure()
             ax = plt.subplot(3, 1, 1)
@@ -1325,12 +1331,13 @@ class SimulationTest(unittest.TestCase):
         v = d['membrane.V']
         dv = (v[2:] - v[:-2]) / (t[2:] - t[:-2])
         e = d['dot(membrane.V)'][1:-1] - dv
-        if False:
+        if debug:
             t = t[1:-1]
             ax.plot(t, dv, '--')
             ax = plt.subplot(3, 1, 3)
             ax.plot(t, e)
             print(np.max(np.abs(e)))
+            plt.show()
 
         # Compare
         self.assertLess(np.max(np.abs(e)), 0.1)

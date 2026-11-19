@@ -11,7 +11,7 @@ import numpy as np
 
 import myokit
 import myokit.formats.wcp as wcp
-from myokit.tests import DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 INFO = '''
 WinWCP file: wcp-file.wcp
@@ -89,7 +89,7 @@ class WcpTest(unittest.TestCase):
         # Test basic wcp file reading.
 
         # Load test file
-        path = DIR_FORMATS / 'wcp-file.wcp'
+        path = DIR_DATA / 'wcp' / 'wcp-file.wcp'
         w = wcp.WcpFile(path)
         self.assertEqual(w.version(), '9')
         self.assertEqual(w.path(), str(path))
@@ -212,7 +212,7 @@ class WcpTest(unittest.TestCase):
     def test_empty_file(self):
         # Tests reading a file with no data
 
-        w = wcp.WcpFile(DIR_FORMATS / 'wcp-file-empty.wcp')
+        w = wcp.WcpFile(DIR_DATA / 'wcp' / 'wcp-file-empty.wcp')
         self.assertEqual(w.version(), '9')
 
         # No records, but it still has a channel
@@ -228,7 +228,7 @@ class WcpTest(unittest.TestCase):
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
-        w = wcp.WcpFile(DIR_FORMATS / 'wcp-file.wcp')
+        w = wcp.WcpFile(DIR_DATA / 'wcp' / 'wcp-file.wcp')
         f = w.matplotlib_figure()
         self.assertIsInstance(f, matplotlib.figure.Figure)
 
@@ -237,7 +237,7 @@ class WcpTest(unittest.TestCase):
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
-        w = wcp.WcpFile(DIR_FORMATS / 'wcp-file.wcp')
+        w = wcp.WcpFile(DIR_DATA / 'wcp' / 'wcp-file.wcp')
         with WarningCollector() as c:
             f = w.plot()
         self.assertIn('deprecated', c.text())

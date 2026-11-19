@@ -24,12 +24,12 @@ class PrecompiledSimulationTest(unittest.TestCase):
         # Create and run two simulations and compare the output
 
         # Load model and protocol
-        model, protocol, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        model, protocol, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
 
         # Select sensitivities to calculate
         sens = (
-            ('membrane.V', 'ica.Ca_i', 'ina.INa', 'ik.x', 'dot(ina.m)'),
-            ('init(ik.x)', 'init(ica.Ca_i)', 'ina.gNa', 'ik.PNa_K')
+            ('membrane.V', 'calcium.Cai', 'ina.INa', 'ix1.x1', 'dot(ina.m)'),
+            ('init(ix1.x1)', 'init(calcium.Cai)', 'ina.gNa', 'ix1.gx1')
         )
 
         # Create both simulations

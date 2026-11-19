@@ -484,8 +484,15 @@ class DataBlock1d:
             try:
                 head = names.index('header_block1d.txt')
             except ValueError:
-                raise myokit.DataBlockReadError(
-                    'Invalid DataBlock1d file format: Header not found.')
+                # Check if this was a block2d
+                try:
+                    names.index('header_block2d.txt')
+                except ValueError:
+                    raise myokit.DataBlockReadError(
+                        'Invalid DataBlock1d file format: Header not found.')
+                else:
+                    raise myokit.DataBlockReadError(
+                        'Invalid DataBlock1d file format: 2d block found.')
             try:
                 body = names.index('data.bin')
             except ValueError:

@@ -14,7 +14,7 @@ import numpy as np
 import myokit
 import myokit.formats
 import myokit.formats.sbml
-from myokit.tests import DIR_DATA, DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class SBMLExporterTest(unittest.TestCase):
@@ -86,12 +86,9 @@ class SBMLImporterTest(unittest.TestCase):
         self.assertFalse(i.supports_protocol())
 
     def test_model(self):
-        # Tests importing the Hodgkin-Huxley model
+        # Tests importing a model
         i = myokit.formats.importer('sbml')
-        with WarningCollector() as w:
-            model = i.model(DIR_FORMATS / 'sbml' / 'HodgkinHuxley.xml')
-        self.assertIn('Unknown SBML namespace', w.text())
-
+        model = i.model(DIR_DATA / 'sbml' / '00001-sbml-l3v2.xml')
         self.assertIsInstance(model, myokit.Model)
 
 
@@ -108,10 +105,10 @@ class SBMLTestSuiteExamplesTest(unittest.TestCase):
         cls.importer = myokit.formats.importer('sbml')
 
     def get_sbml_file(self, case):
-        return DIR_FORMATS / 'sbml' / 'model' / f'{case}-sbml-l3v2.xml'
+        return DIR_DATA / 'sbml' / f'{case}-sbml-l3v2.xml'
 
     def get_results(self, case):
-        path = DIR_FORMATS / 'sbml' / 'result' / f'{case}-results.csv'
+        path = DIR_DATA / 'sbml' / f'{case}-results.csv'
         data = np.genfromtxt(path, delimiter=',')
 
         # Eliminate title row

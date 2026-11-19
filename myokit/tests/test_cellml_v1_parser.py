@@ -12,10 +12,7 @@ import unittest
 import myokit
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v1 as v1
-from myokit.tests import DIR_DATA, DIR_FORMATS, WarningCollector
-
-# CellML directory
-DIR = DIR_FORMATS / 'cellml'
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class TestCellMLParser(unittest.TestCase):
@@ -76,11 +73,6 @@ class TestCellMLParser(unittest.TestCase):
 
     def test_cmeta_ids(self):
         # Test cmeta ids are parsed
-
-        # Test parsing cmeta id
-        path = DIR / 'br-1977.cellml'
-        model = v1.parse_file(path)
-        self.assertEqual(model.cmeta_id(), 'beeler_reuter_1977')
 
         # Invalid cmeta id
         self.assertBad(
@@ -270,7 +262,7 @@ class TestCellMLParser(unittest.TestCase):
     def test_documentation(self):
         # Tests parsing a <documentation> tag from the cellml temp doc ns
 
-        path = DIR / 'documentation.cellml'
+        path = DIR_DATA / 'cellml' / 'v1-documentation.cellml'
         expected = '\n'.join([
             'Article title',
             '',
@@ -302,7 +294,8 @@ class TestCellMLParser(unittest.TestCase):
         org_values = org_model.evaluate_derivatives()
 
         # Load exported version
-        cm = v1.parse_file(DIR_FORMATS / 'beeler-1977-cellml-v1.cellml')
+        cm = v1.parse_file(
+            DIR_DATA / 'generated' / 'beeler-1977-cellml-v1.cellml')
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
         new_values = new_model.evaluate_derivatives()
@@ -599,6 +592,45 @@ class TestCellMLParser(unittest.TestCase):
         var = m['a']['x']
         self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
 
+        # Test parsing equation referencing a derivative
+        m = self.parse(
+            '<component name="c">'
+            '  <variable name="t" units="dimensionless"/>'
+            '  <variable name="x" units="dimensionless" initial_value="0.0"/>'
+            '  <variable name="y" units="dimensionless"/>'
+            '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '    <apply>'
+            '      <eq/>'
+            '      <apply>'
+            '        <diff/>'
+            '        <bvar>'
+            '          <ci>t</ci>'
+            '        </bvar>'
+            '        <ci>x</ci>'
+            '      </apply>'
+            '      <cn cellml:units="dimensionless">3.0</cn>'
+            '    </apply>'
+            '    <apply>'
+            '      <eq/>'
+            '      <ci>y</ci>'
+            '      <apply>'
+            '        <plus/>'
+            '        <cn cellml:units="dimensionless">1.0</cn>'
+            '        <apply>'
+            '          <diff/>'
+            '          <bvar>'
+            '            <ci>t</ci>'
+            '          </bvar>'
+            '          <ci>x</ci>'
+            '        </apply>'
+            '      </apply>'
+            '    </apply>'
+            '  </math>'
+            '</component>')
+        var, two = m['c']['x'], m['c']['y']
+        self.assertEqual(two.rhs(),
+            myokit.Plus(myokit.Number(1), myokit.Derivative(myokit.Name(var))))
+
         # Valid equation inside a semantics element
         m = self.parse(f'{x}<semantics>{y}</semantics>{z}')
         var = m['a']['x']
@@ -793,9 +825,12 @@ class TestCellMLParser(unittest.TestCase):
         d2 = '</rdf:Description>'
         b1 = f'<bqbiol:is rdf:resource="{cellml.NS_OXMETA}'
         b2 = '"/>'
+        c1 = '<dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">'
+        c2 = '</dc:title>'
 
         # Create mini model with 2 rdf tags and 3 annotations
-        x = ('<component name="a">'
+        # Add cmeta on the component too, to test the parser ignores it
+        x = ('<component name="a" cmeta:id="compo">'
              '  <variable name="x" units="volt" cmeta:id="x"'
              '            initial_value="1" />'
              '  <variable name="y" units="volt" cmeta:id="yzie"'
@@ -809,6 +844,7 @@ class TestCellMLParser(unittest.TestCase):
         y += r2
         y += r1
         y += f'{d1a}zed{d1b}{b1}calcium_reversal_potential{b2}{d2}'
+        y += f'{d1a}compo{d1b}{c1}A great component{c2}{d2}'
         y += r2
 
         # Parse

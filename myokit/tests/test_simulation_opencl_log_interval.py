@@ -24,7 +24,7 @@ class SimulationOpenCLTest(PeriodicTest):
     def test_periodic(self):
         # Test periodic logging.
 
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s = myokit.SimulationOpenCL(m, p, ncells=1)
         self.periodic(s)
 
@@ -37,7 +37,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
     def test_periodic(self):
         # Test periodic logging.
 
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         with WarningCollector():
             s = myokit.FiberTissueSimulation(
                 m, m, p, ncells_fiber=(1, 1), ncells_tissue=(1, 1))

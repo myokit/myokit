@@ -620,7 +620,7 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Apply a field and try again (this is its intended use)
         s.reset()
-        s.set_field('is.gsBar', [0.05, 0.09, 0.14])
+        s.set_field('is.gs', [0.05, 0.09, 0.14])
         d = s.run(10, log=['membrane.V']).npview()
         self.assertGreater(np.max(d['membrane.V', 0]), 0)
         self.assertGreater(np.max(d['membrane.V', 1]), 0)

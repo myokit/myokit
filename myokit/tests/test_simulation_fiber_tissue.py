@@ -32,9 +32,14 @@ class FiberTissueSimulationTest(unittest.TestCase):
         # Create objects for shared used in testing
 
         # Fiber model, tissue model, protocol
-        cls.mf = myokit.load_model(DIR_DATA / 'dn-1985-normalised.mmt')
-        cls.mt = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
+        cls.mf = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
+        cls.mt = cls.mf.clone()
         cls.p = myokit.pacing.blocktrain(1000, 2.0, offset=.01)
+
+        # Make the fiber model more Purkinje-like
+        cls.mf.get('ik1.gK1').set_rhs(0.05)
+        cls.mf.get('ina.gNa').set_rhs(0)
+        cls.mf.get('is.gs').set_rhs(0.06)
 
         # Fiber/Tissue sizes (small sim)
         cls.nfx = 8
@@ -86,7 +91,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         # Compare the fiber-tissue simulation output with CVODE output
 
         # Set up logging
-        logvars = ['engine.time', 'engine.pace', 'membrane.V', 'ica.ICa']
+        logvars = ['engine.time', 'engine.pace', 'membrane.V', 'is.Is']
         logt = myokit.LOG_NONE
 
         # Run simulation
@@ -119,8 +124,8 @@ class FiberTissueSimulationTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0, 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
+        r3 = d1['is.Is', 0, 0] - d2['is.Is']
+        r3 /= (1 + np.abs(d2['is.Is']))
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
@@ -156,8 +161,8 @@ class FiberTissueSimulationTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0, 0], label='FiberTissue')
-            plt.plot(d2.time(), d2['ica.ICa'], '--', label='CVODE')
+            plt.plot(d1.time(), d1['is.Is', 0, 0], label='FiberTissue')
+            plt.plot(d2.time(), d2['is.Is'], '--', label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -179,16 +184,9 @@ class FiberTissueSimulationTest(unittest.TestCase):
         run = .1
 
         # Set up logging
-        logf = [
-            'engine.time',
-            'membrane.V',
-            'isi.isiCa',
-        ]
-        logt = [
-            'membrane.V',
-            'ica.Ca_i',
-            'ica.ICa',
-        ]
+        logf = ['engine.time', 'membrane.V', 'is.Is']
+        logt = ['membrane.V', 'calcium.Cai', 'is.Is']
+
         # Run simulation
         try:
             logf, logt = s.run(run, logf=logf, logt=logt, log_interval=0.01)
@@ -196,19 +194,19 @@ class FiberTissueSimulationTest(unittest.TestCase):
             s.reset()
 
         self.assertEqual(len(logf), 1 + 2 * nfx * nfy)
-        self.assertIn('engine.time', logf)
-        self.assertIn('0.0.membrane.V', logf)
-        self.assertIn(f'{nfx - 1}.{nfy - 1}.membrane.V', logf)
-        self.assertIn('0.0.isi.isiCa', logf)
-        self.assertIn(f'{nfx - 1}.{nfy - 1}.isi.isiCa', logf)
+        self.assertIn('engine.time', logf.keys())
+        self.assertIn('0.0.membrane.V', logf.keys())
+        self.assertIn(f'{nfx - 1}.{nfy - 1}.membrane.V', logf.keys())
+        self.assertIn('0.0.is.Is', logf.keys())
+        self.assertIn(f'{nfx - 1}.{nfy - 1}.is.Is', logf.keys())
 
         self.assertEqual(len(logt), 3 * ntx * nty)
-        self.assertIn('0.0.membrane.V', logt)
-        self.assertIn(f'{ntx - 1}.{nty - 1}.membrane.V', logt)
-        self.assertIn('0.0.ica.Ca_i', logt)
-        self.assertIn(f'{ntx - 1}.{nty - 1}.ica.Ca_i', logt)
-        self.assertIn('0.0.ica.ICa', logt)
-        self.assertIn(f'{ntx - 1}.{nty - 1}.ica.ICa', logt)
+        self.assertIn('0.0.membrane.V', logt.keys())
+        self.assertIn(f'{ntx - 1}.{nty - 1}.membrane.V', logt.keys())
+        self.assertIn('0.0.calcium.Cai', logt.keys())
+        self.assertIn(f'{ntx - 1}.{nty - 1}.calcium.Cai', logt.keys())
+        self.assertIn('0.0.is.Is', logt.keys())
+        self.assertIn(f'{ntx - 1}.{nty - 1}.is.Is', logt.keys())
 
     def test_creation(self):
         # Tests fiber tissue simulation creation
@@ -225,7 +223,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
 
         # Models must have interdependent components
         m2 = mf.clone()
-        x = m2.get('ik').add_variable('xx')
+        x = m2.get('ix1').add_variable('xx')
         x.set_rhs('membrane.i_ion')
         self.assertTrue(m2.has_interdependent_components())
         self.assertRaisesRegex(ValueError, 'interdependent', FT, m2, mt)
@@ -334,7 +332,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
             FT, mf, m2)
 
         # Membrane potential must be a state
-        m2.get('ik.iK').set_label('membrane_potential')
+        m2.get('ix1.Ix1').set_label('membrane_potential')
         self.assertRaisesRegex(
             ValueError, 'fiber model must be a state variable',
             FT, m2, mt)
@@ -794,8 +792,14 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
         # Load models and protocols for use in testing
 
         # Fiber model, tissue model, protocol
-        cls.mf = myokit.load_model(DIR_DATA / 'dn-1985-normalised.mmt')
-        cls.mt = myokit.load_model(DIR_DATA / 'lr-1991.mmt')
+        cls.mf = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
+        cls.mt = cls.mf.clone()
+        cls.p = myokit.pacing.blocktrain(1000, 2.0, offset=.01)
+
+        # Make the fiber model more Purkinje-like
+        cls.mf.get('ik1.gK1').set_rhs(0.05)
+        cls.mf.get('ina.gNa').set_rhs(0)
+        cls.mf.get('is.gs').set_rhs(0.06)
 
         # Fiber/Tissue sizes (small sim)
         cls.nfx = 8
@@ -913,7 +917,7 @@ class FiberTissueSimulationFindNanTest(unittest.TestCase):
             self.s1.set_protocol(self.p3)
             with WarningCollector():
                 self.assertRaisesRegex(
-                    myokit.SimulationError, 'in tissue simulation at t = 1.7',
+                    myokit.SimulationError, 'in tissue simulation at t = 1.9',
                     self.s1.run, 5)
         finally:
             self.s1.set_protocol(self.p1)

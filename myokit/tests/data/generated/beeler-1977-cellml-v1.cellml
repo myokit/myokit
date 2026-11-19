@@ -88,18 +88,20 @@
     </math>
   </component>
   <component name="engine">
+    <variable name="pace" units="dimensionless" public_interface="out" initial_value="0.0"/>
     <variable name="time" units="ms" public_interface="out"/>
   </component>
   <component name="ik1">
     <variable name="IK1" units="uA_per_cm2" public_interface="out"/>
     <variable name="V" units="mV" public_interface="in"/>
+    <variable name="gK1" units="uA_per_cm2" initial_value="0.35"/>
     <math xmlns="http://www.w3.org/1998/Math/MathML">
       <apply>
         <eq/>
         <ci>IK1</ci>
         <apply>
           <times/>
-          <cn cellml:units="uA_per_cm2">0.35</cn>
+          <ci>gK1</ci>
           <apply>
             <plus/>
             <apply>
@@ -192,7 +194,7 @@
     <variable name="ENa" units="mV" initial_value="50.0"/>
     <variable name="INa" units="uA_per_cm2" public_interface="out"/>
     <variable name="V" units="mV" public_interface="in"/>
-    <variable name="gNaBar" units="mS_per_cm2" initial_value="4.0"/>
+    <variable name="gNa" units="mS_per_cm2" initial_value="4.0"/>
     <variable name="gNaC" units="mS_per_cm2" initial_value="0.003"/>
     <variable name="h" units="dimensionless" initial_value="0.99"/>
     <variable name="ina_h_alpha" units="mS_per_uF"/>
@@ -218,7 +220,7 @@
                 <times/>
                 <apply>
                   <times/>
-                  <ci>gNaBar</ci>
+                  <ci>gNa</ci>
                   <apply>
                     <power/>
                     <ci>m</ci>
@@ -508,7 +510,7 @@
     <variable name="V" units="mV" public_interface="in"/>
     <variable name="d" units="dimensionless" initial_value="0.003"/>
     <variable name="f" units="dimensionless" initial_value="1.0"/>
-    <variable name="gsBar" units="mS_per_cm2" initial_value="0.09"/>
+    <variable name="gs" units="mS_per_cm2" initial_value="0.09"/>
     <variable name="is_d_alpha" units="mS_per_uF"/>
     <variable name="is_d_beta" units="mS_per_uF"/>
     <variable name="is_f_alpha" units="mS_per_uF"/>
@@ -547,7 +549,7 @@
             <times/>
             <apply>
               <times/>
-              <ci>gsBar</ci>
+              <ci>gs</ci>
               <ci>d</ci>
             </apply>
             <ci>f</ci>
@@ -792,6 +794,7 @@
   <component name="ix1">
     <variable name="Ix1" units="uA_per_cm2" public_interface="out"/>
     <variable name="V" units="mV" public_interface="in"/>
+    <variable name="gx1" units="uA_per_cm2" initial_value="0.8"/>
     <variable name="ix1_x1_alpha" units="mS_per_uF"/>
     <variable name="ix1_x1_beta" units="mS_per_uF"/>
     <variable name="time" units="ms" public_interface="in"/>
@@ -806,8 +809,8 @@
             <times/>
             <apply>
               <times/>
+              <ci>gx1</ci>
               <ci>x1</ci>
-              <cn cellml:units="uA_per_cm2">0.8</cn>
             </apply>
             <apply>
               <minus/>
@@ -1015,54 +1018,16 @@
     </math>
   </component>
   <component name="stimulus">
-    <variable name="amplitude" units="uA_per_cm2" initial_value="-50.0" cmeta:id="amplitude"/>
-    <variable name="duration" units="ms" initial_value="1.0" cmeta:id="duration"/>
+    <variable name="amplitude" units="uA_per_cm2" initial_value="-50.0"/>
     <variable name="i_stim" units="uA_per_cm2" public_interface="out"/>
-    <variable name="offset" units="ms" initial_value="100.0" cmeta:id="offset"/>
-    <variable name="period" units="ms" initial_value="1000.0" cmeta:id="period"/>
-    <variable name="time" units="ms" public_interface="in"/>
+    <variable name="pace" units="dimensionless" public_interface="in"/>
     <math xmlns="http://www.w3.org/1998/Math/MathML">
       <apply>
         <eq/>
         <ci>i_stim</ci>
         <apply>
           <times/>
-          <piecewise>
-            <piece>
-              <cn cellml:units="dimensionless">1.0</cn>
-              <apply>
-                <lt/>
-                <apply>
-                  <minus/>
-                  <apply>
-                    <minus/>
-                    <ci>time</ci>
-                    <ci>offset</ci>
-                  </apply>
-                  <apply>
-                    <times/>
-                    <ci>period</ci>
-                    <apply>
-                      <floor/>
-                      <apply>
-                        <divide/>
-                        <apply>
-                          <minus/>
-                          <ci>time</ci>
-                          <ci>offset</ci>
-                        </apply>
-                        <ci>period</ci>
-                      </apply>
-                    </apply>
-                  </apply>
-                </apply>
-                <ci>duration</ci>
-              </apply>
-            </piece>
-            <otherwise>
-              <cn cellml:units="dimensionless">0.0</cn>
-            </otherwise>
-          </piecewise>
+          <ci>pace</ci>
           <ci>amplitude</ci>
         </apply>
       </apply>
@@ -1095,7 +1060,7 @@
   </connection>
   <connection>
     <map_components component_1="engine" component_2="stimulus"/>
-    <map_variables variable_1="time" variable_2="time"/>
+    <map_variables variable_1="pace" variable_2="pace"/>
   </connection>
   <connection>
     <map_components component_1="ik1" component_2="membrane"/>
@@ -1121,18 +1086,4 @@
     <map_components component_1="membrane" component_2="stimulus"/>
     <map_variables variable_1="i_stim" variable_2="i_stim"/>
   </connection>
-  <rdf:RDF>
-    <rdf:Description rdf:about="#amplitude">
-      <bqbiol:is rdf:resource="https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#membrane_stimulus_current_amplitude"/>
-    </rdf:Description>
-    <rdf:Description rdf:about="#duration">
-      <bqbiol:is rdf:resource="https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#membrane_stimulus_current_duration"/>
-    </rdf:Description>
-    <rdf:Description rdf:about="#offset">
-      <bqbiol:is rdf:resource="https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#membrane_stimulus_current_offset"/>
-    </rdf:Description>
-    <rdf:Description rdf:about="#period">
-      <bqbiol:is rdf:resource="https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#membrane_stimulus_current_period"/>
-    </rdf:Description>
-  </rdf:RDF>
 </model>

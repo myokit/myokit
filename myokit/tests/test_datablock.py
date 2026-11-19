@@ -14,7 +14,6 @@ import numpy as np
 import myokit
 from myokit.tests import (
     DIR_DATA,
-    DIR_IO,
     CancellingReporter,
     TestReporter,
 )
@@ -101,6 +100,16 @@ class DataBlock1dTest(unittest.TestCase):
             self.assertTrue(np.all(yb == yc))
             self.assertFalse(yb is yc)
 
+            # Test loading 1d block with 2d method
+            b = myokit.DataBlock2d.load(fname)
+            self.assertIsInstance(b, myokit.DataBlock2d)
+
+            # Test if None is passed through if load is cancelled
+            p = CancellingReporter()
+            b = myokit.DataBlock2d.load(fname, p)
+            self.assertIsNone(b)
+
+
     def test_bad_constructor(self):
         # Test bad arguments to a DataBlock1d raise ValueErrors.
 
@@ -136,9 +145,9 @@ class DataBlock1dTest(unittest.TestCase):
     def test_cv(self):
         # Test the CV method.
 
-        b = DIR_DATA / 'cv1d.zip'
+        b = DIR_DATA / 'generated' / 'cv1d.zip'
         b = myokit.DataBlock1d.load(b)
-        self.assertAlmostEqual(b.cv('membrane.V'), 5.95272837350686004e+01)
+        self.assertAlmostEqual(b.cv('membrane.V'), 47.02678735080194)
 
         # Invalid border argument
         # Negative
@@ -358,55 +367,55 @@ class DataBlock1dTest(unittest.TestCase):
         # Test loading errors.
 
         # Not enough files
-        path = DIR_IO / 'bad1d-1-not-enough-files.zip'
+        path = DIR_DATA / 'datablock' / 'bad1d-1-not-enough-files.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Not enough files',
             myokit.DataBlock1d.load, path)
 
         # No header file
-        path = DIR_IO / 'bad1d-2-no-header.zip'
+        path = DIR_DATA / 'datablock' / 'bad1d-2-no-header.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Header not found',
             myokit.DataBlock1d.load, path)
 
         # No data file
-        path = DIR_IO / 'bad1d-3-no-data.zip'
+        path = DIR_DATA / 'datablock' / 'bad1d-3-no-data.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Data not found',
             myokit.DataBlock1d.load, path)
 
         # Not a zip
-        path = DIR_IO / 'bad1d-4-not-a-zip.zip'
+        path = DIR_DATA / 'datablock' / 'bad1d-4-not-a-zip.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Bad zip',
             myokit.DataBlock1d.load, path)
 
         # Unknown data type in data
-        path = DIR_IO / 'bad1d-5-bad-data-type.zip'
+        path = DIR_DATA / 'datablock' / 'bad1d-5-bad-data-type.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Unrecognized data type',
             myokit.DataBlock1d.load, path)
 
         # Not enough data: detected at time level
-        path = DIR_IO / 'bad1d-6-time-too-short.zip'
+        path = DIR_DATA / 'datablock' / 'bad1d-6-time-too-short.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'more time data',
             myokit.DataBlock1d.load, path)
 
         # Not enough data: detected at 0d level
-        path = DIR_IO / 'bad1d-7-0d-too-short.zip'
+        path = DIR_DATA / 'datablock' / 'bad1d-7-0d-too-short.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'more 0d data',
             myokit.DataBlock1d.load, path)
 
         # Not enough data: detected at 1d level
-        path = DIR_IO / 'bad1d-8-1d-too-short.zip'
+        path = DIR_DATA / 'datablock' / 'bad1d-8-1d-too-short.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'more 1d data',
             myokit.DataBlock1d.load, path)
 
         # Test progress reporter
-        path = DIR_DATA / 'cv1d.zip'
+        path = DIR_DATA / 'generated' / 'cv1d.zip'
         p = TestReporter()
         self.assertFalse(p.entered)
         self.assertFalse(p.exited)
@@ -966,6 +975,36 @@ class DataBlock2dTest(unittest.TestCase):
             self.assertTrue(np.all(yb == yc))
             self.assertFalse(yb is yc)
 
+            # Test progress reporter
+            p = TestReporter()
+            self.assertFalse(p.entered)
+            self.assertFalse(p.exited)
+            self.assertFalse(p.updated)
+            b = myokit.DataBlock2d.load(fname, p)
+            self.assertIsNotNone(b)
+            self.assertTrue(p.entered)
+            self.assertTrue(p.exited)
+            self.assertTrue(p.updated)
+
+            # Test canceling in progress reporter
+            p = CancellingReporter()
+            b = myokit.DataBlock2d.load(fname, p)
+            self.assertIsNone(b)
+            p = CancellingReporter(1)
+            b = myokit.DataBlock2d.load(fname, p)
+            self.assertIsNone(b)
+            p = CancellingReporter(2)
+            b = myokit.DataBlock2d.load(fname, p)
+            self.assertIsNone(b)
+            p = CancellingReporter(3)
+            b = myokit.DataBlock2d.load(fname, p)
+            self.assertIsNone(b)
+
+            # Test loading 2d block with 1d method: fails
+            self.assertRaisesRegex(
+                myokit.DataBlockReadError, '2d block found',
+                myokit.DataBlock1d.load, fname)
+
     def test_combine(self):
         # Test the combine() method.
 
@@ -1282,87 +1321,52 @@ class DataBlock2dTest(unittest.TestCase):
         # Test loading errors.
 
         # Not enough files
-        path = DIR_IO / 'bad2d-1-not-enough-files.zip'
+        path = DIR_DATA / 'datablock' / 'bad2d-1-not-enough-files.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Not enough files',
             myokit.DataBlock2d.load, path)
 
         # No header file
-        path = DIR_IO / 'bad2d-2-no-header.zip'
+        path = DIR_DATA / 'datablock' / 'bad2d-2-no-header.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Header not found',
             myokit.DataBlock2d.load, path)
 
         # No data file
-        path = DIR_IO / 'bad2d-3-no-data.zip'
+        path = DIR_DATA / 'datablock' / 'bad2d-3-no-data.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Data not found',
             myokit.DataBlock2d.load, path)
 
         # Not a zip
-        path = DIR_IO / 'bad2d-4-not-a-zip.zip'
+        path = DIR_DATA / 'datablock' / 'bad2d-4-not-a-zip.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Bad zip',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
-        path = DIR_IO / 'bad2d-5-bad-data-type.zip'
+        path = DIR_DATA / 'datablock' / 'bad2d-5-bad-data-type.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Unrecognized data type',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
-        path = DIR_IO / 'bad2d-6-time-too-short.zip'
+        path = DIR_DATA / 'datablock' / 'bad2d-6-time-too-short.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'more time data',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
-        path = DIR_IO / 'bad2d-7-0d-too-short.zip'
+        path = DIR_DATA / 'datablock' / 'bad2d-7-0d-too-short.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'more 0d data',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
-        path = DIR_IO / 'bad2d-8-2d-too-short.zip'
+        path = DIR_DATA / 'datablock' / 'bad2d-8-2d-too-short.zip'
         self.assertRaisesRegex(
             myokit.DataBlockReadError, 'more 2d data',
             myokit.DataBlock2d.load, path)
-
-        # Test progress reporter
-        path = DIR_IO / 'block2d.zip'
-        p = TestReporter()
-        self.assertFalse(p.entered)
-        self.assertFalse(p.exited)
-        self.assertFalse(p.updated)
-        b = myokit.DataBlock2d.load(path, p)
-        self.assertIsNotNone(b)
-        self.assertTrue(p.entered)
-        self.assertTrue(p.exited)
-        self.assertTrue(p.updated)
-
-        # Test canceling in progress reporter
-        p = CancellingReporter()
-        b = myokit.DataBlock2d.load(path, p)
-        self.assertIsNone(b)
-        p = CancellingReporter(1)
-        b = myokit.DataBlock2d.load(path, p)
-        self.assertIsNone(b)
-        p = CancellingReporter(2)
-        b = myokit.DataBlock2d.load(path, p)
-        self.assertIsNone(b)
-        p = CancellingReporter(3)
-        b = myokit.DataBlock2d.load(path, p)
-        self.assertIsNone(b)
-
-        # Test loading 1d block with 2d method
-        path = DIR_DATA / 'cv1d.zip'
-        b = myokit.DataBlock2d.load(path)
-        self.assertIsInstance(b, myokit.DataBlock2d)
-        # Test if None is passed through
-        p = CancellingReporter()
-        b = myokit.DataBlock2d.load(path, p)
-        self.assertIsNone(b)
 
     def test_save_frame_csv(self):
         # Test the save_frame_csv() method.

@@ -16,7 +16,6 @@ import numpy as np
 import myokit
 from myokit.tests import (
     DIR_DATA,
-    DIR_IO,
     CancellingReporter,
     TestReporter,
     WarningCollector,
@@ -84,7 +83,7 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(apds['duration'][0], 4)
 
         # Check against example model
-        m, p, x = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, x = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s = myokit.Simulation(m, p)
         s.set_tolerance(1e-8, 1e-8)
         d, apds1 = s.run(
@@ -108,7 +107,7 @@ class DataLogTest(unittest.TestCase):
         import matplotlib.pyplot as plt
 
         # Create log, write to it
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s = myokit.Simulation(m, p)
         d = s.run(1)
         plt.figure()
@@ -120,7 +119,7 @@ class DataLogTest(unittest.TestCase):
         # Test cloning via constructor and clone() method
 
         # Obtain a log from a simulation
-        m, p, _ = myokit.load(DIR_DATA / 'lr-1991.mmt')
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
         s = myokit.Simulation(m, p)
         d1 = s.run(100, log=myokit.LOG_BOUND + myokit.LOG_STATE)
         d1.meta['yes'] = 'no'
@@ -137,8 +136,8 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(d2.meta['yes'], 'no')
         for k in d2:
             self.assertIn(k, d2.cmeta)
-        self.assertIn('unit', d2.cmeta['ica.Ca_i'])
-        self.assertEqual(d2.cmeta['ica.Ca_i']['unit'], '[mM]')
+        self.assertIn('unit', d2.cmeta['calcium.Cai'])
+        self.assertEqual(d2.cmeta['calcium.Cai']['unit'], '[mM]')
 
         # Clone via clone()
         d2 = d1.clone()
@@ -150,7 +149,7 @@ class DataLogTest(unittest.TestCase):
             self.assertEqual(type(v2), array.array)
         self.assertIn('yes', d2.meta)
         self.assertEqual(d2.meta['yes'], 'no')
-        self.assertEqual(d2.cmeta['ica.Ca_i']['unit'], '[mM]')
+        self.assertEqual(d2.cmeta['calcium.Cai']['unit'], '[mM]')
 
         # Clone via clone(numpy=True)
         d2 = d1.clone(numpy=True)
@@ -162,7 +161,7 @@ class DataLogTest(unittest.TestCase):
             self.assertEqual(type(v2), np.ndarray)
         self.assertIn('yes', d2.meta)
         self.assertEqual(d2.meta['yes'], 'no')
-        self.assertEqual(d2.cmeta['ica.Ca_i']['unit'], '[mM]')
+        self.assertEqual(d2.cmeta['calcium.Cai']['unit'], '[mM]')
 
     def test_extend(self):
         # Test the extend function.
@@ -550,42 +549,42 @@ class DataLogTest(unittest.TestCase):
         # Test if the correct load errors are raised.
 
         # Missing data file
-        path = DIR_IO / 'badlog-1-no-data.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-1-no-data.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
             path)
 
         # Missing structure file
-        path = DIR_IO / 'badlog-2-no-structure.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-2-no-structure.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
             path)
 
         # Not a zip
-        path = DIR_IO / 'badlog-3-not-a-zip.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-3-not-a-zip.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'bad zip file', myokit.DataLog.load, path)
 
         # Wrong number of fields
-        path = DIR_IO / 'badlog-4-invalid-n-fields.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-4-invalid-n-fields.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'number of fields', myokit.DataLog.load,
             path)
 
         # Negative data size
-        path = DIR_IO / 'badlog-5-invalid-data-size.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-5-invalid-data-size.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Invalid data size', myokit.DataLog.load,
             path)
 
         # Unknown data type
-        path = DIR_IO / 'badlog-6-bad-data-type.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-6-bad-data-type.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Invalid data type', myokit.DataLog.load,
             path)
 
         # Not enough data
-        path = DIR_IO / 'badlog-7-not-enough-data.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-7-not-enough-data.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'larger data', myokit.DataLog.load, path)
 
@@ -667,7 +666,7 @@ class DataLogTest(unittest.TestCase):
         # Test loading with a progress reporter.
 
         p = TestReporter()
-        path = DIR_IO / 'goodlog.zip'
+        path = DIR_DATA / 'datalog' / 'goodlog.zip'
         self.assertFalse(p.entered)
         self.assertFalse(p.exited)
         self.assertFalse(p.updated)
@@ -684,7 +683,7 @@ class DataLogTest(unittest.TestCase):
     def test_load_csv_duplicate_keys(self):
         # Test loading a CSV with duplicate key names
 
-        path = DIR_IO / 'datalog-18-duplicate-keys.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-18-duplicate-keys.csv'
         d = myokit.DataLog.load_csv(path)
         self.assertEqual(len(d), 7)
         self.assertEqual(
@@ -705,114 +704,114 @@ class DataLogTest(unittest.TestCase):
         # Test for errors during csv loading.
 
         # Test errory file, with comments etc., should work fine!
-        path = DIR_IO / 'datalog.csv'
+        path = DIR_DATA / 'datalog' / 'datalog.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Empty file
-        path = DIR_IO / 'datalog-1-empty.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-1-empty.csv'
         d = myokit.DataLog.load_csv(path)
         self.assertEqual(set(d.keys()), set())
 
         # Test windows line endings
-        path = DIR_IO / 'datalog-2-windows.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-2-windows.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test old mac line endings
-        path = DIR_IO / 'datalog-3-old-mac.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-3-old-mac.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test empty lines at end
-        path = DIR_IO / 'datalog-4-empty-lines.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-4-empty-lines.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test semicolons at end of each line
-        path = DIR_IO / 'datalog-5-semicolons.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-5-semicolons.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test unterminated string
-        path = DIR_IO / 'datalog-6-open-string.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-6-open-string.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'inside quoted', myokit.DataLog.load_csv,
             path)
 
         # Test empty lines between data
-        path = DIR_IO / 'datalog-7-empty-lines-2.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-7-empty-lines-2.csv'
         d = myokit.DataLog.load_csv(path)
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == np.arange(1, 7)))
         self.assertTrue(np.all(d['v'] == 10 * (np.arange(1, 7))))
 
         # Test unquoted field names
-        path = DIR_IO / 'datalog-8-unquoted-header.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-8-unquoted-header.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test double-quoted field names
-        path = DIR_IO / 'datalog-9-double-quoted-header.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-9-double-quoted-header.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v"quote"'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v"quote"'] == 10 * (1 + np.arange(6))))
 
         # Test file with just some spaces (one line)
-        path = DIR_IO / 'datalog-10-just-spaces.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-10-just-spaces.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), set())
 
         # Test file with just some spaces (one line)
-        path = DIR_IO / 'datalog-11-just-a-semicolon.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-11-just-a-semicolon.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), set())
 
         # Test header "abc"x"adc"
-        path = DIR_IO / 'datalog-12-bad-header.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-12-bad-header.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Expecting double quote',
             myokit.DataLog.load_csv, path)
 
         # Test empty field "" in header
-        path = DIR_IO / 'datalog-13-header-with-empty-1.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-13-header-with-empty-1.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test empty field "x",,"y" in header
-        path = DIR_IO / 'datalog-14-header-with-empty-2.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-14-header-with-empty-2.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test empty field "time","v", in header
-        path = DIR_IO / 'datalog-15-header-with-empty-3.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-15-header-with-empty-3.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test wrong field count in data
-        path = DIR_IO / 'datalog-16-wrong-columns-in-data.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-16-wrong-columns-in-data.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Wrong number of columns',
             myokit.DataLog.load_csv, path)
 
         # Test non-float data
-        path = DIR_IO / 'datalog-17-non-float-data.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-17-non-float-data.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Unable to convert',
             myokit.DataLog.load_csv, path)
@@ -852,7 +851,7 @@ class DataLogTest(unittest.TestCase):
 
         # Test multi-cell log preparing
         from myokit import prepare_log
-        m = myokit.load_model(DIR_DATA / 'lr-1991-testing.mmt')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977-dependencies.mmt')
 
         #
         # 1. Integer flags
@@ -866,54 +865,55 @@ class DataLogTest(unittest.TestCase):
         # States
         d = prepare_log(myokit.LOG_STATE, m)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 8)
+        self.assertEqual(len(d), 10)
         self.assertIn('membrane.V', d)
         self.assertIn('ina.m', d)
         self.assertIn('ina.h', d)
         self.assertIn('ina.j', d)
-        self.assertIn('ica.d', d)
-        self.assertIn('ica.f', d)
-        self.assertIn('ik.x', d)
-        self.assertIn('ica.Ca_i', d)
+        self.assertIn('is.d', d)
+        self.assertIn('is.f', d)
+        self.assertIn('ix1.x1', d)
+        self.assertIn('calcium.Cai', d)
+        self.assertIn('test.t1', d)
+        self.assertIn('test.t2', d)
         self.assertNotIn('garbage', d)
         self.assertNotIn('engine.time', d)
 
         # Internal variables
         d = prepare_log(myokit.LOG_INTER, m)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertIn('membrane.i_stim', d)
+        self.assertIn('test.inter', d)
+        self.assertIn('test.dx1', d)
         self.assertIn('membrane.i_ion', d)
-        self.assertIn('ina.a', d)
+        self.assertIn('stimulus.i_stim', d)
+        self.assertIn('ik1.IK1', d)
+        self.assertIn('ix1.Ix1', d)
+        self.assertIn('ix1.x1.alpha', d)
+        self.assertIn('ix1.x1.beta', d)
+        self.assertIn('ix1.x1.tau', d)
+        self.assertIn('ix1.x1.inf', d)
+        self.assertIn('ina.INa', d)
         self.assertIn('ina.m.alpha', d)
         self.assertIn('ina.m.beta', d)
         self.assertIn('ina.h.alpha', d)
         self.assertIn('ina.h.beta', d)
         self.assertIn('ina.j.alpha', d)
         self.assertIn('ina.j.beta', d)
-        self.assertIn('ina.INa', d)
-        self.assertIn('ik.xi', d)
-        self.assertIn('ik.x.alpha', d)
-        self.assertIn('ik.x.beta', d)
-        self.assertIn('ik.IK', d)
-        self.assertIn('ikp.IKp', d)
-        self.assertIn('ica.E', d)
-        self.assertIn('ica.d.alpha', d)
-        self.assertIn('ica.d.beta', d)
-        self.assertIn('ica.d.beta.va', d)
-        self.assertIn('ica.d.beta.vb', d)
-        self.assertIn('ica.d.beta.vc', d)
-        self.assertIn('ica.d.beta.vc.vd', d)
-        self.assertIn('ica.f.alpha', d)
-        self.assertIn('ica.f.beta', d)
-        self.assertIn('ica.ICa', d)
-        self.assertIn('ica.ICa.nest1', d)
-        self.assertIn('ica.ICa.nest2', d)
-        self.assertIn('ik1.gK1', d)
-        self.assertIn('ik1.gK1.alpha', d)
-        self.assertIn('ik1.gK1.beta', d)
-        self.assertIn('ik1.IK1', d)
-        self.assertIn('ib.Ib', d)
-        self.assertEqual(len(d), 32)
+        self.assertIn('ina.j.va', d)
+        self.assertIn('ina.j.va.vb', d)
+        self.assertIn('ina.j.va.vc', d)
+        self.assertIn('ina.j.va.vc.vd', d)
+        self.assertIn('is.Is', d)
+        self.assertIn('is.Is.g', d)
+        self.assertIn('is.Is.gates', d)
+        self.assertIn('is.Es', d)
+        self.assertIn('is.d.alpha', d)
+        self.assertIn('is.d.beta', d)
+        self.assertIn('is.f.alpha', d)
+        self.assertIn('is.f.beta', d)
+        self.assertIn('is.f.tau', d)
+        self.assertIn('is.f.inf', d)
+        self.assertEqual(len(d), 31)
 
         # Bound variables
         d = prepare_log(myokit.LOG_BOUND, m)
@@ -926,11 +926,11 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(
             len(prepare_log(myokit.LOG_NONE + myokit.LOG_BOUND, m)), 3)
         self.assertEqual(
-            len(prepare_log(myokit.LOG_NONE + myokit.LOG_INTER, m)), 32)
+            len(prepare_log(myokit.LOG_NONE + myokit.LOG_INTER, m)), 31)
         self.assertEqual(
-            len(prepare_log(myokit.LOG_BOUND + myokit.LOG_STATE, m)), 11)
+            len(prepare_log(myokit.LOG_BOUND + myokit.LOG_STATE, m)), 13)
         self.assertEqual(
-            len(prepare_log(myokit.LOG_STATE + myokit.LOG_INTER, m)), 40)
+            len(prepare_log(myokit.LOG_STATE + myokit.LOG_INTER, m)), 41)
 
         #
         # 2. None
@@ -941,7 +941,7 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(len(d), 0)
         d = prepare_log(None, m, if_empty=myokit.LOG_STATE)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 8)
+        self.assertEqual(len(d), 10)
 
         #
         # 3. List of names
@@ -956,86 +956,89 @@ class DataLogTest(unittest.TestCase):
             'ina.m',
             'ina.h',
             'ina.j',
-            'ica.d',
-            'ica.f',
-            'ik.x',
-            'ica.Ca_i',
-            'membrane.i_stim',
-            'membrane.i_ion',
+            'is.d',
+            'is.f',
+            'ix1.x1',
+            'calcium.Cai',
+            'test.t1',
+            'test.t2',
             'membrane.i_diff',
-            'ina.a',
+            'test.inter',
+            'test.dx1',
+            'membrane.i_ion',
+            'stimulus.i_stim',
+            'ik1.IK1',
+            'ix1.Ix1',
+            'ix1.x1.alpha',
+            'ix1.x1.beta',
+            'ix1.x1.tau',
+            'ix1.x1.inf',
+            'ina.INa',
             'ina.m.alpha',
             'ina.m.beta',
             'ina.h.alpha',
             'ina.h.beta',
             'ina.j.alpha',
             'ina.j.beta',
-            'ina.INa',
-            'ik.xi',
-            'ik.x.alpha',
-            'ik.x.beta',
-            'ik.IK',
-            'ikp.IKp',
-            'ica.E',
-            'ica.d.alpha',
-            'ica.d.beta',
-            'ica.d.beta.va',
-            'ica.d.beta.vb',
-            'ica.d.beta.vc',
-            'ica.d.beta.vc.vd',
-            'ica.f.alpha',
-            'ica.f.beta',
-            'ica.ICa',
-            'ica.ICa.nest1',
-            'ica.ICa.nest2',
-            'ik1.gK1',
-            'ik1.gK1.alpha',
-            'ik1.gK1.beta',
-            'ik1.IK1',
-            'ib.Ib',), m)
+            'ina.j.va',
+            'ina.j.va.vb',
+            'ina.j.va.vc',
+            'ina.j.va.vc.vd',
+            'is.Is',
+            'is.Is.g',
+            'is.Is.gates',
+            'is.Es',
+            'is.d.alpha',
+            'is.d.beta',
+            'is.f.alpha',
+            'is.f.beta',
+            'is.f.tau',
+            'is.f.inf',), m)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 32 + 8 + 3)
+        self.assertEqual(len(d), 31 + 10 + 3)
         self.assertIn('engine.time', d)
         self.assertIn('engine.pace', d)
         self.assertIn('membrane.V', d)
         self.assertIn('ina.m', d)
         self.assertIn('ina.h', d)
         self.assertIn('ina.j', d)
-        self.assertIn('ica.d', d)
-        self.assertIn('ica.f', d)
-        self.assertIn('ik.x', d)
-        self.assertIn('ica.Ca_i', d)
-        self.assertIn('membrane.i_stim', d)
-        self.assertIn('ina.a', d)
+        self.assertIn('is.d', d)
+        self.assertIn('is.f', d)
+        self.assertIn('ix1.x1', d)
+        self.assertIn('calcium.Cai', d)
+        self.assertIn('test.t1', d)
+        self.assertIn('test.t2', d)
+        self.assertIn('test.inter', d)
+        self.assertIn('test.dx1', d)
+        self.assertIn('membrane.i_ion', d)
+        self.assertIn('stimulus.i_stim', d)
+        self.assertIn('ik1.IK1', d)
+        self.assertIn('ix1.Ix1', d)
+        self.assertIn('ix1.x1.alpha', d)
+        self.assertIn('ix1.x1.beta', d)
+        self.assertIn('ix1.x1.tau', d)
+        self.assertIn('ix1.x1.inf', d)
+        self.assertIn('ina.INa', d)
         self.assertIn('ina.m.alpha', d)
         self.assertIn('ina.m.beta', d)
         self.assertIn('ina.h.alpha', d)
         self.assertIn('ina.h.beta', d)
         self.assertIn('ina.j.alpha', d)
         self.assertIn('ina.j.beta', d)
-        self.assertIn('ina.INa', d)
-        self.assertIn('ik.xi', d)
-        self.assertIn('ik.x.alpha', d)
-        self.assertIn('ik.x.beta', d)
-        self.assertIn('ik.IK', d)
-        self.assertIn('ikp.IKp', d)
-        self.assertIn('ica.E', d)
-        self.assertIn('ica.d.alpha', d)
-        self.assertIn('ica.d.beta', d)
-        self.assertIn('ica.d.beta.va', d)
-        self.assertIn('ica.d.beta.vb', d)
-        self.assertIn('ica.d.beta.vc', d)
-        self.assertIn('ica.d.beta.vc.vd', d)
-        self.assertIn('ica.f.alpha', d)
-        self.assertIn('ica.f.beta', d)
-        self.assertIn('ica.ICa', d)
-        self.assertIn('ica.ICa.nest1', d)
-        self.assertIn('ica.ICa.nest2', d)
-        self.assertIn('ik1.gK1', d)
-        self.assertIn('ik1.gK1.alpha', d)
-        self.assertIn('ik1.gK1.beta', d)
-        self.assertIn('ik1.IK1', d)
-        self.assertIn('ib.Ib', d)
+        self.assertIn('ina.j.va', d)
+        self.assertIn('ina.j.va.vb', d)
+        self.assertIn('ina.j.va.vc', d)
+        self.assertIn('ina.j.va.vc.vd', d)
+        self.assertIn('is.Is', d)
+        self.assertIn('is.Is.g', d)
+        self.assertIn('is.Is.gates', d)
+        self.assertIn('is.Es', d)
+        self.assertIn('is.d.alpha', d)
+        self.assertIn('is.d.beta', d)
+        self.assertIn('is.f.alpha', d)
+        self.assertIn('is.f.beta', d)
+        self.assertIn('is.f.tau', d)
+        self.assertIn('is.f.inf', d)
 
         # Variables or LhsExpressions in list
         d = prepare_log([m.get('membrane.V')], m)
@@ -1074,7 +1077,7 @@ class DataLogTest(unittest.TestCase):
 
         # Disallowed variable types, and explicitly specified variables
         self.assertRaisesRegex(
-            ValueError, 'support constants', prepare_log, ['cell.Na_o'], m)
+            ValueError, 'support constants', prepare_log, ['cell.Ca_ref'], m)
         self.assertRaisesRegex(
             ValueError, 'support state', prepare_log, ['membrane.V'], m,
             allowed_classes=myokit.LOG_BOUND)
@@ -1156,7 +1159,7 @@ class DataLogTest(unittest.TestCase):
 
         # Test multi-cell log preparing
         from myokit import prepare_log
-        m = myokit.load_model(DIR_DATA / 'lr-1991-testing.mmt')
+        m = myokit.load_model(DIR_DATA / 'beeler-1977-dependencies.mmt')
 
         #
         # 1. Integer flags
@@ -1170,109 +1173,113 @@ class DataLogTest(unittest.TestCase):
         # States
         d = prepare_log(myokit.LOG_STATE, m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 16)
+        self.assertEqual(len(d), 20)
         self.assertIn('0.0.membrane.V', d)
         self.assertIn('0.0.ina.m', d)
         self.assertIn('0.0.ina.h', d)
         self.assertIn('0.0.ina.j', d)
-        self.assertIn('0.0.ica.d', d)
-        self.assertIn('0.0.ica.f', d)
-        self.assertIn('0.0.ik.x', d)
-        self.assertIn('0.0.ica.Ca_i', d)
+        self.assertIn('0.0.is.d', d)
+        self.assertIn('0.0.is.f', d)
+        self.assertIn('0.0.ix1.x1', d)
+        self.assertIn('0.0.calcium.Cai', d)
+        self.assertIn('0.0.test.t1', d)
+        self.assertIn('0.0.test.t2', d)
         self.assertIn('1.0.membrane.V', d)
         self.assertIn('1.0.ina.m', d)
         self.assertIn('1.0.ina.h', d)
         self.assertIn('1.0.ina.j', d)
-        self.assertIn('1.0.ica.d', d)
-        self.assertIn('1.0.ica.f', d)
-        self.assertIn('1.0.ik.x', d)
-        self.assertIn('1.0.ica.Ca_i', d)
+        self.assertIn('1.0.is.d', d)
+        self.assertIn('1.0.is.f', d)
+        self.assertIn('1.0.ix1.x1', d)
+        self.assertIn('1.0.calcium.Cai', d)
+        self.assertIn('1.0.test.t1', d)
+        self.assertIn('1.0.test.t2', d)
         self.assertNotIn('membrane.V', d)
         self.assertNotIn('ina.m', d)
         self.assertNotIn('ina.h', d)
         self.assertNotIn('ina.j', d)
-        self.assertNotIn('ica.d', d)
-        self.assertNotIn('ica.f', d)
-        self.assertNotIn('ik.x', d)
-        self.assertNotIn('ica.Ca_i', d)
+        self.assertNotIn('is.d', d)
+        self.assertNotIn('is.f', d)
+        self.assertNotIn('ix1.x1', d)
+        self.assertNotIn('calcium.Cai', d)
+        self.assertNotIn('test.t1', d)
+        self.assertNotIn('test.t2', d)
         self.assertNotIn('garbage', d)
         self.assertNotIn('engine.time', d)
         d = prepare_log(myokit.LOG_STATE, m, (2, 2))
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 32)
+        self.assertEqual(len(d), 40)
         d = prepare_log(myokit.LOG_STATE, m, (4, 2))
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 64)
+        self.assertEqual(len(d), 80)
 
         # Internal variables
         d = prepare_log(myokit.LOG_INTER, m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
 
-        #self.assertEqual(len(d), 64)
-        self.assertIn('0.0.membrane.i_stim', d)
+        #self.assertEqual(len(d), 62)
+        self.assertIn('0.0.test.inter', d)
+        self.assertIn('0.0.test.dx1', d)
         self.assertIn('0.0.membrane.i_ion', d)
-        self.assertIn('0.0.ina.a', d)
+        self.assertIn('0.0.stimulus.i_stim', d)
+        self.assertIn('0.0.ik1.IK1', d)
+        self.assertIn('0.0.ix1.Ix1', d)
+        self.assertIn('0.0.ix1.x1.alpha', d)
+        self.assertIn('0.0.ix1.x1.beta', d)
+        self.assertIn('0.0.ix1.x1.tau', d)
+        self.assertIn('0.0.ix1.x1.inf', d)
+        self.assertIn('0.0.ina.INa', d)
         self.assertIn('0.0.ina.m.alpha', d)
         self.assertIn('0.0.ina.m.beta', d)
         self.assertIn('0.0.ina.h.alpha', d)
         self.assertIn('0.0.ina.h.beta', d)
         self.assertIn('0.0.ina.j.alpha', d)
         self.assertIn('0.0.ina.j.beta', d)
-        self.assertIn('0.0.ina.INa', d)
-        self.assertIn('0.0.ik.xi', d)
-        self.assertIn('0.0.ik.x.alpha', d)
-        self.assertIn('0.0.ik.x.beta', d)
-        self.assertIn('0.0.ik.IK', d)
-        self.assertIn('0.0.ikp.IKp', d)
-        self.assertIn('0.0.ica.E', d)
-        self.assertIn('0.0.ica.d.alpha', d)
-        self.assertIn('0.0.ica.d.beta', d)
-        self.assertIn('0.0.ica.d.beta.va', d)
-        self.assertIn('0.0.ica.d.beta.vb', d)
-        self.assertIn('0.0.ica.d.beta.vc', d)
-        self.assertIn('0.0.ica.d.beta.vc.vd', d)
-        self.assertIn('0.0.ica.f.alpha', d)
-        self.assertIn('0.0.ica.f.beta', d)
-        self.assertIn('0.0.ica.ICa', d)
-        self.assertIn('0.0.ica.ICa.nest1', d)
-        self.assertIn('0.0.ica.ICa.nest2', d)
-        self.assertIn('0.0.ik1.gK1', d)
-        self.assertIn('0.0.ik1.gK1.alpha', d)
-        self.assertIn('0.0.ik1.gK1.beta', d)
-        self.assertIn('0.0.ik1.IK1', d)
-        self.assertIn('0.0.ib.Ib', d)
-        self.assertIn('1.0.membrane.i_stim', d)
+        self.assertIn('0.0.ina.j.va', d)
+        self.assertIn('0.0.ina.j.va.vb', d)
+        self.assertIn('0.0.ina.j.va.vc', d)
+        self.assertIn('0.0.ina.j.va.vc.vd', d)
+        self.assertIn('0.0.is.Is', d)
+        self.assertIn('0.0.is.Is.g', d)
+        self.assertIn('0.0.is.Is.gates', d)
+        self.assertIn('0.0.is.Es', d)
+        self.assertIn('0.0.is.d.alpha', d)
+        self.assertIn('0.0.is.d.beta', d)
+        self.assertIn('0.0.is.f.alpha', d)
+        self.assertIn('0.0.is.f.beta', d)
+        self.assertIn('0.0.is.f.tau', d)
+        self.assertIn('0.0.is.f.inf', d)
+        self.assertIn('1.0.test.inter', d)
+        self.assertIn('1.0.test.dx1', d)
         self.assertIn('1.0.membrane.i_ion', d)
-        self.assertIn('1.0.ina.a', d)
+        self.assertIn('1.0.stimulus.i_stim', d)
+        self.assertIn('1.0.ik1.IK1', d)
+        self.assertIn('1.0.ix1.Ix1', d)
+        self.assertIn('1.0.ix1.x1.alpha', d)
+        self.assertIn('1.0.ix1.x1.beta', d)
+        self.assertIn('1.0.ix1.x1.tau', d)
+        self.assertIn('1.0.ix1.x1.inf', d)
+        self.assertIn('1.0.ina.INa', d)
         self.assertIn('1.0.ina.m.alpha', d)
         self.assertIn('1.0.ina.m.beta', d)
         self.assertIn('1.0.ina.h.alpha', d)
         self.assertIn('1.0.ina.h.beta', d)
         self.assertIn('1.0.ina.j.alpha', d)
         self.assertIn('1.0.ina.j.beta', d)
-        self.assertIn('1.0.ina.INa', d)
-        self.assertIn('1.0.ik.xi', d)
-        self.assertIn('1.0.ik.x.alpha', d)
-        self.assertIn('1.0.ik.x.beta', d)
-        self.assertIn('1.0.ik.IK', d)
-        self.assertIn('1.0.ikp.IKp', d)
-        self.assertIn('1.0.ica.E', d)
-        self.assertIn('1.0.ica.d.alpha', d)
-        self.assertIn('1.0.ica.d.beta', d)
-        self.assertIn('1.0.ica.d.beta.va', d)
-        self.assertIn('1.0.ica.d.beta.vb', d)
-        self.assertIn('1.0.ica.d.beta.vc', d)
-        self.assertIn('1.0.ica.d.beta.vc.vd', d)
-        self.assertIn('1.0.ica.f.alpha', d)
-        self.assertIn('1.0.ica.f.beta', d)
-        self.assertIn('1.0.ica.ICa', d)
-        self.assertIn('1.0.ica.ICa.nest1', d)
-        self.assertIn('1.0.ica.ICa.nest2', d)
-        self.assertIn('1.0.ik1.gK1', d)
-        self.assertIn('1.0.ik1.gK1.alpha', d)
-        self.assertIn('1.0.ik1.gK1.beta', d)
-        self.assertIn('1.0.ik1.IK1', d)
-        self.assertIn('1.0.ib.Ib', d)
+        self.assertIn('1.0.ina.j.va', d)
+        self.assertIn('1.0.ina.j.va.vb', d)
+        self.assertIn('1.0.ina.j.va.vc', d)
+        self.assertIn('1.0.ina.j.va.vc.vd', d)
+        self.assertIn('1.0.is.Is', d)
+        self.assertIn('1.0.is.Is.g', d)
+        self.assertIn('1.0.is.Is.gates', d)
+        self.assertIn('1.0.is.Es', d)
+        self.assertIn('1.0.is.d.alpha', d)
+        self.assertIn('1.0.is.d.beta', d)
+        self.assertIn('1.0.is.f.alpha', d)
+        self.assertIn('1.0.is.f.beta', d)
+        self.assertIn('1.0.is.f.tau', d)
+        self.assertIn('1.0.is.f.inf', d)
 
         # Bound variables
         d = prepare_log(myokit.LOG_BOUND, m, (2, 1))
@@ -1290,13 +1297,13 @@ class DataLogTest(unittest.TestCase):
                 m, (2, 1))), 6)
         self.assertEqual(
             len(prepare_log(myokit.LOG_NONE + myokit.LOG_INTER,
-                m, (2, 1))), 64)
+                m, (2, 1))), 62)
         self.assertEqual(
             len(prepare_log(myokit.LOG_BOUND + myokit.LOG_STATE,
-                m, (2, 1))), 22)
+                m, (2, 1))), 26)
         self.assertEqual(
             len(prepare_log(myokit.LOG_STATE + myokit.LOG_INTER,
-                m, (2, 1))), 80)
+                m, (2, 1))), 82)
 
         #
         # 1A. Globals and locals
@@ -1309,19 +1316,19 @@ class DataLogTest(unittest.TestCase):
         # States
         d = prepare_log(myokit.LOG_STATE, m, (2, 1), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 16)
+        self.assertEqual(len(d), 20)
         self.assertNotIn('engine.time', d)
         d = prepare_log(myokit.LOG_STATE, m, (2, 2), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 32)
+        self.assertEqual(len(d), 40)
         d = prepare_log(myokit.LOG_STATE, m, (4, 2), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 64)
+        self.assertEqual(len(d), 80)
 
         # Internal variables
         d = prepare_log(myokit.LOG_INTER, m, (2, 1), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 64)
+        self.assertEqual(len(d), 62)
 
         # Bound variables
         d = prepare_log(myokit.LOG_BOUND, m, (2, 1), global_vars=g)
@@ -1338,13 +1345,13 @@ class DataLogTest(unittest.TestCase):
                 global_vars=g)), 5)
         self.assertEqual(
             len(prepare_log(myokit.LOG_NONE + myokit.LOG_INTER, m, (2, 1),
-                global_vars=g)), 64)
+                global_vars=g)), 62)
         self.assertEqual(
             len(prepare_log(myokit.LOG_BOUND + myokit.LOG_STATE, m, (2, 1),
-                global_vars=g)), 21)
+                global_vars=g)), 25)
         self.assertEqual(
             len(prepare_log(myokit.LOG_STATE + myokit.LOG_INTER, m, (2, 1),
-                global_vars=g)), 80)
+                global_vars=g)), 82)
 
         # Global intermediary variable
         m2 = m.clone()
@@ -1362,7 +1369,7 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(len(d), 0)
         d = prepare_log(None, m, (2, 1), if_empty=myokit.LOG_STATE)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 16)
+        self.assertEqual(len(d), 20)
 
         #
         # 2B. Globals and locals
@@ -1374,7 +1381,7 @@ class DataLogTest(unittest.TestCase):
         d = prepare_log(
             None, m, (2, 1), if_empty=myokit.LOG_STATE, global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 16)
+        self.assertEqual(len(d), 20)
 
         #
         # 3. List of names
@@ -1389,126 +1396,132 @@ class DataLogTest(unittest.TestCase):
             'ina.m',
             'ina.h',
             'ina.j',
-            'ica.d',
-            'ica.f',
-            'ik.x',
-            'ica.Ca_i',
-            'membrane.i_stim',
-            'ina.a',
+            'is.d',
+            'is.f',
+            'ix1.x1',
+            'calcium.Cai',
+            'test.t1',
+            'test.t2',
+            'test.inter',
+            'test.dx1',
+            'membrane.i_ion',
+            'stimulus.i_stim',
+            'ik1.IK1',
+            'ix1.Ix1',
+            'ix1.x1.alpha',
+            'ix1.x1.beta',
+            'ix1.x1.tau',
+            'ix1.x1.inf',
+            'ina.INa',
             'ina.m.alpha',
             'ina.m.beta',
             'ina.h.alpha',
             'ina.h.beta',
             'ina.j.alpha',
             'ina.j.beta',
-            'ina.INa',
-            'ik.xi',
-            'ik.x.alpha',
-            'ik.x.beta',
-            'ik.IK',
-            'ikp.IKp',
-            'ica.E',
-            'ica.d.alpha',
-            'ica.d.beta',
-            'ica.d.beta.va',
-            'ica.d.beta.vb',
-            'ica.d.beta.vc',
-            'ica.d.beta.vc.vd',
-            'ica.f.alpha',
-            'ica.f.beta',
-            'ica.ICa',
-            'ica.ICa.nest1',
-            'ica.ICa.nest2',
-            'ik1.gK1',
-            'ik1.gK1.alpha',
-            'ik1.gK1.beta',
-            'ik1.IK1',
-            'ib.Ib',
+            'ina.j.va',
+            'ina.j.va.vb',
+            'ina.j.va.vc',
+            'ina.j.va.vc.vd',
+            'is.Is',
+            'is.Is.g',
+            'is.Is.gates',
+            'is.Es',
+            'is.d.alpha',
+            'is.d.beta',
+            'is.f.alpha',
+            'is.f.beta',
+            'is.f.tau',
+            'is.f.inf',
         ), m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 2 * (31 + 8 + 2))
+        self.assertEqual(len(d), 2 * (31 + 10 + 2))
         self.assertIn('0.0.engine.time', d)
         self.assertIn('0.0.engine.pace', d)
         self.assertIn('0.0.membrane.V', d)
         self.assertIn('0.0.ina.m', d)
         self.assertIn('0.0.ina.h', d)
         self.assertIn('0.0.ina.j', d)
-        self.assertIn('0.0.ica.d', d)
-        self.assertIn('0.0.ica.f', d)
-        self.assertIn('0.0.ik.x', d)
-        self.assertIn('0.0.ica.Ca_i', d)
-        self.assertIn('0.0.membrane.i_stim', d)
-        self.assertIn('0.0.ina.a', d)
+        self.assertIn('0.0.is.d', d)
+        self.assertIn('0.0.is.f', d)
+        self.assertIn('0.0.ix1.x1', d)
+        self.assertIn('0.0.calcium.Cai', d)
+        self.assertIn('0.0.test.t1', d)
+        self.assertIn('0.0.test.t2', d)
+        self.assertIn('0.0.test.inter', d)
+        self.assertIn('0.0.test.dx1', d)
+        self.assertIn('0.0.membrane.i_ion', d)
+        self.assertIn('0.0.stimulus.i_stim', d)
+        self.assertIn('0.0.ik1.IK1', d)
+        self.assertIn('0.0.ix1.Ix1', d)
+        self.assertIn('0.0.ix1.x1.alpha', d)
+        self.assertIn('0.0.ix1.x1.beta', d)
+        self.assertIn('0.0.ix1.x1.tau', d)
+        self.assertIn('0.0.ix1.x1.inf', d)
+        self.assertIn('0.0.ina.INa', d)
         self.assertIn('0.0.ina.m.alpha', d)
         self.assertIn('0.0.ina.m.beta', d)
         self.assertIn('0.0.ina.h.alpha', d)
         self.assertIn('0.0.ina.h.beta', d)
         self.assertIn('0.0.ina.j.alpha', d)
         self.assertIn('0.0.ina.j.beta', d)
-        self.assertIn('0.0.ina.INa', d)
-        self.assertIn('0.0.ik.xi', d)
-        self.assertIn('0.0.ik.x.alpha', d)
-        self.assertIn('0.0.ik.x.beta', d)
-        self.assertIn('0.0.ik.IK', d)
-        self.assertIn('0.0.ikp.IKp', d)
-        self.assertIn('0.0.ica.E', d)
-        self.assertIn('0.0.ica.d.alpha', d)
-        self.assertIn('0.0.ica.d.beta', d)
-        self.assertIn('0.0.ica.d.beta.va', d)
-        self.assertIn('0.0.ica.d.beta.vb', d)
-        self.assertIn('0.0.ica.d.beta.vc', d)
-        self.assertIn('0.0.ica.d.beta.vc.vd', d)
-        self.assertIn('0.0.ica.f.alpha', d)
-        self.assertIn('0.0.ica.f.beta', d)
-        self.assertIn('0.0.ica.ICa', d)
-        self.assertIn('0.0.ica.ICa.nest1', d)
-        self.assertIn('0.0.ica.ICa.nest2', d)
-        self.assertIn('0.0.ik1.gK1', d)
-        self.assertIn('0.0.ik1.gK1.alpha', d)
-        self.assertIn('0.0.ik1.gK1.beta', d)
-        self.assertIn('0.0.ik1.IK1', d)
-        self.assertIn('0.0.ib.Ib', d)
+        self.assertIn('0.0.ina.j.va', d)
+        self.assertIn('0.0.ina.j.va.vb', d)
+        self.assertIn('0.0.ina.j.va.vc', d)
+        self.assertIn('0.0.ina.j.va.vc.vd', d)
+        self.assertIn('0.0.is.Is', d)
+        self.assertIn('0.0.is.Is.g', d)
+        self.assertIn('0.0.is.Is.gates', d)
+        self.assertIn('0.0.is.Es', d)
+        self.assertIn('0.0.is.d.alpha', d)
+        self.assertIn('0.0.is.d.beta', d)
+        self.assertIn('0.0.is.f.alpha', d)
+        self.assertIn('0.0.is.f.beta', d)
+        self.assertIn('0.0.is.f.tau', d)
+        self.assertIn('0.0.is.f.inf', d)
         self.assertIn('1.0.engine.time', d)
         self.assertIn('1.0.engine.pace', d)
         self.assertIn('1.0.membrane.V', d)
         self.assertIn('1.0.ina.m', d)
         self.assertIn('1.0.ina.h', d)
         self.assertIn('1.0.ina.j', d)
-        self.assertIn('1.0.ica.d', d)
-        self.assertIn('1.0.ica.f', d)
-        self.assertIn('1.0.ik.x', d)
-        self.assertIn('1.0.ica.Ca_i', d)
-        self.assertIn('1.0.membrane.i_stim', d)
-        self.assertIn('1.0.ina.a', d)
+        self.assertIn('1.0.is.d', d)
+        self.assertIn('1.0.is.f', d)
+        self.assertIn('1.0.ix1.x1', d)
+        self.assertIn('1.0.calcium.Cai', d)
+        self.assertIn('1.0.test.t1', d)
+        self.assertIn('1.0.test.t2', d)
+        self.assertIn('1.0.test.inter', d)
+        self.assertIn('1.0.test.dx1', d)
+        self.assertIn('1.0.membrane.i_ion', d)
+        self.assertIn('1.0.stimulus.i_stim', d)
+        self.assertIn('1.0.ik1.IK1', d)
+        self.assertIn('1.0.ix1.Ix1', d)
+        self.assertIn('1.0.ix1.x1.alpha', d)
+        self.assertIn('1.0.ix1.x1.beta', d)
+        self.assertIn('1.0.ix1.x1.tau', d)
+        self.assertIn('1.0.ix1.x1.inf', d)
+        self.assertIn('1.0.ina.INa', d)
         self.assertIn('1.0.ina.m.alpha', d)
         self.assertIn('1.0.ina.m.beta', d)
         self.assertIn('1.0.ina.h.alpha', d)
         self.assertIn('1.0.ina.h.beta', d)
         self.assertIn('1.0.ina.j.alpha', d)
         self.assertIn('1.0.ina.j.beta', d)
-        self.assertIn('1.0.ina.INa', d)
-        self.assertIn('1.0.ik.xi', d)
-        self.assertIn('1.0.ik.x.alpha', d)
-        self.assertIn('1.0.ik.x.beta', d)
-        self.assertIn('1.0.ik.IK', d)
-        self.assertIn('1.0.ikp.IKp', d)
-        self.assertIn('1.0.ica.E', d)
-        self.assertIn('1.0.ica.d.alpha', d)
-        self.assertIn('1.0.ica.d.beta', d)
-        self.assertIn('1.0.ica.d.beta.va', d)
-        self.assertIn('1.0.ica.d.beta.vb', d)
-        self.assertIn('1.0.ica.d.beta.vc', d)
-        self.assertIn('1.0.ica.d.beta.vc.vd', d)
-        self.assertIn('1.0.ica.f.alpha', d)
-        self.assertIn('1.0.ica.f.beta', d)
-        self.assertIn('1.0.ica.ICa', d)
-        self.assertIn('1.0.ica.ICa.nest1', d)
-        self.assertIn('1.0.ica.ICa.nest2', d)
-        self.assertIn('1.0.ik1.gK1', d)
-        self.assertIn('1.0.ik1.gK1.alpha', d)
-        self.assertIn('1.0.ik1.gK1.beta', d)
-        self.assertIn('1.0.ik1.IK1', d)
-        self.assertIn('1.0.ib.Ib', d)
+        self.assertIn('1.0.ina.j.va', d)
+        self.assertIn('1.0.ina.j.va.vb', d)
+        self.assertIn('1.0.ina.j.va.vc', d)
+        self.assertIn('1.0.ina.j.va.vc.vd', d)
+        self.assertIn('1.0.is.Is', d)
+        self.assertIn('1.0.is.Is.g', d)
+        self.assertIn('1.0.is.Is.gates', d)
+        self.assertIn('1.0.is.Es', d)
+        self.assertIn('1.0.is.d.alpha', d)
+        self.assertIn('1.0.is.d.beta', d)
+        self.assertIn('1.0.is.f.alpha', d)
+        self.assertIn('1.0.is.f.beta', d)
+        self.assertIn('1.0.is.f.tau', d)
+        self.assertIn('1.0.is.f.inf', d)
 
         #
         # 3B. Globals and local

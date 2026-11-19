@@ -353,9 +353,11 @@ class ModelTest(unittest.TestCase):
         a.set_rhs('1 [N]')
         a.set_label('aaa')
         b.set_rhs('2 [m]')
+        b.meta['desc'] = 'This is b'
         b.set_binding('bbb')
         c.set_rhs('a * b')
         c.set_unit('N*m')
+        c.meta['desc'] = 'This...\nis c'
         component2 = model.add_component('comp2')
         d = component2.add_variable('d')
         d.set_rhs(myokit.Name(a))
@@ -367,14 +369,20 @@ class ModelTest(unittest.TestCase):
             '\n'
             '[comp1]\n'
             'a = 1 [N] label aaa\n'
-            'b = 2 [m] bind bbb\n'
+            'b = 2 [m] bind bbb : This is b\n'
             'c = a * b\n'
             '    in [J]\n'
+            '    desc: """\n'
+            '        This...\n'
+            '        is c\n'
+            '        """\n'
             '\n'
             '[comp2]\n'
             'd = comp1.a\n'
             '\n'
         )
+        del b.meta['desc']
+        del c.meta['desc']
 
         a.set_rhs('1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11')
         b.set_rhs('2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12')
@@ -593,7 +601,7 @@ class ModelTest(unittest.TestCase):
         # These will be evaluated (the method handles states, not initial state
         # expressions).
         m.get('ina.m').set_initial_value('sqrt(4) * 3')
-        m.get('ina.h').set_initial_value('ina.gNaBar / 10')
+        m.get('ina.h').set_initial_value('ina.gNa / 10')
         self.assertEqual(
             m.format_state(),
             'membrane.V  = -84.35\n'
@@ -718,7 +726,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with expressions in the initial state (these will be evaluated)
         m.get('ina.m').set_initial_value('sqrt(0.25)')
-        m.get('ina.h').set_initial_value('ina.gNaBar / 20')
+        m.get('ina.h').set_initial_value('ina.gNa / 20')
         x = m.format_state_derivatives().splitlines()
         y = [
 'membrane.V  = -84.35                     dot =  1.30298416793347105e+01',
@@ -2142,9 +2150,9 @@ ina.x = 3 * ina.ENa
         e = m.show_evaluation_of('ina.m')
         self.assertIn('Initial value = 1 / sqrt(4)', e)
         self.assertEqual(len(e.splitlines()), 16)
-        m.get('ina.m').set_initial_value('1 / sqrt(ina.gNaBar)')
+        m.get('ina.m').set_initial_value('1 / sqrt(ina.gNa)')
         e = m.show_evaluation_of('ina.m')
-        self.assertIn('Initial value = 1 / sqrt(ina.gNaBar)', e)
+        self.assertIn('Initial value = 1 / sqrt(ina.gNa)', e)
         self.assertIn('              = 0.5\n', e)
 
         # Test with nothing similar
@@ -2152,7 +2160,7 @@ ina.x = 3 * ina.ENa
         c  = m.add_component('c')
         c.add_variable('t', rhs=0, binding='time')
         e = m.show_evaluation_of('Hello')
-        self.assertIn('Variable not found, assuming <c.t>', e)
+        self.assertIn('Variable not found, assuming "c.t"', e)
 
     def test_show_expressions_for(self):
         # Test :meth:`Model.show_expressions_for(variable)`.
@@ -2177,9 +2185,9 @@ ina.x = 3 * ina.ENa
             '------------------------------------------------------------\n'
             'Expressions for ina.INa:\n'
             '  ina.ENa = 50 [mV]\n'
-            '  ina.gNaBar = 4 [mS/cm^2]\n'
+            '  ina.gNa = 4 [mS/cm^2]\n'
             '  ina.gNaC = 0.003 [mS/cm^2]\n'
-            '  ina.INa = (ina.gNaBar * ina.m^3 * ina.h * ina.j + ina.gNaC)'
+            '  ina.INa = (ina.gNa * ina.m^3 * ina.h * ina.j + ina.gNaC)'
             ' * (membrane.V - ina.ENa)')
         self.assertEqual(e, x)
 
@@ -2190,7 +2198,7 @@ ina.x = 3 * ina.ENa
         m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')
         v = m.get('ina.INa')
         e = m.show_line_of(v)
-        self.assertIn('Defined on line 101', e)
+        self.assertIn('Defined on line 105', e)
         self.assertIn('Intermediary variable', e)
         self.assertEqual(len(e.splitlines()), 3)
 
@@ -2203,7 +2211,7 @@ ina.x = 3 * ina.ENa
         self.assertEqual(len(e.splitlines()), 2)
 
         # 'raw' version
-        self.assertEqual(m.show_line_of(v, raw=True), 101)
+        self.assertEqual(m.show_line_of(v, raw=True), 105)
         self.assertIsNone(m2.show_line_of(v2, raw=True))
 
     def test_str(self):

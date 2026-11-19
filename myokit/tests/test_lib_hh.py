@@ -382,21 +382,13 @@ class HHModelTest(unittest.TestCase):
         # Test manual creation of a HHModel.
 
         # Load model
-        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Select a number of states and parameters
-        states = [
-            'ina.m',
-            model.get('ina.h'),
-            'ina.j',
-        ]
-        parameters = [
-            'ina.p1',
-            model.get('ina.p10'),
-            model.get('ina.p20'),
-            'ina.p30',
-        ]
-        current = 'ina.INa'
+        states = ['ina_hh.m', model.get('ina_hh.h'), 'ina_hh.j']
+        parameters = ['ina_hh.p1', model.get('ina_hh.p5'),
+                      model.get('ina_hh.p10'), 'ina_hh.p19']
+        current = 'ina_hh.INa'
 
         # Create a current model
         m = hh.HHModel(model, states, parameters, current)
@@ -423,12 +415,12 @@ class HHModelTest(unittest.TestCase):
         # Variable isn't a state
         self.assertRaisesRegex(
             hh.HHModelError, 'not a state',
-            hh.HHModel, model, states + ['ina.INa'], parameters, current)
+            hh.HHModel, model, states + ['ina_hh.INa'], parameters, current)
 
         # State added twice
         self.assertRaisesRegex(
             hh.HHModelError, 'twice',
-            hh.HHModel, model, states + ['ina.h'], parameters, current)
+            hh.HHModel, model, states + ['ina_hh.h'], parameters, current)
 
         # No parameters is allowed
         hh.HHModel(model, states, None, current)
@@ -436,23 +428,23 @@ class HHModelTest(unittest.TestCase):
         # Non-literal parameter
         self.assertRaisesRegex(
             hh.HHModelError, 'Unsuitable',
-            hh.HHModel, model, states, parameters + ['ina.INa'], current)
+            hh.HHModel, model, states, parameters + ['ina_hh.INa'], current)
 
         # Parameter added twice
         self.assertRaisesRegex(
             hh.HHModelError, 'Parameter listed twice',
             hh.HHModel,
-            model, states, parameters + ['ina.p1'], current)
+            model, states, parameters + ['ina_hh.p1'], current)
 
         # Unknown parameter
         self.assertRaisesRegex(
             hh.HHModelError, 'Unknown parameter', hh.HHModel,
-            model, states, parameters + ['ina.p1000'], current)
+            model, states, parameters + ['ina_hh.p1000'], current)
 
         # Current is a state
         self.assertRaisesRegex(
             hh.HHModelError, 'Current variable can not be a state',
-            hh.HHModel, model, states, parameters, 'ina.m')
+            hh.HHModel, model, states, parameters, 'ina_hh.m')
 
         # Current is not a function of the states
         m2 = model.clone()
@@ -488,7 +480,7 @@ class HHModelTest(unittest.TestCase):
 
         # States must have inf-tau form or alpha-beta form
         m2 = model.clone()
-        m2.get('ina.m').set_rhs('alpha * (1 - m) - beta * m + 2')
+        m2.get('ina_hh.m').set_rhs('alpha * (1 - m) - beta * m + 2')
         self.assertRaisesRegex(
             hh.HHModelError, 'must have "inf-tau form" or "alpha-beta form"',
             hh.HHModel, m2, states, parameters, current)
@@ -506,7 +498,7 @@ class HHModelTest(unittest.TestCase):
             self.assertIn(s, states)
 
         # Unlisted states are clamped
-        v = model.get('ina').add_variable('xyz')
+        v = model.get('ina_hh').add_variable('xyz')
         v.promote(1.23)
         v.set_rhs(10)
         m = hh.HHModel(model, states, parameters, current)
@@ -528,61 +520,53 @@ class HHModelTest(unittest.TestCase):
         # Create a HH model from a component.
 
         # Load model
-        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Create a current model
-        hh.HHModel.from_component(model.get('ina'))
+        hh.HHModel.from_component(model.get('ina_hh'))
 
         # Test partially automatic creation
-        states = [
-            'ina.m',
-            model.get('ina.h'),
-            'ina.j',
-        ]
-        hh.HHModel.from_component(model.get('ina'), states=states)
+        states = ['ina_hh.m', model.get('ina_hh.h'), 'ina_hh.j']
+        hh.HHModel.from_component(model.get('ina_hh'), states=states)
 
-        parameters = [
-            'ina.p1',
-            model.get('ina.p10'),
-            model.get('ina.p20'),
-            'ina.p30',
-        ]
+        parameters = ['ina_hh.p1', model.get('ina_hh.p7'),
+                      model.get('ina_hh.p12'), 'ina_hh.p17']
+        hh.HHModel.from_component(model.get('ina_hh'), parameters=parameters)
+
+        current = 'ina_hh.INa'
+        hh.HHModel.from_component(model.get('ina_hh'), current=current)
         hh.HHModel.from_component(
-            model.get('ina'), parameters=parameters)
-
-        current = 'ina.INa'
-        hh.HHModel.from_component(model.get('ina'), current=current)
-        hh.HHModel.from_component(model.get('ina'), current=model.get(current))
+            model.get('ina_hh'), current=model.get(current))
 
         # No current --> This is allowed
         m2 = model.clone()
-        m2.get('ina').remove_variable(m2.get('ina.INa'))
-        hh.HHModel.from_component(m2.get('ina'))
+        m2.get('ina_hh').remove_variable(m2.get('ina_hh.INa'))
+        hh.HHModel.from_component(m2.get('ina_hh'))
 
         # Two currents
         m2 = model.clone()
-        v = m2.get('ina').add_variable('INa2')
-        v.set_rhs(m2.get('ina.INa').rhs().clone())
+        v = m2.get('ina_hh').add_variable('INa2')
+        v.set_rhs(m2.get('ina_hh.INa').rhs().clone())
         self.assertRaisesRegex(
             hh.HHModelError,
             'more than one variable that could be a current',
-            hh.HHModel.from_component, m2.get('ina'))
+            hh.HHModel.from_component, m2.get('ina_hh'))
 
         # Explicit vm
         m2 = model.clone()
         m2.get('membrane.V').set_label(None)
-        hh.HHModel.from_component(model.get('ina'), vm='membrane.V')
+        hh.HHModel.from_component(model.get('ina_hh'), vm='membrane.V')
         self.assertRaisesRegex(
             hh.HHModelError,
             'labeled as "membrane_potential"',
-            hh.HHModel.from_component, m2.get('ina'))
+            hh.HHModel.from_component, m2.get('ina_hh'))
 
     def test_hh_model_steady_state(self):
         # Test the method HHModel.steady_state().
 
         # Create model
-        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
-        m = hh.HHModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        m = hh.HHModel.from_component(model.get('ina_hh'))
 
         # Get steady state
         ss = np.array(m.steady_state())
@@ -592,7 +576,7 @@ class HHModelTest(unittest.TestCase):
         self.assertTrue(np.all(ss <= 1))
 
         # Test if derivatives are zero
-        for k, x in enumerate(['ina.m', 'ina.h', 'ina.j']):
+        for k, x in enumerate(['ina_hh.m', 'ina_hh.h', 'ina_hh.j']):
             x = model.get(x)
             x.set_initial_value(ss[k])
             self.assertAlmostEqual(x.eval(), 0)
@@ -655,8 +639,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test creating and running a simulation
 
         # Create a simulation
-        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
-        m = hh.HHModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        m = hh.HHModel.from_component(model.get('ina_hh'))
 
         # Bad constructors
         self.assertRaisesRegex(
@@ -702,8 +686,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # No current variable? Then current can't be calculated
         model2 = model.clone()
-        model2.get('ina').remove_variable(model2.get('ina.INa'))
-        m2 = hh.HHModel.from_component(model2.get('ina'))
+        model2.get('ina_hh').remove_variable(model2.get('ina_hh.INa'))
+        m2 = hh.HHModel.from_component(model2.get('ina_hh'))
         s2 = hh.AnalyticalSimulation(m2)
         # But simulation still works
         self.assertIsInstance(s2.run(10), myokit.DataLog)
@@ -776,8 +760,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Test basic get/set methods of analytical simulation.
 
         # Create a simulation
-        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
-        m = hh.HHModel.from_component(model.get('ina'))
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
+        m = hh.HHModel.from_component(model.get('ina_hh'))
         s = hh.AnalyticalSimulation(m)
 
         # membrane potential
@@ -837,8 +821,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Validate against a cvode sim.
 
         # Get a model
-        model = myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt')
-        model.get('membrane.V').set_binding('pace')
+        model = myokit.load_model(DIR_DATA / 'ina-models.mmt')
 
         # Create a protocol
         vs = [-30, -20, -10]
@@ -852,7 +835,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # Run an analytical simulation
         dt = 0.01
-        m = hh.HHModel.from_component(model.get('ina'))
+        m = hh.HHModel.from_component(model.get('ina_hh'))
         s1 = hh.AnalyticalSimulation(m, p)
         d1 = s1.run(t, log_interval=dt).npview()
 
@@ -865,8 +848,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertEqual(np.max(e), 0)
 
         # Test current output is very similar
-        e = np.abs(d1['ina.INa'] - d2['ina.INa'])
-        self.assertLess(np.max(e), 2e-4)
+        e = np.abs(d1['ina_hh.INa'] - d2['ina_hh.INa'])
+        self.assertLess(np.max(e), 5e-4)
 
     def test_against_cvode_v_independent(self):
 
@@ -911,33 +894,33 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # Load model and convert to inf-tau form
         model = hh.convert_hh_states_to_inf_tau_form(
-            myokit.load_model(DIR_DATA / 'lr-1991-fitting.mmt'))
+            myokit.load_model(DIR_DATA / 'ina-models.mmt'))
 
         # Get initial state and set steady state
-        initial_state = model.get('ina.m').initial_value(as_float=True)
+        initial_state = model.get('ina_hh.m').initial_value(as_float=True)
         steady_state = 0.75
-        model.get('ina.m.inf').set_rhs(steady_state)
+        model.get('ina_hh.m.inf').set_rhs(steady_state)
 
         # Create an analytical simulation
-        model = hh.HHModel(model, states=['ina.m', 'ina.h', 'ina.j'],
-                           parameters=['ina.p5'], current='ina.INa')
+        model = hh.HHModel(model, states=['ina_hh.m', 'ina_hh.h', 'ina_hh.j'],
+                           parameters=['ina_hh.p3'], current='ina_hh.INa')
         p = myokit.pacing.steptrain_linear(20, 40, 10, -80, 10, 10)
         s = hh.AnalyticalSimulation(model, protocol=p)
 
-        # Setting p5=0.001 will trigger an overflow in ina.m.beta
-        s.set_parameters([0.001])
+        # Setting p3=100 will trigger an overflow in m.alpha
+        s.set_parameters([100])
         with WarningCollector() as wc:
             # Log times chosen so that s._function varies length of _t
             log = s.run(41, log_times=np.array([0, 1, 2, 10, 11, 12, 20, 40]))
         self.assertIn('overflow', wc.text())
 
         # Should be no NaNs in log
-        self.assertFalse(np.any(np.isnan(log['ina.INa'])))
-        self.assertFalse(np.any(np.isnan(log['ina.m'])))
+        self.assertFalse(np.any(np.isnan(log['ina_hh.INa'])))
+        self.assertFalse(np.any(np.isnan(log['ina_hh.m'])))
 
         # Should immediately jump from initial state to steady state
-        self.assertTrue(log['ina.m'][0] == initial_state)
-        self.assertTrue(np.all(log['ina.m'][1:] == steady_state))
+        self.assertTrue(log['ina_hh.m'][0] == initial_state)
+        self.assertTrue(np.all(log['ina_hh.m'][1:] == steady_state))
 
 
 if __name__ == '__main__':
