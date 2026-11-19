@@ -112,7 +112,6 @@ exclude = [
 source = ["myokit"]
 omit = [
     "myokit/gui/*",
-    "myokit/tests/*",
     "myokit/__main__.py",
     "myokit/formats/heka/*",
 ]
