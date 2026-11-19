@@ -1,6 +1,7 @@
 # Ignore development files
 dev
 build
+dist
 
 # Ignore compiled .pyc files
 *.pyc

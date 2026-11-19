@@ -1,0 +1,152 @@
+Myokit uses third-party libraries or other resources that may be distributed
+under licenses different than the Myokit software.
+
+In the event that we accidentally failed to list a required notice, please
+bring it to our attention by creating a pull-request or filing a github
+issue with the Myokit project.
+
+The attached notices are provided for information only.
+
+For any licenses that require disclosure of source, sources are available at
+https://github.com/myokit/myokit.
+
+
+1) License Notice for the Sundials library
+------------------------------------------
+BSD 3-Clause License
+
+Copyright (c) 2025-2026, Lawrence Livermore National Security, University of Maryland Baltimore County, and the SUNDIALS contributors.
+Copyright (c) 2013-2025, Lawrence Livermore National Security and Southern Methodist University.
+Copyright (c) 2002-2013, Lawrence Livermore National Security.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+2) License Notice for the Neo library
+-------------------------------------------------------------------
+[Note: ABF file loading in Myokit was originally adapted from Neo.]
+
+Copyright (c) 2010-2012, Neo authors and contributors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+Neither the names of the copyright holders nor the names of the contributors
+may be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+
+3) License Notice for the abfload library
+-----------------------------------------------------------------------
+[Note: ABF file loading in Myokit was originally adapted from abfload.]
+
+Copyright (c) 2009, Forrest Collman
+Copyright (c) 2004, Harald Hentschke
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+
+4) License Notice for SBML Test Suite Test Cases
+-------------------------------------------
+[Note: Myokit only includes Test Case files, no other code. Furthermore, these
+ test cases are only included in Myokit "source distributions".]
+
+* Copyright (C) 2016-2017 jointly by the following organizations:
+    1. California Institute of Technology, Pasadena, CA, USA
+    2. EMBL European Bioinformatics Institute (EBML-EBI), Hinxton, UK.
+    3. University of Heidelberg, Heidelberg, Germany
+    4. The University of Tuebingen, Tübingen, Germany
+    5. The Babraham Institute, Cambridge, UK
+
+* Copyright (C) 2010-2016 jointly by the following organizations:
+    1. California Institute of Technology, Pasadena, CA, USA
+    2. EMBL European Bioinformatics Institute (EBML-EBI), Hinxton, UK.
+    3. University of Heidelberg, Heidelberg, Germany
+
+* Copyright (C) 2008-2009 California Institute of Technology (USA).
+
+* Copyright (C) 2004-2007 jointly by the following organizations:
+    1. California Institute of Technology (USA) and
+    2. University of Hertfordshire (UK).
+
+This software is free; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation; either version 2.1 of the License, or any
+later version.
+
+This software is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF
+MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  The software and
+documentation provided hereunder is on an "as is" basis, and the
+copyright holders have no obligations to provide maintenance, support,
+updates, enhancements or modifications.  In no event shall the copyright
+holders be liable to any party for direct, indirect, special, incidental
+or consequential damages, including lost profits, arising out of the use
+of this software and its documentation, even if the copyright holders
+have been advised of the possibility of such damage.  See the GNU Lesser
+General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this library if not, write to the Free Software Foundation,
+Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
+
