@@ -57,7 +57,7 @@
 #  into a series of steps, ramps or pulse trains. Such a subsection is called
 #  an 'epoch'. The protocol section of a file defines one or more stimuli, each
 #  containing a list of epochs.
-
+#
 #---------------------------------  credits  ----------------------------------
 #
 # A lot of this code uses the (sadly somewhat outdated) information made public

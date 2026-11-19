@@ -2,7 +2,7 @@
 # SBML Writer: Writes an SBML Model to disk
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 from lxml import etree
 

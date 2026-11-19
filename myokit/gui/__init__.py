@@ -2,7 +2,7 @@
 # This hidden module contains the GUI elements used throughout Myokit.
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 # ruff: noqa: I001
 import platform

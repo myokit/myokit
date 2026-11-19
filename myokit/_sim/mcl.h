@@ -4,7 +4,7 @@
  * Implements a number of OpenCL utility functions.
  *
  * This file is part of Myokit.
- * See http://myokit.org for copyright, sharing, and licensing details.
+ * See https://github.com/myokit/myokit for copyright, sharing, and licensing.
  *
  * The string functions rtrim, ltrim and trim were taken from Wikipedia and
  * are not part of Myokit.

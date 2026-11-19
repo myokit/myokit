@@ -6,7 +6,7 @@
 #  - Tests for dependency checking in models are in `test_dependency_checking`.
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 import pathlib
 import pickle

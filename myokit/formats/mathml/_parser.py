@@ -2,7 +2,7 @@
 # Converts MathML to Myokit expressions, using an ElementTree implementation.
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 import myokit
 from myokit.formats import is_integer_string, is_real_number_string

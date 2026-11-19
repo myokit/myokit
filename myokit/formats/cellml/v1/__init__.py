@@ -2,7 +2,7 @@
 # CellML 1.0 and 1.1 support.
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 from ._api import (     # noqa
     AnnotatableElement,

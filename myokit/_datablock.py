@@ -2,7 +2,7 @@
 # Containers for time-series of 1d and 2d rectangular data arrays.
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 import array
 import sys

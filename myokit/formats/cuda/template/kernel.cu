@@ -10,7 +10,7 @@
 # use_rl   A boolean (use Rush-Larsen yes/no)
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 # Authors:
 #  Michael Clerx
