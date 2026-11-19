@@ -5,13 +5,15 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import os
+import pathlib
 import unittest
 import warnings
 
 import myokit
 
 # The test directory
-DIR_TEST = os.path.abspath(os.path.basename(__file__))
+# Use os to get abspath without resolving symlinks
+DIR_TEST = pathlib.Path(os.path.abspath(__file__)).parent
 
 # The data directory
 DIR_DATA = DIR_TEST / 'data'

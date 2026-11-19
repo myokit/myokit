@@ -10,7 +10,7 @@ import re
 import unittest
 
 import myokit
-from tests import DIR_DATA, WarningCollector
+from . import DIR_DATA, WarningCollector
 
 
 class AuxTest(unittest.TestCase):

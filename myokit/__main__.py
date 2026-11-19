@@ -1166,6 +1166,9 @@ def add_test_parser(subparsers):
 
     # Unit tests
     unit_parser = subparsers.add_parser('unit', help='Run unit tests')
+    unit_parser.add_argument(
+        'selection', metavar='selection',
+        nargs=argparse.REMAINDER)
     unit_parser.set_defaults(testfunc=test_unit)
 
     # Web examples
@@ -1183,7 +1186,7 @@ def add_test_parser(subparsers):
         if testfunc is None:
             parser.print_help()
         else:
-            testfunc(args)
+            testfunc(**args)
 
     parser.set_defaults(func=run_tests)
 
@@ -1622,7 +1625,7 @@ def test_style(args):
     sys.exit(p.wait())
 
 
-def test_unit(args=None):
+def test_unit(selection):
     """ Runs unit tests, exits if anything fails. """
 
     print(f'Running tests with {sys.executable}')
@@ -1630,13 +1633,26 @@ def test_unit(args=None):
     # Don't hide repeat warnings: This makes it possible to check that warnings
     # are being raised in a consistent manner.
     warnings.simplefilter('always')
-    
+
     # Guaranteed to be in repo at this point
     path = pathlib.Path('tests')
 
-    suite = unittest.defaultTestLoader.discover(path, pattern='test*.py')
-    res = unittest.TextTestRunner(verbosity=2).run(suite)
-    sys.exit(0 if res.wasSuccessful() else 1)
+    if selection is None:
+        suite = unittest.defaultTestLoader.discover(path, pattern='test*.py')
+        res = unittest.TextTestRunner(verbosity=2).run(suite)
+        sys.exit(0 if res.wasSuccessful() else 1)
+    else:
+        modules = []
+        for arg in selection:
+            p = subprocess.Popen(
+                [sys.executable, '-m', f'tests.test_{arg}'],
+                #stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            res = p.wait()
+            if res:
+                sys.exit(res)
+
+
 
 
 #
