@@ -14,10 +14,7 @@ import myokit
 import myokit.formats as formats
 import myokit.formats.cellml as cellml
 from myokit.formats.cellml import CellMLImporterError
-from myokit.tests import DIR_DATA, DIR_FORMATS, WarningCollector
-
-# CellML dir
-DIR = DIR_FORMATS / 'cellml'
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class CellMLExporterTest(unittest.TestCase):
@@ -531,12 +528,12 @@ class CellMLImporterTest(unittest.TestCase):
         i = formats.importer('cellml')
         self.assertRaisesRegex(
             CellMLImporterError, 'not a CellML document',
-            i.model, DIR_FORMATS / 'sbml' / '00001-sbml-l3v2.xml')
+            i.model, DIR_DATA / 'sbml' / '00001-sbml-l3v2.xml')
 
         # Not an XML file
         self.assertRaisesRegex(
             CellMLImporterError, 'Unable to parse XML',
-            i.model, DIR_FORMATS / 'beeler-1977.mmt')
+            i.model, DIR_DATA / 'beeler-1977.mmt')
 
     def test_warnings_1_0(self):
         # Tests warnings are logged

@@ -16,7 +16,6 @@ import numpy as np
 import myokit
 from myokit.tests import (
     DIR_DATA,
-    DIR_IO,
     CancellingReporter,
     TestReporter,
     WarningCollector,
@@ -550,42 +549,42 @@ class DataLogTest(unittest.TestCase):
         # Test if the correct load errors are raised.
 
         # Missing data file
-        path = DIR_IO / 'badlog-1-no-data.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-1-no-data.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
             path)
 
         # Missing structure file
-        path = DIR_IO / 'badlog-2-no-structure.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-2-no-structure.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
             path)
 
         # Not a zip
-        path = DIR_IO / 'badlog-3-not-a-zip.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-3-not-a-zip.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'bad zip file', myokit.DataLog.load, path)
 
         # Wrong number of fields
-        path = DIR_IO / 'badlog-4-invalid-n-fields.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-4-invalid-n-fields.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'number of fields', myokit.DataLog.load,
             path)
 
         # Negative data size
-        path = DIR_IO / 'badlog-5-invalid-data-size.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-5-invalid-data-size.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Invalid data size', myokit.DataLog.load,
             path)
 
         # Unknown data type
-        path = DIR_IO / 'badlog-6-bad-data-type.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-6-bad-data-type.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Invalid data type', myokit.DataLog.load,
             path)
 
         # Not enough data
-        path = DIR_IO / 'badlog-7-not-enough-data.zip'
+        path = DIR_DATA / 'datalog' / 'badlog-7-not-enough-data.zip'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'larger data', myokit.DataLog.load, path)
 
@@ -667,7 +666,7 @@ class DataLogTest(unittest.TestCase):
         # Test loading with a progress reporter.
 
         p = TestReporter()
-        path = DIR_IO / 'goodlog.zip'
+        path = DIR_DATA / 'datalog' / 'goodlog.zip'
         self.assertFalse(p.entered)
         self.assertFalse(p.exited)
         self.assertFalse(p.updated)
@@ -684,7 +683,7 @@ class DataLogTest(unittest.TestCase):
     def test_load_csv_duplicate_keys(self):
         # Test loading a CSV with duplicate key names
 
-        path = DIR_IO / 'datalog-18-duplicate-keys.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-18-duplicate-keys.csv'
         d = myokit.DataLog.load_csv(path)
         self.assertEqual(len(d), 7)
         self.assertEqual(
@@ -705,114 +704,114 @@ class DataLogTest(unittest.TestCase):
         # Test for errors during csv loading.
 
         # Test errory file, with comments etc., should work fine!
-        path = DIR_IO / 'datalog.csv'
+        path = DIR_DATA / 'datalog' / 'datalog.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Empty file
-        path = DIR_IO / 'datalog-1-empty.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-1-empty.csv'
         d = myokit.DataLog.load_csv(path)
         self.assertEqual(set(d.keys()), set())
 
         # Test windows line endings
-        path = DIR_IO / 'datalog-2-windows.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-2-windows.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test old mac line endings
-        path = DIR_IO / 'datalog-3-old-mac.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-3-old-mac.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test empty lines at end
-        path = DIR_IO / 'datalog-4-empty-lines.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-4-empty-lines.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test semicolons at end of each line
-        path = DIR_IO / 'datalog-5-semicolons.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-5-semicolons.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test unterminated string
-        path = DIR_IO / 'datalog-6-open-string.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-6-open-string.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'inside quoted', myokit.DataLog.load_csv,
             path)
 
         # Test empty lines between data
-        path = DIR_IO / 'datalog-7-empty-lines-2.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-7-empty-lines-2.csv'
         d = myokit.DataLog.load_csv(path)
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == np.arange(1, 7)))
         self.assertTrue(np.all(d['v'] == 10 * (np.arange(1, 7))))
 
         # Test unquoted field names
-        path = DIR_IO / 'datalog-8-unquoted-header.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-8-unquoted-header.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
         # Test double-quoted field names
-        path = DIR_IO / 'datalog-9-double-quoted-header.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-9-double-quoted-header.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), {'time', 'v"quote"'})
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v"quote"'] == 10 * (1 + np.arange(6))))
 
         # Test file with just some spaces (one line)
-        path = DIR_IO / 'datalog-10-just-spaces.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-10-just-spaces.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), set())
 
         # Test file with just some spaces (one line)
-        path = DIR_IO / 'datalog-11-just-a-semicolon.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-11-just-a-semicolon.csv'
         d = myokit.DataLog.load_csv(path).npview()
         self.assertEqual(set(d.keys()), set())
 
         # Test header "abc"x"adc"
-        path = DIR_IO / 'datalog-12-bad-header.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-12-bad-header.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Expecting double quote',
             myokit.DataLog.load_csv, path)
 
         # Test empty field "" in header
-        path = DIR_IO / 'datalog-13-header-with-empty-1.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-13-header-with-empty-1.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test empty field "x",,"y" in header
-        path = DIR_IO / 'datalog-14-header-with-empty-2.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-14-header-with-empty-2.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test empty field "time","v", in header
-        path = DIR_IO / 'datalog-15-header-with-empty-3.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-15-header-with-empty-3.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test wrong field count in data
-        path = DIR_IO / 'datalog-16-wrong-columns-in-data.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-16-wrong-columns-in-data.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Wrong number of columns',
             myokit.DataLog.load_csv, path)
 
         # Test non-float data
-        path = DIR_IO / 'datalog-17-non-float-data.csv'
+        path = DIR_DATA / 'datalog' / 'datalog-17-non-float-data.csv'
         self.assertRaisesRegex(
             myokit.DataLogReadError, 'Unable to convert',
             myokit.DataLog.load_csv, path)

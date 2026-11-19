@@ -49,7 +49,7 @@ from myokit import (
     Sqrt,
     Tan,
 )
-from myokit.tests import DIR_DATA, DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 # Model that requires unit conversion
 units_model = """
@@ -190,7 +190,7 @@ class EasyMLExporterTest(unittest.TestCase):
                 observed = f.readlines()
 
         # Load expected output
-        with open(DIR_FORMATS / f'easyml-{fname}.model', 'r') as f:
+        with open(DIR_DATA / 'generated' / f'{fname}.model', 'r') as f:
             expected = f.readlines()
 
         # Compare (line by line, for readable output)

@@ -136,26 +136,26 @@ class AuxTest(unittest.TestCase):
             '[x] Mismatched Meta property in model: "desc"',
             '[1] Missing Meta property in model: "extra"',
             '[2] Missing Meta property in model: "mmt_authors"',
-            '[x] Mismatched User function <f(1)>',
-            '[1] Missing User function <g(1)>.',
-            '[x] Mismatched Time variable: [1]<engine.time> [2]<engine.toim>',
-            '[x] Mismatched Initial value for <ina.h>',
-            '[x] Mismatched Initial value for <ina.j>',
-            '[2] Missing Variable <engine.time>',
-            '[1] Missing Variable <engine.toim>',
-            '[x] Mismatched LHS <calcium.Cai>',
-            '[x] Mismatched RHS <calcium.Cai>',
-            '[x] Mismatched RHS <ix1.x1>',
-            '[2] Missing Variable <ix1.x1.alpha>',
-            '[2] Missing Variable <ix1.x1.beta>',
-            '[x] Mismatched RHS <membrane.i_ion>',
-            '[x] Mismatched unit <membrane.V>',
-            '[x] Mismatched State at position 4: [1]<is.d> [2]<ois.d>',
-            '[x] Mismatched State at position 5: [1]<is.f> [2]<ois.f>',
-            '[1] Missing Component <ois>',
-            '[2] Missing Component <is>',
+            '[x] Mismatched User function "f(1)"',
+            '[1] Missing User function "g(1)".',
+            '[x] Mismatched Time variable: [1]"engine.time" [2]"engine.toim"',
+            '[x] Mismatched Initial value for "ina.h"',
+            '[x] Mismatched Initial value for "ina.j"',
+            '[2] Missing Variable "engine.time"',
+            '[1] Missing Variable "engine.toim"',
+            '[x] Mismatched LHS "calcium.Cai"',
+            '[x] Mismatched RHS "calcium.Cai"',
+            '[x] Mismatched RHS "ix1.x1"',
+            '[2] Missing Variable "ix1.x1.alpha"',
+            '[2] Missing Variable "ix1.x1.beta"',
+            '[x] Mismatched RHS "membrane.i_ion"',
+            '[x] Mismatched unit "membrane.V"',
+            '[x] Mismatched State at position 4: [1]"is.d" [2]"ois.d"',
+            '[x] Mismatched State at position 5: [1]"is.f" [2]"ois.f"',
+            '[1] Missing Component "ois"',
+            '[2] Missing Component "is"',
             '[1] Missing state at position 9',
-            '[x] Mismatched State at position 7: [1]<calcium.Cai> [2]<ois.X>'
+            '[x] Mismatched State at position 7: [1]"calcium.Cai" [2]"ois.X"'
         ]
 
         live = [
@@ -194,8 +194,8 @@ class AuxTest(unittest.TestCase):
         c = myokit.ModelComparison(m1, m3)
         self.assertEqual(
             c.text(),
-            '[2] Missing User function <f(1)>\n'
-            '[2] Missing Time variable <engine.time>')
+            '[2] Missing User function "f(1)"\n'
+            '[2] Missing Time variable "engine.time"')
         self.assertEqual(len(c), 2)
         self.assertEqual(len(c), len(myokit.ModelComparison(m3, m1)))
 

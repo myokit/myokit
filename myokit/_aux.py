@@ -158,12 +158,12 @@ class ModelComparison:
             try:
                 c2 = m2[c1.qname()]
             except KeyError:
-                self._write(f'[2] Missing Component <{c1.qname()}>')
+                self._write(f'[2] Missing Component "{c1.qname()}"')
                 continue
             self._comp(c1, c2)
         for c2 in m2.components(sort=True):
             if c2.qname() not in seen:
-                self._write(f'[1] Missing Component <{c2.qname()}>')
+                self._write(f'[1] Missing Component "{c2.qname()}"')
 
     def _comp(self, c1, c2):
         """
@@ -180,13 +180,13 @@ class ModelComparison:
             try:
                 v2 = c2.model().get(name)
             except KeyError:
-                self._write(f'[2] Missing Variable <{name}>')
+                self._write(f'[2] Missing Variable "{name}"')
                 continue
             self._var(v1, v2)
         for v2 in c2.variables(deep=True):
             name = v2.qname()
             if name not in seen:
-                self._write(f'[1] Missing Variable <{name}>')
+                self._write(f'[1] Missing Variable "{name}"')
 
     def equal(self):
         """
@@ -210,7 +210,7 @@ class ModelComparison:
         if isinstance(x1, myokit.Model):
             name = ' in model'
         else:
-            name = f' in <{x1.qname()}>'
+            name = f' in "{x1.qname()}"'
         seen = set()
         for key, value in x1.meta.items():
             seen.add(key)
@@ -238,10 +238,10 @@ class ModelComparison:
                 continue
             if v1 != v2:
                 self._write(f'[x] Mismatched State at position {k}:'
-                            f' [1]<{v1}> [2]<{v2}>')
+                            f' [1]"{v1}" [2]"{v2}"')
                 continue
             if c1[k].code() != c2[k].code():
-                self._write(f'[x] Mismatched Initial value for <{v1}>')
+                self._write(f'[x] Mismatched Initial value for "{v1}"')
         n = m2.count_states()
         for k, v2 in enumerate(s2):
             self._write(f'[1] Missing state at position {n + k}')
@@ -260,14 +260,14 @@ class ModelComparison:
         t2 = m2.time()
         if t1 is None:
             if t2 is not None:
-                self._write(f'[1] Missing Time variable <{t2.qname()}>')
+                self._write(f'[1] Missing Time variable "{t2.qname()}"')
                 return
         elif t2 is None:
-            self._write(f'[2] Missing Time variable <{t1.qname()}>')
+            self._write(f'[2] Missing Time variable "{t1.qname()}"')
             return
         if t1.qname() != t2.qname():
-            self._write(f'[x] Mismatched Time variable: [1]<{t1.qname()}>'
-                        f' [2]<{t2.qname()}>')
+            self._write(f'[x] Mismatched Time variable: [1]"{t1.qname()}"'
+                        f' [2]"{t2.qname()}"')
 
     def _userfunc(self, m1, m2):
         """
@@ -280,12 +280,12 @@ class ModelComparison:
             seen.add(name)
             try:
                 if func != u2[name]:
-                    self._write(f'[x] Mismatched User function <{name}>')
+                    self._write(f'[x] Mismatched User function "{name}"')
             except KeyError:
-                self._write(f'[2] Missing User function <{name}>')
+                self._write(f'[2] Missing User function "{name}"')
         for name, func in u2.items():
             if name not in seen:
-                self._write(f'[1] Missing User function <{name}>.')
+                self._write(f'[1] Missing User function "{name}".')
 
     def _var(self, v1, v2):
         """
@@ -296,14 +296,14 @@ class ModelComparison:
         # Left-hand side expression
         c1, c2 = v1.lhs().code(), v2.lhs().code()
         if c1 != c2:
-            self._write(f'[x] Mismatched LHS <{name}>')
+            self._write(f'[x] Mismatched LHS "{name}"')
         # Right-hand side expression
         c1, c2 = v1.rhs().code(), v2.rhs().code()
         if c1 != c2:
-            self._write(f'[x] Mismatched RHS <{name}>')
+            self._write(f'[x] Mismatched RHS "{name}"')
         # Units
         if v1.unit() != v2.unit():
-            self._write(f'[x] Mismatched unit <{name}>')
+            self._write(f'[x] Mismatched unit "{name}"')
         # Meta
         self._meta(v1, v2)
         # Don't test nested variables, this is done component wise

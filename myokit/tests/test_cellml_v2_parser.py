@@ -11,10 +11,7 @@ import unittest
 
 import myokit
 import myokit.formats.cellml.v2 as v2
-from myokit.tests import DIR_DATA, DIR_FORMATS, WarningCollector
-
-# CellML directory
-DIR = DIR_FORMATS / 'cellml'
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class TestCellMLParser(unittest.TestCase):
@@ -202,7 +199,8 @@ class TestCellMLParser(unittest.TestCase):
         org_values = org_model.evaluate_derivatives()
 
         # Load exported version
-        cm = v2.parse_file(DIR_FORMATS / 'cellml-v2-beeler-1977.cellml')
+        cm = v2.parse_file(
+            DIR_DATA / 'generated' / 'beeler-1977-cellml-v2.cellml')
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
         new_values = new_model.evaluate_derivatives()

@@ -14,7 +14,7 @@ import numpy as np
 import myokit
 import myokit.formats
 import myokit.formats.axon as axon
-from myokit.tests import DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 V1_INFO = '''
 Axon Binary File: abf-v1.abf
@@ -197,7 +197,7 @@ class AbfTest(unittest.TestCase):
         # Test reading a version 1 file.
 
         # Load file
-        path = DIR_FORMATS / 'abf-v1.abf'
+        path = DIR_DATA / 'axon'  / 'abf-v1.abf'
         abf = axon.AbfFile(path)
         self.assertEqual(abf.path(), str(path))
         self.assertIsInstance(abf, myokit.formats.SweepSource)
@@ -405,7 +405,7 @@ class AbfTest(unittest.TestCase):
         # Test reading a v1 protocol file.
 
         # Load file
-        abf = axon.AbfFile(DIR_FORMATS / 'abf-protocol.pro')
+        abf = axon.AbfFile(DIR_DATA / 'axon' / 'abf-protocol.pro')
 
         # Check version info
         self.assertIn('version 1.65', abf.meta_str())
@@ -423,7 +423,7 @@ class AbfTest(unittest.TestCase):
 
         # Load, force as protocol
         abf = axon.AbfFile(
-            DIR_FORMATS / 'abf-protocol.pro', is_protocol_file=True)
+            DIR_DATA / 'axon' / 'abf-protocol.pro', is_protocol_file=True)
         self.assertEqual(abf.channel_count(), 0)
         self.assertEqual(abf.channel_count(), 0)
         self.assertEqual(abf.da_count(), 1)
@@ -440,7 +440,7 @@ class AbfTest(unittest.TestCase):
         # Test reading a version 2 file.
 
         # Load file
-        path = DIR_FORMATS / 'abf-v2.abf'
+        path = DIR_DATA / 'axon' / 'abf-v2.abf'
         abf = axon.AbfFile(path)
         self.assertEqual(abf.path(), str(path))
 
@@ -631,14 +631,14 @@ class AbfTest(unittest.TestCase):
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
-        abf = axon.AbfFile(DIR_FORMATS / 'abf-v1.abf')
+        abf = axon.AbfFile(DIR_DATA / 'axon' / 'abf-v1.abf')
         f = abf.matplotlib_figure()
         self.assertIsInstance(f, matplotlib.figure.Figure)
 
     def test_read_deprecated(self):
         # Deprecated constructor
 
-        path = DIR_FORMATS / 'abf-v2.abf'
+        path = DIR_DATA / 'axon' / 'abf-v2.abf'
         with WarningCollector() as w:
             abf = axon.AbfFile(filepath=path)
             self.assertEqual(abf.path(), str(path))
@@ -911,7 +911,7 @@ class AbfImporterInterfaceTest(unittest.TestCase):
     def test_protocol(self):
         i = myokit.formats.importer('abf')
         self.assertTrue(i.supports_protocol())
-        i.protocol(DIR_FORMATS / 'abf-v1.abf')
+        i.protocol(DIR_DATA / 'axon' / 'abf-v1.abf')
 
 
 if __name__ == '__main__':

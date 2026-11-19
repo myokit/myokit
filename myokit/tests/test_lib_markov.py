@@ -58,7 +58,7 @@ class LinearModelTest(unittest.TestCase):
             markov.LinearModelError, 'Unknown state',
             markov.LinearModel, model, states + ['bert'], parameters, current)
 
-        # Indicatd variable is not a state
+        # Indicated variable is not a state
         self.assertRaisesRegex(
             markov.LinearModelError, 'not a state',
             markov.LinearModel, model, states + ['ina_mm.INa'], parameters,

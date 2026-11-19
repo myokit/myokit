@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- This file was generated for the Myokit test suite -->
+<!-- This file was created for the Myokit test suite -->
 <!-- Documentation in a model, with a non-ascii characters thrown in -->
 <model name="name" xmlns="http://www.cellml.org/cellml/1.0#">
     <documentation xmlns="http://cellml.org/tmp-documentation">

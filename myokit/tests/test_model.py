@@ -2160,7 +2160,7 @@ ina.x = 3 * ina.ENa
         c  = m.add_component('c')
         c.add_variable('t', rhs=0, binding='time')
         e = m.show_evaluation_of('Hello')
-        self.assertIn('Variable not found, assuming <c.t>', e)
+        self.assertIn('Variable not found, assuming "c.t"', e)
 
     def test_show_expressions_for(self):
         # Test :meth:`Model.show_expressions_for(variable)`.

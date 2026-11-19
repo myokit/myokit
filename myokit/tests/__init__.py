@@ -16,12 +16,6 @@ DIR_TEST = importlib.resources.files('myokit.tests')
 # The data directory
 DIR_DATA = DIR_TEST / 'data'
 
-# Extra files in the data directory for load/save testing
-DIR_IO = DIR_DATA / 'io'
-
-# Extra files in the data directory for format testing
-DIR_FORMATS = DIR_DATA / 'formats'
-
 # OpenCL support
 OpenCL_FOUND = myokit.OpenCL.available()
 OpenCL_DOUBLE_PRECISION = False
