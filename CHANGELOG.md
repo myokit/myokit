@@ -4,10 +4,12 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#1268](https://github.com/myokit/myokit/pull/1268) Added more thorough licensing documentation.
 - Changed
   - [#1244](https://github.com/myokit/myokit/pull/1244) `Model.validate()`, `Component.validate()` and `Variable.validate()` will now raise `AssertionError`s instead of `myokit.IntegrityError`s for issues that cannot arise in models manipulated through the model API.
   - [#1260](https://github.com/myokit/myokit/pull/1260) The method `Expression.bracket()` has been replaced by `Expression.brackets()`.
   - [#1264](https://github.com/myokit/myokit/pull/1264) The example model is now Beeler & Reuter 1977.
+  - [#1267](https://github.com/myokit/myokit/pull/1267) Tests are no longer distributed as part of pip-installable Myokit wheels. They are still included in the source distribution.
 - Deprecated
   - [#1236](https://github.com/myokit/myokit/pull/1236) User-defined functions in models are deprecated.
   - [#1246](https://github.com/myokit/myokit/pull/1246) The method `Expression.validate()` no longer does anything, and is deprecated.

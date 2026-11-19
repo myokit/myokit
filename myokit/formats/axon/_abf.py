@@ -1,10 +1,11 @@
 #
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
+#
 # This module reads files in Axon Binary File format v1 or v2 used by Axon
 # Technologies and Molecular Devices.
 # The v1 format was used until Clampex version 9.
 # Clampex 10 and onwards use the v2 format.
-#
-# WARNING: This file hasn't been extensively tested.
 #
 # About ABF
 # ---------
@@ -56,12 +57,7 @@
 #  into a series of steps, ramps or pulse trains. Such a subsection is called
 #  an 'epoch'. The protocol section of a file defines one or more stimuli, each
 #  containing a list of epochs.
-#
-#---------------------------------  license  ----------------------------------
-#
-# This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
-#
+
 #---------------------------------  credits  ----------------------------------
 #
 # A lot of this code uses the (sadly somewhat outdated) information made public
@@ -74,68 +70,17 @@
 # Python module authored by sgarcia and jnowacki.
 # Neo can be found at: http://neuralensemble.org/trac/neo
 #
-# The Neo package used was licensed using the following BSD License:
+# The Neo package used was licensed under a BSD 3-clauce license.
 #
-#----------------------------------  start  -----------------------------------
-# Copyright (c) 2010-2012, Neo authors and contributors
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-# Neither the names of the copyright holders nor the names of the contributors
-# may be used to endorse or promote products derived from this software without
-# specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#-----------------------------------  end  ------------------------------------
 # The code used in Neo is itself derived from the publicly contributed matlab
-#  script abf2load, again licensed under BSD. The original notice follows
-#  below:
-#----------------------------------  start  -----------------------------------
-# Copyright (c) 2009, Forrest Collman
-# Copyright (c) 2004, Harald Hentschke
-# All rights reserved.
+#  script abf2load, licensed under a BSD 2-clause license.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#-----------------------------------  end  ------------------------------------
 # The abf2load script is available from:
 #  http://www.mathworks.com/matlabcentral/fileexchange/22114-abf2load
-#------------------------------------------------------------------------------
+#
 # Information - but no direct code - from the matlab script get_abf_header.m
 # was also used: http://neurodata.hg.sourceforge.net/hgweb/neurodata/neurodata/
+#
 #------------------------------------------------------------------------------
 import datetime
 import pathlib
