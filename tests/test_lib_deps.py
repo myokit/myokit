@@ -8,10 +8,10 @@
 import random
 import unittest
 
+from shared import DIR_DATA
+
 import myokit
 import myokit.lib.deps as deps
-
-from shared import DIR_DATA
 
 
 class LibDepsTest(unittest.TestCase):

@@ -11,9 +11,6 @@
 import unittest
 
 import numpy as np
-
-import myokit
-
 from shared import (
     DIR_DATA,
     CancellingReporter,
@@ -21,6 +18,8 @@ from shared import (
     OpenCL_FOUND,
     WarningCollector,
 )
+
+import myokit
 
 # Show simulation output
 debug = False

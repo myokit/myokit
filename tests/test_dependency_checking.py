@@ -8,8 +8,9 @@
 #
 import unittest
 
-import myokit
 from shared import DIR_DATA
+
+import myokit
 
 # Extra output
 debug = False

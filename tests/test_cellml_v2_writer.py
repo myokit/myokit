@@ -10,9 +10,10 @@ import re
 import tempfile
 import unittest
 
+from shared import DIR_DATA, WarningCollector
+
 import myokit
 import myokit.formats.cellml.v2 as cellml
-from shared import DIR_DATA, WarningCollector
 
 
 class TestCellMLWriter(unittest.TestCase):

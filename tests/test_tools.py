@@ -14,9 +14,9 @@ import threading
 import time
 import unittest
 
-import myokit
-
 from shared import WarningCollector
+
+import myokit
 
 
 class BenchmarkerTest(unittest.TestCase):

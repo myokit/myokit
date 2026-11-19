@@ -7,12 +7,12 @@
 #
 import unittest
 
+from shared import WarningCollector
+
 import myokit
 import myokit.formats
 import myokit.formats.sbml as sbml
 from myokit.formats.sbml._api import _MyokitConverter as X
-
-from shared import WarningCollector
 
 
 class TestCompartment(unittest.TestCase):

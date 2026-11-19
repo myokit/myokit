@@ -12,14 +12,14 @@ import tempfile
 import unittest
 
 import numpy as np
-
-import myokit
 from shared import (
     DIR_DATA,
     CancellingReporter,
     TestReporter,
     WarningCollector,
 )
+
+import myokit
 
 # Extra output
 debug = False

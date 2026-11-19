@@ -8,11 +8,10 @@
 import unittest
 
 import numpy as np
+from shared import DIR_DATA, WarningCollector
 
 import myokit
 import myokit.lib.hh as hh
-
-from shared import DIR_DATA, WarningCollector
 
 MODEL = """
 [[model]]

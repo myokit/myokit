@@ -7,10 +7,10 @@
 #
 import unittest
 
+from shared import DIR_DATA
+
 import myokit
 import myokit.lib.guess as guess
-
-from shared import DIR_DATA
 
 
 class LibGuessTest(unittest.TestCase):

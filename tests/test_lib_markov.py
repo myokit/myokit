@@ -8,11 +8,10 @@
 import unittest
 
 import numpy as np
+from shared import DIR_DATA
 
 import myokit
 import myokit.lib.markov as markov
-
-from shared import DIR_DATA
 
 
 class LinearModelTest(unittest.TestCase):

@@ -8,11 +8,10 @@
 import unittest
 
 import numpy as np
-
-import myokit
-
 from shared import DIR_DATA, OpenCL_FOUND, WarningCollector
 from test_simulation_log_interval import PeriodicTest
+
+import myokit
 
 debug = False
 

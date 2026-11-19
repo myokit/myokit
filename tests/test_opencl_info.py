@@ -9,9 +9,9 @@ import pathlib
 import tempfile
 import unittest
 
-import myokit
-
 from shared import OpenCL_FOUND
+
+import myokit
 
 
 @unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')

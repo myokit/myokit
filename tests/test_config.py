@@ -10,8 +10,9 @@ import sys
 import tempfile
 import unittest
 
-import myokit
 from shared import WarningCollector
+
+import myokit
 
 debug = False
 

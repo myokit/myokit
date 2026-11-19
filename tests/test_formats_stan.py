@@ -7,6 +7,8 @@
 #
 import unittest
 
+import shared
+
 import myokit
 import myokit.formats.stan
 from myokit import (
@@ -45,8 +47,6 @@ from myokit import (
     Sqrt,
     Tan,
 )
-
-import shared
 
 
 class StanExpressionWriterTest(shared.ExpressionWriterTestCase):

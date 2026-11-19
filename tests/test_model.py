@@ -14,9 +14,9 @@ import re
 import tempfile
 import unittest
 
-import myokit
-
 from shared import DIR_DATA, WarningCollector
+
+import myokit
 
 
 class ModelTest(unittest.TestCase):

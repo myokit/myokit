@@ -8,10 +8,9 @@
 import unittest
 
 import numpy as np
+from shared import DIR_DATA
 
 import myokit
-
-from shared import DIR_DATA
 
 # Extra output
 debug = False

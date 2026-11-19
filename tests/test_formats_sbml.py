@@ -10,12 +10,11 @@ import tempfile
 import unittest
 
 import numpy as np
+from shared import DIR_DATA, WarningCollector
 
 import myokit
 import myokit.formats
 import myokit.formats.sbml
-
-from shared import DIR_DATA, WarningCollector
 
 
 class SBMLExporterTest(unittest.TestCase):

@@ -7,9 +7,10 @@
 #
 import unittest
 
+from shared import DIR_DATA, WarningCollector
+
 import myokit
 import myokit.formats.cellml.v1 as cellml
-from shared import DIR_DATA, WarningCollector
 
 
 class TestCellML1AnnotatedElement(unittest.TestCase):

@@ -10,9 +10,9 @@ import pickle
 import unittest
 
 import numpy as np
+from shared import DIR_DATA, WarningCollector
 
 import myokit
-from shared import DIR_DATA, WarningCollector
 
 # Unit --> See test_units.py
 # Quantity --> See test_units.py

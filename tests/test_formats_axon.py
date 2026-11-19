@@ -10,11 +10,11 @@ import tempfile
 import unittest
 
 import numpy as np
+from shared import DIR_DATA, WarningCollector
 
 import myokit
 import myokit.formats
 import myokit.formats.axon as axon
-from shared import DIR_DATA, WarningCollector
 
 V1_INFO = '''
 Axon Binary File: abf-v1.abf

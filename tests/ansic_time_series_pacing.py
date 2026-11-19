@@ -4,8 +4,9 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-import myokit
 from shared import DIR_TEST
+
+import myokit
 
 # Location of C template
 SOURCE_FILE = 'ansic_time_series_pacing.c'

@@ -8,10 +8,9 @@
 import unittest
 
 import numpy as np
+from shared import DIR_DATA, OpenCL_DOUBLE_PRECISION
 
 import myokit
-
-from shared import DIR_DATA, OpenCL_DOUBLE_PRECISION
 
 # Show simulation output
 debug = False

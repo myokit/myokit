@@ -10,13 +10,13 @@ import tempfile
 import unittest
 
 import numpy as np
-
-import myokit
 from shared import (
     DIR_DATA,
     CancellingReporter,
     TestReporter,
 )
+
+import myokit
 
 
 class DataBlock1dTest(unittest.TestCase):

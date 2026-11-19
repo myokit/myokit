@@ -7,11 +7,11 @@
 #
 import unittest
 
-import myokit
-
-from shared import DIR_DATA
 from ansic_event_based_pacing import AnsicEventBasedPacing
 from ansic_time_series_pacing import AnsicTimeSeriesPacing
+from shared import DIR_DATA
+
+import myokit
 
 
 class EventBasedPacingAnsicTest(unittest.TestCase):

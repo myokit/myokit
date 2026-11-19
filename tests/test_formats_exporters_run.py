@@ -9,10 +9,10 @@ import pathlib
 import tempfile
 import unittest
 
+from shared import DIR_DATA
+
 import myokit
 import myokit.formats
-
-from shared import DIR_DATA
 
 
 class ExportTest(unittest.TestCase):

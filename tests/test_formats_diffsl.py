@@ -12,6 +12,9 @@ import re
 import tempfile
 import unittest
 
+import shared
+from shared import DIR_DATA, WarningCollector
+
 import myokit
 import myokit.formats
 import myokit.formats.diffsl
@@ -51,9 +54,6 @@ from myokit import (
     Sqrt,
     Tan,
 )
-
-import shared
-from shared import DIR_DATA, WarningCollector
 
 # Model that requires unit conversion
 units_model = """

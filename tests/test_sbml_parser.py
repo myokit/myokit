@@ -7,12 +7,12 @@
 #
 import unittest
 
+from shared import WarningCollector
+
 import myokit
 import myokit.formats
 import myokit.formats.sbml
 from myokit.formats.sbml import SBMLParser, SBMLParsingError
-
-from shared import WarningCollector
 
 
 class TestSBMLParser(unittest.TestCase):

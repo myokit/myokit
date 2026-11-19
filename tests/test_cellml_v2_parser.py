@@ -9,9 +9,10 @@ import pathlib
 import tempfile
 import unittest
 
+from shared import DIR_DATA, WarningCollector
+
 import myokit
 import myokit.formats.cellml.v2 as v2
-from shared import DIR_DATA, WarningCollector
 
 
 class TestCellMLParser(unittest.TestCase):

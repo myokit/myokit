@@ -3,9 +3,10 @@
 # Regenerates static test data
 #
 #
+from shared import DIR_DATA
+
 import myokit
 import myokit.formats
-from shared import DIR_DATA
 
 
 def generate_all():

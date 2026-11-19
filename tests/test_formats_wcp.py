@@ -8,11 +8,10 @@
 import unittest
 
 import numpy as np
+from shared import DIR_DATA, WarningCollector
 
 import myokit
 import myokit.formats.wcp as wcp
-
-from shared import DIR_DATA, WarningCollector
 
 INFO = '''
 WinWCP file: wcp-file.wcp

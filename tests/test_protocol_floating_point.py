@@ -28,10 +28,10 @@
 #
 import unittest
 
-import myokit
-
-from shared import DIR_DATA
 from ansic_event_based_pacing import AnsicEventBasedPacing
+from shared import DIR_DATA
+
+import myokit
 
 
 class ProtocolFloatingPointTest(unittest.TestCase):

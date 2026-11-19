@@ -7,10 +7,10 @@
 #
 import unittest
 
+import shared
+
 import myokit
 import myokit.formats.cpp
-
-import shared
 
 
 class CppExpressionWriterTest(shared.ExpressionWriterTestCase):

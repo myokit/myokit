@@ -10,11 +10,12 @@ import re
 import tempfile
 import unittest
 
+from shared import DIR_DATA, WarningCollector
+
 import myokit
 import myokit.formats as formats
 import myokit.formats.cellml as cellml
 from myokit.formats.cellml import CellMLImporterError
-from shared import DIR_DATA, WarningCollector
 
 
 class CellMLExporterTest(unittest.TestCase):

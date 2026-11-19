@@ -8,10 +8,10 @@
 #
 import unittest
 
+from shared import DIR_DATA, WarningCollector
+
 import myokit
 import myokit.lib.plots as plots
-
-from shared import DIR_DATA, WarningCollector
 
 debug = False
 

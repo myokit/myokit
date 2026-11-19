@@ -12,15 +12,14 @@ import sys
 import unittest
 
 import numpy as np
-
-import myokit
-
 from shared import (
     DIR_DATA,
     CancellingReporter,
     WarningCollector,
     test_case_pk_model,
 )
+
+import myokit
 
 
 class SimulationTest(unittest.TestCase):

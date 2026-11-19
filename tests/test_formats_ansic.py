@@ -9,6 +9,8 @@
 import math
 import unittest
 
+import shared
+
 import myokit
 import myokit.formats.ansic
 import myokit.formats.cpp
@@ -48,8 +50,6 @@ from myokit import (
     Sqrt,
     Tan,
 )
-
-import shared
 
 
 class AnsiCExpressionWriterTest(shared.ExpressionWriterTestCase):

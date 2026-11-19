@@ -8,10 +8,9 @@
 import unittest
 
 import numpy as np
+from shared import DIR_DATA, CancellingReporter
 
 import myokit
-
-from shared import DIR_DATA, CancellingReporter
 
 # Show simulation output
 debug = False

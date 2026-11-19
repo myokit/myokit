@@ -10,10 +10,9 @@ import tempfile
 import unittest
 
 import numpy as np
+from shared import DIR_DATA
 
 import myokit
-
-from shared import DIR_DATA
 
 
 class PrecompiledSimulationTest(unittest.TestCase):

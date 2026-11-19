@@ -9,8 +9,9 @@ import io
 import re
 import unittest
 
-import myokit
 from shared import DIR_DATA, WarningCollector
+
+import myokit
 
 
 class AuxTest(unittest.TestCase):

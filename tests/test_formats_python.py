@@ -11,6 +11,7 @@ import math
 import unittest
 
 import numpy
+import shared
 
 import myokit
 import myokit.formats.python
@@ -50,8 +51,6 @@ from myokit import (
     Sqrt,
     Tan,
 )
-
-import shared
 
 
 class PythonExpressionWriterTest(shared.ExpressionWriterTestCase):
