@@ -9,7 +9,6 @@ import unittest
 
 import myokit
 import myokit.formats.matlab
-import tests
 from myokit import (
     Abs,
     ACos,
@@ -47,8 +46,10 @@ from myokit import (
     Tan,
 )
 
+import shared
 
-class MatlabExpressionWriterTest(tests.ExpressionWriterTestCase):
+
+class MatlabExpressionWriterTest(shared.ExpressionWriterTestCase):
     _name = 'matlab'
     _target = myokit.formats.matlab.MatlabExpressionWriter
 

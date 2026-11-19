@@ -9,7 +9,6 @@ import unittest
 
 import myokit
 import myokit.formats.opencl
-import tests
 from myokit import (
     Abs,
     ACos,
@@ -47,8 +46,10 @@ from myokit import (
     Tan,
 )
 
+import shared
 
-class OpenCLExpressionWriterTest(tests.ExpressionWriterTestCase):
+
+class OpenCLExpressionWriterTest(shared.ExpressionWriterTestCase):
     """
     Test conversion to Ansi C, as used by the Simulation.
     Numerical tests are provided by composing and evaluating a single RHS.

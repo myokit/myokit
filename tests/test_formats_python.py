@@ -14,7 +14,6 @@ import numpy
 
 import myokit
 import myokit.formats.python
-import tests
 from myokit import (
     Abs,
     ACos,
@@ -52,8 +51,10 @@ from myokit import (
     Tan,
 )
 
+import shared
 
-class PythonExpressionWriterTest(tests.ExpressionWriterTestCase):
+
+class PythonExpressionWriterTest(shared.ExpressionWriterTestCase):
     """
     Test conversion of expressions to Python.
     This is used by pyfunc(), although that's usually done with the
@@ -319,7 +320,7 @@ class PythonExpressionWriterTest(tests.ExpressionWriterTestCase):
                           Number(4)), 4)
 
 
-class NumPyExpressionWriterTest(tests.ExpressionWriterTestCase):
+class NumPyExpressionWriterTest(shared.ExpressionWriterTestCase):
     """
     Test conversion of expressions to NumPy-compatible Python.
     This is used e.g. to graph expressions.

@@ -12,7 +12,6 @@ import unittest
 import myokit
 import myokit.formats
 import myokit.formats.easyml
-import tests
 from myokit import (
     Abs,
     ACos,
@@ -49,7 +48,9 @@ from myokit import (
     Sqrt,
     Tan,
 )
-from tests import DIR_DATA, WarningCollector
+
+import shared
+from shared import DIR_DATA, WarningCollector
 
 # Model that requires unit conversion
 units_model = """
@@ -284,7 +285,7 @@ class EasyMLExporterTest(unittest.TestCase):
         self.assertTrue(e.supports_model())
 
 
-class EasyMLExpressionWriterTest(tests.ExpressionWriterTestCase):
+class EasyMLExpressionWriterTest(shared.ExpressionWriterTestCase):
     """ Test conversion to EasyML syntax. """
     _name = 'easyml'
     _target = myokit.formats.easyml.EasyMLExpressionWriter

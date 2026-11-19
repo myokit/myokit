@@ -11,7 +11,8 @@ import numpy as np
 
 import myokit
 import myokit.formats.wcp as wcp
-from tests import DIR_DATA, WarningCollector
+
+from shared import DIR_DATA, WarningCollector
 
 INFO = '''
 WinWCP file: wcp-file.wcp

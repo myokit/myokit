@@ -9,7 +9,6 @@ import unittest
 
 import myokit
 import myokit.formats.latex
-import tests
 from myokit import (
     Abs,
     ACos,
@@ -47,8 +46,10 @@ from myokit import (
     Tan,
 )
 
+import shared
 
-class LatexExpressionWriterTest(tests.ExpressionWriterTestCase):
+
+class LatexExpressionWriterTest(shared.ExpressionWriterTestCase):
     """
     Test conversion of expressions to Python.
     This is used by pyfunc(), although that's usually done with the

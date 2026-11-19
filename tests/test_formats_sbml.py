@@ -14,7 +14,8 @@ import numpy as np
 import myokit
 import myokit.formats
 import myokit.formats.sbml
-from tests import DIR_DATA, WarningCollector
+
+from shared import DIR_DATA, WarningCollector
 
 
 class SBMLExporterTest(unittest.TestCase):

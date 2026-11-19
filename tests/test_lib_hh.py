@@ -11,7 +11,8 @@ import numpy as np
 
 import myokit
 import myokit.lib.hh as hh
-from tests import DIR_DATA, WarningCollector
+
+from shared import DIR_DATA, WarningCollector
 
 MODEL = """
 [[model]]

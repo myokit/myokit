@@ -9,7 +9,7 @@ import unittest
 
 import myokit
 import myokit.formats.cellml.v1 as cellml
-from tests import DIR_DATA, WarningCollector
+from shared import DIR_DATA, WarningCollector
 
 
 class TestCellML1AnnotatedElement(unittest.TestCase):

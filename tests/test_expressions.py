@@ -12,7 +12,7 @@ import unittest
 import numpy as np
 
 import myokit
-from tests import DIR_DATA, WarningCollector
+from shared import DIR_DATA, WarningCollector
 
 # Unit --> See test_units.py
 # Quantity --> See test_units.py

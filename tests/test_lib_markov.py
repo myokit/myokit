@@ -11,7 +11,8 @@ import numpy as np
 
 import myokit
 import myokit.lib.markov as markov
-from tests import DIR_DATA
+
+from shared import DIR_DATA
 
 
 class LinearModelTest(unittest.TestCase):

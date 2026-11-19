@@ -9,7 +9,6 @@ import unittest
 
 import myokit
 import myokit.formats.stan
-import tests
 from myokit import (
     Abs,
     ACos,
@@ -47,8 +46,10 @@ from myokit import (
     Tan,
 )
 
+import shared
 
-class StanExpressionWriterTest(tests.ExpressionWriterTestCase):
+
+class StanExpressionWriterTest(shared.ExpressionWriterTestCase):
     """ Test conversion of expressions to Stan. """
     _name = 'stan'
     _target = myokit.formats.stan.StanExpressionWriter

@@ -5,7 +5,7 @@
 #
 import myokit
 import myokit.formats
-from tests import DIR_DATA
+from shared import DIR_DATA
 
 
 def generate_all():

@@ -10,7 +10,8 @@ import tempfile
 import unittest
 
 import myokit
-from tests import OpenCL_FOUND
+
+from shared import OpenCL_FOUND
 
 
 @unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')

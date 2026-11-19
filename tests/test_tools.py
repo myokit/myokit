@@ -15,7 +15,8 @@ import time
 import unittest
 
 import myokit
-from tests import WarningCollector
+
+from shared import WarningCollector
 
 
 class BenchmarkerTest(unittest.TestCase):

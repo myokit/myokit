@@ -8,9 +8,10 @@
 import unittest
 
 import myokit
-from tests import DIR_DATA
-from tests.ansic_event_based_pacing import AnsicEventBasedPacing
-from tests.ansic_time_series_pacing import AnsicTimeSeriesPacing
+
+from shared import DIR_DATA
+from ansic_event_based_pacing import AnsicEventBasedPacing
+from ansic_time_series_pacing import AnsicTimeSeriesPacing
 
 
 class EventBasedPacingAnsicTest(unittest.TestCase):

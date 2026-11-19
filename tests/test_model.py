@@ -15,7 +15,8 @@ import tempfile
 import unittest
 
 import myokit
-from tests import DIR_DATA, WarningCollector
+
+from shared import DIR_DATA, WarningCollector
 
 
 class ModelTest(unittest.TestCase):

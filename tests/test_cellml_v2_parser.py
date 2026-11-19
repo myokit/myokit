@@ -11,7 +11,7 @@ import unittest
 
 import myokit
 import myokit.formats.cellml.v2 as v2
-from tests import DIR_DATA, WarningCollector
+from shared import DIR_DATA, WarningCollector
 
 
 class TestCellMLParser(unittest.TestCase):

@@ -14,7 +14,7 @@ import numpy as np
 import myokit
 import myokit.formats
 import myokit.formats.axon as axon
-from tests import DIR_DATA, WarningCollector
+from shared import DIR_DATA, WarningCollector
 
 V1_INFO = '''
 Axon Binary File: abf-v1.abf

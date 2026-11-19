@@ -10,7 +10,8 @@ import unittest
 
 import myokit
 import myokit.lib.deps as deps
-from tests import DIR_DATA
+
+from shared import DIR_DATA
 
 
 class LibDepsTest(unittest.TestCase):

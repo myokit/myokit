@@ -13,7 +13,8 @@ import unittest
 import numpy as np
 
 import myokit
-from tests import (
+
+from shared import (
     DIR_DATA,
     CancellingReporter,
     OpenCL_DOUBLE_PRECISION_CONNECTIONS,

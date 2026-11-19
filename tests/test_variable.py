@@ -10,7 +10,8 @@ import unittest
 import numpy as np
 
 import myokit
-from tests import WarningCollector
+
+from shared import WarningCollector
 
 
 class VariableTest(unittest.TestCase):

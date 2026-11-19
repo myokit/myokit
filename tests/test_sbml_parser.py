@@ -11,7 +11,8 @@ import myokit
 import myokit.formats
 import myokit.formats.sbml
 from myokit.formats.sbml import SBMLParser, SBMLParsingError
-from tests import WarningCollector
+
+from shared import WarningCollector
 
 
 class TestSBMLParser(unittest.TestCase):

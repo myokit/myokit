@@ -15,7 +15,6 @@ import unittest
 import myokit
 import myokit.formats
 import myokit.formats.diffsl
-import tests
 from myokit import (
     Abs,
     ACos,
@@ -52,7 +51,9 @@ from myokit import (
     Sqrt,
     Tan,
 )
-from tests import DIR_DATA, WarningCollector
+
+import shared
+from shared import DIR_DATA, WarningCollector
 
 # Model that requires unit conversion
 units_model = """
@@ -1113,7 +1114,7 @@ k = 6
             self.assertIsNone(e.get_state_index(inter_var))
 
 
-class DiffSLExpressionWriterTest(tests.ExpressionWriterTestCase):
+class DiffSLExpressionWriterTest(shared.ExpressionWriterTestCase):
     """Test conversion to DiffSL syntax."""
 
     _name = "diffsl"

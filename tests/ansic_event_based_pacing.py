@@ -5,7 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 import myokit
-from tests import DIR_TEST
+from shared import DIR_TEST
 
 # Location of C template
 SOURCE_FILE = 'ansic_event_based_pacing.c'

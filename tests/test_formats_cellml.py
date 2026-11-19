@@ -14,7 +14,7 @@ import myokit
 import myokit.formats as formats
 import myokit.formats.cellml as cellml
 from myokit.formats.cellml import CellMLImporterError
-from tests import DIR_DATA, WarningCollector
+from shared import DIR_DATA, WarningCollector
 
 
 class CellMLExporterTest(unittest.TestCase):

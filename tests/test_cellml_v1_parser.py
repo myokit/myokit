@@ -12,7 +12,7 @@ import unittest
 import myokit
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v1 as v1
-from tests import DIR_DATA, WarningCollector
+from shared import DIR_DATA, WarningCollector
 
 
 class TestCellMLParser(unittest.TestCase):

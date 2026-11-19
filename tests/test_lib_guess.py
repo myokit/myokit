@@ -9,7 +9,8 @@ import unittest
 
 import myokit
 import myokit.lib.guess as guess
-from tests import DIR_DATA
+
+from shared import DIR_DATA
 
 
 class LibGuessTest(unittest.TestCase):

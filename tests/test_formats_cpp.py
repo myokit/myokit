@@ -9,10 +9,11 @@ import unittest
 
 import myokit
 import myokit.formats.cpp
-import tests
+
+import shared
 
 
-class CppExpressionWriterTest(tests.ExpressionWriterTestCase):
+class CppExpressionWriterTest(shared.ExpressionWriterTestCase):
     """
     Test the C++ expression writer.
     This inherits from Ansi C, only dropping support for initial values and

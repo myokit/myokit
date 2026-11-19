@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 import myokit
-from tests import WarningCollector
+from shared import WarningCollector
 
 debug = False
 

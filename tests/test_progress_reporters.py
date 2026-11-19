@@ -10,7 +10,8 @@ import time
 import unittest
 
 import myokit
-from tests import DIR_DATA
+
+from shared import DIR_DATA
 
 
 class ProgressPrinterTests(unittest.TestCase):

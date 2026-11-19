@@ -12,7 +12,8 @@ import unittest
 import numpy as np
 
 import myokit
-from tests import DIR_DATA
+
+from shared import DIR_DATA
 
 
 class PrecompiledSimulationTest(unittest.TestCase):

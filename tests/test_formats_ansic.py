@@ -12,7 +12,6 @@ import unittest
 import myokit
 import myokit.formats.ansic
 import myokit.formats.cpp
-import tests
 from myokit import (
     Abs,
     ACos,
@@ -50,8 +49,10 @@ from myokit import (
     Tan,
 )
 
+import shared
 
-class AnsiCExpressionWriterTest(tests.ExpressionWriterTestCase):
+
+class AnsiCExpressionWriterTest(shared.ExpressionWriterTestCase):
     """
     Test conversion to Ansi C, as used by the Simulation.
     Numerical tests are provided by composing and evaluating a single RHS.

@@ -13,7 +13,8 @@ import unittest
 
 import myokit
 import myokit.units
-from tests import DIR_DATA, WarningCollector
+
+from shared import DIR_DATA, WarningCollector
 
 
 class TokenizerTest(unittest.TestCase):
