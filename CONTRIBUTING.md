@@ -293,6 +293,42 @@ Then have a look at `<your myokit path>/doc/build/html/index.html`.
 
 
 
+## Distribution
+
+This is currently handled only by Michael.
+
+### Including non-Python files
+
+Myokit distributes two things:
+
+1. A source distribution (sdist), including tests etc.
+2. A pip-installable wheel, including only the `myokit` module.
+
+Non-python files can be included using `pyproject.toml` and `MANIFEST.in`.
+
+- Items listed in MANIFEST.in
+  - Will be included in the source distribution
+  - Will be included in the wheel, _if they live inside the `myokit` directory_.
+- Items listed in `pyproject.toml` under tool.setuptools.package-data` are included in both.
+
+To make it easier, we use `pyproject.toml` to include things in the wheel and sdist, but we use `MANIFEST.in` to include things only in the source distribution.
+
+#### Testing what's included
+
+To test what is included, use `./test-build.sh`
+
+Alternatively, follow this manual procedure:
+
+1. Remove the egg-info files: `rm myokit.egg-info -rf`
+   This is crucial: the SOURCES.txt inside egg-info will otherwise create misleading results.
+2. Build a new sdist and wheel: `python -m build`
+3. Unzip both files in the new `dist` directory
+4. Use e.g. meld to compare.
+
+
+
+
+
 ## Infrastructure & configuration files
 
 - Packaging and installation is configured in `pyproject.toml` and `MANIFEST.in`.

@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+#
+# Tests the CVODES simulation class, when using a precompiled simulation.
+#
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
+#
+import pathlib
+import tempfile
+import unittest
+
+import numpy as np
+from shared import DIR_DATA
+
+import myokit
+
+
+class PrecompiledSimulationTest(unittest.TestCase):
+    """
+    Tests the CVODES simulation class, when using a precompiled simulation.
+    """
+
+    def test(self):
+        # Create and run two simulations and compare the output
+
+        # Load model and protocol
+        model, protocol, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
+
+        # Select sensitivities to calculate
+        sens = (
+            ('membrane.V', 'calcium.Cai', 'ina.INa', 'ix1.x1', 'dot(ina.m)'),
+            ('init(ix1.x1)', 'init(calcium.Cai)', 'ina.gNa', 'ix1.gx1')
+        )
+
+        # Create both simulations
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d, 'precompiled-test.zip')
+            sim1 = myokit.Simulation(model, protocol, sens, path=path)
+            sim2 = myokit.Simulation.from_path(path)
+
+        sim1.pre(10)
+        sim1.run(10)
+        d1, s1 = sim1.run(1000)
+        d1, s1 = d1.npview(), np.array(s1)
+
+        sim2.pre(10)
+        sim2.run(10)
+        d2, s2 = sim2.run(1000)
+        d2, s2 = d2.npview(), np.array(s2)
+
+        for k, v in d1.items():
+            if k == 'engine.realtime':
+                continue
+            if np.max(np.abs(v - d2[k])) > 0:
+                print(k)
+            self.assertTrue(np.all(v == d2[k]))
+
+        self.assertTrue(np.all(s1 == s2))
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -188,9 +188,10 @@ def main():
     add_step_parser(subparsers)             # Load a model, perform 1 step
     add_sundials_parser(subparsers)         # Show Sundials support
     add_system_parser(subparsers)           # Show system information
-    add_test_parser(subparsers)             # Run tests
     add_version_parser(subparsers)          # Show version info
     add_video_parser(subparsers)            # Convert a DataBlock to video
+    if test_in_repo():
+        add_test_parser(subparsers)
 
     # Parse!
     if len(sys.argv) == 1:
@@ -1138,11 +1139,6 @@ def add_test_parser(subparsers):
         help='Runs unit tests, doc tests, etc.',
     )
 
-    # Not in repo? Then run unit tests
-    if not test_in_repo():
-        parser.set_defaults(func=test_unit)
-        return
-
     # Give full options if in repo
     subparsers = parser.add_subparsers(help='commands')
 
@@ -1187,12 +1183,12 @@ def add_test_parser(subparsers):
         if testfunc is None:
             parser.print_help()
         else:
-            testfunc(args)
+            testfunc(**args)
 
     parser.set_defaults(func=run_tests)
 
 
-def test_coverage(args):
+def test_coverage():
     """ Runs the unit tests and prints a coverage report. """
 
     try:
@@ -1238,7 +1234,7 @@ def test_coverage(args):
             path.unlink()
 
 
-def test_documentation(args):
+def test_documentation():
     """
     Checks if the documentation can be built, runs all doc tests, exits if
     anything fails.
@@ -1412,10 +1408,7 @@ def test_doc_coverage_get_objects():
 
     # Get modules
     root = pathlib.Path('myokit')
-    ignore = [
-        root / 'tests',
-    ]
-    modules = find_modules(root, [], ignore)
+    modules = find_modules(root, [], [])
 
     # Import all modules
     for module in modules:
@@ -1544,7 +1537,7 @@ def test_doc_coverage_index(modules, classes, functions):
     return n == 0
 
 
-def test_examples_web(args):
+def test_examples_web():
     """ Runs all web examples, exits if one of them fails. """
     # Get web directory
     path = (myokit.DIR_MYOKIT / '..' / 'dev' / 'web' / 'html' / 'static' /
@@ -1617,7 +1610,7 @@ def test_mmt_files(path):
     return error
 
 
-def test_style(args):
+def test_style():
     """ Runs ruff in a subprocess. """
 
     print('Running ruff... ')
@@ -1629,7 +1622,7 @@ def test_style(args):
     sys.exit(p.wait())
 
 
-def test_unit(args=None):
+def test_unit():
     """ Runs unit tests, exits if anything fails. """
 
     print(f'Running tests with {sys.executable}')
@@ -1638,10 +1631,8 @@ def test_unit(args=None):
     # are being raised in a consistent manner.
     warnings.simplefilter('always')
 
-    if test_in_repo():
-        path = pathlib.Path('myokit', 'tests')
-    else:
-        path = myokit.DIR_MYOKIT / 'tests'
+    # Guaranteed to be in repo at this point
+    path = pathlib.Path('tests')
 
     suite = unittest.defaultTestLoader.discover(path, pattern='test*.py')
     res = unittest.TextTestRunner(verbosity=2).run(suite)

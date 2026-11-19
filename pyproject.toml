@@ -65,6 +65,18 @@ where = [""]
 include = ["myokit*"]
 #exclude = ["additional*"]`
 
+[tool.setuptools.package-data]
+myokit = [
+    # Libraries, test file, icons etc.
+    "_bin/**/*",
+    # Sources for simulations
+    "_sim/*.c",
+    "_sim/*.h",
+    "_sim/*.cl",
+    # Templates for export
+    "formats/*/template/**/*",
+]
+
 # Style checking
 [tool.ruff]
 line-length = 79
@@ -112,7 +124,6 @@ exclude = [
 source = ["myokit"]
 omit = [
     "myokit/gui/*",
-    "myokit/tests/*",
     "myokit/__main__.py",
     "myokit/formats/heka/*",
 ]

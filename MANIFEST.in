@@ -1,7 +1,3 @@
-include myokit/_sim/*.h myokit/_sim/*.c
-include myokit/_sim/*.hpp myokit/_sim/*.cpp
-include myokit/_sim/*.cl
-include myokit/tests/*.py
-recursive-include myokit/formats template/*
-graft myokit/_bin
-graft myokit/tests/data
+# Include tests in sdist
+recursive-include tests *.py *.c
+graft tests/data
