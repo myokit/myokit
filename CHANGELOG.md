@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.41.0] - 2026-11-19
 - Added
   - [#1268](https://github.com/myokit/myokit/pull/1268) Added more thorough licensing documentation.
@@ -22,7 +29,7 @@ This page lists the main changes made to Myokit in each release.
   - [#1258](https://github.com/myokit/myokit/pull/1258) A MathML `tanh(x)` is now imported as `1 - 2 / (exp(2 * x) + 1)`, which gives better results for extreme `x`.
   - [#1260](https://github.com/myokit/myokit/pull/1260) Fixed a bug in expression writers where an infix operation with symbollically equal operands, e.g. `(a - b) - (a - b)` rendered incorrectly.
   - [#1262](https://github.com/myokit/myokit/pull/1262) Fixed a bug in `lib.deps.DiGraph.cg_layers_dag` cycle detection.
-  
+
 ## [1.40.0] - 2026-11-02
 - Added
   - [#1214](https://github.com/myokit/myokit/pull/1214) Myokit is now tested on Python 3.15.
