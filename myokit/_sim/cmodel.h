@@ -4,7 +4,7 @@
 # A pype template for a C model class, for use in simulations.
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 # Required variables
 # -----------------------------------------------------------------------------

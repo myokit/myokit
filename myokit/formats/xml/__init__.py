@@ -2,7 +2,7 @@
 # Provides XML support.
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 from ._exporter import XMLExporter
 from ._split import split  # noqa: F401

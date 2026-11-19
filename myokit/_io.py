@@ -4,7 +4,7 @@
 # myokit module but don't belong to any specific hidden module.
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 import array
 import io

@@ -2,7 +2,7 @@
 # Qt gui for viewing DataBlock2d data files.
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 import collections
 import configparser

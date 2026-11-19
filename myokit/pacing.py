@@ -2,7 +2,7 @@
 # Factory methods for pacing protocols
 #
 # This file is part of Myokit.
-# See http://myokit.org for copyright, sharing, and licensing details.
+# See https://github.com/myokit/myokit for copyright, sharing, and licensing.
 #
 """
 This module contains factory methods to create Protocol objects
