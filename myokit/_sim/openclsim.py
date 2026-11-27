@@ -1070,8 +1070,11 @@ class SimulationOpenCL(myokit.CModule):
                     ' myokit.ProgressReporter or None.')
 
         # Run simulation
+        # The simulation is run only if (tmin + duration > tmin). This is a
+        # stronger check than (duration > 0), which will return true even for
+        # very short durations that get lost to rounding errors.
         arithmetic_error = False
-        if duration > 0:
+        if tmax > tmin:
             # Initialize
             state_in = self._state
             state_out = list(state_in)

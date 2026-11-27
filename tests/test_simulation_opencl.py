@@ -685,6 +685,16 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertTrue(np.all(d['engine.pace'][:-1] == 0))
         self.assertEqual(d['engine.pace'][-1], 1)
 
+    def test_short_durations(self):
+        # Test that durations lost to rounding errors don't change the state
+        # (see #23)
+        self.s0.reset()
+        self.s0.set_time(1e6)
+        x0 = self.s0.state()
+        self.s0.run(1e-12, log=myokit.LOG_NONE)
+        self.assertEqual(self.s0.time(), 1e6)
+        self.assertEqual(self.s0.state(), x0)
+
     def test_neighbors_0d(self):
         # Test listing neighbors in a 0d simulation
 

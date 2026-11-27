@@ -135,6 +135,44 @@ class Simulation1dTest(unittest.TestCase):
         self.assertTrue(np.all(d['engine.pace'][:-1] == 0))
         self.assertEqual(d['engine.pace'][-1], 1)
 
+    def test_short_durations(self):
+        # Test running for durations that are not a multiple of the step size,
+        # or that are lost to rounding errors (see #23)
+
+        m, p, _ = myokit.load(DIR_DATA / 'beeler-1977.mmt')
+        s = myokit.Simulation1d(m, p, ncells=2)
+        s.set_step_size(0.01)
+
+        def run(*durations):
+            s.reset()
+            s.set_time(0)
+            for d in durations:
+                s.run(d, log=myokit.LOG_NONE)
+            return np.array(s.state())
+
+        # Final step should be shortened to arrive at exactly tmax, even if
+        # it is much smaller than the step size.
+        x1 = run(1)
+        x2 = run(1 + 1e-6)
+        x3 = run(1.01)
+        self.assertEqual(s.time(), 1.01)
+        self.assertLess(np.max(np.abs(x2 - x1)), 1e-7)
+        self.assertGreater(np.max(np.abs(x3 - x2)), 1e-5)
+
+        # Splitting a run should give (almost) the same results. Note that
+        # splitting at a point not on the step grid shifts the grid, so that
+        # small numerical differences arise.
+        self.assertLess(np.max(np.abs(run(0.5, 0.5) - x1)), 1e-9)
+        self.assertLess(np.max(np.abs(run(0.333, 0.667) - x1)), 1e-6)
+
+        # Durations lost to rounding errors should not change the state
+        s.reset()
+        s.set_time(1e6)
+        x0 = s.state()
+        s.run(1e-12)
+        self.assertEqual(s.time(), 1e6)
+        self.assertEqual(s.state(), x0)
+
     def test_no_protocol(self):
         # Test running without a protocol
         m = myokit.load_model(DIR_DATA / 'beeler-1977.mmt')

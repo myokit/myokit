@@ -372,8 +372,9 @@ sim_init(PyObject *self, PyObject *args)
         }
     }
 
-    /* Set minimum step size */
-    dt_min = 1e-2 * default_dt;
+    /* Set minimum step size. This must be zero, as a non-zero value would
+       cause the simulation to step past tmax if (tmax - t) < dt_min. */
+    dt_min = 0;
 
     /* Set up logging */
     list_update_str = PyUnicode_FromString("append");

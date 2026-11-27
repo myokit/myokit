@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#23](https://github.com/myokit/myokit/issues/23) `Simulation1d` no longer steps past the end of a run when the remaining time is less than 1% of the step size. Fixed-step simulations no longer initialise a run if its duration is lost to rounding errors.
 
 ## [1.41.0] - 2026-11-19
 - Added

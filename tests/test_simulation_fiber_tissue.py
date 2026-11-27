@@ -474,6 +474,17 @@ class FiberTissueSimulationTest(unittest.TestCase):
             self.s1.set_default_tissue_state(st0)
             self.s1.reset()
 
+    def test_short_durations(self):
+        # Test that durations lost to rounding errors don't change the state
+        # (see #23)
+        self.s0.reset()
+        self.s0.set_time(1e6)
+        xf, xt = self.s0.fiber_state(), self.s0.tissue_state()
+        self.s0.run(1e-12, logf=myokit.LOG_NONE, logt=myokit.LOG_NONE)
+        self.assertEqual(self.s0.time(), 1e6)
+        self.assertEqual(self.s0.fiber_state(), xf)
+        self.assertEqual(self.s0.tissue_state(), xt)
+
     def test_protocol(self):
         # Test setting a protocol
 
