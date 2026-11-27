@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+import myokit
+
+n = 96
+m,p,x = myokit.load('example')
+
+w = None
+#w = myokit.ProgressPrinter(digits=0)
+s = myokit.SimulationOpenMP(m, p, ncells=n)
+
+print('Running')
+b = myokit.Benchmarker()
+d = s.run(2000, progress=w)
+print(b.time())
+
+
