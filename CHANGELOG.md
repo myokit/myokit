@@ -8,6 +8,8 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#1160](https://github.com/myokit/myokit/pull/1160) The `PatchMasterFile` class can now handle dates as stored by Windows versions.
+
 
 ## [1.41.0] - 2026-11-19
 - Added
