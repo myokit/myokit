@@ -341,16 +341,19 @@ class AbfFile(myokit.formats.SweepSource):
 
             if version < 2:
 
-                # Version 1: Only read tags
-                tags = []
-                for i in range(header['lNumTagEntries']):  # pragma: no cover
-                    # Cover pragma: Don't have appropriate test file
-                    f.seek(header['lTagSectionPtr'] + i * 64)
-                    tag = {}
-                    for key, form in ABF2_TAG_INFO_DESCRIPTION:
-                        tag[key] = ups(read_f(f, form))
-                    tags.append(tag)
-                header['tags'] = tags
+                # Version 1
+
+                # Read tags
+                # tags = []
+                # for i in range(header['lNumTagEntries']):
+                #     f.seek(header['lTagSectionPtr'] + i * 64)
+                #     tag = {}
+                #     for key, form in ABF2_TAG_INFO_DESCRIPTION:
+                #         tag[key] = ups(read_f(f, form))
+                #     tags.append(tag)
+                # header['tags'] = tags
+
+                # Empty strings list
                 self._strings = []
 
             else:
@@ -386,17 +389,16 @@ class AbfFile(myokit.formats.SweepSource):
                 self._strings = strings
 
                 # Read tag section
-                tags = []
-                offs = sections['Tag']['index'] * BLOCKSIZE
-                size = sections['Tag']['data']
-                for i in range(sections['Tag']['length']):  # pragma: no cover
-                    # Cover pragma: Don't have appropriate test file
-                    f.seek(offs + i * size)
-                    tag = {}
-                    for key, form in ABF2_TAG_INFO_DESCRIPTION:
-                        tag[key] = ups(read_f(f, form))
-                    tags.append(tag)
-                header['tags'] = tags
+                # tags = []
+                # offs = sections['Tag']['index'] * BLOCKSIZE
+                # size = sections['Tag']['data']
+                # for i in range(sections['Tag']['length']):
+                #     f.seek(offs + i * size)
+                #     tag = {}
+                #     for key, form in ABF2_TAG_INFO_DESCRIPTION:
+                #         tag[key] = ups(read_f(f, form))
+                #     tags.append(tag)
+                # header['tags'] = tags
 
                 # Read protocol section
                 protocol = {}
@@ -642,8 +644,8 @@ class AbfFile(myokit.formats.SweepSource):
         # User lists are not supported for D/A reconstruction
         # I haven't been able to figure out how you see if a user list is
         # being used, or which channel is using it. There is an 'enable' field
-        # but that's been 0 in files that definitely used a UserList...
-        # So for now not reading ANY DAC if a userlist even exists.
+        # but that's been 0 in files that definitely used a user list...
+        # So for now not reading ANY DAC if a user list even exists.
         user_lists = False
         if self._version < 2:   # pragma: no cover
             user_lists = any(self._header['nULEnable'])
@@ -818,11 +820,7 @@ class AbfFile(myokit.formats.SweepSource):
             sweep_starts_sizes = [(0, len(data))]
 
         # Sanity check
-        if len(sweep_starts_sizes) != len(self._sweeps):  # pragma: no cover
-            raise RuntimeError(
-                'Unexpected situation: number of sweeps is'
-                f' {len(self._sweeps)} but found list of'
-                f' {len(sweep_starts_sizes)} sweep sizes.')
+        assert len(sweep_starts_sizes) == len(self._sweeps)
 
         # Check if sweep sizes are all the same
         self._equal_length_sweeps = True
@@ -977,8 +975,7 @@ class AbfFile(myokit.formats.SweepSource):
                 else:
                     i2 = ns // 64  # ABFH_HOLDINGFRACTION = 64
                     i2 -= i2 % self._n_adc
-                    if (i2 < self._n_adc):  # pragma: no cover
-                        i2 = self._n_adc
+                    i2 = max(i2, self._n_adc)
 
                 # For each 'epoch' in the stimulation signal
                 for e in einfo(i_dac):
@@ -989,6 +986,7 @@ class AbfFile(myokit.formats.SweepSource):
                         i2 += dur + i_sweep * inc
                         level = e['init_level'] + e['level_inc'] * i_sweep
                         c._data[i1:i2] = level * np.ones(len(range(i2 - i1)))
+                    # TODO: Convert ramps??
 
                 # Store channel
                 sweep._channels.append(c)
@@ -1997,21 +1995,20 @@ DAC_DACFILEWAVEFORM = 2     # Stimulus file
 
 
 # User list parameter to vary
-'''
-CONDITNUMPULSES 0
-CONDITBASELINEDURATION 1
-CONDITBASELINELEVEL 2
-CONDITSTEPDURATION 3
-CONDITSTEPLEVEL 4
-CONDITPOSTTRAINDURATION 5
-CONDITPOSTTRAINLEVEL 6
-EPISODESTARTTOSTART 7
-INACTIVEHOLDING 8
-DIGITALINTEREPISODE 9
-PNNUMPULSES 10
-PARALLELVALUE(0-9) 11-20
-EPOCHINITLEVEL(0-9) 21-30
-EPOCHINITDURATION(0-9) 31-40
-EPOCHTRAINPERIOD(0-9) 41-50
-EPOCHTRAINPULSEWIDTH(0-9) 51-60
-'''
+# CONDITNUMPULSES 0
+# CONDITBASELINEDURATION 1
+# CONDITBASELINELEVEL 2
+# CONDITSTEPDURATION 3
+# CONDITSTEPLEVEL 4
+# CONDITPOSTTRAINDURATION 5
+# CONDITPOSTTRAINLEVEL 6
+# EPISODESTARTTOSTART 7
+# INACTIVEHOLDING 8
+# DIGITALINTEREPISODE 9
+# PNNUMPULSES 10
+# PARALLELVALUE(0-9) 11-20
+# EPOCHINITLEVEL(0-9) 21-30
+# EPOCHINITDURATION(0-9) 31-40
+# EPOCHTRAINPERIOD(0-9) 41-50
+# EPOCHTRAINPULSEWIDTH(0-9) 51-60
+
