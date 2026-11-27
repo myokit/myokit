@@ -148,13 +148,13 @@ class PatchMasterFile:
 
         # Check that this is a "bundle" file.
         sig = f.read(8).decode(_ENC)
-        if sig[:4] == 'DATA ':
-            raise NotImplementedError(
-                'Older version not supported.')
-        elif sig[:4] == 'DAT1':
-            raise NotImplementedError(
-                'Only bundle files are supported.')
-        elif sig[:4] != 'DAT2':
+        if sig[:4] != 'DAT2':  # pragma: no cover
+            if sig[:4] == 'DATA ':
+                raise NotImplementedError(
+                    'Older version not supported.')
+            elif sig[:4] == 'DAT1':
+                raise NotImplementedError(
+                    'Only bundle files are supported.')
             raise NotImplementedError(
                 'Older version or not recognized as HEKA PatchMaster'
                 ' format.')
@@ -408,8 +408,8 @@ class TreeNode:
         # Number of levels in this tree
         n = reader.read1('i')
         sizes = reader.read(n * 'i')
-        if n != len(levels):
-            raise ValueError(
+        if n != len(levels):  # pragma: no-cover
+            raise RuntimeError(
                 'Unexpected number of levels found in tree: expected'
                 f' {len(levels)}, found {n}.')
 
@@ -580,12 +580,16 @@ class Group(TreeNode):
         for n=0, the second for n=1, etc.).
         """
         i = 0
-        for series in (self.complete_series() if complete_only else self):
+        for series in self:
             if series.label() == label:
                 if i == n:
+                    if complete_only and not series.is_complete():
+                        raise KeyError(
+                            'Unable to find the requested series: A series was'
+                            ' found but is not complete.')
                     return series
                 i += 1
-        raise ValueError('Unable to find the requested series.')
+        raise KeyError('Unable to find the requested series.')
 
 
 #
@@ -690,7 +694,7 @@ class Series(TreeNode, myokit.formats.SweepSource):
         if offset == 472:
             handle.seek(i + 472)    # SeAmplifierState = 472; (* Size = 400 *)
             self._amplifier_state = AmplifierState(handle, reader)
-        elif offset != 0:
+        elif offset != 0:  # pragma: no cover
             warnings.warn(
                 'Unexpected amplifier state offset: expecting 472 (information'
                 ' stored with Series) or 0 (information stored in .amp file).')
